@@ -14,7 +14,230 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      credenciado_crms: {
+        Row: {
+          created_at: string | null
+          credenciado_id: string
+          crm: string
+          especialidade: string
+          id: string
+          uf_crm: string
+        }
+        Insert: {
+          created_at?: string | null
+          credenciado_id: string
+          crm: string
+          especialidade: string
+          id?: string
+          uf_crm: string
+        }
+        Update: {
+          created_at?: string | null
+          credenciado_id?: string
+          crm?: string
+          especialidade?: string
+          id?: string
+          uf_crm?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credenciado_crms_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credenciado_historico: {
+        Row: {
+          created_at: string | null
+          credenciado_id: string
+          data_ocorrencia: string | null
+          descricao: string
+          id: string
+          tipo: string
+          usuario_responsavel: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credenciado_id: string
+          data_ocorrencia?: string | null
+          descricao: string
+          id?: string
+          tipo: string
+          usuario_responsavel?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credenciado_id?: string
+          data_ocorrencia?: string | null
+          descricao?: string
+          id?: string
+          tipo?: string
+          usuario_responsavel?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credenciado_historico_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credenciados: {
+        Row: {
+          celular: string | null
+          cep: string | null
+          cidade: string | null
+          cnpj: string | null
+          cpf: string | null
+          created_at: string | null
+          data_nascimento: string | null
+          email: string | null
+          endereco: string | null
+          estado: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          porte: string | null
+          rg: string | null
+          status: string
+          telefone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          celular?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          cpf?: string | null
+          created_at?: string | null
+          data_nascimento?: string | null
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          porte?: string | null
+          rg?: string | null
+          status?: string
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          celular?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          cpf?: string | null
+          created_at?: string | null
+          data_nascimento?: string | null
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          porte?: string | null
+          rg?: string | null
+          status?: string
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      horarios_atendimento: {
+        Row: {
+          created_at: string | null
+          credenciado_crm_id: string
+          dia_semana: string
+          horario_fim: string
+          horario_inicio: string
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          credenciado_crm_id: string
+          dia_semana: string
+          horario_fim: string
+          horario_inicio: string
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          credenciado_crm_id?: string
+          dia_semana?: string
+          horario_fim?: string
+          horario_inicio?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "horarios_atendimento_credenciado_crm_id_fkey"
+            columns: ["credenciado_crm_id"]
+            isOneToOne: false
+            referencedRelation: "credenciado_crms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      solicitacoes_alteracao: {
+        Row: {
+          analisado_em: string | null
+          analisado_por: string | null
+          created_at: string | null
+          credenciado_id: string
+          dados_atuais: Json | null
+          dados_propostos: Json
+          id: string
+          justificativa: string | null
+          observacoes_analise: string | null
+          solicitado_em: string | null
+          status: string
+          tipo_alteracao: string
+        }
+        Insert: {
+          analisado_em?: string | null
+          analisado_por?: string | null
+          created_at?: string | null
+          credenciado_id: string
+          dados_atuais?: Json | null
+          dados_propostos: Json
+          id?: string
+          justificativa?: string | null
+          observacoes_analise?: string | null
+          solicitado_em?: string | null
+          status?: string
+          tipo_alteracao: string
+        }
+        Update: {
+          analisado_em?: string | null
+          analisado_por?: string | null
+          created_at?: string | null
+          credenciado_id?: string
+          dados_atuais?: Json | null
+          dados_propostos?: Json
+          id?: string
+          justificativa?: string | null
+          observacoes_analise?: string | null
+          solicitado_em?: string | null
+          status?: string
+          tipo_alteracao?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitacoes_alteracao_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
