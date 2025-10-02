@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import { DocumentUpload, DocumentFile } from "@/components/documents/DocumentUpload";
 import { DuplicateChecker } from "@/components/documents/DuplicateChecker";
 import { DocumentGenerator } from "@/components/documents/DocumentGenerator";
-import { validateCPF, validateCNPJ, validateCEP, formatCPF, formatCNPJ, formatCEP, formatPhone } from "@/lib/validators";
+import { validateCPF, validateCNPJ, validateCEP, formatCPF, formatCNPJ, formatCEP, formatPhone, fetchCNPJData } from "@/lib/validators";
 import { ValidationBadge } from "@/components/ValidationBadge";
 
 const formSchema = z.object({
@@ -42,6 +42,8 @@ const formSchema = z.object({
   ),
   cep: z.string().regex(/^\d{5}-?\d{3}$/, "CEP inválido"),
   logradouro: z.string().optional(),
+  numero: z.string().optional(),
+  complemento: z.string().optional(),
   bairro: z.string().optional(),
   cidade: z.string().optional(),
   estado: z.string().optional(),
@@ -63,6 +65,8 @@ export default function Inscricoes() {
       cpfCnpj: "",
       cep: "",
       logradouro: "",
+      numero: "",
+      complemento: "",
       bairro: "",
       cidade: "",
       estado: "",
@@ -72,15 +76,40 @@ export default function Inscricoes() {
     },
   });
 
-  // Validate CPF/CNPJ in real-time
+  // Validate CPF/CNPJ in real-time and fetch CNPJ data
   useEffect(() => {
-    const cpfCnpj = form.watch("cpfCnpj");
-    if (cpfCnpj) {
-      const clean = cpfCnpj.replace(/\D/g, "");
-      const isValid = clean.length === 11 ? validateCPF(cpfCnpj) : validateCNPJ(cpfCnpj);
-      setCpfCnpjValid(isValid);
-    }
-  }, [form.watch("cpfCnpj")]);
+    const subscription = form.watch(async (value, { name }) => {
+      if (name === "cpfCnpj" && value.cpfCnpj) {
+        const clean = value.cpfCnpj.replace(/\D/g, "");
+        const isValid = clean.length === 11 ? validateCPF(value.cpfCnpj) : validateCNPJ(value.cpfCnpj);
+        setCpfCnpjValid(isValid);
+
+        // Se for CNPJ válido e pessoa jurídica, buscar dados
+        if (isValid && clean.length === 14 && value.tipo === "pessoa_juridica") {
+          const result = await fetchCNPJData(value.cpfCnpj);
+          if (result.success && result.data) {
+            // Preencher dados da empresa
+            form.setValue("nome", result.data.razao_social || result.data.nome_fantasia);
+            form.setValue("cep", formatCEP(result.data.cep));
+            form.setValue("logradouro", result.data.logradouro);
+            form.setValue("numero", result.data.numero);
+            form.setValue("complemento", result.data.complemento);
+            form.setValue("bairro", result.data.bairro);
+            form.setValue("cidade", result.data.municipio);
+            form.setValue("estado", result.data.uf);
+            
+            setCepValid(true);
+            
+            toast.success(`Dados da empresa preenchidos automaticamente!`);
+          } else {
+            toast.error("Não foi possível buscar os dados do CNPJ");
+          }
+        }
+      }
+    });
+    
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   // Validate CEP and auto-fill address
   const handleCepChange = async (cep: string) => {
@@ -255,6 +284,34 @@ export default function Inscricoes() {
                             handleCepChange(formatted);
                           }}
                         />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="numero"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Número</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Número" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="complemento"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Complemento</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Apto, Sala, Andar..." {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

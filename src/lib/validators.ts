@@ -80,6 +80,30 @@ export interface BrasilAPICepData {
   };
 }
 
+export interface BrasilAPICnpjData {
+  cnpj: string;
+  razao_social: string;
+  nome_fantasia: string;
+  cep: string;
+  uf: string;
+  municipio: string;
+  bairro: string;
+  logradouro: string;
+  numero: string;
+  complemento: string;
+  cnae_fiscal: number;
+  cnae_fiscal_descricao: string;
+  data_inicio_atividade: string;
+  natureza_juridica: string;
+  situacao_cadastral: number;
+  descricao_situacao_cadastral: string;
+  porte: string;
+  qsa?: Array<{
+    nome_socio: string;
+    qualificacao_socio: string;
+  }>;
+}
+
 export const validateCEP = async (cep: string): Promise<{ valid: boolean; data?: BrasilAPICepData }> => {
   const cleanCEP = cep.replace(/\D/g, "");
   
@@ -99,6 +123,28 @@ export const validateCEP = async (cep: string): Promise<{ valid: boolean; data?:
     return { valid: true, data };
   } catch (error) {
     return { valid: false };
+  }
+};
+
+export const fetchCNPJData = async (cnpj: string): Promise<{ success: boolean; data?: BrasilAPICnpjData }> => {
+  const cleanCNPJ = cnpj.replace(/\D/g, "");
+  
+  if (cleanCNPJ.length !== 14) {
+    return { success: false };
+  }
+
+  try {
+    const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCNPJ}`);
+    
+    if (!response.ok) {
+      return { success: false };
+    }
+    
+    const data: BrasilAPICnpjData = await response.json();
+    
+    return { success: true, data };
+  } catch (error) {
+    return { success: false };
   }
 };
 
