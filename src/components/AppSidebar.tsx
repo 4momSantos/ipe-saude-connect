@@ -6,7 +6,8 @@ import {
   Users, 
   MapPin, 
   BarChart3, 
-  Settings 
+  Settings,
+  Workflow 
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
@@ -27,6 +28,7 @@ const menuItems = [
   { title: "Inscrições", url: "/inscricoes", icon: ClipboardList },
   { title: "Análises", url: "/analises", icon: ClipboardCheck },
   { title: "Credenciados", url: "/credenciados", icon: Users },
+  { title: "Workflows", url: "/workflows", icon: Workflow },
   { title: "Mapa da Rede", url: "/mapa", icon: MapPin },
   { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
   { title: "Configurações", url: "/configuracoes", icon: Settings },

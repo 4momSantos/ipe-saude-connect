@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, FileText, MessageSquare, History, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { X, FileText, MessageSquare, History, CheckCircle, XCircle, AlertCircle, Workflow } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { DocumentsTab } from "./process-tabs/DocumentsTab";
 import { MessagesTab } from "./process-tabs/MessagesTab";
 import { HistoryTab } from "./process-tabs/HistoryTab";
+import { WorkflowTimeline } from "./workflow/WorkflowTimeline";
 import { toast } from "sonner";
 
 interface Processo {
@@ -27,7 +28,40 @@ interface ProcessDetailPanelProps {
 }
 
 export function ProcessDetailPanel({ processo, onClose, onStatusChange }: ProcessDetailPanelProps) {
-  const [activeTab, setActiveTab] = useState("documentos");
+  const [activeTab, setActiveTab] = useState("workflow");
+
+  // Mock workflow data
+  const workflowSteps = [
+    {
+      id: "step-1",
+      name: "Submissão",
+      type: "submissao" as const,
+      order: 1,
+      description: "Envio inicial da solicitação de credenciamento",
+      color: "blue",
+      icon: "FileText",
+    },
+    {
+      id: "step-2",
+      name: "Análise de Documentos",
+      type: "analise_documentos" as const,
+      order: 2,
+      description: "Verificação da documentação enviada",
+      color: "purple",
+      icon: "FileCheck",
+    },
+    {
+      id: "step-3",
+      name: "Validação Técnica",
+      type: "validacao_tecnica" as const,
+      order: 3,
+      description: "Análise técnica dos requisitos",
+      color: "orange",
+      icon: "ClipboardCheck",
+    },
+  ];
+
+  const currentStepId = processo.status === "em_analise" ? "step-2" : "step-1";
 
   const handleAprovar = () => {
     onStatusChange(processo.id, "aprovado");
@@ -107,6 +141,13 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
           <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0 h-auto">
             <TabsTrigger
+              value="workflow"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3 gap-2"
+            >
+              <Workflow className="h-4 w-4" />
+              Workflow
+            </TabsTrigger>
+            <TabsTrigger
               value="documentos"
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3 gap-2"
             >
@@ -130,6 +171,14 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
           </TabsList>
 
           <ScrollArea className="flex-1">
+            <TabsContent value="workflow" className="m-0 p-6">
+              <div className="max-w-3xl mx-auto">
+                <WorkflowTimeline
+                  steps={workflowSteps}
+                  currentStepId={currentStepId}
+                />
+              </div>
+            </TabsContent>
             <TabsContent value="documentos" className="m-0 p-6">
               <DocumentsTab processoId={processo.id} />
             </TabsContent>
