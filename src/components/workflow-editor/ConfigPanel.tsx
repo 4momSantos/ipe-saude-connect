@@ -7,6 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FormBuilder } from "./FormBuilder";
 import { FormPreview } from "./FormPreview";
+import { WebhookConfigPanel } from "./WebhookConfig";
+import { HttpConfigPanel } from "./HttpConfig";
+import { SignatureConfigPanel } from "./SignatureConfig";
+import { EmailConfigPanel } from "./EmailConfig";
+import { DatabaseConfigPanel } from "./DatabaseConfig";
 import { WorkflowNodeData, FormField, FormTemplate } from "@/types/workflow-editor";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
@@ -86,7 +91,7 @@ export function ConfigPanel({
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="config">Config</TabsTrigger>
-              <TabsTrigger value="form">Formulário</TabsTrigger>
+              <TabsTrigger value="advanced">Avançado</TabsTrigger>
               <TabsTrigger value="preview">Preview</TabsTrigger>
             </TabsList>
 
@@ -117,36 +122,34 @@ export function ConfigPanel({
                   placeholder="Ex: Credenciamento, Análise"
                 />
               </div>
-
-              {nodeData.type === "form" && (
-                <div className="space-y-4 pt-4 border-t">
-                  <div>
-                    <Label className="mb-2 block">Carregar Template</Label>
-                    <Select onValueChange={loadTemplate}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um template..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {templates.map((template) => (
-                          <SelectItem key={template.id} value={template.id}>
-                            {template.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {templates.length === 0 && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Nenhum template disponível
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
             </TabsContent>
 
-            <TabsContent value="form" className="space-y-4 mt-4">
-              {nodeData.type === "form" ? (
+            <TabsContent value="advanced" className="space-y-4 mt-4">
+              {nodeData.type === "form" && (
                 <>
+                  <div className="space-y-4 pb-4 border-b">
+                    <div>
+                      <Label className="mb-2 block">Carregar Template</Label>
+                      <Select onValueChange={loadTemplate}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um template..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {templates.map((template) => (
+                            <SelectItem key={template.id} value={template.id}>
+                              {template.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {templates.length === 0 && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Nenhum template disponível
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
                   <FormBuilder
                     fields={nodeData.formFields || []}
                     onChange={(fields) => onUpdate({ formFields: fields })}
@@ -179,9 +182,46 @@ export function ConfigPanel({
                     </div>
                   )}
                 </>
-              ) : (
+              )}
+
+              {nodeData.type === "webhook" && (
+                <WebhookConfigPanel
+                  config={nodeData.webhookConfig || { method: "POST" }}
+                  onChange={(config) => onUpdate({ webhookConfig: config })}
+                />
+              )}
+
+              {nodeData.type === "http" && (
+                <HttpConfigPanel
+                  config={nodeData.httpConfig || { method: "GET" }}
+                  onChange={(config) => onUpdate({ httpConfig: config })}
+                />
+              )}
+
+              {nodeData.type === "signature" && (
+                <SignatureConfigPanel
+                  config={nodeData.signatureConfig || { provider: "manual", signers: [] }}
+                  onChange={(config) => onUpdate({ signatureConfig: config })}
+                />
+              )}
+
+              {nodeData.type === "email" && (
+                <EmailConfigPanel
+                  config={nodeData.emailConfig || {}}
+                  onChange={(config) => onUpdate({ emailConfig: config })}
+                />
+              )}
+
+              {nodeData.type === "database" && (
+                <DatabaseConfigPanel
+                  config={nodeData.databaseConfig || { operation: "select" }}
+                  onChange={(config) => onUpdate({ databaseConfig: config })}
+                />
+              )}
+
+              {!["form", "webhook", "http", "signature", "email", "database"].includes(nodeData.type) && (
                 <div className="text-center py-8 text-muted-foreground">
-                  <p>Este tipo de etapa não possui formulário configurável.</p>
+                  <p>Este tipo de etapa não possui configuração avançada.</p>
                 </div>
               )}
             </TabsContent>
@@ -193,7 +233,7 @@ export function ConfigPanel({
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  <p>Preview não disponível para este tipo de etapa.</p>
+                  <p>Preview disponível apenas para formulários.</p>
                 </div>
               )}
             </TabsContent>

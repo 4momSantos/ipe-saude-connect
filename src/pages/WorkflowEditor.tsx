@@ -21,7 +21,10 @@ import {
   Mail, 
   GitBranch,
   Plus,
-  ArrowLeft 
+  ArrowLeft,
+  Globe,
+  PenTool,
+  Database
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,35 +59,67 @@ const initialNodes: Node<WorkflowNodeData>[] = [
 const nodeTemplates = [
   {
     type: "form",
-    label: "Formulário de Dados",
+    label: "Formulário",
     color: "#3b82f6",
     icon: "FileText",
     description: "Coleta informações através de campos personalizáveis.",
-    category: "Form",
+    category: "Coleta de Dados",
+  },
+  {
+    type: "webhook",
+    label: "Webhook",
+    color: "#10b981",
+    icon: "Webhook",
+    description: "Recebe ou envia dados via webhook HTTP.",
+    category: "Integração",
+  },
+  {
+    type: "http",
+    label: "Chamada HTTP",
+    color: "#06b6d4",
+    icon: "Globe",
+    description: "Faz requisições HTTP para APIs externas.",
+    category: "Integração",
+  },
+  {
+    type: "signature",
+    label: "Assinatura Digital",
+    color: "#8b5cf6",
+    icon: "PenTool",
+    description: "Gerencia processo de assinatura de documentos.",
+    category: "Documento",
+  },
+  {
+    type: "email",
+    label: "Enviar Email",
+    color: "#f59e0b",
+    icon: "Mail",
+    description: "Envia emails personalizados.",
+    category: "Comunicação",
+  },
+  {
+    type: "database",
+    label: "Banco de Dados",
+    color: "#ec4899",
+    icon: "Database",
+    description: "Operações de banco de dados (CRUD).",
+    category: "Dados",
   },
   {
     type: "approval",
     label: "Aprovação",
-    color: "#f59e0b",
+    color: "#14b8a6",
     icon: "CheckCircle",
     description: "Requer aprovação manual antes de continuar.",
-    category: "Approval",
-  },
-  {
-    type: "notification",
-    label: "Enviar Notificação",
-    color: "#8b5cf6",
-    icon: "Mail",
-    description: "Envia notificação por email ou sistema.",
-    category: "Notification",
+    category: "Decisão",
   },
   {
     type: "condition",
     label: "Condição",
-    color: "#ec4899",
+    color: "#a855f7",
     icon: "GitBranch",
     description: "Divide o fluxo baseado em condições.",
-    category: "Condition",
+    category: "Decisão",
   },
   {
     type: "end",
@@ -92,7 +127,7 @@ const nodeTemplates = [
     color: "#ef4444",
     icon: "StopCircle",
     description: "Marca o fim do fluxo de trabalho.",
-    category: "End",
+    category: "Sistema",
   },
 ];
 

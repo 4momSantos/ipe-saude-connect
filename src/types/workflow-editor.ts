@@ -55,9 +55,77 @@ export interface FormTemplate {
   updatedAt: string;
 }
 
+export type NodeType = 
+  | "start" 
+  | "form" 
+  | "approval" 
+  | "notification" 
+  | "condition" 
+  | "end"
+  | "webhook"
+  | "http"
+  | "signature"
+  | "email"
+  | "database";
+
+export interface WebhookConfig {
+  url?: string;
+  method: "GET" | "POST";
+  headers?: Record<string, string>;
+  responseMapping?: Record<string, string>;
+}
+
+export interface HttpConfig {
+  url?: string;
+  method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+  headers?: Record<string, string>;
+  body?: string;
+  authentication?: {
+    type: "none" | "bearer" | "basic" | "apiKey";
+    token?: string;
+    username?: string;
+    password?: string;
+    apiKey?: string;
+    apiKeyHeader?: string;
+  };
+}
+
+export interface SignatureConfig {
+  documentTemplateId?: string;
+  signers: Array<{
+    name: string;
+    email: string;
+    order: number;
+  }>;
+  provider: "manual" | "clicksign" | "docusign";
+  notifyOnComplete?: boolean;
+}
+
+export interface EmailConfig {
+  to?: string;
+  subject?: string;
+  body?: string;
+  cc?: string;
+  bcc?: string;
+  useTemplate?: boolean;
+  templateId?: string;
+  attachments?: string[];
+}
+
+export interface DatabaseConfig {
+  operation: "insert" | "update" | "select" | "delete";
+  table?: string;
+  conditions?: Array<{
+    field: string;
+    operator: "equals" | "not_equals" | "greater_than" | "less_than" | "contains";
+    value: string;
+  }>;
+  fields?: Record<string, string>;
+}
+
 export interface WorkflowNodeData extends Record<string, unknown> {
   label: string;
-  type: "start" | "form" | "approval" | "notification" | "condition" | "end";
+  type: NodeType;
   color: string;
   icon: string;
   description?: string;
@@ -65,6 +133,11 @@ export interface WorkflowNodeData extends Record<string, unknown> {
   status?: "pending" | "completed" | "active";
   formFields?: FormField[];
   formTemplateId?: string;
+  webhookConfig?: WebhookConfig;
+  httpConfig?: HttpConfig;
+  signatureConfig?: SignatureConfig;
+  emailConfig?: EmailConfig;
+  databaseConfig?: DatabaseConfig;
   config?: Record<string, any>;
 }
 
