@@ -1,1 +1,10 @@
 project_id = "ncmofeencqpqhtguxmvy"
+
+[functions.save-workflow]
+verify_jwt = true
+
+[functions.execute-workflow]
+verify_jwt = true
+
+[functions.list-workflows]
+verify_jwt = true

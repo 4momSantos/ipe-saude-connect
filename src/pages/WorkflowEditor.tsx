@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   ReactFlow,
   Background,
@@ -32,8 +32,9 @@ import { WorkflowNode } from "@/components/workflow-editor/WorkflowNode";
 import { ConfigPanel } from "@/components/workflow-editor/ConfigPanel";
 import { WorkflowNodeData, FormTemplate, VisualWorkflow } from "@/types/workflow-editor";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
 
 const nodeTypes = {
   workflowNode: WorkflowNode,
@@ -133,11 +134,39 @@ const nodeTemplates = [
 
 export default function WorkflowEditor() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNode, setSelectedNode] = useState<Node<WorkflowNodeData> | null>(null);
   const [workflowName, setWorkflowName] = useState("Novo Workflow");
   const [templates, setTemplates] = useState<FormTemplate[]>([]);
+
+  // Carregar workflow se houver ID na URL
+  useEffect(() => {
+    const loadWorkflow = async () => {
+      const workflowId = searchParams.get("id");
+      if (!workflowId) return;
+
+      try {
+        const { data, error } = await supabase
+          .from("workflows")
+          .select("*")
+          .eq("id", workflowId)
+          .single();
+
+        if (error) throw error;
+
+        setWorkflowName(data.name);
+        setNodes(data.nodes as unknown as Node<WorkflowNodeData>[]);
+        setEdges(data.edges as unknown as Edge[]);
+      } catch (error) {
+        console.error("Erro ao carregar workflow:", error);
+        toast.error("Erro ao carregar workflow");
+      }
+    };
+
+    loadWorkflow();
+  }, [searchParams, setNodes, setEdges]);
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -210,26 +239,26 @@ export default function WorkflowEditor() {
     [selectedNode, setNodes]
   );
 
-  const saveWorkflow = () => {
-    const workflow: VisualWorkflow = {
-      id: `workflow-${Date.now()}`,
-      name: workflowName,
-      description: "",
-      nodes,
-      edges,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      isActive: true,
-      version: 1,
-    };
+  const saveWorkflow = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("save-workflow", {
+        body: {
+          id: searchParams.get("id"),
+          name: workflowName,
+          description: "",
+          nodes,
+          edges,
+        },
+      });
 
-    // Save to localStorage for demo
-    const saved = localStorage.getItem("visualWorkflows");
-    const workflows = saved ? JSON.parse(saved) : [];
-    workflows.push(workflow);
-    localStorage.setItem("visualWorkflows", JSON.stringify(workflows));
+      if (error) throw error;
 
-    toast.success("Workflow salvo com sucesso!");
+      toast.success("Workflow salvo com sucesso!");
+      navigate("/workflows");
+    } catch (error) {
+      console.error("Erro ao salvar workflow:", error);
+      toast.error("Erro ao salvar workflow");
+    }
   };
 
   const saveTemplate = (template: Omit<FormTemplate, "id" | "createdAt" | "updatedAt">) => {
@@ -255,8 +284,29 @@ export default function WorkflowEditor() {
       return;
     }
 
-    toast.info("Funcionalidade de execução será implementada após configuração do backend");
-    console.log("Workflow para teste:", { nodes, edges });
+    // Se o workflow não foi salvo ainda, salvar primeiro
+    let workflowId = searchParams.get("id");
+    if (!workflowId) {
+      toast.error("Salve o workflow antes de testá-lo");
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke("execute-workflow", {
+        body: {
+          workflowId,
+          inputData: {},
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success("Execução iniciada!");
+      console.log("Execution ID:", data.executionId);
+    } catch (error) {
+      console.error("Erro ao executar workflow:", error);
+      toast.error("Erro ao executar workflow");
+    }
   };
 
   return (
