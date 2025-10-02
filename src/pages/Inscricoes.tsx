@@ -41,6 +41,10 @@ const formSchema = z.object({
     { message: "CPF/CNPJ inválido" }
   ),
   cep: z.string().regex(/^\d{5}-?\d{3}$/, "CEP inválido"),
+  logradouro: z.string().optional(),
+  bairro: z.string().optional(),
+  cidade: z.string().optional(),
+  estado: z.string().optional(),
   especialidade: z.string().min(1, "Selecione uma especialidade"),
   email: z.string().email("E-mail inválido"),
   telefone: z.string().min(10, "Telefone inválido"),
@@ -58,6 +62,10 @@ export default function Inscricoes() {
       nome: "",
       cpfCnpj: "",
       cep: "",
+      logradouro: "",
+      bairro: "",
+      cidade: "",
+      estado: "",
       especialidade: "",
       email: "",
       telefone: "",
@@ -80,9 +88,15 @@ export default function Inscricoes() {
       const result = await validateCEP(cep);
       setCepValid(result.valid);
       if (result.valid && result.data) {
-        toast.success(`CEP validado: ${result.data.logradouro}, ${result.data.localidade}`);
+        // Auto-fill address fields
+        form.setValue("logradouro", result.data.street || "");
+        form.setValue("bairro", result.data.neighborhood || "");
+        form.setValue("cidade", result.data.city || "");
+        form.setValue("estado", result.data.state || "");
+        
+        toast.success(`CEP validado: ${result.data.street}, ${result.data.city} - ${result.data.state}`);
       } else {
-        toast.error("CEP inválido");
+        toast.error("CEP inválido ou não encontrado");
       }
     }
   };
@@ -241,6 +255,62 @@ export default function Inscricoes() {
                             handleCepChange(formatted);
                           }}
                         />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="logradouro"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Logradouro</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Rua, Avenida..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="bairro"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Bairro</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nome do bairro" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="cidade"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cidade</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nome da cidade" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="estado"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Estado (UF)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="UF" maxLength={2} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

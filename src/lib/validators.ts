@@ -65,7 +65,22 @@ export const validateCNPJ = (cnpj: string): boolean => {
   return true;
 };
 
-export const validateCEP = async (cep: string): Promise<{ valid: boolean; data?: any }> => {
+export interface BrasilAPICepData {
+  cep: string;
+  state: string;
+  city: string;
+  neighborhood: string;
+  street: string;
+  location: {
+    type: string;
+    coordinates: {
+      longitude: string;
+      latitude: string;
+    };
+  };
+}
+
+export const validateCEP = async (cep: string): Promise<{ valid: boolean; data?: BrasilAPICepData }> => {
   const cleanCEP = cep.replace(/\D/g, "");
   
   if (cleanCEP.length !== 8) {
@@ -73,12 +88,13 @@ export const validateCEP = async (cep: string): Promise<{ valid: boolean; data?:
   }
 
   try {
-    const response = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`);
-    const data = await response.json();
+    const response = await fetch(`https://brasilapi.com.br/api/cep/v2/${cleanCEP}`);
     
-    if (data.erro) {
+    if (!response.ok) {
       return { valid: false };
     }
+    
+    const data: BrasilAPICepData = await response.json();
     
     return { valid: true, data };
   } catch (error) {
