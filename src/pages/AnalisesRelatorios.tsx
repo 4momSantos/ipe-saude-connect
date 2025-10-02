@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, BarChart3, FileDown } from "lucide-react";
-import { MapaRede } from "@/components/analytics/MapaRede";
+import { MapPin, BarChart3, FileDown, Map, Activity } from "lucide-react";
+import { MapaRedeInterativo } from "@/components/analytics/MapaRedeInterativo";
 import { DashboardRelatorios } from "@/components/analytics/DashboardRelatorios";
+import { DimensionamentoRede } from "@/components/analytics/DimensionamentoRede";
 import { RelatoriosCustomizaveis } from "@/components/analytics/RelatoriosCustomizaveis";
 
 export default function AnalisesRelatorios() {
@@ -22,10 +23,14 @@ export default function AnalisesRelatorios() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 lg:w-auto">
+        <TabsList className="grid w-full grid-cols-5 lg:w-auto">
           <TabsTrigger value="mapa" className="gap-2">
-            <MapPin className="h-4 w-4" />
-            <span className="hidden sm:inline">Mapa da Rede</span>
+            <Map className="h-4 w-4" />
+            <span className="hidden sm:inline">Mapa</span>
+          </TabsTrigger>
+          <TabsTrigger value="dimensionamento" className="gap-2">
+            <Activity className="h-4 w-4" />
+            <span className="hidden sm:inline">Dimensionamento</span>
           </TabsTrigger>
           <TabsTrigger value="dashboards" className="gap-2">
             <BarChart3 className="h-4 w-4" />
@@ -38,7 +43,11 @@ export default function AnalisesRelatorios() {
         </TabsList>
 
         <TabsContent value="mapa" className="mt-6">
-          <MapaRede />
+          <MapaRedeInterativo />
+        </TabsContent>
+
+        <TabsContent value="dimensionamento" className="mt-6">
+          <DimensionamentoRede />
         </TabsContent>
 
         <TabsContent value="dashboards" className="mt-6">
