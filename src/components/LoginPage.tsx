@@ -28,7 +28,7 @@ export default function LoginPage() {
       localStorage.setItem("ipe_user", JSON.stringify({
         nome: "Usuário IPE Saúde",
         cpf: cpf,
-        perfil: "Administrador"
+        perfil: "administrador" // Fixed: lowercase to match roleConfig
       }));
       toast.success("Login realizado com sucesso!");
       navigate("/");
