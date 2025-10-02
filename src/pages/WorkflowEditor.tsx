@@ -42,10 +42,13 @@ const initialNodes: Node<WorkflowNodeData>[] = [
     type: "workflowNode",
     position: { x: 250, y: 50 },
     data: {
-      label: "Início",
+      label: "Quando solicitação criada",
       type: "start",
       color: "#10b981",
       icon: "Play",
+      description: "Inicia o fluxo quando uma nova solicitação é criada.",
+      category: "Credenciamento",
+      status: "completed",
     },
   },
 ];
@@ -53,33 +56,43 @@ const initialNodes: Node<WorkflowNodeData>[] = [
 const nodeTemplates = [
   {
     type: "form",
-    label: "Formulário",
+    label: "Formulário de Dados",
     color: "#3b82f6",
     icon: "FileText",
+    description: "Coleta informações através de campos personalizáveis.",
+    category: "Form",
   },
   {
     type: "approval",
     label: "Aprovação",
     color: "#f59e0b",
     icon: "CheckCircle",
+    description: "Requer aprovação manual antes de continuar.",
+    category: "Approval",
   },
   {
     type: "notification",
-    label: "Notificação",
+    label: "Enviar Notificação",
     color: "#8b5cf6",
     icon: "Mail",
+    description: "Envia notificação por email ou sistema.",
+    category: "Notification",
   },
   {
     type: "condition",
-    label: "Condicional",
+    label: "Condição",
     color: "#ec4899",
     icon: "GitBranch",
+    description: "Divide o fluxo baseado em condições.",
+    category: "Condition",
   },
   {
     type: "end",
-    label: "Fim",
+    label: "Finalizar",
     color: "#ef4444",
     icon: "StopCircle",
+    description: "Marca o fim do fluxo de trabalho.",
+    category: "End",
   },
 ];
 
@@ -97,8 +110,18 @@ export default function WorkflowEditor() {
         addEdge(
           {
             ...params,
-            animated: true,
-            style: { stroke: "#3b82f6", strokeWidth: 2 },
+            animated: false,
+            type: "smoothstep",
+            style: { 
+              stroke: "#3b82f6", 
+              strokeWidth: 2.5,
+            },
+            markerEnd: {
+              type: "arrowclosed",
+              color: "#3b82f6",
+              width: 20,
+              height: 20,
+            },
           },
           eds
         )
@@ -116,14 +139,17 @@ export default function WorkflowEditor() {
       id: `node-${Date.now()}`,
       type: "workflowNode",
       position: {
-        x: Math.random() * 400 + 100,
-        y: Math.random() * 400 + 200,
+        x: Math.random() * 300 + 150,
+        y: Math.random() * 300 + 200,
       },
       data: {
         label: template.label,
         type: template.type as any,
         color: template.color,
         icon: template.icon,
+        description: template.description,
+        category: template.category,
+        status: "pending",
         formFields: template.type === "form" ? [] : undefined,
       },
     };
@@ -233,14 +259,29 @@ export default function WorkflowEditor() {
             nodeTypes={nodeTypes}
             fitView
             className="bg-background"
+            defaultEdgeOptions={{
+              type: "smoothstep",
+              animated: false,
+              style: { strokeWidth: 2.5 },
+            }}
           >
-            <Background />
-            <Controls />
+            <Background 
+              gap={16} 
+              size={1} 
+              color="hsl(var(--muted-foreground))"
+              className="opacity-20"
+            />
+            <Controls 
+              className="bg-card border rounded-lg shadow-sm"
+              showInteractive={false}
+            />
             <MiniMap
               nodeColor={(node) => {
                 const data = node.data as WorkflowNodeData;
                 return data.color;
               }}
+              className="bg-card border rounded-lg shadow-sm"
+              maskColor="hsl(var(--background) / 0.8)"
             />
             
             {/* Node Palette */}

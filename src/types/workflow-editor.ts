@@ -60,6 +60,9 @@ export interface WorkflowNodeData extends Record<string, unknown> {
   type: "start" | "form" | "approval" | "notification" | "condition" | "end";
   color: string;
   icon: string;
+  description?: string;
+  category?: string;
+  status?: "pending" | "completed" | "active";
   formFields?: FormField[];
   formTemplateId?: string;
   config?: Record<string, any>;

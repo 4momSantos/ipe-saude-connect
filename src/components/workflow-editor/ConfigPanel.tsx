@@ -99,6 +99,25 @@ export function ConfigPanel({
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label>Descrição</Label>
+                <Textarea
+                  value={nodeData.description || ""}
+                  onChange={(e) => onUpdate({ description: e.target.value })}
+                  placeholder="Descreva o que esta etapa faz..."
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Categoria</Label>
+                <Input
+                  value={nodeData.category || ""}
+                  onChange={(e) => onUpdate({ category: e.target.value })}
+                  placeholder="Ex: Credenciamento, Análise"
+                />
+              </div>
+
               {nodeData.type === "form" && (
                 <div className="space-y-4 pt-4 border-t">
                   <div>
