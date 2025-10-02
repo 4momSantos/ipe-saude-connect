@@ -11,6 +11,7 @@ import Editais from "./pages/Editais";
 import Analises from "./pages/Analises";
 import Credenciados from "./pages/Credenciados";
 import Workflows from "./pages/Workflows";
+import WorkflowEditor from "./pages/WorkflowEditor";
 import LoginPage from "./components/LoginPage";
 import { UserProfileMenu } from "./components/UserProfileMenu";
 import PlaceholderPage from "./pages/PlaceholderPage";
@@ -55,6 +56,7 @@ const App = () => (
                           <Route path="/analises" element={<Analises />} />
                           <Route path="/credenciados" element={<Credenciados />} />
                           <Route path="/workflows" element={<Workflows />} />
+                          <Route path="/workflow-editor" element={<WorkflowEditor />} />
                           <Route
                             path="/mapa"
                             element={

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Plus, Edit, Trash2, Copy, Eye } from "lucide-react";
+import { Plus, Edit, Trash2, Copy, Eye, Workflow } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -96,6 +97,7 @@ const mockTemplates: WorkflowTemplate[] = [
 ];
 
 export default function Workflows() {
+  const navigate = useNavigate();
   const [templates, setTemplates] = useState<WorkflowTemplate[]>(mockTemplates);
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<WorkflowTemplate | undefined>();
@@ -177,10 +179,16 @@ export default function Workflows() {
             Configure e gerencie fluxos de credenciamento personalizados
           </p>
         </div>
-        <Button onClick={handleCreateNew} size="lg">
-          <Plus className="h-5 w-5 mr-2" />
-          Criar Novo Workflow
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => navigate("/workflow-editor")} variant="outline" size="lg">
+            <Workflow className="h-5 w-5 mr-2" />
+            Editor Visual
+          </Button>
+          <Button onClick={handleCreateNew} size="lg">
+            <Plus className="h-5 w-5 mr-2" />
+            Criar Workflow
+          </Button>
+        </div>
       </div>
 
       {/* Estatísticas */}
