@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Upload, FileText } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
@@ -22,13 +22,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { DocumentUpload, DocumentFile } from "@/components/documents/DocumentUpload";
+import { DuplicateChecker } from "@/components/documents/DuplicateChecker";
+import { DocumentGenerator } from "@/components/documents/DocumentGenerator";
+import { validateCPF, validateCNPJ, validateCEP, formatCPF, formatCNPJ, formatCEP, formatPhone } from "@/lib/validators";
+import { ValidationBadge } from "@/components/ValidationBadge";
 
 const formSchema = z.object({
   tipo: z.enum(["pessoa_fisica", "pessoa_juridica"], {
     required_error: "Selecione o tipo de prestador",
   }),
   nome: z.string().min(3, "Nome deve ter no mínimo 3 caracteres").max(100),
-  cpfCnpj: z.string().min(11, "CPF/CNPJ inválido").max(18),
+  cpfCnpj: z.string().min(11, "CPF/CNPJ inválido").max(18).refine(
+    (val) => {
+      const clean = val.replace(/\D/g, "");
+      return clean.length === 11 ? validateCPF(val) : validateCNPJ(val);
+    },
+    { message: "CPF/CNPJ inválido" }
+  ),
   cep: z.string().regex(/^\d{5}-?\d{3}$/, "CEP inválido"),
   especialidade: z.string().min(1, "Selecione uma especialidade"),
   email: z.string().email("E-mail inválido"),
@@ -36,7 +47,9 @@ const formSchema = z.object({
 });
 
 export default function Inscricoes() {
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [documents, setDocuments] = useState<DocumentFile[]>([]);
+  const [cepValid, setCepValid] = useState(false);
+  const [cpfCnpjValid, setCpfCnpjValid] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -51,41 +64,51 @@ export default function Inscricoes() {
     },
   });
 
-  const formatCpfCnpj = (value: string, tipo: string) => {
-    const numbers = value.replace(/\D/g, "");
-    if (tipo === "pessoa_fisica") {
-      return numbers
-        .slice(0, 11)
-        .replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+  // Validate CPF/CNPJ in real-time
+  useEffect(() => {
+    const cpfCnpj = form.watch("cpfCnpj");
+    if (cpfCnpj) {
+      const clean = cpfCnpj.replace(/\D/g, "");
+      const isValid = clean.length === 11 ? validateCPF(cpfCnpj) : validateCNPJ(cpfCnpj);
+      setCpfCnpjValid(isValid);
     }
-    return numbers
-      .slice(0, 14)
-      .replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+  }, [form.watch("cpfCnpj")]);
+
+  // Validate CEP and auto-fill address
+  const handleCepChange = async (cep: string) => {
+    if (cep.replace(/\D/g, "").length === 8) {
+      const result = await validateCEP(cep);
+      setCepValid(result.valid);
+      if (result.valid && result.data) {
+        toast.success(`CEP validado: ${result.data.logradouro}, ${result.data.localidade}`);
+      } else {
+        toast.error("CEP inválido");
+      }
+    }
   };
 
-  const formatCep = (value: string) => {
-    const numbers = value.replace(/\D/g, "");
-    return numbers.slice(0, 8).replace(/(\d{5})(\d{3})/, "$1-$2");
-  };
-
-  const formatTelefone = (value: string) => {
-    const numbers = value.replace(/\D/g, "");
-    if (numbers.length <= 10) {
-      return numbers.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3");
-    }
-    return numbers.slice(0, 11).replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files) {
-      setUploadedFiles((prev) => [...prev, ...Array.from(files)]);
-      toast.success(`${files.length} arquivo(s) adicionado(s)`);
-    }
+  const isFormComplete = () => {
+    const values = form.getValues();
+    return (
+      values.nome &&
+      values.cpfCnpj &&
+      cpfCnpjValid &&
+      values.cep &&
+      cepValid &&
+      values.especialidade &&
+      values.email &&
+      values.telefone &&
+      documents.length > 0 &&
+      documents.every(d => d.status === "valid" || d.status === "warning")
+    );
   };
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log({ ...values, documentos: uploadedFiles });
+    if (!isFormComplete()) {
+      toast.error("Complete todos os campos e valide os documentos");
+      return;
+    }
+    console.log({ ...values, documentos: documents });
     toast.success("Inscrição enviada com sucesso!");
   };
 
@@ -148,16 +171,21 @@ export default function Inscricoes() {
                   name="cpfCnpj"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>CPF / CNPJ</FormLabel>
+                      <FormLabel className="flex items-center gap-2">
+                        CPF / CNPJ
+                        {field.value && cpfCnpjValid && (
+                          <CheckCircle2 className="h-4 w-4 text-[hsl(var(--green-approved))]" />
+                        )}
+                      </FormLabel>
                       <FormControl>
                         <Input
                           placeholder="000.000.000-00"
                           {...field}
                           onChange={(e) => {
-                            const formatted = formatCpfCnpj(
-                              e.target.value,
-                              form.getValues("tipo")
-                            );
+                            const tipo = form.getValues("tipo");
+                            const formatted = tipo === "pessoa_fisica"
+                              ? formatCPF(e.target.value)
+                              : formatCNPJ(e.target.value);
                             field.onChange(formatted);
                           }}
                         />
@@ -197,14 +225,20 @@ export default function Inscricoes() {
                   name="cep"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>CEP</FormLabel>
+                      <FormLabel className="flex items-center gap-2">
+                        CEP
+                        {field.value && cepValid && (
+                          <CheckCircle2 className="h-4 w-4 text-[hsl(var(--green-approved))]" />
+                        )}
+                      </FormLabel>
                       <FormControl>
                         <Input
                           placeholder="00000-000"
                           {...field}
                           onChange={(e) => {
-                            const formatted = formatCep(e.target.value);
+                            const formatted = formatCEP(e.target.value);
                             field.onChange(formatted);
+                            handleCepChange(formatted);
                           }}
                         />
                       </FormControl>
@@ -238,7 +272,7 @@ export default function Inscricoes() {
                           placeholder="(00) 00000-0000"
                           {...field}
                           onChange={(e) => {
-                            const formatted = formatTelefone(e.target.value);
+                            const formatted = formatPhone(e.target.value);
                             field.onChange(formatted);
                           }}
                         />
@@ -249,50 +283,13 @@ export default function Inscricoes() {
                 />
               </div>
 
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-foreground">Documentos</h3>
-                <div className="rounded-lg border-2 border-dashed border-border bg-card/50 p-8 text-center">
-                  <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <label className="cursor-pointer">
-                    <span className="text-sm text-primary hover:text-primary/80 font-medium">
-                      Clique para fazer upload
-                    </span>
-                    <input
-                      type="file"
-                      multiple
-                      className="hidden"
-                      onChange={handleFileUpload}
-                      accept=".pdf,.jpg,.jpeg,.png"
-                    />
-                  </label>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    PDF, JPG ou PNG (máx. 5MB por arquivo)
-                  </p>
-                </div>
-
-                {uploadedFiles.length > 0 && (
-                  <div className="space-y-2">
-                    {uploadedFiles.map((file, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-3 rounded-lg border border-border bg-card/50 p-3"
-                      >
-                        <FileText className="h-5 w-5 text-primary" />
-                        <span className="text-sm text-foreground flex-1">{file.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {(file.size / 1024).toFixed(1)} KB
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
               <div className="flex gap-4">
                 <Button
                   type="submit"
                   className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                  disabled={!isFormComplete()}
                 >
+                  {isFormComplete() && <CheckCircle2 className="h-4 w-4 mr-2" />}
                   Enviar Inscrição
                 </Button>
                 <Button
@@ -308,6 +305,24 @@ export default function Inscricoes() {
           </Form>
         </CardContent>
       </Card>
+
+      {form.watch("cpfCnpj") && cpfCnpjValid && (
+        <DuplicateChecker cpfCnpj={form.watch("cpfCnpj")} />
+      )}
+
+      <DocumentUpload onFilesChange={setDocuments} />
+
+      <DocumentGenerator 
+        providerData={{
+          name: form.watch("nome"),
+          cpfCnpj: form.watch("cpfCnpj"),
+          specialty: form.watch("especialidade"),
+          email: form.watch("email"),
+          phone: form.watch("telefone"),
+          cep: form.watch("cep"),
+        }}
+        isComplete={isFormComplete()}
+      />
     </div>
   );
 }
