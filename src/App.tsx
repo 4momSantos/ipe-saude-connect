@@ -10,6 +10,7 @@ import Inscricoes from "./pages/Inscricoes";
 import Editais from "./pages/Editais";
 import Analises from "./pages/Analises";
 import Credenciados from "./pages/Credenciados";
+import CredenciadoDetail from "./pages/CredenciadoDetail";
 import Workflows from "./pages/Workflows";
 import WorkflowEditor from "./pages/WorkflowEditor";
 import LoginPage from "./components/LoginPage";
@@ -55,6 +56,7 @@ const App = () => (
                           <Route path="/inscricoes" element={<Inscricoes />} />
                           <Route path="/analises" element={<Analises />} />
                           <Route path="/credenciados" element={<Credenciados />} />
+                          <Route path="/credenciados/:id" element={<CredenciadoDetail />} />
                           <Route path="/workflows" element={<Workflows />} />
                           <Route path="/workflow-editor" element={<WorkflowEditor />} />
                           <Route

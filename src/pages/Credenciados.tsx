@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Search, Eye, Download, Filter } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ interface Credenciado {
   id: number;
   nome: string;
   cpfCnpj: string;
+  crm?: string;
   especialidade: string;
   cidade: string;
   dataCredenciamento: string;
@@ -36,6 +38,7 @@ const credenciadosData: Credenciado[] = [
     id: 1,
     nome: "Dr. João Silva",
     cpfCnpj: "123.456.789-00",
+    crm: "12345-SC",
     especialidade: "Cardiologia",
     cidade: "São Paulo",
     dataCredenciamento: "2024-01-15",
@@ -95,12 +98,15 @@ const credenciadosData: Credenciado[] = [
 ];
 
 export default function Credenciados() {
+  const navigate = useNavigate();
   const [credenciados] = useState<Credenciado[]>(credenciadosData);
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [filtroEspecialidade, setFiltroEspecialidade] = useState<string>("todas");
+  const [filtroMunicipio, setFiltroMunicipio] = useState<string>("todos");
   const [busca, setBusca] = useState("");
 
   const especialidades = Array.from(new Set(credenciados.map((c) => c.especialidade)));
+  const municipios = Array.from(new Set(credenciados.map((c) => c.cidade)));
 
   const credenciadosFiltrados = credenciados.filter((credenciado) => {
     const matchStatus =
@@ -108,11 +114,15 @@ export default function Credenciados() {
     const matchEspecialidade =
       filtroEspecialidade === "todas" ||
       credenciado.especialidade === filtroEspecialidade;
+    const matchMunicipio =
+      filtroMunicipio === "todos" ||
+      credenciado.cidade === filtroMunicipio;
     const matchBusca =
       busca === "" ||
       credenciado.nome.toLowerCase().includes(busca.toLowerCase()) ||
-      credenciado.cpfCnpj.includes(busca);
-    return matchStatus && matchEspecialidade && matchBusca;
+      credenciado.cpfCnpj.includes(busca) ||
+      credenciado.crm?.toLowerCase().includes(busca.toLowerCase());
+    return matchStatus && matchEspecialidade && matchMunicipio && matchBusca;
   });
 
   const totalAtivos = credenciados.filter((c) => c.status === "habilitado").length;
@@ -184,23 +194,37 @@ export default function Credenciados() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por nome ou CPF/CNPJ..."
+                placeholder="Buscar por nome, CPF/CNPJ ou CRM..."
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
                 className="pl-10 bg-background"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Select value={filtroEspecialidade} onValueChange={setFiltroEspecialidade}>
-                <SelectTrigger className="w-[200px] bg-background">
+                <SelectTrigger className="w-[180px] bg-background">
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="Especialidade" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todas">Todas</SelectItem>
+                  <SelectItem value="todas">Todas Especialidades</SelectItem>
                   {especialidades.map((esp) => (
                     <SelectItem key={esp} value={esp}>
                       {esp}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filtroMunicipio} onValueChange={setFiltroMunicipio}>
+                <SelectTrigger className="w-[180px] bg-background">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Município" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos Municípios</SelectItem>
+                  {municipios.map((mun) => (
+                    <SelectItem key={mun} value={mun}>
+                      {mun}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -210,7 +234,7 @@ export default function Credenciados() {
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="todos">Todos Status</SelectItem>
                   <SelectItem value="habilitado">Habilitado</SelectItem>
                   <SelectItem value="inabilitado">Inabilitado</SelectItem>
                 </SelectContent>
@@ -224,31 +248,26 @@ export default function Credenciados() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
-                  <TableHead>CPF/CNPJ</TableHead>
+                  <TableHead>CNPJ</TableHead>
+                  <TableHead>CRM</TableHead>
                   <TableHead>Especialidade</TableHead>
-                  <TableHead>Cidade</TableHead>
-                  <TableHead>Credenciamento</TableHead>
-                  <TableHead>Avaliação</TableHead>
+                  <TableHead>Município</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {credenciadosFiltrados.map((credenciado) => (
-                  <TableRow key={credenciado.id} className="hover:bg-card/50">
+                  <TableRow key={credenciado.id} className="hover:bg-muted/50 cursor-pointer transition-colors">
                     <TableCell className="font-medium">{credenciado.nome}</TableCell>
                     <TableCell className="font-mono text-sm">{credenciado.cpfCnpj}</TableCell>
-                    <TableCell>{credenciado.especialidade}</TableCell>
+                    <TableCell className="font-mono text-sm">{credenciado.crm || "-"}</TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20">
+                        {credenciado.especialidade}
+                      </span>
+                    </TableCell>
                     <TableCell>{credenciado.cidade}</TableCell>
-                    <TableCell>
-                      {new Date(credenciado.dataCredenciamento).toLocaleDateString("pt-BR")}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <span className="text-yellow-500">★</span>
-                        <span className="font-medium">{credenciado.avaliacoes.toFixed(1)}</span>
-                      </div>
-                    </TableCell>
                     <TableCell>
                       <StatusBadge status={credenciado.status} />
                     </TableCell>
@@ -256,9 +275,11 @@ export default function Credenciados() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-border hover:bg-card"
+                        className="gap-2 hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all"
+                        onClick={() => navigate(`/credenciados/${credenciado.id}`)}
                       >
                         <Eye className="h-4 w-4" />
+                        Detalhes
                       </Button>
                     </TableCell>
                   </TableRow>
