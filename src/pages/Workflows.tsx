@@ -14,7 +14,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { WorkflowBuilder } from "@/components/workflow/WorkflowBuilder";
 import { WorkflowTemplate } from "@/types/workflow";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -99,19 +98,15 @@ const mockTemplates: WorkflowTemplate[] = [
 export default function Workflows() {
   const navigate = useNavigate();
   const [templates, setTemplates] = useState<WorkflowTemplate[]>(mockTemplates);
-  const [isBuilderOpen, setIsBuilderOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<WorkflowTemplate | undefined>();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
 
   const handleCreateNew = () => {
-    setEditingTemplate(undefined);
-    setIsBuilderOpen(true);
+    navigate("/workflow-editor");
   };
 
   const handleEdit = (template: WorkflowTemplate) => {
-    setEditingTemplate(template);
-    setIsBuilderOpen(true);
+    navigate(`/workflow-editor?id=${template.id}`);
   };
 
   const handleDuplicate = (template: WorkflowTemplate) => {
@@ -141,34 +136,6 @@ export default function Workflows() {
     setTemplateToDelete(null);
   };
 
-  const handleSaveTemplate = (template: WorkflowTemplate) => {
-    const existingIndex = templates.findIndex(t => t.id === template.id);
-    if (existingIndex >= 0) {
-      const newTemplates = [...templates];
-      newTemplates[existingIndex] = template;
-      setTemplates(newTemplates);
-    } else {
-      setTemplates([...templates, template]);
-    }
-    setIsBuilderOpen(false);
-    setEditingTemplate(undefined);
-  };
-
-  if (isBuilderOpen) {
-    return (
-      <div className="container mx-auto py-6 px-4">
-        <WorkflowBuilder
-          template={editingTemplate}
-          onSave={handleSaveTemplate}
-          onCancel={() => {
-            setIsBuilderOpen(false);
-            setEditingTemplate(undefined);
-          }}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto py-6 px-4 space-y-6">
       {/* Header */}
@@ -179,16 +146,10 @@ export default function Workflows() {
             Configure e gerencie fluxos de credenciamento personalizados
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => navigate("/workflow-editor")} variant="outline" size="lg">
-            <Workflow className="h-5 w-5 mr-2" />
-            Editor Visual
-          </Button>
-          <Button onClick={handleCreateNew} size="lg">
-            <Plus className="h-5 w-5 mr-2" />
-            Criar Workflow
-          </Button>
-        </div>
+        <Button onClick={handleCreateNew} size="lg">
+          <Plus className="h-5 w-5 mr-2" />
+          Criar Workflow
+        </Button>
       </div>
 
       {/* Estatísticas */}
