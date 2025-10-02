@@ -38,9 +38,20 @@ const roleConfig = {
 
 export function UserProfileMenu() {
   const navigate = useNavigate();
-  const [user] = useState<UserProfile>(() => {
-    const storedUser = localStorage.getItem("ipe_user");
-    return storedUser ? JSON.parse(storedUser) : null;
+  const [user] = useState<UserProfile | null>(() => {
+    try {
+      const storedUser = localStorage.getItem("ipe_user");
+      if (!storedUser) return null;
+      const parsedUser = JSON.parse(storedUser);
+      // Validate that the user has a valid role
+      if (!parsedUser.perfil || !roleConfig[parsedUser.perfil as UserRole]) {
+        return null;
+      }
+      return parsedUser;
+    } catch (error) {
+      console.error("Error parsing user from localStorage:", error);
+      return null;
+    }
   });
 
   const handleLogout = () => {
@@ -51,13 +62,17 @@ export function UserProfileMenu() {
   };
 
   const handleChangeRole = (role: UserRole) => {
+    if (!user) return;
     const updatedUser = { ...user, perfil: role };
     localStorage.setItem("ipe_user", JSON.stringify(updatedUser));
     toast.success(`Perfil alterado para ${roleConfig[role].label}`);
     window.location.reload();
   };
 
-  if (!user) return null;
+  // Early return if no user or invalid role
+  if (!user || !user.perfil || !roleConfig[user.perfil]) {
+    return null;
+  }
 
   const initials = user.nome
     .split(" ")
