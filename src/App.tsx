@@ -12,6 +12,7 @@ import Editais from "./pages/Editais";
 import Analises from "./pages/Analises";
 import Credenciados from "./pages/Credenciados";
 import LoginPage from "./components/LoginPage";
+import { UserProfileMenu } from "./components/UserProfileMenu";
 import PlaceholderPage from "./pages/PlaceholderPage";
 import { ClipboardCheck, Users, MapPin, BarChart3, Settings } from "lucide-react";
 import NotFound from "./pages/NotFound";
@@ -45,6 +46,7 @@ const App = () => (
                           <Menu className="h-5 w-5" />
                         </SidebarTrigger>
                         <div className="flex-1" />
+                        <UserProfileMenu />
                       </header>
                       <main className="flex-1 p-6 lg:p-8">
                         <Routes>
