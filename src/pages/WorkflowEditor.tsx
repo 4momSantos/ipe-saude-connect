@@ -34,6 +34,7 @@ import { WorkflowNodeData, FormTemplate, VisualWorkflow } from "@/types/workflow
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
 
 const nodeTypes = {
   workflowNode: WorkflowNode,
@@ -249,6 +250,34 @@ export default function WorkflowEditor() {
     localStorage.setItem("formTemplates", JSON.stringify(allTemplates));
   };
 
+  const testWorkflow = async () => {
+    if (nodes.length === 0) {
+      toast.error("Adicione pelo menos um node ao workflow");
+      return;
+    }
+
+    try {
+      toast.info("Executando workflow de teste...");
+
+      const { data, error } = await supabase.functions.invoke("execute-workflow", {
+        body: {
+          workflowId: `test-${Date.now()}`,
+          nodes,
+          edges,
+          triggerData: {},
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success("Workflow executado com sucesso!");
+      console.log("Resultado da execução:", data);
+    } catch (error) {
+      console.error("Erro ao executar workflow:", error);
+      toast.error("Erro ao executar workflow");
+    }
+  };
+
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* Header */}
@@ -269,7 +298,7 @@ export default function WorkflowEditor() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={testWorkflow}>
             <Play className="h-4 w-4 mr-2" />
             Testar
           </Button>
