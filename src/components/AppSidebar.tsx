@@ -29,8 +29,7 @@ const menuItems = [
   { title: "Análises", url: "/analises", icon: ClipboardCheck },
   { title: "Credenciados", url: "/credenciados", icon: Users },
   { title: "Workflows", url: "/workflows", icon: Workflow },
-  { title: "Mapa da Rede", url: "/mapa", icon: MapPin },
-  { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
+  { title: "Análises & Relatórios", url: "/relatorios", icon: BarChart3 },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 

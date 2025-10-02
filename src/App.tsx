@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Inscricoes from "./pages/Inscricoes";
 import Editais from "./pages/Editais";
 import Analises from "./pages/Analises";
+import AnalisesRelatorios from "./pages/AnalisesRelatorios";
 import Credenciados from "./pages/Credenciados";
 import CredenciadoDetail from "./pages/CredenciadoDetail";
 import Workflows from "./pages/Workflows";
@@ -81,26 +82,8 @@ const App = () => (
                           <Route path="/credenciados/:id" element={<CredenciadoDetail />} />
                           <Route path="/workflows" element={<Workflows />} />
                           <Route path="/workflow-editor" element={<WorkflowEditor />} />
-                          <Route
-                            path="/mapa"
-                            element={
-                              <PlaceholderPage
-                                title="Mapa da Rede"
-                                description="Visualização geográfica da rede credenciada"
-                                icon={MapPin}
-                              />
-                            }
-                          />
-                          <Route
-                            path="/relatorios"
-                            element={
-                              <PlaceholderPage
-                                title="Relatórios"
-                                description="Relatórios e análises do sistema"
-                                icon={BarChart3}
-                              />
-                            }
-                          />
+                          <Route path="/mapa" element={<AnalisesRelatorios />} />
+                          <Route path="/relatorios" element={<AnalisesRelatorios />} />
                           <Route
                             path="/configuracoes"
                             element={
