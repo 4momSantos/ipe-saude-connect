@@ -198,6 +198,48 @@ export type Database = {
         }
         Relationships: []
       }
+      editais: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          data_fim: string
+          data_inicio: string
+          descricao: string | null
+          especialidade: string | null
+          id: string
+          status: string
+          titulo: string
+          updated_at: string | null
+          vagas: number
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          data_fim: string
+          data_inicio: string
+          descricao?: string | null
+          especialidade?: string | null
+          id?: string
+          status?: string
+          titulo: string
+          updated_at?: string | null
+          vagas?: number
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          data_fim?: string
+          data_inicio?: string
+          descricao?: string | null
+          especialidade?: string | null
+          id?: string
+          status?: string
+          titulo?: string
+          updated_at?: string | null
+          vagas?: number
+        }
+        Relationships: []
+      }
       horarios_atendimento: {
         Row: {
           created_at: string | null
@@ -229,6 +271,53 @@ export type Database = {
             columns: ["credenciado_crm_id"]
             isOneToOne: false
             referencedRelation: "credenciado_crms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inscricoes_edital: {
+        Row: {
+          analisado_em: string | null
+          analisado_por: string | null
+          candidato_id: string
+          created_at: string | null
+          dados_inscricao: Json | null
+          edital_id: string
+          id: string
+          motivo_rejeicao: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          analisado_em?: string | null
+          analisado_por?: string | null
+          candidato_id: string
+          created_at?: string | null
+          dados_inscricao?: Json | null
+          edital_id: string
+          id?: string
+          motivo_rejeicao?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          analisado_em?: string | null
+          analisado_por?: string | null
+          candidato_id?: string
+          created_at?: string | null
+          dados_inscricao?: Json | null
+          edital_id?: string
+          id?: string
+          motivo_rejeicao?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inscricoes_edital_edital_id_fkey"
+            columns: ["edital_id"]
+            isOneToOne: false
+            referencedRelation: "editais"
             referencedColumns: ["id"]
           },
         ]
