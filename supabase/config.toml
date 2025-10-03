@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.validate-nit]
 verify_jwt = false
+
+[functions.validate-cnpj]
+verify_jwt = false

@@ -330,6 +330,9 @@ export interface CNPJValidationData {
   };
   cnae_fiscal: string;
   situacao_ativa: boolean;
+  telefone_1?: string;
+  telefone_2?: string;
+  fax?: string;
 }
 
 export const validateCNPJData = async (

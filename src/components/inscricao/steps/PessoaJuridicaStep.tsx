@@ -57,6 +57,14 @@ export function PessoaJuridicaStep({ form }: PessoaJuridicaStepProps) {
           form.setValue('cep', result.data.endereco.cep || '', { shouldValidate: true });
         }
 
+        // Preencher telefones se disponíveis
+        if (result.data.telefone_1) {
+          form.setValue('telefone', result.data.telefone_1, { shouldValidate: true });
+        }
+        if (result.data.telefone_2 && !form.getValues('celular')) {
+          form.setValue('celular', result.data.telefone_2, { shouldValidate: true });
+        }
+
         // Verificar se está inativa
         if (!result.data.situacao_ativa) {
           setCnpjInactive(true);
@@ -359,10 +367,18 @@ export function PessoaJuridicaStep({ form }: PessoaJuridicaStepProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Telefone *</FormLabel>
-                <FormControl>
-                  <Input placeholder="(51) 3000-0000" {...field} />
-                </FormControl>
-                <FormMessage />
+                <div className="space-y-2">
+                  <FormControl>
+                    <Input placeholder="(51) 3000-0000" {...field} />
+                  </FormControl>
+                  {cnpjValidated && field.value && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Sparkles className="h-3 w-3" />
+                      <span>Auto-preenchido pela Receita Federal</span>
+                    </div>
+                  )}
+                  <FormMessage />
+                </div>
               </FormItem>
             )}
           />
@@ -373,10 +389,18 @@ export function PessoaJuridicaStep({ form }: PessoaJuridicaStepProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Celular *</FormLabel>
-                <FormControl>
-                  <Input placeholder="(51) 99999-9999" {...field} />
-                </FormControl>
-                <FormMessage />
+                <div className="space-y-2">
+                  <FormControl>
+                    <Input placeholder="(51) 99999-9999" {...field} />
+                  </FormControl>
+                  {cnpjValidated && field.value && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Sparkles className="h-3 w-3" />
+                      <span>Auto-preenchido pela Receita Federal</span>
+                    </div>
+                  )}
+                  <FormMessage />
+                </div>
               </FormItem>
             )}
           />
