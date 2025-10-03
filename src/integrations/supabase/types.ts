@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          new_values: Json | null
+          old_values: Json | null
+          resource_id: string | null
+          resource_type: string
+          user_agent: string | null
+          user_email: string | null
+          user_id: string
+          user_role: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          new_values?: Json | null
+          old_values?: Json | null
+          resource_id?: string | null
+          resource_type: string
+          user_agent?: string | null
+          user_email?: string | null
+          user_id: string
+          user_role?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          new_values?: Json | null
+          old_values?: Json | null
+          resource_id?: string | null
+          resource_type?: string
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string
+          user_role?: string | null
+        }
+        Relationships: []
+      }
       credenciado_crms: {
         Row: {
           created_at: string | null
@@ -226,6 +274,7 @@ export type Database = {
           solicitado_em: string | null
           status: string
           tipo_alteracao: string
+          user_id: string | null
         }
         Insert: {
           analisado_em?: string | null
@@ -240,6 +289,7 @@ export type Database = {
           solicitado_em?: string | null
           status?: string
           tipo_alteracao: string
+          user_id?: string | null
         }
         Update: {
           analisado_em?: string | null
@@ -254,6 +304,7 @@ export type Database = {
           solicitado_em?: string | null
           status?: string
           tipo_alteracao?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -484,6 +535,17 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      log_audit_event: {
+        Args: {
+          p_action: string
+          p_metadata?: Json
+          p_new_values?: Json
+          p_old_values?: Json
+          p_resource_id?: string
+          p_resource_type: string
+        }
+        Returns: string
       }
     }
     Enums: {
