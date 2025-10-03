@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileText, Calendar, Users, CheckCircle2, Clock, Download, Eye, Plus, FileSearch } from "lucide-react";
+import { FileText, Calendar, Users, CheckCircle2, Clock, Download, Eye, Plus, FileSearch, Edit } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -337,7 +337,17 @@ export default function Editais() {
                         <span>{edital.vagas} vagas disponíveis</span>
                       </div>
                     </div>
-                    <div className="mt-4 flex gap-3">
+                    <div className="mt-4 flex gap-3 flex-wrap">
+                      {(isGestor || isAdmin) && (
+                        <Button 
+                          onClick={() => navigate(`/editais/editar/${edital.id}`)}
+                          variant="outline" 
+                          className="border-border hover:bg-card"
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Editar
+                        </Button>
+                      )}
                       {isInscrito ? (
                         <Button 
                           onClick={() => handleEditalClick(edital)}
@@ -346,7 +356,7 @@ export default function Editais() {
                           <Eye className="h-4 w-4 mr-2" />
                           Acompanhar Processo
                         </Button>
-                      ) : (
+                      ) : isCandidato ? (
                         <>
                           <Button 
                             onClick={() => setDetalhesEdital(edital)}
@@ -364,6 +374,15 @@ export default function Editais() {
                             Inscrever-se
                           </Button>
                         </>
+                      ) : (
+                        <Button 
+                          onClick={() => setDetalhesEdital(edital)}
+                          variant="outline" 
+                          className="border-border hover:bg-card"
+                        >
+                          <FileSearch className="h-4 w-4 mr-2" />
+                          Ver Detalhes
+                        </Button>
                       )}
                     </div>
                   </CardContent>

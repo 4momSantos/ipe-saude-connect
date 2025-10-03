@@ -142,19 +142,33 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
         anexos: data.anexos,
         status: data.status,
         created_by: user.id,
-        historico_alteracoes: [
-          {
-            usuario: user.email,
-            data: new Date().toISOString(),
-            acao: editalId ? "Atualização" : "Criação",
-          },
-        ],
       };
 
       if (editalId) {
+        // Buscar o histórico atual para adicionar a nova alteração
+        const { data: currentEdital } = await supabase
+          .from("editais")
+          .select("historico_alteracoes")
+          .eq("id", editalId)
+          .maybeSingle();
+
+        const historicoAtual = Array.isArray(currentEdital?.historico_alteracoes) 
+          ? currentEdital.historico_alteracoes 
+          : [];
+        
         const { error } = await supabase
           .from("editais")
-          .update(editalData)
+          .update({
+            ...editalData,
+            historico_alteracoes: [
+              ...historicoAtual,
+              {
+                usuario: user.email,
+                data: new Date().toISOString(),
+                acao: "Atualização",
+              },
+            ],
+          })
           .eq("id", editalId);
 
         if (error) throw error;
@@ -162,7 +176,16 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
       } else {
         const { error } = await supabase
           .from("editais")
-          .insert([editalData]);
+          .insert([{
+            ...editalData,
+            historico_alteracoes: [
+              {
+                usuario: user.email,
+                data: new Date().toISOString(),
+                acao: "Criação",
+              },
+            ],
+          }]);
 
         if (error) throw error;
         toast.success("Edital criado com sucesso!");
