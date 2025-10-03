@@ -162,10 +162,20 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Validação de Dados</h3>
+      <div className="rounded-lg border bg-card p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold">Validação de Dados</h3>
+            <p className="text-sm text-muted-foreground mt-1">Preencha os campos abaixo para validar seus dados automaticamente</p>
+          </div>
+          {cpfValidated && (
+            <Badge className="gap-1.5 bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-400 dark:border-green-900">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Validado
+            </Badge>
+          )}
+        </div>
         
-        {/* CPF - Campo principal para validação */}
         <div className="grid gap-4 md:grid-cols-2">
           <FormField
             control={form.control}
@@ -173,27 +183,19 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>CPF *</FormLabel>
-                <div className="space-y-2">
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="000.000.000-00"
-                      maxLength={14}
-                      onChange={(e) => {
-                        field.onChange(formatCPF(e.target.value));
-                        setCpfValidated(false);
-                        setBirthDateMismatch(false);
-                      }}
-                    />
-                  </FormControl>
-                  {cpfValidated && (
-                    <Badge variant="outline" className="gap-1 border-[hsl(var(--green-approved))] text-[hsl(var(--green-approved))]">
-                      <CheckCircle2 className="h-3 w-3" />
-                      CPF Validado na Receita Federal
-                    </Badge>
-                  )}
-                  <FormMessage />
-                </div>
+                <FormControl>
+                  <Input
+                    {...field}
+                    placeholder="000.000.000-00"
+                    maxLength={14}
+                    onChange={(e) => {
+                      field.onChange(formatCPF(e.target.value));
+                      setCpfValidated(false);
+                      setBirthDateMismatch(false);
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -249,30 +251,47 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
           />
         </div>
 
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleValidateCPF}
-          disabled={isValidatingCPF || cpfValidated}
-          className="w-full md:w-auto gap-2"
-        >
-          {isValidatingCPF ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Validando CPF e NIT...
-            </>
-          ) : cpfValidated ? (
-            <>
-              <CheckCircle2 className="h-4 w-4" />
-              CPF Validado
-            </>
-          ) : (
-            <>
-              <Sparkles className="h-4 w-4" />
-              Validar CPF na Receita Federal
-            </>
+        <div className="flex flex-col gap-3 pt-2">
+          <Button
+            type="button"
+            onClick={handleValidateCPF}
+            disabled={isValidatingCPF || cpfValidated}
+            className={cn(
+              "w-full md:w-auto gap-2",
+              cpfValidated && "bg-green-600 hover:bg-green-700"
+            )}
+          >
+            {isValidatingCPF ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Validando...
+              </>
+            ) : cpfValidated ? (
+              <>
+                <CheckCircle2 className="h-4 w-4" />
+                Validado com Sucesso
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                Validar na Receita Federal
+              </>
+            )}
+          </Button>
+
+          {cpfValidated && (
+            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted">
+                <CheckCircle2 className="h-3 w-3 text-green-600 dark:text-green-400" />
+                CPF validado na Receita Federal
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted">
+                <Sparkles className="h-3 w-3" />
+                Nome auto-preenchido
+              </span>
+            </div>
           )}
-        </Button>
+        </div>
 
         {birthDateMismatch && (
           <Alert variant="destructive">
