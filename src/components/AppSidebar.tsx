@@ -7,7 +7,8 @@ import {
   MapPin, 
   BarChart3, 
   Settings,
-  Workflow 
+  Workflow,
+  Shield
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
@@ -21,6 +22,8 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { RoleGuard } from "@/components/RoleGuard";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const menuItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
@@ -36,6 +39,7 @@ const menuItems = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
+  const { isAdmin } = useUserRole();
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -78,6 +82,27 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              
+              {/* Admin-only menu item */}
+              <RoleGuard requiredRoles={['admin']}>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to="/usuarios"
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${
+                          isActive
+                            ? "bg-primary/10 text-primary font-medium"
+                            : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                        }`
+                      }
+                    >
+                      <Shield className="h-5 w-5 shrink-0" />
+                      {!isCollapsed && <span>Usuários</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </RoleGuard>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

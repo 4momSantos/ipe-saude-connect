@@ -17,6 +17,8 @@ import Workflows from "./pages/Workflows";
 import WorkflowEditor from "./pages/WorkflowEditor";
 import FluxoCredenciamentoPage from "./pages/FluxoCredenciamento";
 import LoginPage from "./components/LoginPage";
+import UserManagement from "./pages/UserManagement";
+import { ProtectedRoute as RoleProtectedRoute } from "./components/ProtectedRoute";
 import { UserProfileMenu } from "./components/UserProfileMenu";
 import PlaceholderPage from "./pages/PlaceholderPage";
 import { ClipboardCheck, Users, MapPin, BarChart3, Settings } from "lucide-react";
@@ -86,6 +88,14 @@ const App = () => (
                           <Route path="/fluxo-credenciamento" element={<FluxoCredenciamentoPage />} />
                           <Route path="/mapa" element={<AnalisesRelatorios />} />
                           <Route path="/relatorios" element={<AnalisesRelatorios />} />
+                          <Route
+                            path="/usuarios"
+                            element={
+                              <RoleProtectedRoute requiredRoles={['admin']}>
+                                <UserManagement />
+                              </RoleProtectedRoute>
+                            }
+                          />
                           <Route
                             path="/configuracoes"
                             element={
