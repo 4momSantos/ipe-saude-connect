@@ -1,455 +1,189 @@
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { InscricaoWizard } from "@/components/inscricao/InscricaoWizard";
+import { InscricaoCompletaForm } from "@/lib/inscricao-validation";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Plus, FileText, Calendar, User, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { DocumentUpload, DocumentFile } from "@/components/documents/DocumentUpload";
-import { DuplicateChecker } from "@/components/documents/DuplicateChecker";
-import { DocumentGenerator } from "@/components/documents/DocumentGenerator";
-import { validateCPF, validateCNPJ, validateCEP, formatCPF, formatCNPJ, formatCEP, formatPhone, fetchCNPJData } from "@/lib/validators";
-import { ValidationBadge } from "@/components/ValidationBadge";
-
-const formSchema = z.object({
-  tipo: z.enum(["pessoa_fisica", "pessoa_juridica"], {
-    required_error: "Selecione o tipo de prestador",
-  }),
-  nome: z.string().min(3, "Nome deve ter no mínimo 3 caracteres").max(100),
-  cpfCnpj: z.string().min(11, "CPF/CNPJ inválido").max(18).refine(
-    (val) => {
-      const clean = val.replace(/\D/g, "");
-      return clean.length === 11 ? validateCPF(val) : validateCNPJ(val);
-    },
-    { message: "CPF/CNPJ inválido" }
-  ),
-  cep: z.string().regex(/^\d{5}-?\d{3}$/, "CEP inválido"),
-  logradouro: z.string().optional(),
-  numero: z.string().optional(),
-  complemento: z.string().optional(),
-  bairro: z.string().optional(),
-  cidade: z.string().optional(),
-  estado: z.string().optional(),
-  especialidade: z.string().min(1, "Selecione uma especialidade"),
-  email: z.string().email("E-mail inválido"),
-  telefone: z.string().min(10, "Telefone inválido"),
-});
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function Inscricoes() {
-  const [documents, setDocuments] = useState<DocumentFile[]>([]);
-  const [cepValid, setCepValid] = useState(false);
-  const [cpfCnpjValid, setCpfCnpjValid] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      tipo: "pessoa_fisica",
-      nome: "",
-      cpfCnpj: "",
-      cep: "",
-      logradouro: "",
-      numero: "",
-      complemento: "",
-      bairro: "",
-      cidade: "",
-      estado: "",
-      especialidade: "",
-      email: "",
-      telefone: "",
-    },
-  });
-
-  // Validate CPF/CNPJ in real-time and fetch CNPJ data
-  useEffect(() => {
-    const subscription = form.watch(async (value, { name }) => {
-      if (name === "cpfCnpj" && value.cpfCnpj) {
-        const clean = value.cpfCnpj.replace(/\D/g, "");
-        const isValid = clean.length === 11 ? validateCPF(value.cpfCnpj) : validateCNPJ(value.cpfCnpj);
-        setCpfCnpjValid(isValid);
-
-        // Se for CNPJ válido e pessoa jurídica, buscar dados
-        if (isValid && clean.length === 14 && value.tipo === "pessoa_juridica") {
-          const result = await fetchCNPJData(value.cpfCnpj);
-          if (result.success && result.data) {
-            // Preencher dados da empresa
-            form.setValue("nome", result.data.razao_social || result.data.nome_fantasia);
-            form.setValue("cep", formatCEP(result.data.cep));
-            form.setValue("logradouro", result.data.logradouro);
-            form.setValue("numero", result.data.numero);
-            form.setValue("complemento", result.data.complemento);
-            form.setValue("bairro", result.data.bairro);
-            form.setValue("cidade", result.data.municipio);
-            form.setValue("estado", result.data.uf);
-            
-            setCepValid(true);
-            
-            toast.success(`Dados da empresa preenchidos automaticamente!`);
-          } else {
-            toast.error("Não foi possível buscar os dados do CNPJ");
-          }
-        }
+  const handleSubmitInscricao = async (data: InscricaoCompletaForm) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Usuário não autenticado');
       }
-    });
-    
-    return () => subscription.unsubscribe();
-  }, [form]);
 
-  // Validate CEP and auto-fill address
-  const handleCepChange = async (cep: string) => {
-    if (cep.replace(/\D/g, "").length === 8) {
-      const result = await validateCEP(cep);
-      setCepValid(result.valid);
-      if (result.valid && result.data) {
-        // Auto-fill address fields
-        form.setValue("logradouro", result.data.street || "");
-        form.setValue("bairro", result.data.neighborhood || "");
-        form.setValue("cidade", result.data.city || "");
-        form.setValue("estado", result.data.state || "");
-        
-        toast.success(`CEP validado: ${result.data.street}, ${result.data.city} - ${result.data.state}`);
-      } else {
-        toast.error("CEP inválido ou não encontrado");
-      }
+      // Preparar dados para inserção
+      const inscricaoData = {
+        candidato_id: user.id,
+        edital_id: '00000000-0000-0000-0000-000000000000',
+        status: 'em_analise',
+        dados_inscricao: {
+          dados_pessoais: {
+            crm: data.crm,
+            uf_crm: data.uf_crm,
+            nome_completo: data.nome_completo,
+            cpf: data.cpf,
+            rg: data.rg,
+            orgao_emissor: data.orgao_emissor,
+            nit_pis_pasep: data.nit_pis_pasep,
+            data_nascimento: data.data_nascimento,
+            sexo: data.sexo,
+          },
+          pessoa_juridica: {
+            cnpj: data.cnpj,
+            denominacao_social: data.denominacao_social,
+            endereco: {
+              logradouro: data.logradouro,
+              numero: data.numero,
+              complemento: data.complemento,
+              bairro: data.bairro,
+              cidade: data.cidade,
+              estado: data.estado,
+              cep: data.cep,
+            },
+            contatos: {
+              telefone: data.telefone,
+              celular: data.celular,
+              email: data.email,
+            },
+            dados_bancarios: {
+              agencia: data.banco_agencia,
+              conta: data.banco_conta,
+            },
+            optante_simples: data.optante_simples,
+          },
+          endereco_correspondencia: {
+            endereco: data.endereco_correspondencia,
+            telefone: data.telefone_correspondencia,
+            celular: data.celular_correspondencia,
+            email: data.email_correspondencia,
+          },
+          consultorio: {
+            endereco: data.endereco_consultorio,
+            telefone: data.telefone_consultorio,
+            ramal: data.ramal,
+            especialidade_principal: data.especialidade_principal,
+            especialidade_secundaria: data.especialidade_secundaria,
+            quantidade_consultas_minima: data.quantidade_consultas_minima,
+            atendimento_hora_marcada: data.atendimento_hora_marcada,
+            horarios: data.horarios,
+          },
+          documentos: data.documentos.map(d => ({
+            tipo: d.tipo,
+            status: d.status,
+            observacoes: d.observacoes,
+          })),
+        },
+      };
+
+      const { error } = await supabase
+        .from('inscricoes_edital')
+        .insert(inscricaoData);
+
+      if (error) throw error;
+
+      toast.success('Inscrição enviada com sucesso!', {
+        description: 'Você será notificado sobre o andamento da análise.',
+      });
+
+      setWizardOpen(false);
+    } catch (error) {
+      console.error('Erro ao enviar inscrição:', error);
+      throw error;
     }
-  };
-
-  const isFormComplete = () => {
-    const values = form.getValues();
-    return (
-      values.nome &&
-      values.cpfCnpj &&
-      cpfCnpjValid &&
-      values.cep &&
-      cepValid &&
-      values.especialidade &&
-      values.email &&
-      values.telefone &&
-      documents.length > 0 &&
-      documents.every(d => d.status === "valid" || d.status === "warning")
-    );
-  };
-
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    if (!isFormComplete()) {
-      toast.error("Complete todos os campos e valide os documentos");
-      return;
-    }
-    console.log({ ...values, documentos: documents });
-    toast.success("Inscrição enviada com sucesso!");
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Nova Inscrição</h1>
-        <p className="text-muted-foreground mt-2">
-          Preencha os dados para credenciamento de prestador
-        </p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Minhas Inscrições</h1>
+          <p className="text-muted-foreground mt-2">
+            Gerencie suas inscrições em editais de credenciamento
+          </p>
+        </div>
+        <Button onClick={() => setWizardOpen(true)} size="lg" className="gap-2">
+          <Plus className="h-5 w-5" />
+          Nova Inscrição
+        </Button>
       </div>
 
-      <Card className="border bg-card card-glow">
+      <Card>
         <CardHeader>
-          <CardTitle>Dados do Prestador</CardTitle>
-          <CardDescription>Informações básicas para análise de credenciamento</CardDescription>
+          <CardTitle>Processo de Inscrição</CardTitle>
+          <CardDescription>
+            O formulário de inscrição é dividido em 5 etapas para facilitar o preenchimento
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="tipo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tipo de Prestador</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o tipo" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="pessoa_fisica">Pessoa Física</SelectItem>
-                        <SelectItem value="pessoa_juridica">Pessoa Jurídica</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid gap-6 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="nome"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome Completo / Razão Social</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Digite o nome" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="cpfCnpj"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        CPF / CNPJ
-                        {field.value && cpfCnpjValid && (
-                          <CheckCircle2 className="h-4 w-4 text-[hsl(var(--green-approved))]" />
-                        )}
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="000.000.000-00"
-                          {...field}
-                          onChange={(e) => {
-                            const tipo = form.getValues("tipo");
-                            const formatted = tipo === "pessoa_fisica"
-                              ? formatCPF(e.target.value)
-                              : formatCNPJ(e.target.value);
-                            field.onChange(formatted);
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="especialidade"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Especialidade</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione a especialidade" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="cardiologia">Cardiologia</SelectItem>
-                          <SelectItem value="pediatria">Pediatria</SelectItem>
-                          <SelectItem value="ortopedia">Ortopedia</SelectItem>
-                          <SelectItem value="clinica_geral">Clínica Geral</SelectItem>
-                          <SelectItem value="hospitalar">Hospitalar</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="cep"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        CEP
-                        {field.value && cepValid && (
-                          <CheckCircle2 className="h-4 w-4 text-[hsl(var(--green-approved))]" />
-                        )}
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="00000-000"
-                          {...field}
-                          onChange={(e) => {
-                            const formatted = formatCEP(e.target.value);
-                            field.onChange(formatted);
-                            handleCepChange(formatted);
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="numero"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Número</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Número" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="complemento"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Complemento</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Apto, Sala, Andar..." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="logradouro"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Logradouro</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Rua, Avenida..." {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="bairro"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Bairro</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome do bairro" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="cidade"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cidade</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome da cidade" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="estado"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Estado (UF)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="UF" maxLength={2} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>E-mail</FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder="email@exemplo.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="telefone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Telefone</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="(00) 00000-0000"
-                          {...field}
-                          onChange={(e) => {
-                            const formatted = formatPhone(e.target.value);
-                            field.onChange(formatted);
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="flex flex-col items-center text-center p-4 border rounded-lg">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                <User className="h-6 w-6 text-primary" />
               </div>
-
-              <div className="flex gap-4">
-                <Button
-                  type="submit"
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                  disabled={!isFormComplete()}
-                >
-                  {isFormComplete() && <CheckCircle2 className="h-4 w-4 mr-2" />}
-                  Enviar Inscrição
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => form.reset()}
-                  className="border-border hover:bg-card"
-                >
-                  Limpar Formulário
-                </Button>
+              <h3 className="font-semibold mb-1">Dados Pessoais</h3>
+              <p className="text-xs text-muted-foreground">Informações do médico</p>
+            </div>
+            
+            <div className="flex flex-col items-center text-center p-4 border rounded-lg">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                <FileText className="h-6 w-6 text-primary" />
               </div>
-            </form>
-          </Form>
+              <h3 className="font-semibold mb-1">Pessoa Jurídica</h3>
+              <p className="text-xs text-muted-foreground">Dados da empresa</p>
+            </div>
+            
+            <div className="flex flex-col items-center text-center p-4 border rounded-lg">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                <Calendar className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="font-semibold mb-1">Consultório</h3>
+              <p className="text-xs text-muted-foreground">Especialidades e horários</p>
+            </div>
+            
+            <div className="flex flex-col items-center text-center p-4 border rounded-lg">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                <FileText className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="font-semibold mb-1">Documentos</h3>
+              <p className="text-xs text-muted-foreground">Upload de arquivos</p>
+            </div>
+            
+            <div className="flex flex-col items-center text-center p-4 border rounded-lg">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                <CheckCircle2 className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="font-semibold mb-1">Revisão</h3>
+              <p className="text-xs text-muted-foreground">Conferir e enviar</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      {form.watch("cpfCnpj") && cpfCnpjValid && (
-        <DuplicateChecker cpfCnpj={form.watch("cpfCnpj")} />
-      )}
-
-      <DocumentUpload onFilesChange={setDocuments} />
-
-      <DocumentGenerator 
-        providerData={{
-          name: form.watch("nome"),
-          cpfCnpj: form.watch("cpfCnpj"),
-          specialty: form.watch("especialidade"),
-          email: form.watch("email"),
-          phone: form.watch("telefone"),
-          cep: form.watch("cep"),
-        }}
-        isComplete={isFormComplete()}
-      />
+      <Dialog open={wizardOpen} onOpenChange={setWizardOpen}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Nova Inscrição em Edital</DialogTitle>
+            <DialogDescription>
+              Preencha o formulário completo de inscrição em etapas
+            </DialogDescription>
+          </DialogHeader>
+          <InscricaoWizard onSubmit={handleSubmitInscricao} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

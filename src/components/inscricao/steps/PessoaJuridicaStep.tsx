@@ -1,0 +1,298 @@
+import { UseFormReturn } from 'react-hook-form';
+import { InscricaoCompletaForm } from '@/lib/inscricao-validation';
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+  FormDescription,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';
+
+interface PessoaJuridicaStepProps {
+  form: UseFormReturn<InscricaoCompletaForm>;
+}
+
+export function PessoaJuridicaStep({ form }: PessoaJuridicaStepProps) {
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <div>
+        <h3 className="text-lg font-semibold mb-2">Dados da Pessoa Jurídica</h3>
+        <p className="text-sm text-muted-foreground">
+          Informações da empresa (CNPJ)
+        </p>
+      </div>
+
+      <FormField
+        control={form.control}
+        name="cnpj"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>CNPJ *</FormLabel>
+            <FormControl>
+              <Input
+                placeholder="00.000.000/0000-00"
+                {...field}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '');
+                  const formatted = value
+                    .replace(/(\d{2})(\d)/, '$1.$2')
+                    .replace(/(\d{3})(\d)/, '$1.$2')
+                    .replace(/(\d{3})(\d)/, '$1/$2')
+                    .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+                  field.onChange(formatted);
+                }}
+                maxLength={18}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="denominacao_social"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Denominação Social *</FormLabel>
+            <FormControl>
+              <Input placeholder="Clínica Médica LTDA" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <Separator />
+
+      <div>
+        <h4 className="font-medium mb-4">Endereço da Empresa</h4>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2">
+              <FormField
+                control={form.control}
+                name="logradouro"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Logradouro *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Rua das Flores" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="numero"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Número *</FormLabel>
+                  <FormControl>
+                    <Input placeholder="123" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="complemento"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Complemento</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Sala 101" {...field} />
+                  </FormControl>
+                  <FormDescription>Opcional</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="bairro"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Bairro *</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Centro" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <FormField
+              control={form.control}
+              name="cidade"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cidade *</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Porto Alegre" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="estado"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>UF *</FormLabel>
+                  <FormControl>
+                    <Input placeholder="RS" {...field} maxLength={2} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="cep"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>CEP *</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="90000-000"
+                      {...field}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '');
+                        const formatted = value.replace(/(\d{5})(\d{1,3})$/, '$1-$2');
+                        field.onChange(formatted);
+                      }}
+                      maxLength={9}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
+      <div>
+        <h4 className="font-medium mb-4">Contatos</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="telefone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Telefone *</FormLabel>
+                <FormControl>
+                  <Input placeholder="(51) 3000-0000" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="celular"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Celular *</FormLabel>
+                <FormControl>
+                  <Input placeholder="(51) 99999-9999" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="mt-4">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>E-mail *</FormLabel>
+                <FormControl>
+                  <Input type="email" placeholder="contato@clinica.com.br" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+      </div>
+
+      <Separator />
+
+      <div>
+        <h4 className="font-medium mb-4">Dados Bancários (Banrisul)</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="banco_agencia"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Agência *</FormLabel>
+                <FormControl>
+                  <Input placeholder="0001" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="banco_conta"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Conta *</FormLabel>
+                <FormControl>
+                  <Input placeholder="12345678-9" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+      </div>
+
+      <FormField
+        control={form.control}
+        name="optante_simples"
+        render={({ field }) => (
+          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+            <FormControl>
+              <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+            </FormControl>
+            <div className="space-y-1 leading-none">
+              <FormLabel>Optante pelo Simples Nacional</FormLabel>
+              <FormDescription>
+                Marque esta opção se a empresa é optante pelo Simples Nacional
+              </FormDescription>
+            </div>
+          </FormItem>
+        )}
+      />
+    </div>
+  );
+}
