@@ -202,7 +202,7 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
             control={form.control}
             name="data_nascimento"
             render={({ field }) => (
-              <FormItem className="flex flex-col">
+              <FormItem>
                 <FormLabel>Data de Nascimento *</FormLabel>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -210,7 +210,7 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
                       <Button
                         variant="outline"
                         className={cn(
-                          'w-full pl-3 text-left font-normal',
+                          'w-full pl-3 text-left font-normal h-10',
                           !field.value && 'text-muted-foreground'
                         )}
                       >
