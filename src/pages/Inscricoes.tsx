@@ -39,7 +39,7 @@ export default function Inscricoes() {
             rg: data.rg,
             orgao_emissor: data.orgao_emissor,
             nit_pis_pasep: data.nit_pis_pasep,
-            data_nascimento: data.data_nascimento,
+            data_nascimento: data.data_nascimento.toISOString(),
             sexo: data.sexo,
           },
           pessoa_juridica: {
@@ -91,7 +91,7 @@ export default function Inscricoes() {
 
       const { error } = await supabase
         .from('inscricoes_edital')
-        .insert(inscricaoData);
+        .insert([inscricaoData]);
 
       if (error) throw error;
 
