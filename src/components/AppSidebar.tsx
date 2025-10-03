@@ -25,21 +25,71 @@ import {
 import { RoleGuard } from "@/components/RoleGuard";
 import { useUserRole } from "@/hooks/useUserRole";
 
+// Menu items com controle de acesso por role
 const menuItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Editais", url: "/editais", icon: FileText },
-  { title: "Inscrições", url: "/inscricoes", icon: ClipboardList },
-  { title: "Análises", url: "/analises", icon: ClipboardCheck },
-  { title: "Credenciados", url: "/credenciados", icon: Users },
-  { title: "Workflows", url: "/workflows", icon: Workflow },
-  { title: "Análises & Relatórios", url: "/relatorios", icon: BarChart3 },
-  { title: "Configurações", url: "/configuracoes", icon: Settings },
+  { 
+    title: "Dashboard", 
+    url: "/", 
+    icon: LayoutDashboard,
+    roles: ['candidato', 'analista', 'gestor', 'admin'] as const
+  },
+  { 
+    title: "Editais", 
+    url: "/editais", 
+    icon: FileText,
+    roles: ['candidato', 'analista', 'gestor', 'admin'] as const
+  },
+  { 
+    title: "Inscrições", 
+    url: "/inscricoes", 
+    icon: ClipboardList,
+    roles: ['candidato', 'gestor', 'admin'] as const
+  },
+  { 
+    title: "Análises", 
+    url: "/analises", 
+    icon: ClipboardCheck,
+    roles: ['candidato', 'analista', 'gestor', 'admin'] as const
+  },
+  { 
+    title: "Credenciados", 
+    url: "/credenciados", 
+    icon: Users,
+    roles: ['analista', 'gestor', 'admin'] as const
+  },
+  { 
+    title: "Workflows", 
+    url: "/workflows", 
+    icon: Workflow,
+    roles: ['analista', 'gestor', 'admin'] as const
+  },
+  { 
+    title: "Análises & Relatórios", 
+    url: "/relatorios", 
+    icon: BarChart3,
+    roles: ['analista', 'gestor', 'admin'] as const
+  },
+  { 
+    title: "Configurações", 
+    url: "/configuracoes", 
+    icon: Settings,
+    roles: ['analista', 'gestor', 'admin'] as const
+  },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
-  const { isAdmin } = useUserRole();
+  const { hasAnyRole, loading } = useUserRole();
+
+  // Filtrar menu items baseado nas roles do usuário
+  const visibleMenuItems = menuItems.filter(item => 
+    hasAnyRole([...item.roles])
+  );
+
+  if (loading) {
+    return null;
+  }
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -62,7 +112,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {visibleMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
