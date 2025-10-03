@@ -200,39 +200,81 @@ export type Database = {
       }
       editais: {
         Row: {
+          anexos: Json | null
           created_at: string | null
           created_by: string | null
+          criterio_julgamento: string | null
           data_fim: string
           data_inicio: string
+          data_licitacao: string | null
+          data_publicacao: string | null
           descricao: string | null
+          documentos_habilitacao: Json | null
           especialidade: string | null
+          fonte_recursos: string | null
+          garantia_execucao: number | null
+          historico_alteracoes: Json | null
           id: string
+          local_portal: string | null
+          numero_edital: string | null
+          objeto: string | null
+          participacao_permitida: Json | null
+          prazo_validade_proposta: number | null
+          regras_me_epp: string | null
           status: string
           titulo: string
           updated_at: string | null
           vagas: number
         }
         Insert: {
+          anexos?: Json | null
           created_at?: string | null
           created_by?: string | null
+          criterio_julgamento?: string | null
           data_fim: string
           data_inicio: string
+          data_licitacao?: string | null
+          data_publicacao?: string | null
           descricao?: string | null
+          documentos_habilitacao?: Json | null
           especialidade?: string | null
+          fonte_recursos?: string | null
+          garantia_execucao?: number | null
+          historico_alteracoes?: Json | null
           id?: string
+          local_portal?: string | null
+          numero_edital?: string | null
+          objeto?: string | null
+          participacao_permitida?: Json | null
+          prazo_validade_proposta?: number | null
+          regras_me_epp?: string | null
           status?: string
           titulo: string
           updated_at?: string | null
           vagas?: number
         }
         Update: {
+          anexos?: Json | null
           created_at?: string | null
           created_by?: string | null
+          criterio_julgamento?: string | null
           data_fim?: string
           data_inicio?: string
+          data_licitacao?: string | null
+          data_publicacao?: string | null
           descricao?: string | null
+          documentos_habilitacao?: Json | null
           especialidade?: string | null
+          fonte_recursos?: string | null
+          garantia_execucao?: number | null
+          historico_alteracoes?: Json | null
           id?: string
+          local_portal?: string | null
+          numero_edital?: string | null
+          objeto?: string | null
+          participacao_permitida?: Json | null
+          prazo_validade_proposta?: number | null
+          regras_me_epp?: string | null
           status?: string
           titulo?: string
           updated_at?: string | null

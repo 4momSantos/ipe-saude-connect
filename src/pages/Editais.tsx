@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileText, Calendar, Users, CheckCircle2, Clock, Download, Eye } from "lucide-react";
+import { FileText, Calendar, Users, CheckCircle2, Clock, Download, Eye, Plus } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { FluxoCredenciamento } from "@/components/credenciamento/FluxoCredenciam
 import { InscricaoWizard } from "@/components/inscricao/InscricaoWizard";
 import { InscricaoCompletaForm } from "@/lib/inscricao-validation";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useNavigate } from "react-router-dom";
 
 type Edital = {
   id: string;
@@ -38,6 +39,7 @@ export default function Editais() {
   const [inscricaoEdital, setInscricaoEdital] = useState<Edital | null>(null);
   const [loading, setLoading] = useState(true);
   const { isGestor, isAdmin, isCandidato } = useUserRole();
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadData();
@@ -260,7 +262,11 @@ export default function Editais() {
             </p>
           </div>
           {(isGestor || isAdmin) && (
-            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
+            <Button 
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              onClick={() => navigate("/editais/criar")}
+            >
+              <Plus className="w-4 h-4 mr-2" />
               Novo Edital
             </Button>
           )}
