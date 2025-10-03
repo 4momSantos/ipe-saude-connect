@@ -247,8 +247,7 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
                           dropdown: "relative inline-flex",
                           dropdown_month: "relative",
                           dropdown_year: "relative",
-  }}
-                      />
+                      }}
                     />
                   </PopoverContent>
                 </Popover>
