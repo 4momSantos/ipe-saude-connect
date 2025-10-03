@@ -115,6 +115,35 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
+  const handleFinalSubmit = async () => {
+    // Validar se o status foi selecionado
+    const isValid = await form.trigger(["status"]);
+    
+    if (!isValid) {
+      toast.error("Por favor, selecione o status do edital");
+      return;
+    }
+
+    const status = form.getValues("status");
+    
+    // Mensagem de confirmação baseada no status
+    let confirmMessage = "";
+    if (status === "publicado") {
+      confirmMessage = "Tem certeza que deseja PUBLICAR este edital? Ele ficará visível para todos os candidatos.";
+    } else if (status === "rascunho") {
+      confirmMessage = "Você está salvando como RASCUNHO. O edital não ficará visível para os candidatos. Confirma?";
+    } else if (status === "encerrado") {
+      confirmMessage = "Tem certeza que deseja ENCERRAR este edital? Ele não aceitará mais inscrições.";
+    }
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    // Submeter o formulário manualmente
+    form.handleSubmit(onSubmit)();
+  };
+
   const onSubmit = async (data: EditalFormValues) => {
     try {
       setIsSubmitting(true);
@@ -278,9 +307,9 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
                   <ChevronRight className="w-4 h-4 ml-2" />
                 </Button>
               ) : (
-                <Button type="submit" disabled={isSubmitting}>
+                <Button type="button" onClick={handleFinalSubmit} disabled={isSubmitting}>
                   <Save className="w-4 h-4 mr-2" />
-                  {isSubmitting ? "Salvando..." : editalId ? "Atualizar" : "Criar Edital"}
+                  {isSubmitting ? "Salvando..." : editalId ? "Salvar Alterações" : "Salvar Edital"}
                 </Button>
               )}
             </div>
