@@ -310,3 +310,58 @@ export const validateNIT = async (
     return { valid: false, message: "Erro ao conectar com o serviço de validação" };
   }
 };
+
+export interface CNPJValidationData {
+  cnpj: string;
+  razao_social: string;
+  nome_fantasia: string;
+  situacao_cadastral: string;
+  data_inicio_atividade: string;
+  porte: string;
+  natureza_juridica: string;
+  endereco: {
+    logradouro: string;
+    numero: string;
+    complemento: string;
+    bairro: string;
+    cidade: string;
+    estado: string;
+    cep: string;
+  };
+  cnae_fiscal: string;
+  situacao_ativa: boolean;
+}
+
+export const validateCNPJData = async (
+  cnpj: string
+): Promise<{ valid: boolean; data?: CNPJValidationData; message?: string }> => {
+  const cleanCNPJ = cnpj.replace(/\D/g, "");
+  
+  if (!cleanCNPJ) {
+    return { valid: false, message: "CNPJ é obrigatório" };
+  }
+
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-cnpj`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ cnpj: cleanCNPJ }),
+      }
+    );
+
+    if (!response.ok) {
+      return { valid: false, message: "Erro ao validar CNPJ" };
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("Erro ao validar CNPJ:", error);
+    return { valid: false, message: "Erro ao conectar com o serviço de validação" };
+  }
+};

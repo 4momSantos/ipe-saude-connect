@@ -11,12 +11,73 @@ import {
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { CheckCircle2, Loader2, Sparkles, AlertCircle } from 'lucide-react';
+import { useState } from 'react';
+import { validateCNPJData } from '@/lib/validators';
+import { toast } from 'sonner';
 
 interface PessoaJuridicaStepProps {
   form: UseFormReturn<InscricaoCompletaForm>;
 }
 
 export function PessoaJuridicaStep({ form }: PessoaJuridicaStepProps) {
+  const [isValidatingCNPJ, setIsValidatingCNPJ] = useState(false);
+  const [cnpjValidated, setCnpjValidated] = useState(false);
+  const [cnpjInactive, setCnpjInactive] = useState(false);
+
+  const handleValidateCNPJ = async () => {
+    const cnpj = form.getValues('cnpj');
+
+    if (!cnpj) {
+      toast.error('Por favor, insira o CNPJ');
+      return;
+    }
+
+    setIsValidatingCNPJ(true);
+    setCnpjInactive(false);
+
+    try {
+      const result = await validateCNPJData(cnpj);
+
+      if (result.valid && result.data) {
+        // Auto-preencher dados
+        form.setValue('denominacao_social', result.data.razao_social, { shouldValidate: true });
+        
+        // Preencher endereço
+        if (result.data.endereco) {
+          form.setValue('logradouro', result.data.endereco.logradouro || '', { shouldValidate: true });
+          form.setValue('numero', result.data.endereco.numero || '', { shouldValidate: true });
+          form.setValue('complemento', result.data.endereco.complemento || '');
+          form.setValue('bairro', result.data.endereco.bairro || '', { shouldValidate: true });
+          form.setValue('cidade', result.data.endereco.cidade || '', { shouldValidate: true });
+          form.setValue('estado', result.data.endereco.estado || '', { shouldValidate: true });
+          form.setValue('cep', result.data.endereco.cep || '', { shouldValidate: true });
+        }
+
+        // Verificar se está inativa
+        if (!result.data.situacao_ativa) {
+          setCnpjInactive(true);
+          toast.warning(`CNPJ validado mas empresa está: ${result.data.situacao_cadastral}`);
+        } else {
+          toast.success(`CNPJ validado! Empresa: ${result.data.razao_social}`);
+        }
+
+        setCnpjValidated(true);
+      } else {
+        toast.error(result.message || 'CNPJ não encontrado na Receita Federal');
+        setCnpjValidated(false);
+      }
+    } catch (error) {
+      console.error('Erro ao validar CNPJ:', error);
+      toast.error('Erro ao validar CNPJ');
+      setCnpjValidated(false);
+    } finally {
+      setIsValidatingCNPJ(false);
+    }
+  };
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -26,48 +87,105 @@ export function PessoaJuridicaStep({ form }: PessoaJuridicaStepProps) {
         </p>
       </div>
 
-      <FormField
-        control={form.control}
-        name="cnpj"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>CNPJ *</FormLabel>
-            <FormControl>
-              <Input
-                placeholder="00.000.000/0000-00"
-                {...field}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, '');
-                  const formatted = value
-                    .replace(/(\d{2})(\d)/, '$1.$2')
-                    .replace(/(\d{3})(\d)/, '$1.$2')
-                    .replace(/(\d{3})(\d)/, '$1/$2')
-                    .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
-                  field.onChange(formatted);
-                }}
-                maxLength={18}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
+      <div className="space-y-4">
+        <h4 className="font-medium">Validação de CNPJ</h4>
+        
+        <FormField
+          control={form.control}
+          name="cnpj"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>CNPJ *</FormLabel>
+              <div className="space-y-2">
+                <FormControl>
+                  <Input
+                    placeholder="00.000.000/0000-00"
+                    {...field}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '');
+                      const formatted = value
+                        .replace(/(\d{2})(\d)/, '$1.$2')
+                        .replace(/(\d{3})(\d)/, '$1.$2')
+                        .replace(/(\d{3})(\d)/, '$1/$2')
+                        .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+                      field.onChange(formatted);
+                      setCnpjValidated(false);
+                      setCnpjInactive(false);
+                    }}
+                    maxLength={18}
+                  />
+                </FormControl>
+                {cnpjValidated && (
+                  <Badge variant="outline" className="gap-1 border-[hsl(var(--green-approved))] text-[hsl(var(--green-approved))]">
+                    <CheckCircle2 className="h-3 w-3" />
+                    CNPJ Validado na Receita Federal
+                  </Badge>
+                )}
+                <FormMessage />
+              </div>
+            </FormItem>
+          )}
+        />
+
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleValidateCNPJ}
+          disabled={isValidatingCNPJ || cnpjValidated}
+          className="w-full md:w-auto gap-2"
+        >
+          {isValidatingCNPJ ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Validando CNPJ...
+            </>
+          ) : cnpjValidated ? (
+            <>
+              <CheckCircle2 className="h-4 w-4" />
+              CNPJ Validado
+            </>
+          ) : (
+            <>
+              <Sparkles className="h-4 w-4" />
+              Validar CNPJ na Receita Federal
+            </>
+          )}
+        </Button>
+
+        {cnpjInactive && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              A empresa está com situação cadastral irregular na Receita Federal.
+              Verifique a situação antes de prosseguir.
+            </AlertDescription>
+          </Alert>
         )}
-      />
+      </div>
+
+      <Separator />
 
       <FormField
         control={form.control}
         name="denominacao_social"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Denominação Social *</FormLabel>
-            <FormControl>
-              <Input placeholder="Clínica Médica LTDA" {...field} />
-            </FormControl>
-            <FormMessage />
+            <FormLabel>Denominação Social (Razão Social) *</FormLabel>
+            <div className="space-y-2">
+              <FormControl>
+                <Input placeholder="Clínica Médica LTDA" {...field} />
+              </FormControl>
+              {cnpjValidated && field.value && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Sparkles className="h-3 w-3" />
+                  <span>Auto-preenchido pela Receita Federal</span>
+                </div>
+              )}
+              <FormMessage />
+            </div>
           </FormItem>
         )}
       />
-
-      <Separator />
 
       <div>
         <h4 className="font-medium mb-4">Endereço da Empresa</h4>
@@ -80,10 +198,18 @@ export function PessoaJuridicaStep({ form }: PessoaJuridicaStepProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Logradouro *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Rua das Flores" {...field} />
-                    </FormControl>
-                    <FormMessage />
+                    <div className="space-y-2">
+                      <FormControl>
+                        <Input placeholder="Rua das Flores" {...field} />
+                      </FormControl>
+                      {cnpjValidated && field.value && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Sparkles className="h-3 w-3" />
+                          <span>Auto-preenchido pela Receita Federal</span>
+                        </div>
+                      )}
+                      <FormMessage />
+                    </div>
                   </FormItem>
                 )}
               />
@@ -126,10 +252,18 @@ export function PessoaJuridicaStep({ form }: PessoaJuridicaStepProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Bairro *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Centro" {...field} />
-                  </FormControl>
-                  <FormMessage />
+                  <div className="space-y-2">
+                    <FormControl>
+                      <Input placeholder="Centro" {...field} />
+                    </FormControl>
+                    {cnpjValidated && field.value && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Sparkles className="h-3 w-3" />
+                        <span>Auto-preenchido</span>
+                      </div>
+                    )}
+                    <FormMessage />
+                  </div>
                 </FormItem>
               )}
             />
@@ -142,10 +276,18 @@ export function PessoaJuridicaStep({ form }: PessoaJuridicaStepProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Cidade *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Porto Alegre" {...field} />
-                  </FormControl>
-                  <FormMessage />
+                  <div className="space-y-2">
+                    <FormControl>
+                      <Input placeholder="Porto Alegre" {...field} />
+                    </FormControl>
+                    {cnpjValidated && field.value && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Sparkles className="h-3 w-3" />
+                        <span>Auto-preenchido</span>
+                      </div>
+                    )}
+                    <FormMessage />
+                  </div>
                 </FormItem>
               )}
             />
@@ -156,10 +298,18 @@ export function PessoaJuridicaStep({ form }: PessoaJuridicaStepProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>UF *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="RS" {...field} maxLength={2} />
-                  </FormControl>
-                  <FormMessage />
+                  <div className="space-y-2">
+                    <FormControl>
+                      <Input placeholder="RS" {...field} maxLength={2} />
+                    </FormControl>
+                    {cnpjValidated && field.value && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Sparkles className="h-3 w-3" />
+                        <span>Auto-preenchido</span>
+                      </div>
+                    )}
+                    <FormMessage />
+                  </div>
                 </FormItem>
               )}
             />
@@ -170,19 +320,27 @@ export function PessoaJuridicaStep({ form }: PessoaJuridicaStepProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>CEP *</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="90000-000"
-                      {...field}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, '');
-                        const formatted = value.replace(/(\d{5})(\d{1,3})$/, '$1-$2');
-                        field.onChange(formatted);
-                      }}
-                      maxLength={9}
-                    />
-                  </FormControl>
-                  <FormMessage />
+                  <div className="space-y-2">
+                    <FormControl>
+                      <Input
+                        placeholder="90000-000"
+                        {...field}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '');
+                          const formatted = value.replace(/(\d{5})(\d{1,3})$/, '$1-$2');
+                          field.onChange(formatted);
+                        }}
+                        maxLength={9}
+                      />
+                    </FormControl>
+                    {cnpjValidated && field.value && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Sparkles className="h-3 w-3" />
+                        <span>Auto-preenchido</span>
+                      </div>
+                    )}
+                    <FormMessage />
+                  </div>
                 </FormItem>
               )}
             />
