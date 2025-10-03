@@ -30,11 +30,11 @@ All colors MUST be HSL.
     --radius: 0.75rem;
     
     /* IPE Saúde Brand Colors */
-    --blue-primary: 217 91% 60%; /* #3B82F6 */
+    --blue-primary: 217 91% 60%; /* #3B82F6 - Em Análise */
     --purple-workflow: 271 81% 56%; /* #9333EA */
-    --green-approved: 142 71% 45%; /* #10B981 */
-    --orange-warning: 38 92% 50%; /* #F59E0B */
-    --red-rejected: 0 84% 60%; /* #EF4444 */
+    --green-approved: 142 76% 36%; /* #059669 - Aprovado/Ativo */
+    --orange-warning: 25 95% 53%; /* #F97316 - Aguardando */
+    --red-rejected: 0 84% 60%; /* #EF4444 - Rejeitado */
     --slate-bg: 215 20% 35%; /* #475569 */
     
     /* Gradients */
@@ -101,7 +101,11 @@ All colors MUST be HSL.
 
 @layer utilities {
   .animate-fade-in {
-    animation: fadeIn 0.4s ease-out;
+    animation: fadeIn 0.6s ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   }
   
   .animate-slide-up {
@@ -109,21 +113,21 @@ All colors MUST be HSL.
   }
   
   .hover-lift {
-    transition: var(--transition-smooth);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   .hover-lift:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-elevated);
+    transform: translateY(-6px);
+    box-shadow: 0 12px 40px hsl(0 0% 0% / 0.2);
   }
   
   .card-glow {
-    box-shadow: var(--shadow-card);
-    transition: var(--transition-smooth);
+    box-shadow: 0 4px 24px hsl(0 0% 0% / 0.1);
+    transition: all 0.4s ease-out;
   }
   
   .card-glow:hover {
-    box-shadow: var(--shadow-glow);
+    box-shadow: 0 0 30px hsl(var(--primary) / 0.4);
   }
 }
 
@@ -135,6 +139,17 @@ All colors MUST be HSL.
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
