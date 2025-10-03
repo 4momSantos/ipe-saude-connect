@@ -35,19 +35,28 @@ interface EditalDetalhesProps {
 export function EditalDetalhes({ edital }: EditalDetalhesProps) {
   const handleDownloadAnexo = async (anexoKey: string) => {
     try {
-      const fileName = edital.anexos[anexoKey];
-      if (!fileName) return;
+      const anexo = edital.anexos[anexoKey];
+      if (!anexo) return;
+
+      // Anexo pode ser uma string (caminho antigo) ou objeto com url
+      const filePath = typeof anexo === 'string' ? anexo : anexo.url;
+      const originalFileName = typeof anexo === 'object' && anexo.fileName ? anexo.fileName : filePath;
+      
+      if (!filePath) {
+        toast.error('Caminho do arquivo não encontrado');
+        return;
+      }
 
       const { data, error } = await supabase.storage
         .from('edital-anexos')
-        .download(fileName);
+        .download(filePath);
 
       if (error) throw error;
 
       const url = URL.createObjectURL(data);
       const a = document.createElement('a');
       a.href = url;
-      a.download = fileName.split('/').pop() || anexoKey;
+      a.download = originalFileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -56,7 +65,7 @@ export function EditalDetalhes({ edital }: EditalDetalhesProps) {
       toast.success('Download iniciado com sucesso');
     } catch (error) {
       console.error('Erro ao baixar anexo:', error);
-      toast.error('Erro ao baixar arquivo');
+      toast.error('Erro ao baixar arquivo. Verifique se você tem permissão de acesso.');
     }
   };
 
