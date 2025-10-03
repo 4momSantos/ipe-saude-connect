@@ -249,10 +249,9 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
           <Button
             type="button"
             variant="default"
-            size="lg"
             onClick={handleValidateCPF}
             disabled={isValidatingCPF || cpfValidated || !form.getValues('cpf') || !form.getValues('data_nascimento')}
-            className="w-full gap-2"
+            className="w-full md:w-auto gap-2"
           >
             {isValidatingCPF ? (
               <>
