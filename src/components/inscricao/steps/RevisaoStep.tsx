@@ -194,10 +194,10 @@ export function RevisaoStep({ form }: RevisaoStepProps) {
               {documentosEnviados} de {documentosObrigatorios} obrigatórios
             </Badge>
           </div>
-          <div className="w-full bg-muted rounded-full h-2 mb-4">
+          <div className="w-full bg-muted rounded-full h-2 mb-4 overflow-hidden">
             <div
               className="bg-primary h-2 rounded-full transition-all duration-500"
-              style={{ width: `${(documentosEnviados / documentosObrigatorios) * 100}%` }}
+              style={{ width: `${Math.min((documentosEnviados / documentosObrigatorios) * 100, 100)}%` }}
             />
           </div>
           {documentosEnviados < documentosObrigatorios && (
