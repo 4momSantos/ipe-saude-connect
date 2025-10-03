@@ -64,6 +64,11 @@ export function PessoaJuridicaStep({ form }: PessoaJuridicaStepProps) {
         if (result.data.telefone_2 && !form.getValues('celular')) {
           form.setValue('celular', result.data.telefone_2, { shouldValidate: true });
         }
+        
+        // Preencher email se disponível
+        if (result.data.email) {
+          form.setValue('email', result.data.email, { shouldValidate: true });
+        }
 
         // Verificar se está inativa
         if (!result.data.situacao_ativa) {
@@ -413,10 +418,18 @@ export function PessoaJuridicaStep({ form }: PessoaJuridicaStepProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>E-mail *</FormLabel>
-                <FormControl>
-                  <Input type="email" placeholder="contato@clinica.com.br" {...field} />
-                </FormControl>
-                <FormMessage />
+                <div className="space-y-2">
+                  <FormControl>
+                    <Input type="email" placeholder="contato@clinica.com.br" {...field} />
+                  </FormControl>
+                  {cnpjValidated && field.value && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Sparkles className="h-3 w-3" />
+                      <span>Auto-preenchido pela Receita Federal</span>
+                    </div>
+                  )}
+                  <FormMessage />
+                </div>
               </FormItem>
             )}
           />

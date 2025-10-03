@@ -88,6 +88,7 @@ serve(async (req) => {
           telefone_1: cnpjData.ddd_telefone_1 || null,
           telefone_2: cnpjData.ddd_telefone_2 || null,
           fax: cnpjData.ddd_fax || null,
+          email: cnpjData.email || null,
         },
         message: 'CNPJ validado com sucesso',
       }),

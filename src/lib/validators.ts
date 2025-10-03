@@ -333,6 +333,7 @@ export interface CNPJValidationData {
   telefone_1?: string;
   telefone_2?: string;
   fax?: string;
+  email?: string;
 }
 
 export const validateCNPJData = async (
