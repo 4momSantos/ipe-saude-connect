@@ -15,6 +15,7 @@ import Credenciados from "./pages/Credenciados";
 import CredenciadoDetail from "./pages/CredenciadoDetail";
 import Workflows from "./pages/Workflows";
 import WorkflowEditor from "./pages/WorkflowEditor";
+import FluxoCredenciamentoPage from "./pages/FluxoCredenciamento";
 import LoginPage from "./components/LoginPage";
 import { UserProfileMenu } from "./components/UserProfileMenu";
 import PlaceholderPage from "./pages/PlaceholderPage";
@@ -82,6 +83,7 @@ const App = () => (
                           <Route path="/credenciados/:id" element={<CredenciadoDetail />} />
                           <Route path="/workflows" element={<Workflows />} />
                           <Route path="/workflow-editor" element={<WorkflowEditor />} />
+                          <Route path="/fluxo-credenciamento" element={<FluxoCredenciamentoPage />} />
                           <Route path="/mapa" element={<AnalisesRelatorios />} />
                           <Route path="/relatorios" element={<AnalisesRelatorios />} />
                           <Route
