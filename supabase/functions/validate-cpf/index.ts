@@ -1,0 +1,103 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { cpf, birthdate } = await req.json();
+
+    if (!cpf || !birthdate) {
+      console.error('Missing required parameters:', { cpf, birthdate });
+      return new Response(
+        JSON.stringify({ 
+          valid: false, 
+          message: 'CPF e data de nascimento são obrigatórios' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    const apiToken = Deno.env.get('INFOSIMPLES_API_TOKEN');
+    if (!apiToken) {
+      console.error('INFOSIMPLES_API_TOKEN not configured');
+      return new Response(
+        JSON.stringify({ 
+          valid: false, 
+          message: 'Token de API não configurado' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+
+    // Clean CPF and format birthdate
+    const cleanCPF = cpf.replace(/\D/g, '');
+    
+    console.log('Validating CPF:', { cpf: cleanCPF, birthdate });
+
+    const url = new URL('https://api.infosimples.com/api/v2/consultas/receita-federal/cpf');
+    url.searchParams.append('token', apiToken);
+    url.searchParams.append('cpf', cleanCPF);
+    url.searchParams.append('birthdate', birthdate);
+    url.searchParams.append('timeout', '600');
+
+    const response = await fetch(url.toString());
+    
+    if (!response.ok) {
+      console.error('InfoSimples API error:', response.status, response.statusText);
+      return new Response(
+        JSON.stringify({ 
+          valid: false, 
+          message: 'Erro ao consultar CPF na Receita Federal' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: response.status }
+      );
+    }
+
+    const result = await response.json();
+    console.log('InfoSimples response:', JSON.stringify(result, null, 2));
+
+    if (result.code === 200 && result.data && result.data.length > 0) {
+      const cpfData = result.data[0];
+      
+      return new Response(
+        JSON.stringify({ 
+          valid: true, 
+          data: {
+            nome: cpfData.nome || cpfData.nome_civil || cpfData.nome_social,
+            cpf: cpfData.cpf,
+            data_nascimento: cpfData.data_nascimento,
+            situacao_cadastral: cpfData.situacao_cadastral,
+            data_inscricao: cpfData.data_inscricao,
+          },
+          message: 'CPF validado com sucesso'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } else {
+      return new Response(
+        JSON.stringify({ 
+          valid: false, 
+          message: result.code_message || 'CPF não encontrado ou inválido' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+  } catch (error) {
+    console.error('Error validating CPF:', error);
+    return new Response(
+      JSON.stringify({ 
+        valid: false, 
+        message: 'Erro ao processar validação de CPF' 
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+    );
+  }
+});

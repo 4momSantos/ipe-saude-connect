@@ -220,3 +220,46 @@ export const validateCRM = async (
     return { valid: false, message: "Erro ao conectar com o serviço de validação" };
   }
 };
+
+export interface CPFValidationData {
+  nome: string;
+  cpf: string;
+  data_nascimento: string;
+  situacao_cadastral: string;
+  data_inscricao: string;
+}
+
+export const validateCPFData = async (
+  cpf: string,
+  birthdate: string
+): Promise<{ valid: boolean; data?: CPFValidationData; message?: string }> => {
+  const cleanCPF = cpf.replace(/\D/g, "");
+  
+  if (!cleanCPF || !birthdate) {
+    return { valid: false, message: "CPF e data de nascimento são obrigatórios" };
+  }
+
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-cpf`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ cpf: cleanCPF, birthdate }),
+      }
+    );
+
+    if (!response.ok) {
+      return { valid: false, message: "Erro ao validar CPF" };
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("Erro ao validar CPF:", error);
+    return { valid: false, message: "Erro ao conectar com o serviço de validação" };
+  }
+};

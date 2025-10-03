@@ -17,9 +17,10 @@ import { CalendarIcon, CheckCircle2, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { validateCRM } from '@/lib/validators';
+import { validateCRM, validateCPFData } from '@/lib/validators';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { parse, format as formatDate } from 'date-fns';
 
 interface DadosPessoaisStepProps {
   form: UseFormReturn<InscricaoCompletaForm>;
@@ -28,6 +29,8 @@ interface DadosPessoaisStepProps {
 export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
   const [isValidatingCRM, setIsValidatingCRM] = useState(false);
   const [crmValidated, setCrmValidated] = useState(false);
+  const [isValidatingCPF, setIsValidatingCPF] = useState(false);
+  const [cpfValidated, setCpfValidated] = useState(false);
   const { toast } = useToast();
 
   const handleValidateCRM = async () => {
@@ -71,6 +74,55 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
       });
     } finally {
       setIsValidatingCRM(false);
+    }
+  };
+
+  const handleValidateCPF = async () => {
+    const cpf = form.getValues('cpf');
+    const dataNascimento = form.getValues('data_nascimento');
+
+    if (!cpf || !dataNascimento) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha o CPF e a data de nascimento antes de validar",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsValidatingCPF(true);
+    setCpfValidated(false);
+
+    try {
+      // Format date to YYYY-MM-DD for API
+      const birthdate = formatDate(dataNascimento, 'yyyy-MM-dd');
+      const result = await validateCPFData(cpf, birthdate);
+
+      if (result.valid && result.data) {
+        setCpfValidated(true);
+        
+        // Auto-fill form fields
+        form.setValue('nome_completo', result.data.nome);
+        
+        toast({
+          title: "CPF validado com sucesso!",
+          description: `${result.data.nome} - ${result.data.situacao_cadastral}`,
+        });
+      } else {
+        toast({
+          title: "CPF não encontrado",
+          description: result.message || "Verifique o CPF e a data de nascimento",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Erro ao validar CPF",
+        description: "Tente novamente mais tarde",
+        variant: "destructive",
+      });
+    } finally {
+      setIsValidatingCPF(false);
     }
   };
 
@@ -200,6 +252,50 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
           control={form.control}
+          name="data_nascimento"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Data de Nascimento *</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'w-full pl-3 text-left font-normal',
+                        !field.value && 'text-muted-foreground'
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, 'dd/MM/yyyy', { locale: ptBR })
+                      ) : (
+                        <span>Selecione a data</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={(date) => {
+                      field.onChange(date);
+                      setCpfValidated(false);
+                    }}
+                    disabled={(date) => date > new Date() || date < new Date('1900-01-01')}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
           name="cpf"
           render={({ field }) => (
             <FormItem>
@@ -215,6 +311,7 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
                       .replace(/(\d{3})(\d)/, '$1.$2')
                       .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
                     field.onChange(formatted);
+                    setCpfValidated(false);
                   }}
                   maxLength={14}
                 />
@@ -223,7 +320,33 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
             </FormItem>
           )}
         />
+      </div>
 
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          onClick={handleValidateCPF}
+          disabled={isValidatingCPF || !form.getValues('cpf') || !form.getValues('data_nascimento')}
+          variant={cpfValidated ? "outline" : "default"}
+          className="flex items-center gap-2"
+        >
+          {isValidatingCPF ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Validando CPF...
+            </>
+          ) : cpfValidated ? (
+            <>
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              CPF Validado
+            </>
+          ) : (
+            'Validar CPF na Receita Federal'
+          )}
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
           control={form.control}
           name="rg"
@@ -233,6 +356,28 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
               <FormControl>
                 <Input placeholder="1234567890" {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="sexo"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Sexo *</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="M">Masculino</SelectItem>
+                  <SelectItem value="F">Feminino</SelectItem>
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
@@ -270,70 +415,6 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="data_nascimento"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Data de Nascimento *</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'w-full pl-3 text-left font-normal',
-                        !field.value && 'text-muted-foreground'
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, 'dd/MM/yyyy', { locale: ptBR })
-                      ) : (
-                        <span>Selecione a data</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    disabled={(date) => date > new Date() || date < new Date('1900-01-01')}
-                    initialFocus
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="sexo"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Sexo *</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="M">Masculino</SelectItem>
-                  <SelectItem value="F">Feminino</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
     </div>
   );
 }
