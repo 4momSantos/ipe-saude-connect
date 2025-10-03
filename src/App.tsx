@@ -18,6 +18,8 @@ import CredenciadoDetail from "./pages/CredenciadoDetail";
 import Workflows from "./pages/Workflows";
 import WorkflowEditor from "./pages/WorkflowEditor";
 import FluxoCredenciamentoPage from "./pages/FluxoCredenciamento";
+import TemplatesFormularios from "./pages/TemplatesFormularios";
+import TemplateEditor from "./pages/TemplateEditor";
 import LoginPage from "./components/LoginPage";
 import UserManagement from "./pages/UserManagement";
 import { ProtectedRoute as RoleProtectedRoute } from "./components/ProtectedRoute";
@@ -89,6 +91,9 @@ const App = () => (
                           <Route path="/credenciados/:id" element={<CredenciadoDetail />} />
                           <Route path="/workflows" element={<Workflows />} />
                           <Route path="/workflow-editor" element={<WorkflowEditor />} />
+                          <Route path="/templates-formularios" element={<TemplatesFormularios />} />
+                          <Route path="/templates-formularios/editor" element={<TemplateEditor />} />
+                          <Route path="/templates-formularios/editor/:id" element={<TemplateEditor />} />
                           <Route path="/fluxo-credenciamento" element={<FluxoCredenciamentoPage />} />
                           <Route path="/mapa" element={<AnalisesRelatorios />} />
                           <Route path="/relatorios" element={<AnalisesRelatorios />} />

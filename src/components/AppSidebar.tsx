@@ -8,7 +8,8 @@ import {
   BarChart3, 
   Settings,
   Workflow,
-  Shield
+  Shield,
+  FileCode2
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
@@ -62,6 +63,12 @@ const menuItems = [
     url: "/workflows", 
     icon: Workflow,
     roles: ['analista', 'gestor', 'admin'] as const
+  },
+  { 
+    title: "Templates de Formulários", 
+    url: "/templates-formularios", 
+    icon: FileCode2,
+    roles: ['gestor', 'admin'] as const
   },
   { 
     title: "Análises & Relatórios", 

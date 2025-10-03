@@ -305,6 +305,48 @@ export type Database = {
           },
         ]
       }
+      form_templates: {
+        Row: {
+          category: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          fields: Json
+          id: string
+          is_active: boolean
+          name: string
+          tags: string[] | null
+          updated_at: string
+          usage_count: number | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          fields?: Json
+          id?: string
+          is_active?: boolean
+          name: string
+          tags?: string[] | null
+          updated_at?: string
+          usage_count?: number | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          fields?: Json
+          id?: string
+          is_active?: boolean
+          name?: string
+          tags?: string[] | null
+          updated_at?: string
+          usage_count?: number | null
+        }
+        Relationships: []
+      }
       horarios_atendimento: {
         Row: {
           created_at: string | null

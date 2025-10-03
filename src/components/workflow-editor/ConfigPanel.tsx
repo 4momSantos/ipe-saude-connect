@@ -12,6 +12,7 @@ import { HttpConfigPanel } from "./HttpConfig";
 import { SignatureConfigPanel } from "./SignatureConfig";
 import { EmailConfigPanel } from "./EmailConfig";
 import { DatabaseConfigPanel } from "./DatabaseConfig";
+import { TemplateSelector } from "@/components/templates/TemplateSelector";
 import { WorkflowNodeData, FormField, FormTemplate } from "@/types/workflow-editor";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
@@ -126,62 +127,22 @@ export function ConfigPanel({
 
             <TabsContent value="advanced" className="space-y-4 mt-4">
               {nodeData.type === "form" && (
-                <>
-                  <div className="space-y-4 pb-4 border-b">
-                    <div>
-                      <Label className="mb-2 block">Carregar Template</Label>
-                      <Select onValueChange={loadTemplate}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um template..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {templates.map((template) => (
-                            <SelectItem key={template.id} value={template.id}>
-                              {template.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {templates.length === 0 && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Nenhum template disponível
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <FormBuilder
-                    fields={nodeData.formFields || []}
-                    onChange={(fields) => onUpdate({ formFields: fields })}
+                <div className="space-y-4">
+                  <TemplateSelector
+                    selectedTemplateId={nodeData.formTemplateId}
+                    onSelect={(templateId, fields) => {
+                      onUpdate({ 
+                        formTemplateId: templateId,
+                        formFields: fields 
+                      });
+                    }}
                   />
 
-                  {(nodeData.formFields?.length || 0) > 0 && (
-                    <div className="pt-4 border-t space-y-3">
-                      <h4 className="text-sm font-semibold">Salvar como Template</h4>
-                      <div className="space-y-2">
-                        <Label>Nome do Template</Label>
-                        <Input
-                          value={templateName}
-                          onChange={(e) => setTemplateName(e.target.value)}
-                          placeholder="Ex: Formulário de Inscrição"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Descrição</Label>
-                        <Textarea
-                          value={templateDescription}
-                          onChange={(e) => setTemplateDescription(e.target.value)}
-                          placeholder="Descreva o propósito deste template..."
-                          rows={3}
-                        />
-                      </div>
-                      <Button onClick={handleSaveTemplate} className="w-full">
-                        <Copy className="h-4 w-4 mr-2" />
-                        Salvar Template
-                      </Button>
-                    </div>
-                  )}
-                </>
+                  <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
+                    <p>💡 Os campos do formulário são definidos no template selecionado.</p>
+                    <p className="mt-1">Para criar ou editar templates, acesse o menu "Templates de Formulários".</p>
+                  </div>
+                </div>
               )}
 
               {nodeData.type === "webhook" && (
@@ -227,9 +188,13 @@ export function ConfigPanel({
             </TabsContent>
 
             <TabsContent value="preview" className="mt-4">
-              {nodeData.type === "form" ? (
+              {nodeData.type === "form" && nodeData.formFields ? (
                 <div className="p-4 rounded-lg border bg-background/50">
-                  <FormPreview fields={nodeData.formFields || []} />
+                  <FormPreview fields={nodeData.formFields} />
+                </div>
+              ) : nodeData.type === "form" ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Selecione um template para visualizar o preview</p>
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">

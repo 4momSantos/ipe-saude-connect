@@ -177,12 +177,38 @@ async function executeWorkflowSteps(
 
       case "form":
         console.log("Aguardando preenchimento de formulário");
+        
+        // Se o nó tem formTemplateId, buscar template do banco
+        let formFields = currentNode.data.formFields;
+        
+        if (currentNode.data.formTemplateId) {
+          console.log("Buscando template de formulário:", currentNode.data.formTemplateId);
+          const { data: template, error: templateError } = await supabaseClient
+            .from("form_templates")
+            .select("fields")
+            .eq("id", currentNode.data.formTemplateId)
+            .eq("is_active", true)
+            .single();
+          
+          if (templateError) {
+            console.error("Erro ao buscar template:", templateError);
+            throw new Error(`Template de formulário não encontrado: ${currentNode.data.formTemplateId}`);
+          }
+          
+          formFields = template.fields;
+          console.log("Template carregado com sucesso:", formFields?.length, "campos");
+        }
+        
+        // Armazenar campos no contexto para uso posterior
+        outputData = { ...context, formFields };
+        
         // Formulários precisam ser preenchidos manualmente
         // A execução para aqui até que o formulário seja submetido
         await supabaseClient
           .from("workflow_step_executions")
           .update({
             status: "pending",
+            output_data: outputData,
             completed_at: new Date().toISOString(),
           })
           .eq("id", stepExecution.id);
