@@ -13,16 +13,67 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, CheckCircle2, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { validateCRM } from '@/lib/validators';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 interface DadosPessoaisStepProps {
   form: UseFormReturn<InscricaoCompletaForm>;
 }
 
 export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
+  const [isValidatingCRM, setIsValidatingCRM] = useState(false);
+  const [crmValidated, setCrmValidated] = useState(false);
+  const { toast } = useToast();
+
+  const handleValidateCRM = async () => {
+    const crm = form.getValues('crm');
+    const uf = form.getValues('uf_crm');
+
+    if (!crm || !uf) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha o CRM e a UF antes de validar",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsValidatingCRM(true);
+    setCrmValidated(false);
+
+    try {
+      const result = await validateCRM(crm, uf);
+
+      if (result.valid && result.data) {
+        setCrmValidated(true);
+        form.setValue('nome_completo', result.data.nome);
+        toast({
+          title: "CRM validado com sucesso!",
+          description: `Médico: ${result.data.nome} - Situação: ${result.data.situacao}`,
+        });
+      } else {
+        toast({
+          title: "CRM não encontrado",
+          description: result.message || "Verifique o número do CRM e a UF",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Erro ao validar CRM",
+        description: "Tente novamente mais tarde",
+        variant: "destructive",
+      });
+    } finally {
+      setIsValidatingCRM(false);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -40,7 +91,14 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
             <FormItem>
               <FormLabel>CRM *</FormLabel>
               <FormControl>
-                <Input placeholder="12345" {...field} />
+                <Input 
+                  placeholder="12345" 
+                  {...field} 
+                  onChange={(e) => {
+                    field.onChange(e);
+                    setCrmValidated(false);
+                  }}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -53,7 +111,13 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>UF do CRM *</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select 
+                onValueChange={(value) => {
+                  field.onChange(value);
+                  setCrmValidated(false);
+                }}
+                defaultValue={field.value}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
@@ -93,6 +157,30 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
             </FormItem>
           )}
         />
+      </div>
+
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          onClick={handleValidateCRM}
+          disabled={isValidatingCRM || !form.getValues('crm') || !form.getValues('uf_crm')}
+          variant={crmValidated ? "outline" : "default"}
+          className="flex items-center gap-2"
+        >
+          {isValidatingCRM ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Validando...
+            </>
+          ) : crmValidated ? (
+            <>
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              CRM Validado
+            </>
+          ) : (
+            'Validar CRM no CFM'
+          )}
+        </Button>
       </div>
 
       <FormField

@@ -174,3 +174,49 @@ export const formatPhone = (value: string): string => {
   }
   return numbers.slice(0, 11).replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
 };
+
+export interface CRMValidationData {
+  nome: string;
+  crm: string;
+  uf: string;
+  tipo_inscricao: string;
+  situacao: string;
+  especialidades: string[];
+  ano_formatura: number;
+  instituicao: string;
+}
+
+export const validateCRM = async (
+  crm: string,
+  uf: string
+): Promise<{ valid: boolean; data?: CRMValidationData; message?: string }> => {
+  const cleanCRM = crm.replace(/\D/g, "");
+  
+  if (!cleanCRM || !uf) {
+    return { valid: false, message: "CRM e UF são obrigatórios" };
+  }
+
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-crm`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ inscricao: cleanCRM, uf }),
+      }
+    );
+
+    if (!response.ok) {
+      return { valid: false, message: "Erro ao validar CRM" };
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("Erro ao validar CRM:", error);
+    return { valid: false, message: "Erro ao conectar com o serviço de validação" };
+  }
+};
