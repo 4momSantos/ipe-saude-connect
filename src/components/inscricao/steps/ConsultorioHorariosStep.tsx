@@ -14,7 +14,9 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Trash2, Clock } from 'lucide-react';
+import { Plus, Trash2, Clock, Sparkles } from 'lucide-react';
+import { useValidatedData } from '@/contexts/ValidatedDataContext';
+import { useEffect } from 'react';
 
 interface ConsultorioHorariosStepProps {
   form: UseFormReturn<InscricaoCompletaForm>;
@@ -30,10 +32,22 @@ const DIAS_SEMANA = [
 ];
 
 export function ConsultorioHorariosStep({ form }: ConsultorioHorariosStepProps) {
+  const { crm } = useValidatedData();
+  
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: 'horarios',
   });
+
+  // Auto-preencher especialidade e telefone do consultório com dados do CRM
+  useEffect(() => {
+    if (crm?.validated) {
+      // Preencher especialidade principal se disponível
+      if (crm.especialidades && crm.especialidades.length > 0 && !form.getValues('especialidade_principal')) {
+        form.setValue('especialidade_principal', crm.especialidades[0], { shouldValidate: true });
+      }
+    }
+  }, [crm, form]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -171,10 +185,18 @@ export function ConsultorioHorariosStep({ form }: ConsultorioHorariosStepProps) 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Especialidade Principal *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Cardiologia" {...field} />
-                  </FormControl>
-                  <FormMessage />
+                  <div className="space-y-2">
+                    <FormControl>
+                      <Input placeholder="Cardiologia" {...field} />
+                    </FormControl>
+                    {crm?.validated && crm.especialidades && crm.especialidades.length > 0 && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Sparkles className="h-3 w-3" />
+                        <span>Auto-preenchido do CRM</span>
+                      </div>
+                    )}
+                    <FormMessage />
+                  </div>
                 </FormItem>
               )}
             />

@@ -1,128 +1,143 @@
 import { UseFormReturn } from 'react-hook-form';
 import { InscricaoCompletaForm } from '@/lib/inscricao-validation';
-import {
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-  FormDescription,
-} from '@/components/ui/form';
+import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Button } from '@/components/ui/button';
-import { CalendarIcon, CheckCircle2, Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { CalendarIcon, CheckCircle2, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { validateCRM, validateCPFData } from '@/lib/validators';
 import { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { parse, format as formatDate } from 'date-fns';
+import { validateCRM, validateCPFData, formatCPF } from '@/lib/validators';
+import { toast } from 'sonner';
+import { useValidatedData } from '@/contexts/ValidatedDataContext';
 
 interface DadosPessoaisStepProps {
   form: UseFormReturn<InscricaoCompletaForm>;
 }
 
 export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
-  const [isValidatingCRM, setIsValidatingCRM] = useState(false);
-  const [crmValidated, setCrmValidated] = useState(false);
   const [isValidatingCPF, setIsValidatingCPF] = useState(false);
   const [cpfValidated, setCpfValidated] = useState(false);
-  const { toast } = useToast();
+  const [isValidatingCRM, setIsValidatingCRM] = useState(false);
+  const [crmValidated, setCrmValidated] = useState(false);
+  const [birthDateMismatch, setBirthDateMismatch] = useState(false);
+  
+  const { setCpfData, setCrmData } = useValidatedData();
+
+  const handleValidateCPF = async () => {
+    const cpf = form.getValues('cpf');
+    const dataNascimento = form.getValues('data_nascimento');
+
+    if (!cpf) {
+      toast.error('Por favor, insira o CPF');
+      return;
+    }
+
+    if (!dataNascimento) {
+      toast.error('Por favor, insira a data de nascimento');
+      return;
+    }
+
+    setIsValidatingCPF(true);
+    setBirthDateMismatch(false);
+
+    try {
+      const result = await validateCPFData(
+        cpf,
+        format(dataNascimento, 'yyyy-MM-dd')
+      );
+
+      if (result.valid && result.data) {
+        // Auto-preencher nome completo
+        form.setValue('nome_completo', result.data.nome, { shouldValidate: true });
+        
+        // Verificar se a data de nascimento bate
+        const apiDate = new Date(result.data.data_nascimento);
+        const formDate = new Date(dataNascimento);
+        
+        if (apiDate.getTime() !== formDate.getTime()) {
+          setBirthDateMismatch(true);
+          toast.warning('A data de nascimento não corresponde ao CPF informado');
+        }
+
+        // Salvar dados no context
+        setCpfData({
+          validated: true,
+          nome: result.data.nome,
+          data_nascimento: result.data.data_nascimento,
+          situacao: result.data.situacao_cadastral || 'regular',
+          cpf: cpf,
+        });
+
+        setCpfValidated(true);
+        toast.success(`CPF validado! Titular: ${result.data.nome}`);
+      } else {
+        toast.error(result.message || 'CPF não encontrado na Receita Federal');
+        setCpfValidated(false);
+      }
+    } catch (error) {
+      console.error('Erro ao validar CPF:', error);
+      toast.error('Erro ao validar CPF');
+      setCpfValidated(false);
+    } finally {
+      setIsValidatingCPF(false);
+    }
+  };
 
   const handleValidateCRM = async () => {
     const crm = form.getValues('crm');
     const uf = form.getValues('uf_crm');
 
     if (!crm || !uf) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Preencha o CRM e a UF antes de validar",
-        variant: "destructive",
-      });
+      toast.error('Por favor, insira o CRM e a UF');
       return;
     }
 
     setIsValidatingCRM(true);
-    setCrmValidated(false);
 
     try {
       const result = await validateCRM(crm, uf);
 
       if (result.valid && result.data) {
+        // Auto-preencher dados se nome ainda estiver vazio
+        if (!form.getValues('nome_completo')) {
+          form.setValue('nome_completo', result.data.nome, { shouldValidate: true });
+        }
+
+        // Salvar dados no context para usar nas próximas etapas
+        setCrmData({
+          validated: true,
+          especialidades: result.data.especialidades || [],
+          instituicao_graduacao: result.data.instituicao,
+          ano_formatura: result.data.ano_formatura,
+        });
+
+        // Preencher instituição e ano de formatura se disponíveis
+        if (result.data.instituicao) {
+          form.setValue('instituicao_graduacao', result.data.instituicao);
+        }
+        if (result.data.ano_formatura) {
+          form.setValue('ano_formatura', result.data.ano_formatura);
+        }
+
         setCrmValidated(true);
-        form.setValue('nome_completo', result.data.nome);
-        toast({
-          title: "CRM validado com sucesso!",
-          description: `Médico: ${result.data.nome} - Situação: ${result.data.situacao}`,
-        });
+        toast.success(`CRM validado! Profissional: ${result.data.nome}`);
       } else {
-        toast({
-          title: "CRM não encontrado",
-          description: result.message || "Verifique o número do CRM e a UF",
-          variant: "destructive",
-        });
+        toast.error(result.message || 'CRM não encontrado');
+        setCrmValidated(false);
       }
     } catch (error) {
-      toast({
-        title: "Erro ao validar CRM",
-        description: "Tente novamente mais tarde",
-        variant: "destructive",
-      });
+      console.error('Erro ao validar CRM:', error);
+      toast.error('Erro ao validar CRM');
+      setCrmValidated(false);
     } finally {
       setIsValidatingCRM(false);
-    }
-  };
-
-  const handleValidateCPF = async () => {
-    const cpf = form.getValues('cpf');
-    const dataNascimento = form.getValues('data_nascimento');
-
-    if (!cpf || !dataNascimento) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Preencha o CPF e a data de nascimento antes de validar",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsValidatingCPF(true);
-    setCpfValidated(false);
-
-    try {
-      // Format date to YYYY-MM-DD for API
-      const birthdate = formatDate(dataNascimento, 'yyyy-MM-dd');
-      const result = await validateCPFData(cpf, birthdate);
-
-      if (result.valid && result.data) {
-        setCpfValidated(true);
-        
-        // Auto-fill form fields
-        form.setValue('nome_completo', result.data.nome);
-        
-        toast({
-          title: "CPF validado com sucesso!",
-          description: `${result.data.nome} - ${result.data.situacao_cadastral}`,
-        });
-      } else {
-        toast({
-          title: "CPF não encontrado",
-          description: result.message || "Verifique o CPF e a data de nascimento",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Erro ao validar CPF",
-        description: "Tente novamente mais tarde",
-        variant: "destructive",
-      });
-    } finally {
-      setIsValidatingCPF(false);
     }
   };
 

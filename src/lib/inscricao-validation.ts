@@ -51,15 +51,17 @@ const validateCNPJ = (cnpj: string) => {
 // Schemas de validação para cada etapa
 
 export const dadosPessoaisSchema = z.object({
-  crm: z.string().min(4, 'CRM deve ter no mínimo 4 caracteres'),
-  uf_crm: z.string().length(2, 'UF deve ter 2 caracteres'),
-  nome_completo: z.string().min(5, 'Nome completo é obrigatório'),
   cpf: z.string().refine(validateCPF, 'CPF inválido'),
+  data_nascimento: z.date({ required_error: 'Data de nascimento é obrigatória' }),
+  nome_completo: z.string().min(5, 'Nome completo é obrigatório'),
   rg: z.string().min(5, 'RG é obrigatório'),
   orgao_emissor: z.string().min(2, 'Órgão emissor é obrigatório'),
-  nit_pis_pasep: z.string().optional(),
-  data_nascimento: z.date({ required_error: 'Data de nascimento é obrigatória' }),
   sexo: z.enum(['M', 'F'], { required_error: 'Sexo é obrigatório' }),
+  nit_pis_pasep: z.string().optional(),
+  crm: z.string().min(4, 'CRM deve ter no mínimo 4 caracteres'),
+  uf_crm: z.string().length(2, 'UF deve ter 2 caracteres'),
+  instituicao_graduacao: z.string().optional(),
+  ano_formatura: z.number().optional(),
 });
 
 export const pessoaJuridicaSchema = z.object({
@@ -114,8 +116,11 @@ export const documentoUpload = z.object({
 
 export const documentosSchema = z.object({
   documentos: z.array(documentoUpload).refine(
-    (docs) => docs.filter(d => d.arquivo || d.url).length >= 5,
-    'Pelo menos 5 documentos obrigatórios devem ser enviados'
+    (docs) => {
+      const obrigatoriosCount = DOCUMENTOS_OBRIGATORIOS.filter(d => d.obrigatorio).length;
+      return docs.filter(d => d.arquivo || d.url).length >= obrigatoriosCount;
+    },
+    `Todos os documentos obrigatórios devem ser enviados`
   ),
 });
 
