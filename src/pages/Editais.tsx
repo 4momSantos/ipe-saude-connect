@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileText, Calendar, Users, CheckCircle2, Clock, Download, Eye, Plus } from "lucide-react";
+import { FileText, Calendar, Users, CheckCircle2, Clock, Download, Eye, Plus, FileSearch } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,16 +12,30 @@ import { InscricaoWizard } from "@/components/inscricao/InscricaoWizard";
 import { InscricaoCompletaForm } from "@/lib/inscricao-validation";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNavigate } from "react-router-dom";
+import { EditalDetalhes } from "@/components/edital/EditalDetalhes";
 
 type Edital = {
   id: string;
   titulo: string;
   descricao: string | null;
+  numero_edital: string | null;
+  objeto: string | null;
   data_inicio: string;
   data_fim: string;
+  data_publicacao: string | null;
+  data_licitacao: string | null;
   vagas: number;
   status: string;
   especialidade: string | null;
+  local_portal: string | null;
+  prazo_validade_proposta: number | null;
+  criterio_julgamento: string | null;
+  garantia_execucao: number | null;
+  fonte_recursos: string | null;
+  participacao_permitida: any;
+  regras_me_epp: string | null;
+  documentos_habilitacao: any;
+  anexos: any;
 };
 
 type Inscricao = {
@@ -37,6 +51,7 @@ export default function Editais() {
   const [selectedEdital, setSelectedEdital] = useState<Edital | null>(null);
   const [selectedInscricao, setSelectedInscricao] = useState<Inscricao | null>(null);
   const [inscricaoEdital, setInscricaoEdital] = useState<Edital | null>(null);
+  const [detalhesEdital, setDetalhesEdital] = useState<Edital | null>(null);
   const [loading, setLoading] = useState(true);
   const { isGestor, isAdmin, isCandidato } = useUserRole();
   const navigate = useNavigate();
@@ -332,18 +347,24 @@ export default function Editais() {
                           Acompanhar Processo
                         </Button>
                       ) : (
-                        <Button 
-                          onClick={() => handleEditalClick(edital)}
-                          variant="outline" 
-                          className="border-border hover:bg-card"
-                        >
-                          Ver Detalhes e Inscrever-se
-                        </Button>
+                        <>
+                          <Button 
+                            onClick={() => setDetalhesEdital(edital)}
+                            variant="outline" 
+                            className="border-border hover:bg-card"
+                          >
+                            <FileSearch className="h-4 w-4 mr-2" />
+                            Ver Detalhes
+                          </Button>
+                          <Button 
+                            onClick={() => setInscricaoEdital(edital)}
+                            className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                          >
+                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                            Inscrever-se
+                          </Button>
+                        </>
                       )}
-                      <Button variant="outline" className="border-border hover:bg-card">
-                        <Download className="h-4 w-4 mr-2" />
-                        Baixar Edital
-                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -399,6 +420,24 @@ export default function Editais() {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Dialog para detalhes do edital */}
+      <Dialog open={!!detalhesEdital} onOpenChange={(open) => {
+        if (!open) setDetalhesEdital(null);
+      }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Detalhes do Edital
+            </DialogTitle>
+            <DialogDescription>
+              Informações completas sobre o processo de credenciamento
+            </DialogDescription>
+          </DialogHeader>
+          {detalhesEdital && <EditalDetalhes edital={detalhesEdital} />}
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog para nova inscrição */}
       <Dialog open={!!inscricaoEdital} onOpenChange={(open) => {
