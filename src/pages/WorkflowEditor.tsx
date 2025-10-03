@@ -24,7 +24,9 @@ import {
   ArrowLeft,
   Globe,
   PenTool,
-  Database
+  Database,
+  Webhook,
+  StopCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -381,22 +383,56 @@ export default function WorkflowEditor() {
             
             {/* Node Palette */}
             <Panel position="top-left" className="space-y-2">
-              <Card className="p-2 space-y-1">
-                <p className="text-xs font-semibold px-2 py-1 text-muted-foreground">
-                  Adicionar Etapa
-                </p>
-                {nodeTemplates.map((template) => (
-                  <Button
-                    key={template.type}
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start"
-                    onClick={() => addNode(template)}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    {template.label}
-                  </Button>
-                ))}
+              <Card className="p-4 max-w-md shadow-lg">
+                <div className="mb-4">
+                  <h3 className="text-sm font-bold text-foreground">Adicionar Etapas</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Arraste ou clique para adicionar ao fluxo
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  {nodeTemplates.map((template) => {
+                    const IconComponent = {
+                      FileText,
+                      Webhook,
+                      Globe,
+                      PenTool,
+                      Mail,
+                      Database,
+                      CheckCircle,
+                      GitBranch,
+                      StopCircle
+                    }[template.icon] || FileText;
+
+                    return (
+                      <Button
+                        key={template.type}
+                        variant="outline"
+                        className="h-auto p-3 flex flex-col items-start gap-2 hover:scale-105 transition-all duration-200 hover:shadow-md group"
+                        onClick={() => addNode(template)}
+                      >
+                        <div className="flex items-center gap-2 w-full">
+                          <div 
+                            className="p-1.5 rounded-md transition-transform duration-200 group-hover:scale-110"
+                            style={{ backgroundColor: `${template.color}15` }}
+                          >
+                            <IconComponent 
+                              className="h-4 w-4" 
+                              style={{ color: template.color }}
+                            />
+                          </div>
+                          <span className="text-xs font-semibold text-left flex-1">
+                            {template.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground text-left leading-tight">
+                          {template.description}
+                        </p>
+                      </Button>
+                    );
+                  })}
+                </div>
               </Card>
             </Panel>
           </ReactFlow>
