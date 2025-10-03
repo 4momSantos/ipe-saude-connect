@@ -240,6 +240,15 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
                       fromYear={1900}
                       toYear={new Date().getFullYear()}
                       locale={ptBR}
+                      classNames={{
+                          caption: "flex justify-center pt-1 relative items-center gap-1",
+                          caption_label: "hidden",
+                          caption_dropdowns: "flex gap-2 relative z-10",
+                          dropdown: "relative inline-flex",
+                          dropdown_month: "relative",
+                          dropdown_year: "relative",
+  }}
+                      />
                     />
                   </PopoverContent>
                 </Popover>
