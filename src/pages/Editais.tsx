@@ -191,15 +191,48 @@ export default function Editais() {
         },
       };
 
-      const { error } = await supabase
+      const { data: inscricaoResult, error } = await supabase
         .from('inscricoes_edital')
-        .insert([inscricaoData]);
+        .insert([inscricaoData])
+        .select()
+        .single();
 
       if (error) throw error;
 
-      toast.success('Inscrição enviada com sucesso!', {
-        description: 'Você será notificado sobre o andamento da análise.',
-      });
+      // Buscar workflow vinculada ao edital
+      const { data: editalData } = await supabase
+        .from('editais')
+        .select('workflow_id')
+        .eq('id', inscricaoEdital.id)
+        .single();
+
+      // Se houver workflow, executá-la automaticamente
+      if (editalData?.workflow_id && inscricaoResult) {
+        console.log('Executando workflow automaticamente...', editalData.workflow_id);
+        
+        try {
+          const { data: functionData, error: functionError } = await supabase.functions.invoke('execute-workflow', {
+            body: {
+              workflowId: editalData.workflow_id,
+              inscricaoId: inscricaoResult.id,
+              inputData: inscricaoData.dados_inscricao
+            }
+          });
+
+          if (functionError) {
+            console.error('Erro ao executar workflow:', functionError);
+            toast.error('Inscrição criada, mas houve um erro ao iniciar o workflow.');
+          } else {
+            console.log('Workflow iniciada:', functionData);
+            toast.success('Inscrição enviada e workflow iniciada com sucesso!');
+          }
+        } catch (workflowError) {
+          console.error('Erro ao executar workflow:', workflowError);
+          toast.success('Inscrição enviada com sucesso! (Workflow será processada em breve)');
+        }
+      } else {
+        toast.success('Inscrição enviada com sucesso!');
+      }
 
       setInscricaoEdital(null);
       loadData(); // Recarregar dados para atualizar a lista
@@ -416,6 +449,7 @@ export default function Editais() {
               <FluxoCredenciamento 
                 status={selectedInscricao.status as "em_analise" | "aprovado" | "aguardando_assinatura" | "assinado" | "ativo" | "rejeitado"}
                 motivoRejeicao={selectedInscricao.motivo_rejeicao || undefined}
+                inscricaoId={selectedInscricao.id}
                 onAssinarContrato={async () => {
                   try {
                     const { error } = await supabase

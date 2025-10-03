@@ -46,7 +46,7 @@ serve(async (req) => {
       throw new Error("Não autorizado");
     }
 
-    const { workflowId, inputData } = await req.json();
+    const { workflowId, inputData, inscricaoId } = await req.json();
 
     // Buscar workflow
     const { data: workflow, error: workflowError } = await supabaseClient
@@ -72,6 +72,20 @@ serve(async (req) => {
     if (executionError) throw executionError;
 
     console.log("Execução iniciada:", execution.id);
+
+    // Se houver inscricaoId, vincular a execução à inscrição
+    if (inscricaoId) {
+      const { error: updateError } = await supabaseClient
+        .from("inscricoes_edital")
+        .update({ workflow_execution_id: execution.id })
+        .eq("id", inscricaoId);
+
+      if (updateError) {
+        console.error("Erro ao vincular execução à inscrição:", updateError);
+      } else {
+        console.log("Execução vinculada à inscrição:", inscricaoId);
+      }
+    }
 
     // Encontrar nó inicial (start)
     const nodes = workflow.nodes as WorkflowNode[];

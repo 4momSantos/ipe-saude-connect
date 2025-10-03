@@ -5,6 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { WorkflowStatusCard } from "@/components/workflow/WorkflowStatusCard";
 import { 
   FileText, 
   CheckCircle2, 
@@ -30,6 +31,7 @@ interface FluxoCredenciamentoProps {
   status: StatusType;
   motivoRejeicao?: string;
   onAssinarContrato?: () => void;
+  inscricaoId?: string; // ID da inscrição para buscar workflow
 }
 
 interface Etapa {
@@ -93,7 +95,8 @@ const etapas: Etapa[] = [
 export function FluxoCredenciamento({ 
   status, 
   motivoRejeicao,
-  onAssinarContrato 
+  onAssinarContrato,
+  inscricaoId 
 }: FluxoCredenciamentoProps) {
   const [isAssigning, setIsAssigning] = useState(false);
 
@@ -385,6 +388,11 @@ export function FluxoCredenciamento({
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Workflow Status Card */}
+      {inscricaoId && (
+        <WorkflowStatusCard inscricaoId={inscricaoId} />
       )}
     </div>
   );

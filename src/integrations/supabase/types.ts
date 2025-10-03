@@ -204,6 +204,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           criterio_julgamento: string | null
+          data_autorizacao: string | null
           data_fim: string
           data_inicio: string
           data_licitacao: string | null
@@ -213,11 +214,13 @@ export type Database = {
           especialidade: string | null
           fonte_recursos: string | null
           garantia_execucao: number | null
+          gestor_autorizador_id: string | null
           historico_alteracoes: Json | null
           id: string
           local_portal: string | null
           numero_edital: string | null
           objeto: string | null
+          observacoes_autorizacao: string | null
           participacao_permitida: Json | null
           prazo_validade_proposta: number | null
           regras_me_epp: string | null
@@ -225,12 +228,15 @@ export type Database = {
           titulo: string
           updated_at: string | null
           vagas: number
+          workflow_id: string | null
+          workflow_version: number | null
         }
         Insert: {
           anexos?: Json | null
           created_at?: string | null
           created_by?: string | null
           criterio_julgamento?: string | null
+          data_autorizacao?: string | null
           data_fim: string
           data_inicio: string
           data_licitacao?: string | null
@@ -240,11 +246,13 @@ export type Database = {
           especialidade?: string | null
           fonte_recursos?: string | null
           garantia_execucao?: number | null
+          gestor_autorizador_id?: string | null
           historico_alteracoes?: Json | null
           id?: string
           local_portal?: string | null
           numero_edital?: string | null
           objeto?: string | null
+          observacoes_autorizacao?: string | null
           participacao_permitida?: Json | null
           prazo_validade_proposta?: number | null
           regras_me_epp?: string | null
@@ -252,12 +260,15 @@ export type Database = {
           titulo: string
           updated_at?: string | null
           vagas?: number
+          workflow_id?: string | null
+          workflow_version?: number | null
         }
         Update: {
           anexos?: Json | null
           created_at?: string | null
           created_by?: string | null
           criterio_julgamento?: string | null
+          data_autorizacao?: string | null
           data_fim?: string
           data_inicio?: string
           data_licitacao?: string | null
@@ -267,11 +278,13 @@ export type Database = {
           especialidade?: string | null
           fonte_recursos?: string | null
           garantia_execucao?: number | null
+          gestor_autorizador_id?: string | null
           historico_alteracoes?: Json | null
           id?: string
           local_portal?: string | null
           numero_edital?: string | null
           objeto?: string | null
+          observacoes_autorizacao?: string | null
           participacao_permitida?: Json | null
           prazo_validade_proposta?: number | null
           regras_me_epp?: string | null
@@ -279,8 +292,18 @@ export type Database = {
           titulo?: string
           updated_at?: string | null
           vagas?: number
+          workflow_id?: string | null
+          workflow_version?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "editais_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       horarios_atendimento: {
         Row: {
@@ -329,6 +352,7 @@ export type Database = {
           motivo_rejeicao: string | null
           status: string
           updated_at: string | null
+          workflow_execution_id: string | null
         }
         Insert: {
           analisado_em?: string | null
@@ -341,6 +365,7 @@ export type Database = {
           motivo_rejeicao?: string | null
           status?: string
           updated_at?: string | null
+          workflow_execution_id?: string | null
         }
         Update: {
           analisado_em?: string | null
@@ -353,6 +378,7 @@ export type Database = {
           motivo_rejeicao?: string | null
           status?: string
           updated_at?: string | null
+          workflow_execution_id?: string | null
         }
         Relationships: [
           {
@@ -360,6 +386,13 @@ export type Database = {
             columns: ["edital_id"]
             isOneToOne: false
             referencedRelation: "editais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inscricoes_edital_workflow_execution_id_fkey"
+            columns: ["workflow_execution_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_executions"
             referencedColumns: ["id"]
           },
         ]
@@ -470,6 +503,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      workflow_approvals: {
+        Row: {
+          approver_id: string
+          comments: string | null
+          created_at: string
+          decision: string
+          id: string
+          step_execution_id: string
+          updated_at: string
+        }
+        Insert: {
+          approver_id: string
+          comments?: string | null
+          created_at?: string
+          decision: string
+          id?: string
+          step_execution_id: string
+          updated_at?: string
+        }
+        Update: {
+          approver_id?: string
+          comments?: string | null
+          created_at?: string
+          decision?: string
+          id?: string
+          step_execution_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_approvals_step_execution_id_fkey"
+            columns: ["step_execution_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_step_executions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workflow_executions: {
         Row: {

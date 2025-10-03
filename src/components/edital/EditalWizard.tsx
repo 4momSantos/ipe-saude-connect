@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, ChevronRight, Save } from "lucide-react";
 import { InformacoesGeraisStep } from "./steps/InformacoesGeraisStep";
 import { ParticipacaoHabilitacaoStep } from "./steps/ParticipacaoHabilitacaoStep";
+import { WorkflowStep } from "./steps/WorkflowStep";
 import { AnexosStep } from "./steps/AnexosStep";
 import { PublicacaoStep } from "./steps/PublicacaoStep";
 import { toast } from "sonner";
@@ -18,8 +19,9 @@ import { useNavigate } from "react-router-dom";
 const STEPS = [
   { id: 1, title: "Informações Gerais", description: "Dados básicos" },
   { id: 2, title: "Participação", description: "Habilitação" },
-  { id: 3, title: "Anexos", description: "Documentos" },
-  { id: 4, title: "Publicação", description: "Revisão final" },
+  { id: 3, title: "Workflow", description: "Automação" },
+  { id: 4, title: "Anexos", description: "Documentos" },
+  { id: 5, title: "Publicação", description: "Revisão final" },
 ];
 
 const editalSchema = z.object({
@@ -38,6 +40,11 @@ const editalSchema = z.object({
   documentos_habilitacao: z.array(z.string()).min(1, "Selecione ao menos um documento"),
   anexos: z.record(z.any()).optional(),
   status: z.enum(["rascunho", "publicado", "encerrado"]).default("rascunho"),
+  // Campos de workflow (opcionais)
+  workflow_id: z.string().nullable().optional(),
+  workflow_version: z.number().optional(),
+  gestor_autorizador_id: z.string().optional(),
+  observacoes_autorizacao: z.string().optional(),
 });
 
 type EditalFormValues = z.infer<typeof editalSchema>;
@@ -95,9 +102,16 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
         fieldsToValidate = ["participacao_permitida", "documentos_habilitacao"];
         break;
       case 3:
-        // Anexos são opcionais
+        // Workflow é opcional, mas se selecionada, requer gestor autorizador
+        const workflowId = form.getValues("workflow_id");
+        if (workflowId) {
+          fieldsToValidate = ["gestor_autorizador_id"];
+        }
         break;
       case 4:
+        // Anexos são opcionais
+        break;
+      case 5:
         fieldsToValidate = ["status"];
         break;
     }
@@ -171,6 +185,12 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
         anexos: data.anexos,
         status: data.status,
         created_by: user.id,
+        // Campos de workflow
+        workflow_id: data.workflow_id || null,
+        workflow_version: data.workflow_version || null,
+        gestor_autorizador_id: data.gestor_autorizador_id || null,
+        observacoes_autorizacao: data.observacoes_autorizacao || null,
+        data_autorizacao: data.workflow_id ? new Date().toISOString() : null,
       };
 
       if (editalId) {
@@ -236,8 +256,10 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
       case 2:
         return <ParticipacaoHabilitacaoStep form={form} />;
       case 3:
-        return <AnexosStep form={form} />;
+        return <WorkflowStep form={form} />;
       case 4:
+        return <AnexosStep form={form} />;
+      case 5:
         return <PublicacaoStep form={form} />;
       default:
         return null;
@@ -265,7 +287,7 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
 
           <Progress value={progress} className="h-2" />
 
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-5 gap-2">
             {STEPS.map((step) => (
               <div
                 key={step.id}
