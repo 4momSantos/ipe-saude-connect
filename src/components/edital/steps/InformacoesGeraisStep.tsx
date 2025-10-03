@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, FileText, DollarSign, Clock } from "lucide-react";
+import { CalendarIcon, FileText, Percent, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -198,10 +198,12 @@ export function InformacoesGeraisStep({ form }: InformacoesGeraisStepProps) {
               <FormLabel>Garantia de Execução (%)</FormLabel>
               <FormControl>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Percent className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input 
                     type="number"
                     step="0.01"
+                    min="0"
+                    max="100"
                     placeholder="5.00"
                     className="pl-10"
                     value={field.value || ''}
