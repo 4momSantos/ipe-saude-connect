@@ -204,7 +204,7 @@ export function InformacoesGeraisStep({ form }: InformacoesGeraisStepProps) {
                     step="0.01"
                     min="0"
                     max="100"
-                    placeholder="5.00"
+                    placeholder="Ex: 5.00"
                     className="pl-10"
                     value={field.value || ''}
                     onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
