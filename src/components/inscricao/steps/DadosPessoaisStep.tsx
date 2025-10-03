@@ -164,8 +164,11 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
     <div className="space-y-6">
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Validação de Dados</h3>
+        <p className="text-sm text-muted-foreground">
+          Valide seu CPF para preencher automaticamente seus dados pessoais e NIT/PIS/PASEP
+        </p>
         
-        {/* CPF - Campo principal para validação */}
+        {/* CPF e Data de Nascimento lado a lado */}
         <div className="grid gap-4 md:grid-cols-2">
           <FormField
             control={form.control}
@@ -173,27 +176,19 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>CPF *</FormLabel>
-                <div className="space-y-2">
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="000.000.000-00"
-                      maxLength={14}
-                      onChange={(e) => {
-                        field.onChange(formatCPF(e.target.value));
-                        setCpfValidated(false);
-                        setBirthDateMismatch(false);
-                      }}
-                    />
-                  </FormControl>
-                  {cpfValidated && (
-                    <Badge variant="outline" className="gap-1 border-[hsl(var(--green-approved))] text-[hsl(var(--green-approved))]">
-                      <CheckCircle2 className="h-3 w-3" />
-                      CPF Validado na Receita Federal
-                    </Badge>
-                  )}
-                  <FormMessage />
-                </div>
+                <FormControl>
+                  <Input
+                    {...field}
+                    placeholder="000.000.000-00"
+                    maxLength={14}
+                    onChange={(e) => {
+                      field.onChange(formatCPF(e.target.value));
+                      setCpfValidated(false);
+                      setBirthDateMismatch(false);
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -249,40 +244,53 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
           />
         </div>
 
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleValidateCPF}
-          disabled={isValidatingCPF || cpfValidated}
-          className="w-full md:w-auto gap-2"
-        >
-          {isValidatingCPF ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Validando CPF e NIT...
-            </>
-          ) : cpfValidated ? (
-            <>
-              <CheckCircle2 className="h-4 w-4" />
-              CPF Validado
-            </>
-          ) : (
-            <>
-              <Sparkles className="h-4 w-4" />
-              Validar CPF na Receita Federal
-            </>
-          )}
-        </Button>
+        {/* Botão de validação e badges */}
+        <div className="flex flex-col gap-3">
+          <Button
+            type="button"
+            variant="default"
+            size="lg"
+            onClick={handleValidateCPF}
+            disabled={isValidatingCPF || cpfValidated || !form.getValues('cpf') || !form.getValues('data_nascimento')}
+            className="w-full gap-2"
+          >
+            {isValidatingCPF ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Validando CPF e NIT...
+              </>
+            ) : cpfValidated ? (
+              <>
+                <CheckCircle2 className="h-4 w-4" />
+                CPF Validado com Sucesso
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                Validar CPF na Receita Federal
+              </>
+            )}
+          </Button>
 
-        {birthDateMismatch && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              A data de nascimento informada não corresponde aos dados da Receita Federal.
-              Por favor, verifique se a data está correta.
-            </AlertDescription>
-          </Alert>
-        )}
+          {cpfValidated && (
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline" className="gap-1 border-[hsl(var(--green-approved))] text-[hsl(var(--green-approved))]">
+                <CheckCircle2 className="h-3 w-3" />
+                CPF Validado na Receita Federal
+              </Badge>
+            </div>
+          )}
+
+          {birthDateMismatch && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                A data de nascimento informada não corresponde aos dados da Receita Federal.
+                Por favor, verifique se a data está correta.
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
       </div>
 
       <div className="space-y-4">
