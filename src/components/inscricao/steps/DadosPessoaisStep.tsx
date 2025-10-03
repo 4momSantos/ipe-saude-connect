@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
-import { validateCRM, validateCPFData, formatCPF } from '@/lib/validators';
+import { validateCRM, validateCPFData, validateNIT, formatCPF } from '@/lib/validators';
 import { toast } from 'sonner';
 import { useValidatedData } from '@/contexts/ValidatedDataContext';
 
@@ -75,8 +75,27 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
           cpf: cpf,
         });
 
+        // Tentar buscar o NIT/PIS/PASEP automaticamente
+        try {
+          const nitResult = await validateNIT(
+            cpf,
+            result.data.nome,
+            format(dataNascimento, 'yyyy-MM-dd')
+          );
+
+          if (nitResult.valid && nitResult.data) {
+            form.setValue('nit_pis_pasep', nitResult.data.nit, { shouldValidate: true });
+            toast.success(`CPF e NIT validados! Titular: ${result.data.nome}`);
+          } else {
+            toast.success(`CPF validado! Titular: ${result.data.nome}`);
+            toast.info('NIT/PIS/PASEP não encontrado automaticamente');
+          }
+        } catch (error) {
+          console.log('Erro ao buscar NIT, continuando sem ele');
+          toast.success(`CPF validado! Titular: ${result.data.nome}`);
+        }
+
         setCpfValidated(true);
-        toast.success(`CPF validado! Titular: ${result.data.nome}`);
       } else {
         toast.error(result.message || 'CPF não encontrado na Receita Federal');
         setCpfValidated(false);
@@ -142,294 +161,374 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div>
-        <h3 className="text-lg font-semibold mb-2">Dados Pessoais do Médico</h3>
-        <p className="text-sm text-muted-foreground">
-          Preencha com seus dados pessoais e profissionais
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="crm"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>CRM *</FormLabel>
-              <FormControl>
-                <Input 
-                  placeholder="12345" 
-                  {...field} 
-                  onChange={(e) => {
-                    field.onChange(e);
-                    setCrmValidated(false);
-                  }}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="uf_crm"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>UF do CRM *</FormLabel>
-              <Select 
-                onValueChange={(value) => {
-                  field.onChange(value);
-                  setCrmValidated(false);
-                }}
-                defaultValue={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="AC">AC - Acre</SelectItem>
-                  <SelectItem value="AL">AL - Alagoas</SelectItem>
-                  <SelectItem value="AP">AP - Amapá</SelectItem>
-                  <SelectItem value="AM">AM - Amazonas</SelectItem>
-                  <SelectItem value="BA">BA - Bahia</SelectItem>
-                  <SelectItem value="CE">CE - Ceará</SelectItem>
-                  <SelectItem value="DF">DF - Distrito Federal</SelectItem>
-                  <SelectItem value="ES">ES - Espírito Santo</SelectItem>
-                  <SelectItem value="GO">GO - Goiás</SelectItem>
-                  <SelectItem value="MA">MA - Maranhão</SelectItem>
-                  <SelectItem value="MT">MT - Mato Grosso</SelectItem>
-                  <SelectItem value="MS">MS - Mato Grosso do Sul</SelectItem>
-                  <SelectItem value="MG">MG - Minas Gerais</SelectItem>
-                  <SelectItem value="PA">PA - Pará</SelectItem>
-                  <SelectItem value="PB">PB - Paraíba</SelectItem>
-                  <SelectItem value="PR">PR - Paraná</SelectItem>
-                  <SelectItem value="PE">PE - Pernambuco</SelectItem>
-                  <SelectItem value="PI">PI - Piauí</SelectItem>
-                  <SelectItem value="RJ">RJ - Rio de Janeiro</SelectItem>
-                  <SelectItem value="RN">RN - Rio Grande do Norte</SelectItem>
-                  <SelectItem value="RS">RS - Rio Grande do Sul</SelectItem>
-                  <SelectItem value="RO">RO - Rondônia</SelectItem>
-                  <SelectItem value="RR">RR - Roraima</SelectItem>
-                  <SelectItem value="SC">SC - Santa Catarina</SelectItem>
-                  <SelectItem value="SP">SP - São Paulo</SelectItem>
-                  <SelectItem value="SE">SE - Sergipe</SelectItem>
-                  <SelectItem value="TO">TO - Tocantins</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-
-      <div className="flex gap-2">
-        <Button
-          type="button"
-          onClick={handleValidateCRM}
-          disabled={isValidatingCRM || !form.getValues('crm') || !form.getValues('uf_crm')}
-          variant={crmValidated ? "outline" : "default"}
-          className="flex items-center gap-2"
-        >
-          {isValidatingCRM ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Validando...
-            </>
-          ) : crmValidated ? (
-            <>
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-              CRM Validado
-            </>
-          ) : (
-            'Validar CRM no CFM'
-          )}
-        </Button>
-      </div>
-
-      <FormField
-        control={form.control}
-        name="nome_completo"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Nome Completo *</FormLabel>
-            <FormControl>
-              <Input placeholder="João da Silva Santos" {...field} />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="data_nascimento"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Data de Nascimento *</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Validação de Dados</h3>
+        
+        {/* CPF - Campo principal para validação */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="cpf"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>CPF *</FormLabel>
+                <div className="space-y-2">
                   <FormControl>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'w-full pl-3 text-left font-normal',
-                        !field.value && 'text-muted-foreground'
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, 'dd/MM/yyyy', { locale: ptBR })
-                      ) : (
-                        <span>Selecione a data</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
+                    <Input
+                      {...field}
+                      placeholder="000.000.000-00"
+                      maxLength={14}
+                      onChange={(e) => {
+                        field.onChange(formatCPF(e.target.value));
+                        setCpfValidated(false);
+                        setBirthDateMismatch(false);
+                      }}
+                    />
                   </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={(date) => {
-                      field.onChange(date);
-                      setCpfValidated(false);
-                    }}
-                    disabled={(date) => date > new Date() || date < new Date('1900-01-01')}
-                    initialFocus
-                    className="pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                  {cpfValidated && (
+                    <Badge variant="outline" className="gap-1 border-[hsl(var(--green-approved))] text-[hsl(var(--green-approved))]">
+                      <CheckCircle2 className="h-3 w-3" />
+                      CPF Validado na Receita Federal
+                    </Badge>
+                  )}
+                  <FormMessage />
+                </div>
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="cpf"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>CPF *</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="000.000.000-00"
-                  {...field}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, '');
-                    const formatted = value
-                      .replace(/(\d{3})(\d)/, '$1.$2')
-                      .replace(/(\d{3})(\d)/, '$1.$2')
-                      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-                    field.onChange(formatted);
-                    setCpfValidated(false);
-                  }}
-                  maxLength={14}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
+          <FormField
+            control={form.control}
+            name="data_nascimento"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Data de Nascimento *</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          'w-full pl-3 text-left font-normal',
+                          !field.value && 'text-muted-foreground'
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, 'dd/MM/yyyy', { locale: ptBR })
+                        ) : (
+                          <span>Selecione a data</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={(date) => {
+                        field.onChange(date);
+                        setCpfValidated(false);
+                        setBirthDateMismatch(false);
+                      }}
+                      disabled={(date) =>
+                        date > new Date() || date < new Date('1900-01-01')
+                      }
+                      initialFocus
+                      captionLayout="dropdown-buttons"
+                      fromYear={1900}
+                      toYear={new Date().getFullYear()}
+                      locale={ptBR}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-      <div className="flex gap-2">
         <Button
           type="button"
+          variant="outline"
           onClick={handleValidateCPF}
-          disabled={isValidatingCPF || !form.getValues('cpf') || !form.getValues('data_nascimento')}
-          variant={cpfValidated ? "outline" : "default"}
-          className="flex items-center gap-2"
+          disabled={isValidatingCPF || cpfValidated}
+          className="w-full md:w-auto gap-2"
         >
           {isValidatingCPF ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Validando CPF...
+              Validando CPF e NIT...
             </>
           ) : cpfValidated ? (
             <>
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <CheckCircle2 className="h-4 w-4" />
               CPF Validado
             </>
           ) : (
-            'Validar CPF na Receita Federal'
+            <>
+              <Sparkles className="h-4 w-4" />
+              Validar CPF na Receita Federal
+            </>
           )}
         </Button>
+
+        {birthDateMismatch && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              A data de nascimento informada não corresponde aos dados da Receita Federal.
+              Por favor, verifique se a data está correta.
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Dados Pessoais</h3>
+        
         <FormField
           control={form.control}
-          name="rg"
+          name="nome_completo"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>RG *</FormLabel>
-              <FormControl>
-                <Input placeholder="1234567890" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="sexo"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Sexo *</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormLabel>Nome Completo *</FormLabel>
+              <div className="space-y-2">
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
+                  <Input {...field} placeholder="Nome completo conforme documento" />
                 </FormControl>
-                <SelectContent>
-                  <SelectItem value="M">Masculino</SelectItem>
-                  <SelectItem value="F">Feminino</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
+                {cpfValidated && (
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Sparkles className="h-3 w-3" />
+                    <span>Auto-preenchido pela Receita Federal</span>
+                  </div>
+                )}
+                <FormMessage />
+              </div>
             </FormItem>
           )}
         />
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="orgao_emissor"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Órgão Emissor *</FormLabel>
-              <FormControl>
-                <Input placeholder="SSP/RS" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid gap-4 md:grid-cols-3">
+          <FormField
+            control={form.control}
+            name="rg"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>RG *</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="00.000.000-0" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="orgao_emissor"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Órgão Emissor *</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="SSP-RS" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="sexo"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Sexo *</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="M">Masculino</SelectItem>
+                    <SelectItem value="F">Feminino</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
           name="nit_pis_pasep"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>NIT / PIS / PASEP</FormLabel>
-              <FormControl>
-                <Input placeholder="000.00000.00-0" {...field} />
-              </FormControl>
-              <FormDescription>Campo opcional</FormDescription>
-              <FormMessage />
+              <FormLabel>NIT/PIS/PASEP</FormLabel>
+              <div className="space-y-2">
+                <FormControl>
+                  <Input {...field} placeholder="000.00000.00-0" />
+                </FormControl>
+                {cpfValidated && field.value && (
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Sparkles className="h-3 w-3" />
+                    <span>Auto-preenchido pelo CNIS</span>
+                  </div>
+                )}
+                <FormDescription>Campo opcional - preenchido automaticamente quando disponível</FormDescription>
+                <FormMessage />
+              </div>
             </FormItem>
           )}
         />
       </div>
 
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Registro Profissional</h3>
+        
+        <div className="grid gap-4 md:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="crm"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>CRM *</FormLabel>
+                <div className="space-y-2">
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="12345"
+                      onChange={(e) => {
+                        field.onChange(e);
+                        setCrmValidated(false);
+                      }}
+                    />
+                  </FormControl>
+                  {crmValidated && (
+                    <Badge variant="outline" className="gap-1 border-[hsl(var(--green-approved))] text-[hsl(var(--green-approved))]">
+                      <CheckCircle2 className="h-3 w-3" />
+                      CRM Validado no CFM
+                    </Badge>
+                  )}
+                  <FormMessage />
+                </div>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="uf_crm"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>UF do CRM *</FormLabel>
+                <Select
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    setCrmValidated(false);
+                  }}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a UF" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="RS">RS - Rio Grande do Sul</SelectItem>
+                    <SelectItem value="SC">SC - Santa Catarina</SelectItem>
+                    <SelectItem value="PR">PR - Paraná</SelectItem>
+                    <SelectItem value="SP">SP - São Paulo</SelectItem>
+                    <SelectItem value="RJ">RJ - Rio de Janeiro</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleValidateCRM}
+          disabled={isValidatingCRM || crmValidated}
+          className="w-full md:w-auto gap-2"
+        >
+          {isValidatingCRM ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Validando CRM...
+            </>
+          ) : crmValidated ? (
+            <>
+              <CheckCircle2 className="h-4 w-4" />
+              CRM Validado
+            </>
+          ) : (
+            <>
+              <Sparkles className="h-4 w-4" />
+              Validar CRM no CFM
+            </>
+          )}
+        </Button>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="instituicao_graduacao"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Instituição de Graduação</FormLabel>
+                <div className="space-y-2">
+                  <FormControl>
+                    <Input {...field} placeholder="Ex: UFRGS" />
+                  </FormControl>
+                  {crmValidated && field.value && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Sparkles className="h-3 w-3" />
+                      <span>Auto-preenchido pelo CFM</span>
+                    </div>
+                  )}
+                  <FormMessage />
+                </div>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="ano_formatura"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Ano de Formatura</FormLabel>
+                <div className="space-y-2">
+                  <FormControl>
+                    <Input
+                      type="number"
+                      {...field}
+                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                      placeholder="Ex: 2010"
+                      min={1950}
+                      max={new Date().getFullYear()}
+                    />
+                  </FormControl>
+                  {crmValidated && field.value && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Sparkles className="h-3 w-3" />
+                      <span>Auto-preenchido pelo CFM</span>
+                    </div>
+                  )}
+                  <FormMessage />
+                </div>
+              </FormItem>
+            )}
+          />
+        </div>
+      </div>
     </div>
   );
 }

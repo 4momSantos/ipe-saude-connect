@@ -229,6 +229,13 @@ export interface CPFValidationData {
   data_inscricao: string;
 }
 
+export interface NITValidationData {
+  nit: string;
+  cpf: string;
+  nome: string;
+  data_nascimento: string;
+}
+
 export const validateCPFData = async (
   cpf: string,
   birthdate: string
@@ -260,6 +267,46 @@ export const validateCPFData = async (
     return result;
   } catch (error) {
     console.error("Erro ao validar CPF:", error);
+    return { valid: false, message: "Erro ao conectar com o serviço de validação" };
+  }
+};
+
+export const validateNIT = async (
+  cpf: string,
+  nome: string,
+  dataNascimento: string
+): Promise<{ valid: boolean; data?: NITValidationData; message?: string }> => {
+  const cleanCPF = cpf.replace(/\D/g, "");
+  
+  if (!cleanCPF || !nome || !dataNascimento) {
+    return { valid: false, message: "CPF, nome e data de nascimento são obrigatórios" };
+  }
+
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-nit`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ 
+          cpf: cleanCPF, 
+          nome: nome,
+          data_nascimento: dataNascimento 
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      return { valid: false, message: "Erro ao validar NIT/PIS/PASEP" };
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("Erro ao validar NIT:", error);
     return { valid: false, message: "Erro ao conectar com o serviço de validação" };
   }
 };

@@ -81,14 +81,14 @@ export function InscricaoWizard({ onSubmit }: InscricaoWizardProps) {
     switch (currentStep) {
       case 1:
         fieldsToValidate = [
-          'crm',
-          'uf_crm',
-          'nome_completo',
           'cpf',
+          'data_nascimento',
+          'nome_completo',
           'rg',
           'orgao_emissor',
-          'data_nascimento',
           'sexo',
+          'crm',
+          'uf_crm',
         ];
         break;
       case 2:
