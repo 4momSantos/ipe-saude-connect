@@ -117,8 +117,12 @@ export const documentoUpload = z.object({
 export const documentosSchema = z.object({
   documentos: z.array(documentoUpload).refine(
     (docs) => {
-      const obrigatoriosCount = DOCUMENTOS_OBRIGATORIOS.filter(d => d.obrigatorio).length;
-      return docs.filter(d => d.arquivo || d.url).length >= obrigatoriosCount;
+      const documentosObrigatorios = DOCUMENTOS_OBRIGATORIOS.filter(d => d.obrigatorio);
+      const documentosEnviados = docs.filter(d => 
+        (d.arquivo || d.url) && 
+        documentosObrigatorios.some(doc => doc.tipo === d.tipo)
+      );
+      return documentosEnviados.length >= documentosObrigatorios.length;
     },
     `Todos os documentos obrigatórios devem ser enviados`
   ),

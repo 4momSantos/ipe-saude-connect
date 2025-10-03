@@ -75,9 +75,12 @@ export function DocumentosStep({ form }: DocumentosStepProps) {
     });
   };
 
-  const documentosObrigatorios = fields.filter((_, i) => DOCUMENTOS_OBRIGATORIOS[i]?.obrigatorio);
-  const documentosEnviados = documentosObrigatorios.filter(d => d.arquivo || d.url).length;
-  const progress = (documentosEnviados / documentosObrigatorios.length) * 100;
+  const documentosObrigatoriosList = DOCUMENTOS_OBRIGATORIOS.filter(d => d.obrigatorio);
+  const documentosEnviados = fields.filter(d => 
+    (d.arquivo || d.url) && 
+    documentosObrigatoriosList.some(doc => doc.tipo === d.tipo)
+  ).length;
+  const progress = Math.min((documentosEnviados / documentosObrigatoriosList.length) * 100, 100);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -95,7 +98,7 @@ export function DocumentosStep({ form }: DocumentosStepProps) {
           <div className="flex items-center justify-between mb-2">
             <span className="font-medium">Progresso do upload</span>
             <span className="text-sm">
-              {documentosEnviados} de {documentosObrigatorios.length} documentos obrigatórios
+              {documentosEnviados} de {documentosObrigatoriosList.length} documentos obrigatórios
             </span>
           </div>
           <div className="w-full bg-muted rounded-full h-2">

@@ -25,8 +25,12 @@ export function RevisaoStep({ form }: RevisaoStepProps) {
   const errors = form.formState.errors;
   const hasErrors = Object.keys(errors).length > 0;
 
-  const documentosEnviados = values.documentos?.filter(d => d.arquivo || d.url).length || 0;
-  const documentosObrigatorios = DOCUMENTOS_OBRIGATORIOS.filter(d => d.obrigatorio).length;
+  // Calcular progresso dos documentos obrigatórios
+  const documentosObrigatoriosList = DOCUMENTOS_OBRIGATORIOS.filter(d => d.obrigatorio);
+  const documentosEnviados = values.documentos?.filter(d => 
+    (d.arquivo || d.url) && 
+    documentosObrigatoriosList.some(doc => doc.tipo === d.tipo)
+  ).length || 0;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -190,21 +194,21 @@ export function RevisaoStep({ form }: RevisaoStepProps) {
         <CardContent>
           <div className="flex items-center justify-between mb-4">
             <span className="text-sm font-medium">Progresso de envio</span>
-            <Badge variant={documentosEnviados >= documentosObrigatorios ? 'default' : 'destructive'}>
-              {documentosEnviados} de {documentosObrigatorios} obrigatórios
+            <Badge variant={documentosEnviados >= documentosObrigatoriosList.length ? 'default' : 'destructive'}>
+              {documentosEnviados} de {documentosObrigatoriosList.length} obrigatórios
             </Badge>
           </div>
           <div className="w-full bg-muted rounded-full h-2 mb-4 overflow-hidden">
             <div
               className="bg-primary h-2 rounded-full transition-all duration-500"
-              style={{ width: `${Math.min((documentosEnviados / documentosObrigatorios) * 100, 100)}%` }}
+              style={{ width: `${Math.min((documentosEnviados / documentosObrigatoriosList.length) * 100, 100)}%` }}
             />
           </div>
-          {documentosEnviados < documentosObrigatorios && (
+          {documentosEnviados < documentosObrigatoriosList.length && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="text-sm">
-                Você ainda precisa enviar {documentosObrigatorios - documentosEnviados} documento(s) obrigatório(s).
+                Você ainda precisa enviar {documentosObrigatoriosList.length - documentosEnviados} documento(s) obrigatório(s).
               </AlertDescription>
             </Alert>
           )}
@@ -212,7 +216,7 @@ export function RevisaoStep({ form }: RevisaoStepProps) {
       </Card>
 
       {/* Confirmação */}
-      {!hasErrors && documentosEnviados >= documentosObrigatorios && (
+      {!hasErrors && documentosEnviados >= documentosObrigatoriosList.length && (
         <Alert className="border-[hsl(var(--green-approved))] bg-[hsl(var(--green-approved)_/_0.1)]">
           <CheckCircle2 className="h-4 w-4 text-[hsl(var(--green-approved))]" />
           <AlertTitle className="text-[hsl(var(--green-approved))]">Tudo pronto!</AlertTitle>
