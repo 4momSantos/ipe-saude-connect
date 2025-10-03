@@ -37,7 +37,7 @@ const editalSchema = z.object({
   regras_me_epp: z.string().optional(),
   documentos_habilitacao: z.array(z.string()).min(1, "Selecione ao menos um documento"),
   anexos: z.record(z.any()).optional(),
-  status: z.enum(["rascunho", "publicado", "encerrado"]),
+  status: z.enum(["rascunho", "publicado", "encerrado"]).default("rascunho"),
 });
 
 type EditalFormValues = z.infer<typeof editalSchema>;
@@ -55,6 +55,15 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
   const form = useForm<EditalFormValues>({
     resolver: zodResolver(editalSchema),
     defaultValues: {
+      numero_edital: "",
+      objeto: "",
+      descricao: "",
+      local_portal: "",
+      prazo_validade_proposta: 30,
+      criterio_julgamento: "",
+      garantia_execucao: 0,
+      fonte_recursos: "",
+      regras_me_epp: "",
       status: "rascunho",
       participacao_permitida: [],
       documentos_habilitacao: [],

@@ -156,8 +156,8 @@ export function InformacoesGeraisStep({ form }: InformacoesGeraisStepProps) {
                     type="number"
                     placeholder="60"
                     className="pl-10"
-                    {...field}
-                    onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : '')}
+                    value={field.value || ''}
+                    onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                   />
                 </div>
               </FormControl>
@@ -172,7 +172,7 @@ export function InformacoesGeraisStep({ form }: InformacoesGeraisStepProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Critério de Julgamento *</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
@@ -204,8 +204,8 @@ export function InformacoesGeraisStep({ form }: InformacoesGeraisStepProps) {
                     step="0.01"
                     placeholder="5.00"
                     className="pl-10"
-                    {...field}
-                    onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : '')}
+                    value={field.value || ''}
+                    onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                   />
                 </div>
               </FormControl>

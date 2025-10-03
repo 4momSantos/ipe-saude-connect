@@ -56,7 +56,7 @@ export function PublicacaoStep({ form }: PublicacaoStepProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel className="text-base font-semibold">Status do Edital *</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger className="h-12">
                     <SelectValue placeholder="Selecione o status" />
