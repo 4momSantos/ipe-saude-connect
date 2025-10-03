@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { ChevronLeft, ChevronRight, Send, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Send, Check, FileText } from 'lucide-react';
 import { DadosPessoaisStep } from './steps/DadosPessoaisStep';
 import { PessoaJuridicaStep } from './steps/PessoaJuridicaStep';
 import { ConsultorioHorariosStep } from './steps/ConsultorioHorariosStep';
@@ -49,10 +49,12 @@ const STEPS = [
 ];
 
 interface InscricaoWizardProps {
+  editalId?: string;
+  editalTitulo?: string;
   onSubmit: (data: InscricaoCompletaForm) => Promise<void>;
 }
 
-export function InscricaoWizard({ onSubmit }: InscricaoWizardProps) {
+export function InscricaoWizard({ editalId, editalTitulo, onSubmit }: InscricaoWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -180,6 +182,21 @@ export function InscricaoWizard({ onSubmit }: InscricaoWizardProps) {
   return (
     <ValidatedDataProvider>
       <div className="max-w-5xl mx-auto space-y-6">
+        {/* Edital Info */}
+        {editalTitulo && (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="text-sm font-medium">Inscrevendo-se em:</p>
+                  <p className="text-lg font-bold text-primary">{editalTitulo}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Progress Bar */}
         <Card>
         <CardContent className="pt-6">

@@ -4,9 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { FluxoCredenciamento } from "@/components/credenciamento/FluxoCredenciamento";
+import { InscricaoWizard } from "@/components/inscricao/InscricaoWizard";
+import { InscricaoCompletaForm } from "@/lib/inscricao-validation";
 import { useUserRole } from "@/hooks/useUserRole";
 
 type Edital = {
@@ -32,6 +35,7 @@ export default function Editais() {
   const [inscricoes, setInscricoes] = useState<Inscricao[]>([]);
   const [selectedEdital, setSelectedEdital] = useState<Edital | null>(null);
   const [selectedInscricao, setSelectedInscricao] = useState<Inscricao | null>(null);
+  const [inscricaoEdital, setInscricaoEdital] = useState<Edital | null>(null);
   const [loading, setLoading] = useState(true);
   const { isGestor, isAdmin, isCandidato } = useUserRole();
 
@@ -85,9 +89,112 @@ export default function Editais() {
       setSelectedEdital(edital);
       setSelectedInscricao(inscricao);
     } else {
-      // Se não está inscrito, redirecionar para inscrição
-      toast.info("Redirecionando para formulário de inscrição...");
-      // Aqui você pode adicionar lógica para redirecionar ou abrir formulário
+      // Se não está inscrito, abrir formulário de inscrição
+      setInscricaoEdital(edital);
+    }
+  };
+
+  const handleSubmitInscricao = async (data: InscricaoCompletaForm) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      if (!inscricaoEdital) {
+        throw new Error('Edital não selecionado');
+      }
+
+      // Verificar se o edital está ativo
+      if (inscricaoEdital.status !== 'aberto') {
+        throw new Error('Este edital não está mais aberto para inscrições');
+      }
+
+      const inscricaoData = {
+        candidato_id: user.id,
+        edital_id: inscricaoEdital.id,
+        status: 'em_analise',
+        dados_inscricao: {
+          dados_pessoais: {
+            crm: data.crm,
+            uf_crm: data.uf_crm,
+            nome_completo: data.nome_completo,
+            cpf: data.cpf,
+            rg: data.rg,
+            orgao_emissor: data.orgao_emissor,
+            nit_pis_pasep: data.nit_pis_pasep,
+            data_nascimento: data.data_nascimento.toISOString(),
+            sexo: data.sexo,
+          },
+          pessoa_juridica: {
+            cnpj: data.cnpj,
+            denominacao_social: data.denominacao_social,
+            endereco: {
+              logradouro: data.logradouro,
+              numero: data.numero,
+              complemento: data.complemento,
+              bairro: data.bairro,
+              cidade: data.cidade,
+              estado: data.estado,
+              cep: data.cep,
+            },
+            contatos: {
+              telefone: data.telefone,
+              celular: data.celular,
+              email: data.email,
+            },
+            dados_bancarios: {
+              agencia: data.banco_agencia,
+              conta: data.banco_conta,
+            },
+            optante_simples: data.optante_simples,
+          },
+          endereco_correspondencia: {
+            endereco: data.endereco_correspondencia,
+            telefone: data.telefone_correspondencia,
+            celular: data.celular_correspondencia,
+            email: data.email_correspondencia,
+          },
+          consultorio: {
+            endereco: data.endereco_consultorio,
+            telefone: data.telefone_consultorio,
+            ramal: data.ramal,
+            especialidade_principal: data.especialidade_principal,
+            especialidade_secundaria: data.especialidade_secundaria,
+            quantidade_consultas_minima: data.quantidade_consultas_minima,
+            atendimento_hora_marcada: data.atendimento_hora_marcada,
+            horarios: data.horarios,
+          },
+          documentos: data.documentos.map(d => ({
+            tipo: d.tipo,
+            status: d.status,
+            observacoes: d.observacoes,
+          })),
+        },
+      };
+
+      const { error } = await supabase
+        .from('inscricoes_edital')
+        .insert([inscricaoData]);
+
+      if (error) throw error;
+
+      toast.success('Inscrição enviada com sucesso!', {
+        description: 'Você será notificado sobre o andamento da análise.',
+      });
+
+      setInscricaoEdital(null);
+      loadData(); // Recarregar dados para atualizar a lista
+    } catch (error: any) {
+      console.error('Erro ao enviar inscrição:', error);
+      
+      if (error.message?.includes('unique_candidato_edital')) {
+        toast.error('Você já possui uma inscrição neste edital');
+      } else {
+        toast.error('Erro ao enviar inscrição: ' + (error.message || 'Tente novamente'));
+      }
+      throw error;
     }
   };
 
@@ -286,6 +393,25 @@ export default function Editais() {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Dialog para nova inscrição */}
+      <Dialog open={!!inscricaoEdital} onOpenChange={(open) => {
+        if (!open) setInscricaoEdital(null);
+      }}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Inscrição em Edital</DialogTitle>
+            <DialogDescription>
+              {inscricaoEdital?.titulo} - Preencha o formulário completo de inscrição
+            </DialogDescription>
+          </DialogHeader>
+          <InscricaoWizard 
+            editalId={inscricaoEdital?.id || ''}
+            editalTitulo={inscricaoEdital?.titulo || ''}
+            onSubmit={handleSubmitInscricao} 
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
