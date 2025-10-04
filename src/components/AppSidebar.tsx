@@ -50,7 +50,7 @@ const menuItems = [
     title: "Análises", 
     url: "/analises", 
     icon: ClipboardCheck,
-    roles: ['candidato', 'analista', 'gestor', 'admin'] as const
+    roles: ['analista', 'gestor', 'admin'] as const
   },
   { 
     title: "Credenciados", 
