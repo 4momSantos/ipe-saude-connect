@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Save, Plus, GripVertical, Trash2, Info } from "lucide-react";
+import { ArrowLeft, Save, Plus, GripVertical, Trash2, Info, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -204,6 +204,29 @@ export default function ProcessoEditor() {
     if (step) {
       setSelectedTemplates(prev => prev.filter(id => id !== step.template_id));
     }
+  };
+
+  const handleMoveStepUp = (index: number) => {
+    if (index === 0) return;
+    setProcessSteps(prev => {
+      const newSteps = [...prev];
+      [newSteps[index - 1], newSteps[index]] = [newSteps[index], newSteps[index - 1]];
+      return newSteps;
+    });
+  };
+
+  const handleMoveStepDown = (index: number) => {
+    if (index === processSteps.length - 1) return;
+    setProcessSteps(prev => {
+      const newSteps = [...prev];
+      [newSteps[index], newSteps[index + 1]] = [newSteps[index + 1], newSteps[index]];
+      return newSteps;
+    });
+  };
+
+  const handleAddStep = () => {
+    // Volta para step 2 para selecionar mais templates
+    setCurrentStep(1);
   };
 
   const handleSave = async () => {
@@ -446,60 +469,120 @@ export default function ProcessoEditor() {
 
         {/* Step 3: Configuração de Etapas */}
         {currentStep === 2 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Configurar Etapas</CardTitle>
-              <CardDescription>
-                Defina a ordem e configure cada etapa do processo
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {processSteps.map((step, index) => (
-                <Card key={step.id}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-start gap-4">
-                      <GripVertical className="h-5 w-5 text-muted-foreground mt-2 cursor-grab" />
-                      <Badge variant="secondary" className="mt-2">
-                        Etapa {index + 1}
-                      </Badge>
-                      <div className="flex-1 space-y-3">
-                        <Input
-                          value={step.step_name}
-                          onChange={(e) => handleUpdateStepName(step.id, e.target.value)}
-                          placeholder="Nome da etapa"
-                        />
-                        <p className="text-sm text-muted-foreground">
-                          Template: {step.template_name} ({step.fields_count} campos)
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2">
-                          <label className="text-sm">Obrigatória</label>
-                          <Switch
-                            checked={step.is_required}
-                            onCheckedChange={(v) => handleUpdateRequired(step.id, v)}
-                          />
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveStep(step.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-
-              {processSteps.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  Nenhuma etapa adicionada ainda
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Configurar Etapas</CardTitle>
+                    <CardDescription>
+                      Defina a ordem e configure cada etapa do processo
+                    </CardDescription>
+                  </div>
+                  <Button variant="outline" onClick={handleAddStep}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar Etapa
+                  </Button>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {processSteps.map((step, index) => (
+                  <Card key={step.id} className="border-2">
+                    <CardContent className="pt-6">
+                      <div className="flex items-start gap-3">
+                        <div className="flex flex-col gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleMoveStepUp(index)}
+                            disabled={index === 0}
+                          >
+                            <ArrowUp className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleMoveStepDown(index)}
+                            disabled={index === processSteps.length - 1}
+                          >
+                            <ArrowDown className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        
+                        <Badge variant="default" className="mt-2 shrink-0">
+                          Etapa {index + 1}
+                        </Badge>
+                        
+                        <div className="flex-1 space-y-3">
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground">
+                              Nome da Etapa
+                            </label>
+                            <Input
+                              value={step.step_name}
+                              onChange={(e) => handleUpdateStepName(step.id, e.target.value)}
+                              placeholder="Nome da etapa"
+                              className="mt-1"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <Badge variant="outline" className="font-normal">
+                              {step.template_name}
+                            </Badge>
+                            <span className="text-muted-foreground">
+                              • {step.fields_count} campos
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-col items-end gap-3 shrink-0">
+                          <div className="flex items-center gap-2">
+                            <label className="text-xs font-medium">Obrigatória</label>
+                            <Switch
+                              checked={step.is_required}
+                              onCheckedChange={(v) => handleUpdateRequired(step.id, v)}
+                            />
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => handleRemoveStep(step.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+
+                {processSteps.length === 0 && (
+                  <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                    <p className="text-muted-foreground mb-3">
+                      Nenhuma etapa adicionada ainda
+                    </p>
+                    <Button variant="outline" onClick={handleAddStep}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Adicionar Primeira Etapa
+                    </Button>
+                  </div>
+                )}
+
+                {processSteps.length > 0 && (
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      Total de <strong>{processSteps.length} etapa(s)</strong> configurada(s).
+                      Use as setas para reordenar a sequência do processo.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         )}
 
         {/* Navigation Buttons */}
