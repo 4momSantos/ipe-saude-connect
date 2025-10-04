@@ -65,8 +65,8 @@ const menuItems = [
     roles: ['analista', 'gestor', 'admin'] as const
   },
   { 
-    title: "Templates de Formulários", 
-    url: "/templates-formularios", 
+    title: "Formulários & Etapas", 
+    url: "/formularios", 
     icon: FileCode2,
     roles: ['gestor', 'admin'] as const
   },

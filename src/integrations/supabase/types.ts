@@ -223,6 +223,7 @@ export type Database = {
           observacoes_autorizacao: string | null
           participacao_permitida: Json | null
           prazo_validade_proposta: number | null
+          processo_inscricao_id: string | null
           regras_me_epp: string | null
           status: string
           titulo: string
@@ -255,6 +256,7 @@ export type Database = {
           observacoes_autorizacao?: string | null
           participacao_permitida?: Json | null
           prazo_validade_proposta?: number | null
+          processo_inscricao_id?: string | null
           regras_me_epp?: string | null
           status?: string
           titulo: string
@@ -287,6 +289,7 @@ export type Database = {
           observacoes_autorizacao?: string | null
           participacao_permitida?: Json | null
           prazo_validade_proposta?: number | null
+          processo_inscricao_id?: string | null
           regras_me_epp?: string | null
           status?: string
           titulo?: string
@@ -296,6 +299,13 @@ export type Database = {
           workflow_version?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "editais_processo_inscricao_id_fkey"
+            columns: ["processo_inscricao_id"]
+            isOneToOne: false
+            referencedRelation: "inscription_processes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "editais_workflow_id_fkey"
             columns: ["workflow_id"]
@@ -438,6 +448,90 @@ export type Database = {
             columns: ["workflow_execution_id"]
             isOneToOne: false
             referencedRelation: "workflow_executions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inscription_processes: {
+        Row: {
+          category: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          usage_count: number | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          usage_count?: number | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          usage_count?: number | null
+        }
+        Relationships: []
+      }
+      process_steps: {
+        Row: {
+          conditional_rules: Json | null
+          created_at: string
+          id: string
+          is_required: boolean
+          process_id: string
+          step_name: string
+          step_number: number
+          template_id: string | null
+        }
+        Insert: {
+          conditional_rules?: Json | null
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          process_id: string
+          step_name: string
+          step_number: number
+          template_id?: string | null
+        }
+        Update: {
+          conditional_rules?: Json | null
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          process_id?: string
+          step_name?: string
+          step_number?: number
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_steps_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "inscription_processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_steps_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "form_templates"
             referencedColumns: ["id"]
           },
         ]
