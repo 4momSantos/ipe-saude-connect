@@ -64,6 +64,9 @@ export default function LoginPage() {
     setLoading(true);
     
     try {
+      // Auto-cadastro: Todos os novos usuários recebem automaticamente
+      // a role 'candidato' via trigger no banco de dados.
+      // Outras permissões devem ser concedidas por um administrador.
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -75,10 +78,10 @@ export default function LoginPage() {
       if (error) throw error;
 
       if (data.session) {
-        toast.success("Cadastro realizado com sucesso!");
+        toast.success("Cadastro realizado com sucesso! Você foi registrado como candidato.");
         navigate("/");
       } else {
-        toast.success("Cadastro realizado! Verifique seu email.");
+        toast.success("Cadastro realizado como candidato! Verifique seu email para confirmar.");
       }
     } catch (error: any) {
       toast.error(error.message || "Erro ao criar conta");

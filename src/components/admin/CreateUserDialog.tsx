@@ -87,8 +87,11 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
       // Wait a bit for the profile trigger to complete
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Assign roles
-      const rolePromises = data.roles.map(role =>
+      // Garantir que 'candidato' sempre está incluído (política de segurança)
+      const rolesToAssign = Array.from(new Set([...data.roles, 'candidato']));
+
+      // Assign roles (candidato já foi criado pela trigger, mas incluímos por segurança)
+      const rolePromises = rolesToAssign.map(role =>
         supabase.from('user_roles').insert({
           user_id: newUser.user!.id,
           role: role as UserRole,
@@ -194,7 +197,11 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                             <FormControl>
                               <Checkbox
                                 checked={field.value?.includes(role.value)}
+                                disabled={role.value === 'candidato'}
                                 onCheckedChange={(checked) => {
+                                  // Impedir desmarcação de candidato
+                                  if (role.value === 'candidato') return;
+                                  
                                   return checked
                                     ? field.onChange([...field.value, role.value])
                                     : field.onChange(
@@ -205,6 +212,11 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                             </FormControl>
                             <FormLabel className="font-normal cursor-pointer">
                               {role.label}
+                              {role.value === 'candidato' && (
+                                <span className="text-xs text-muted-foreground ml-2">
+                                  (obrigatório)
+                                </span>
+                              )}
                             </FormLabel>
                           </FormItem>
                         )}
