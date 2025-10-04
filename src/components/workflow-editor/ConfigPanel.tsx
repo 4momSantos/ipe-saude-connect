@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Save, Copy } from "lucide-react";
+import { X, Save, Copy, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +29,7 @@ interface ConfigPanelProps {
   nodeData: WorkflowNodeData;
   onUpdate: (data: Partial<WorkflowNodeData>) => void;
   onClose: () => void;
+  onDelete: () => void;
   templates: FormTemplate[];
   onSaveTemplate: (template: Omit<FormTemplate, "id" | "createdAt" | "updatedAt">) => void;
 }
@@ -37,6 +38,7 @@ export function ConfigPanel({
   nodeData, 
   onUpdate, 
   onClose,
+  onDelete,
   templates,
   onSaveTemplate 
 }: ConfigPanelProps) {
@@ -82,9 +84,21 @@ export function ConfigPanel({
             {nodeData.type}
           </p>
         </div>
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          {nodeData.type !== 'start' && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={onDelete}
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Content */}

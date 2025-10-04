@@ -241,6 +241,31 @@ export default function WorkflowEditor() {
     [selectedNode, setNodes]
   );
 
+  const deleteNode = useCallback((nodeId: string) => {
+    const nodeToDelete = nodes.find(n => n.id === nodeId);
+    
+    // Impedir exclusão do nó inicial
+    if (nodeToDelete?.data.type === 'start') {
+      toast.error('Não é possível excluir o módulo inicial');
+      return;
+    }
+    
+    // Remover nó
+    setNodes((nds) => nds.filter((node) => node.id !== nodeId));
+    
+    // Remover edges conectadas
+    setEdges((eds) => eds.filter((edge) => 
+      edge.source !== nodeId && edge.target !== nodeId
+    ));
+    
+    // Limpar seleção se o nó deletado estava selecionado
+    if (selectedNode?.id === nodeId) {
+      setSelectedNode(null);
+    }
+    
+    toast.success('Módulo removido com sucesso');
+  }, [nodes, selectedNode, setNodes, setEdges]);
+
   const saveWorkflow = async () => {
     try {
       const { data, error } = await supabase.functions.invoke("save-workflow", {
@@ -354,6 +379,7 @@ export default function WorkflowEditor() {
             onConnect={onConnect}
             onNodeClick={onNodeClick}
             nodeTypes={nodeTypes}
+            deleteKeyCode={["Delete", "Backspace"]}
             fitView
             className="bg-background"
             defaultEdgeOptions={{
@@ -445,6 +471,7 @@ export default function WorkflowEditor() {
               nodeData={selectedNode.data}
               onUpdate={updateSelectedNode}
               onClose={() => setSelectedNode(null)}
+              onDelete={() => deleteNode(selectedNode.id)}
               templates={templates}
               onSaveTemplate={saveTemplate}
             />
