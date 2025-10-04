@@ -60,7 +60,7 @@ const historicoMock: HistoryEvent[] = [
   },
 ];
 
-export function HistoryTab({ processoId }: { processoId: number }) {
+export function HistoryTab({ processoId }: { processoId: string }) {
   const getIcon = (tipo: HistoryEvent["tipo"]) => {
     const icons = {
       criacao: <Clock className="h-5 w-5 text-blue-400" />,

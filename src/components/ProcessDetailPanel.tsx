@@ -12,19 +12,20 @@ import { WorkflowTimeline } from "./workflow/WorkflowTimeline";
 import { toast } from "sonner";
 
 interface Processo {
-  id: number;
+  id: string;
   protocolo: string;
   nome: string;
   especialidade: string;
   dataSubmissao: string;
   status: "em_analise" | "aprovado" | "pendente" | "inabilitado";
   analista?: string;
+  edital_titulo?: string;
 }
 
 interface ProcessDetailPanelProps {
   processo: Processo;
   onClose: () => void;
-  onStatusChange: (id: number, newStatus: "aprovado" | "inabilitado" | "pendente") => void;
+  onStatusChange: (id: string, newStatus: "aprovado" | "inabilitado" | "pendente") => void;
 }
 
 export function ProcessDetailPanel({ processo, onClose, onStatusChange }: ProcessDetailPanelProps) {

@@ -57,7 +57,7 @@ const documentosMock: Document[] = [
   },
 ];
 
-export function DocumentsTab({ processoId }: { processoId: number }) {
+export function DocumentsTab({ processoId }: { processoId: string }) {
   const [documentos, setDocumentos] = useState<Document[]>(documentosMock);
 
   const handleAprovar = (docId: number) => {

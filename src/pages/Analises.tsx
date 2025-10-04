@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Eye, CheckCircle, XCircle, Clock, Filter } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -25,85 +27,96 @@ import { toast } from "sonner";
 type StatusType = "em_analise" | "aprovado" | "pendente" | "inabilitado";
 
 interface Processo {
-  id: number;
+  id: string;
   protocolo: string;
   nome: string;
   especialidade: string;
   dataSubmissao: string;
   status: StatusType;
   analista?: string;
+  edital_titulo?: string;
 }
 
-const processosData: Processo[] = [
-  {
-    id: 1,
-    protocolo: "2025/001234",
-    nome: "Dr. João Silva",
-    especialidade: "Cardiologia",
-    dataSubmissao: "2025-09-28",
-    status: "em_analise",
-    analista: "Maria Santos",
-  },
-  {
-    id: 2,
-    protocolo: "2025/001235",
-    nome: "Clínica MedCenter",
-    especialidade: "Clínica Geral",
-    dataSubmissao: "2025-09-27",
-    status: "pendente",
-  },
-  {
-    id: 3,
-    protocolo: "2025/001236",
-    nome: "Dra. Maria Santos",
-    especialidade: "Pediatria",
-    dataSubmissao: "2025-09-26",
-    status: "aprovado",
-    analista: "Carlos Lima",
-  },
-  {
-    id: 4,
-    protocolo: "2025/001237",
-    nome: "Dr. Pedro Oliveira",
-    especialidade: "Ortopedia",
-    dataSubmissao: "2025-09-25",
-    status: "em_analise",
-    analista: "Ana Costa",
-  },
-  {
-    id: 5,
-    protocolo: "2025/001238",
-    nome: "Laboratório DiagLab",
-    especialidade: "Laboratório",
-    dataSubmissao: "2025-09-24",
-    status: "inabilitado",
-    analista: "Maria Santos",
-  },
-  {
-    id: 6,
-    protocolo: "2025/001239",
-    nome: "Dr. Carlos Mendes",
-    especialidade: "Cardiologia",
-    dataSubmissao: "2025-09-23",
-    status: "em_analise",
-    analista: "Maria Santos",
-  },
-  {
-    id: 7,
-    protocolo: "2025/001240",
-    nome: "Hospital Vida",
-    especialidade: "Hospitalar",
-    dataSubmissao: "2025-09-22",
-    status: "pendente",
-  },
-];
-
 export default function Analises() {
-  const [processos, setProcessos] = useState<Processo[]>(processosData);
+  const [processos, setProcessos] = useState<Processo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { roles, loading: rolesLoading } = useUserRole();
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [filtroEspecialidade, setFiltroEspecialidade] = useState<string>("todas");
   const [busca, setBusca] = useState("");
   const [processoSelecionado, setProcessoSelecionado] = useState<Processo | null>(null);
+
+  useEffect(() => {
+    loadInscricoes();
+  }, [roles]);
+
+  const loadInscricoes = async () => {
+    try {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error("Usuário não autenticado");
+        return;
+      }
+
+      // Construir query baseada no role
+      let query = supabase
+        .from('inscricoes_edital')
+        .select(`
+          id,
+          status,
+          created_at,
+          candidato_id,
+          edital_id,
+          dados_inscricao,
+          analisado_por,
+          editais (
+            titulo,
+            numero_edital,
+            especialidade
+          ),
+          profiles!inscricoes_edital_candidato_id_fkey (
+            nome,
+            email
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      // Se for candidato, filtrar apenas suas inscrições
+      const isCandidato = roles.includes('candidato') && 
+                          !roles.includes('analista') && 
+                          !roles.includes('gestor') && 
+                          !roles.includes('admin');
+      
+      if (isCandidato) {
+        query = query.eq('candidato_id', user.id);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      // Transformar dados para o formato esperado
+      const processosFormatados: Processo[] = (data || []).map((inscricao: any) => ({
+        id: inscricao.id,
+        protocolo: inscricao.editais?.numero_edital || `INS-${inscricao.id.substring(0, 8)}`,
+        nome: inscricao.profiles?.nome || inscricao.profiles?.email || "Sem nome",
+        especialidade: inscricao.editais?.especialidade || "Não informada",
+        dataSubmissao: inscricao.created_at,
+        status: inscricao.status as StatusType,
+        analista: inscricao.analisado_por ? "Analista atribuído" : undefined,
+        edital_titulo: inscricao.editais?.titulo,
+      }));
+
+      setProcessos(processosFormatados);
+    } catch (error) {
+      console.error('Erro ao carregar inscrições:', error);
+      toast.error("Erro ao carregar inscrições");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const especialidades = Array.from(new Set(processos.map((p) => p.especialidade)));
 
@@ -118,18 +131,34 @@ export default function Analises() {
     return matchStatus && matchEspecialidade && matchBusca;
   });
 
-  const handleStatusChange = (id: number, newStatus: StatusType) => {
-    setProcessos((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, status: newStatus } : p))
-    );
+  const handleStatusChange = async (id: string, newStatus: StatusType) => {
+    try {
+      const { error } = await supabase
+        .from('inscricoes_edital')
+        .update({ 
+          status: newStatus,
+          analisado_em: new Date().toISOString(),
+          analisado_por: (await supabase.auth.getUser()).data.user?.id
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setProcessos((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, status: newStatus } : p))
+      );
+    } catch (error) {
+      console.error('Erro ao atualizar status:', error);
+      toast.error("Erro ao atualizar status");
+    }
   };
 
-  const handleAprovar = (id: number) => {
+  const handleAprovar = (id: string) => {
     handleStatusChange(id, "aprovado");
     toast.success("Processo aprovado com sucesso!");
   };
 
-  const handleRejeitar = (id: number) => {
+  const handleRejeitar = (id: string) => {
     handleStatusChange(id, "inabilitado");
     toast.error("Processo inabilitado");
   };
@@ -139,6 +168,14 @@ export default function Analises() {
     pendente: processos.filter((p) => p.status === "pendente").length,
     aprovado: processos.filter((p) => p.status === "aprovado").length,
   };
+
+  if (loading || rolesLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-pulse text-muted-foreground">Carregando inscrições...</div>
+      </div>
+    );
+  }
 
   return (
     <>

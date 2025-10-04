@@ -37,7 +37,7 @@ const mensagensIniciais: Message[] = [
   },
 ];
 
-export function MessagesTab({ processoId, candidatoNome }: { processoId: number; candidatoNome: string }) {
+export function MessagesTab({ processoId, candidatoNome }: { processoId: string; candidatoNome: string }) {
   const [mensagens, setMensagens] = useState<Message[]>(mensagensIniciais);
   const [novaMensagem, setNovaMensagem] = useState("");
 
