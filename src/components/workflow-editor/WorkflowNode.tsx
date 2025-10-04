@@ -118,13 +118,37 @@ export function WorkflowNode({ data, selected }: WorkflowNodeProps) {
         )}
       </div>
 
-      {data.type !== "end" && (
+      {/* Handles de saída para condição (dois handles: Sim e Não) */}
+      {data.type === "condition" ? (
+        <>
+          <Handle
+            id="yes"
+            type="source"
+            position={Position.Right}
+            style={{ top: '35%' }}
+            className="!w-3 !h-3 !bg-green-500 !border-2 !border-background"
+          />
+          <div className="absolute right-3 top-[30%] text-[10px] font-semibold text-green-600 pointer-events-none">
+            SIM
+          </div>
+          <Handle
+            id="no"
+            type="source"
+            position={Position.Right}
+            style={{ top: '65%' }}
+            className="!w-3 !h-3 !bg-red-500 !border-2 !border-background"
+          />
+          <div className="absolute right-3 top-[60%] text-[10px] font-semibold text-red-600 pointer-events-none">
+            NÃO
+          </div>
+        </>
+      ) : data.type !== "end" ? (
         <Handle
           type="source"
           position={Position.Bottom}
           className="!w-3 !h-3 !bg-primary !border-2 !border-background"
         />
-      )}
+      ) : null}
     </div>
   );
 }

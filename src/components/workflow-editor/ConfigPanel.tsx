@@ -13,6 +13,7 @@ import { SignatureConfigPanel } from "./SignatureConfig";
 import { EmailConfigPanel } from "./EmailConfig";
 import { DatabaseConfigPanel } from "./DatabaseConfig";
 import { ApprovalConfigPanel, ApprovalConfig } from "./ApprovalConfig";
+import { ConditionConfigPanel, ConditionConfig } from "./ConditionConfig";
 import { TemplateSelector } from "@/components/templates/TemplateSelector";
 import { WorkflowNodeData, FormField, FormTemplate } from "@/types/workflow-editor";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -202,7 +203,14 @@ export function ConfigPanel({
                 />
               )}
 
-              {!["form", "webhook", "http", "signature", "email", "database", "approval"].includes(nodeData.type) && (
+              {nodeData.type === "condition" && (
+                <ConditionConfigPanel
+                  config={nodeData.conditionConfig || { assignmentType: "all" }}
+                  onChange={(config) => onUpdate({ conditionConfig: config })}
+                />
+              )}
+
+              {!["form", "webhook", "http", "signature", "email", "database", "approval", "condition"].includes(nodeData.type) && (
                 <div className="text-center py-8 text-muted-foreground">
                   <p>Este tipo de etapa não possui configuração avançada.</p>
                 </div>

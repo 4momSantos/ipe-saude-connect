@@ -172,28 +172,62 @@ export default function WorkflowEditor() {
 
   const onConnect = useCallback(
     (params: Connection) => {
-      setEdges((eds) =>
-        addEdge(
-          {
-            ...params,
-            animated: false,
-            type: "smoothstep",
-            style: { 
-              stroke: "#3b82f6", 
-              strokeWidth: 2.5,
+      const sourceNode = nodes.find(n => n.id === params.source);
+      
+      // Se for um nó de condição, adicionar label baseado no handle
+      if (sourceNode?.data.type === "condition") {
+        const label = params.sourceHandle === "yes" ? "✓ Sim" : "✗ Não";
+        const labelColor = params.sourceHandle === "yes" ? "#10b981" : "#ef4444";
+        
+        setEdges((eds) =>
+          addEdge(
+            {
+              ...params,
+              label,
+              labelStyle: { fill: labelColor, fontWeight: 600, fontSize: 12 },
+              labelBgStyle: { fill: "#ffffff", fillOpacity: 0.9 },
+              labelBgPadding: [8, 4] as [number, number],
+              data: { decisionType: params.sourceHandle },
+              animated: false,
+              type: "smoothstep",
+              style: { 
+                stroke: labelColor, 
+                strokeWidth: 2.5,
+              },
+              markerEnd: {
+                type: "arrowclosed",
+                color: labelColor,
+                width: 20,
+                height: 20,
+              },
             },
-            markerEnd: {
-              type: "arrowclosed",
-              color: "#3b82f6",
-              width: 20,
-              height: 20,
+            eds
+          )
+        );
+      } else {
+        setEdges((eds) =>
+          addEdge(
+            {
+              ...params,
+              animated: false,
+              type: "smoothstep",
+              style: { 
+                stroke: "#3b82f6", 
+                strokeWidth: 2.5,
+              },
+              markerEnd: {
+                type: "arrowclosed",
+                color: "#3b82f6",
+                width: 20,
+                height: 20,
+              },
             },
-          },
-          eds
-        )
-      );
+            eds
+          )
+        );
+      }
     },
-    [setEdges]
+    [nodes, setEdges]
   );
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node<WorkflowNodeData>) => {

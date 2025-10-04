@@ -143,6 +143,13 @@ export interface ApprovalConfig {
   assignedAnalysts?: string[];
 }
 
+export interface ConditionConfig {
+  assignmentType: "all" | "specific";
+  assignedAnalysts?: string[];
+  question?: string;
+  description?: string;
+}
+
 export interface WorkflowNodeData extends Record<string, unknown> {
   label: string;
   type: NodeType;
@@ -159,6 +166,7 @@ export interface WorkflowNodeData extends Record<string, unknown> {
   emailConfig?: EmailConfig;
   databaseConfig?: DatabaseConfig;
   approvalConfig?: ApprovalConfig;
+  conditionConfig?: ConditionConfig;
   config?: Record<string, any>;
 }
 
