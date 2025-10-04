@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/sidebar";
 import { RoleGuard } from "@/components/RoleGuard";
 import { useUserRole } from "@/hooks/useUserRole";
+import { NotificationBell } from "@/components/NotificationBell";
 
 // Menu items com controle de acesso por role
 const menuItems = [
@@ -102,16 +103,19 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarContent>
         <div className="px-6 py-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent">
-              <span className="text-lg font-bold text-white">IPE</span>
-            </div>
-            {!isCollapsed && (
-              <div>
-                <h2 className="text-base font-semibold text-sidebar-foreground">IPE Saúde</h2>
-                <p className="text-xs text-muted-foreground">Credenciamento</p>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent">
+                <span className="text-lg font-bold text-white">IPE</span>
               </div>
-            )}
+              {!isCollapsed && (
+                <div>
+                  <h2 className="text-base font-semibold text-sidebar-foreground">IPE Saúde</h2>
+                  <p className="text-xs text-muted-foreground">Credenciamento</p>
+                </div>
+              )}
+            </div>
+            {!isCollapsed && <NotificationBell />}
           </div>
         </div>
 

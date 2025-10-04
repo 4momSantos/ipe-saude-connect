@@ -114,6 +114,8 @@ export interface SignatureConfig {
   }>;
   provider: "manual" | "clicksign" | "docusign";
   notifyOnComplete?: boolean;
+  notifyCandidate?: boolean;
+  notifyAnalysts?: boolean;
 }
 
 export interface EmailConfig {
