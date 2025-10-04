@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface Template {
   id: string;
@@ -30,6 +31,7 @@ export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelec
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [sourceType, setSourceType] = useState<"template" | "step">("template");
 
   useEffect(() => {
     loadTemplates();
@@ -93,9 +95,28 @@ export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelec
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <Label>Template de Formulário</Label>
-        <div className="flex gap-2">
+      <div className="space-y-3">
+        <Label>Fonte do Formulário</Label>
+        <RadioGroup value={sourceType} onValueChange={(value: "template" | "step") => setSourceType(value)}>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="template" id="template" />
+            <Label htmlFor="template" className="font-normal cursor-pointer">
+              Usar Template de Formulário
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="step" id="step" />
+            <Label htmlFor="step" className="font-normal cursor-pointer">
+              Usar Etapa Já Selecionada
+            </Label>
+          </div>
+        </RadioGroup>
+      </div>
+
+      {sourceType === "template" && (
+        <div className="space-y-2">
+          <Label>Template de Formulário</Label>
+          <div className="flex gap-2">
           <Select value={selectedTemplateId} onValueChange={handleSelectTemplate}>
             <SelectTrigger className="flex-1">
               <SelectValue placeholder="Selecione um template..." />
@@ -179,9 +200,10 @@ export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelec
             <Plus className="h-4 w-4" />
           </Button>
         </div>
-      </div>
+        </div>
+      )}
 
-      {selectedTemplate && (
+      {sourceType === "template" && selectedTemplate && (
         <div className="border rounded-lg p-4 space-y-2 bg-muted/50">
           <div className="flex items-center justify-between">
             <h4 className="font-medium">{selectedTemplate.name}</h4>
