@@ -187,6 +187,7 @@ export type Database = {
           endereco: string | null
           estado: string | null
           id: string
+          inscricao_id: string | null
           nome: string
           observacoes: string | null
           porte: string | null
@@ -207,6 +208,7 @@ export type Database = {
           endereco?: string | null
           estado?: string | null
           id?: string
+          inscricao_id?: string | null
           nome: string
           observacoes?: string | null
           porte?: string | null
@@ -227,6 +229,7 @@ export type Database = {
           endereco?: string | null
           estado?: string | null
           id?: string
+          inscricao_id?: string | null
           nome?: string
           observacoes?: string | null
           porte?: string | null
@@ -235,7 +238,15 @@ export type Database = {
           telefone?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "credenciados_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: false
+            referencedRelation: "inscricoes_edital"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       editais: {
         Row: {
