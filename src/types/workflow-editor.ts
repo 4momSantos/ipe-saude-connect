@@ -112,7 +112,7 @@ export interface SignatureConfig {
     email: string;
     order: number;
   }>;
-  provider: "manual" | "clicksign" | "docusign";
+  provider: "manual" | "assinafy" | "clicksign" | "docusign";
   notifyOnComplete?: boolean;
   notifyCandidate?: boolean;
   notifyAnalysts?: boolean;

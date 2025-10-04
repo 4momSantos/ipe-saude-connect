@@ -61,6 +61,7 @@ export function SignatureConfigPanel({ config, onChange }: SignatureConfigProps)
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="manual">Manual (Sistema)</SelectItem>
+            <SelectItem value="assinafy">Assinafy (requer API Key)</SelectItem>
             <SelectItem value="clicksign">Clicksign (requer API Key)</SelectItem>
             <SelectItem value="docusign">DocuSign (requer API Key)</SelectItem>
           </SelectContent>

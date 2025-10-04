@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
-import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,6 +19,35 @@ interface EmailRequest {
     gestorId?: string;
     editalId?: string;
   };
+}
+
+async function sendEmail(to: string[], subject: string, html: string, apiKey: string, cc?: string[], bcc?: string[]) {
+  const emailData: any = {
+    from: "Sistema de Credenciamento <onboarding@resend.dev>",
+    to,
+    subject,
+    html,
+  };
+  
+  if (cc && cc.length > 0) emailData.cc = cc;
+  if (bcc && bcc.length > 0) emailData.bcc = bcc;
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(emailData),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error("Resend API error:", error);
+    throw new Error(`Failed to send email: ${response.status}`);
+  }
+
+  return await response.json();
 }
 
 async function resolveVariables(
@@ -112,6 +140,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const resendApiKey = Deno.env.get("RESEND_API_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const emailRequest: EmailRequest = await req.json();
@@ -135,40 +164,38 @@ serve(async (req) => {
     );
 
     // Resolver CC e BCC se existirem
-    let resolvedCc = emailRequest.cc;
-    let resolvedBcc = emailRequest.bcc;
-    if (resolvedCc?.includes("{")) {
-      resolvedCc = await resolveVariables(resolvedCc, emailRequest.context, supabase);
+    let resolvedCc: string[] | undefined;
+    let resolvedBcc: string[] | undefined;
+    
+    if (emailRequest.cc) {
+      const ccResolved = await resolveVariables(emailRequest.cc, emailRequest.context, supabase);
+      resolvedCc = [ccResolved];
     }
-    if (resolvedBcc?.includes("{")) {
-      resolvedBcc = await resolveVariables(resolvedBcc, emailRequest.context, supabase);
+    if (emailRequest.bcc) {
+      const bccResolved = await resolveVariables(emailRequest.bcc, emailRequest.context, supabase);
+      resolvedBcc = [bccResolved];
     }
 
     // Enviar email
-    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-    
-    const emailData: any = {
-      from: "Sistema de Credenciamento <onboarding@resend.dev>",
-      to: [resolvedTo],
-      subject: resolvedSubject,
-      html: resolvedBody.replace(/\n/g, "<br>"),
-    };
-
-    if (resolvedCc) emailData.cc = [resolvedCc];
-    if (resolvedBcc) emailData.bcc = [resolvedBcc];
-
-    const result = await resend.emails.send(emailData);
+    const result = await sendEmail(
+      [resolvedTo],
+      resolvedSubject,
+      resolvedBody.replace(/\n/g, "<br>"),
+      resendApiKey,
+      resolvedCc,
+      resolvedBcc
+    );
 
     console.log("Email sent successfully:", {
       to: resolvedTo,
       subject: resolvedSubject,
-      id: result.data?.id,
+      id: result.id,
     });
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        messageId: result.data?.id,
+        messageId: result.id,
         to: resolvedTo 
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -176,7 +203,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error in send-templated-email:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { 
         status: 500, 
         headers: { ...corsHeaders, "Content-Type": "application/json" } 

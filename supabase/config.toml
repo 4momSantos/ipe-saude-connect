@@ -26,3 +26,7 @@ verify_jwt = true
 
 [functions.send-templated-email]
 verify_jwt = true
+
+[functions.assinafy-webhook]
+verify_jwt = false
+
