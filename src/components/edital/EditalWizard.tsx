@@ -35,6 +35,8 @@ const editalSchema = z.object({
   criterio_julgamento: z.string().min(1, "Campo obrigatório"),
   garantia_execucao: z.number().optional(),
   fonte_recursos: z.string().min(1, "Campo obrigatório"),
+  possui_vagas: z.boolean().default(false),
+  vagas: z.number().min(1, "Insira ao menos 1 vaga").optional(),
   participacao_permitida: z.array(z.string()).min(1, "Selecione ao menos uma opção"),
   regras_me_epp: z.string().optional(),
   documentos_habilitacao: z.array(z.string()).min(1, "Selecione ao menos um documento"),
@@ -72,6 +74,8 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
       fonte_recursos: "",
       regras_me_epp: "",
       status: "rascunho",
+      possui_vagas: false,
+      vagas: undefined,
       participacao_permitida: [],
       documentos_habilitacao: [],
       anexos: {},
@@ -97,6 +101,11 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
           "criterio_julgamento",
           "fonte_recursos",
         ];
+        
+        // Validar vagas apenas se possui_vagas for true
+        if (form.getValues("possui_vagas")) {
+          fieldsToValidate.push("vagas");
+        }
         break;
       case 2:
         fieldsToValidate = ["participacao_permitida", "documentos_habilitacao"];
@@ -179,6 +188,8 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
         criterio_julgamento: data.criterio_julgamento,
         garantia_execucao: data.garantia_execucao,
         fonte_recursos: data.fonte_recursos,
+        possui_vagas: data.possui_vagas,
+        vagas: data.possui_vagas ? data.vagas : null,
         participacao_permitida: data.participacao_permitida,
         regras_me_epp: data.regras_me_epp,
         documentos_habilitacao: data.documentos_habilitacao,

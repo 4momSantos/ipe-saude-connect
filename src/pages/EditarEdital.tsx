@@ -51,11 +51,17 @@ export default function EditarEdital() {
         criterio_julgamento: data.criterio_julgamento || "",
         garantia_execucao: data.garantia_execucao || 0,
         fonte_recursos: data.fonte_recursos || "",
+        possui_vagas: data.possui_vagas || false,
+        vagas: data.vagas || undefined,
         participacao_permitida: Array.isArray(data.participacao_permitida) ? data.participacao_permitida : [],
         regras_me_epp: data.regras_me_epp || "",
         documentos_habilitacao: Array.isArray(data.documentos_habilitacao) ? data.documentos_habilitacao : [],
         anexos: data.anexos || {},
         status: data.status || "rascunho",
+        workflow_id: data.workflow_id || null,
+        workflow_version: data.workflow_version || undefined,
+        gestor_autorizador_id: data.gestor_autorizador_id || undefined,
+        observacoes_autorizacao: data.observacoes_autorizacao || undefined,
       };
 
       setEditalData(formData);

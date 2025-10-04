@@ -1,11 +1,12 @@
 import { UseFormReturn } from "react-hook-form";
-import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, FileText, Percent, Clock } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { CalendarIcon, FileText, Percent, Clock, Users } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -229,6 +230,63 @@ export function InformacoesGeraisStep({ form }: InformacoesGeraisStepProps) {
             </FormItem>
           )}
         />
+
+        {/* Checkbox para Vagas Limitadas */}
+        <FormField
+          control={form.control}
+          name="possui_vagas"
+          render={({ field }) => (
+            <FormItem className="md:col-span-2 flex flex-row items-center justify-between rounded-lg border p-4 bg-muted/50">
+              <div className="space-y-0.5">
+                <FormLabel className="text-base font-semibold">Este edital possui vagas limitadas</FormLabel>
+                <FormDescription className="text-sm text-muted-foreground">
+                  Marque esta opção se houver um número máximo de profissionais a serem credenciados
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={(checked) => {
+                    field.onChange(checked);
+                    if (!checked) {
+                      form.setValue('vagas', undefined);
+                    }
+                  }}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+
+        {/* Campo Número de Vagas (condicional) */}
+        {form.watch('possui_vagas') && (
+          <FormField
+            control={form.control}
+            name="vagas"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Número de Vagas *</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      type="number"
+                      min="1"
+                      placeholder="Ex: 10"
+                      className="pl-10"
+                      value={field.value || ''}
+                      onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                    />
+                  </div>
+                </FormControl>
+                <FormDescription className="text-sm text-muted-foreground">
+                  Quantidade máxima de profissionais a serem credenciados neste edital
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
       </div>
     </div>
   );

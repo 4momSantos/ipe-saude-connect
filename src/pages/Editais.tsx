@@ -24,7 +24,8 @@ type Edital = {
   data_fim: string;
   data_publicacao: string | null;
   data_licitacao: string | null;
-  vagas: number;
+  possui_vagas: boolean;
+  vagas: number | null;
   status: string;
   especialidade: string | null;
   local_portal: string | null;
@@ -387,7 +388,11 @@ export default function Editais() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Users className="h-4 w-4" />
-                        <span>{edital.vagas} vagas disponíveis</span>
+                        <span>
+                          {edital.possui_vagas 
+                            ? `${edital.vagas} vagas disponíveis` 
+                            : 'Sem limite de vagas'}
+                        </span>
                       </div>
                     </div>
                     <div className="mt-4 flex gap-3 flex-wrap">

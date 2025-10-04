@@ -261,13 +261,14 @@ export type Database = {
           objeto: string | null
           observacoes_autorizacao: string | null
           participacao_permitida: Json | null
+          possui_vagas: boolean | null
           prazo_validade_proposta: number | null
           processo_inscricao_id: string | null
           regras_me_epp: string | null
           status: string
           titulo: string
           updated_at: string | null
-          vagas: number
+          vagas: number | null
           workflow_id: string | null
           workflow_version: number | null
         }
@@ -294,13 +295,14 @@ export type Database = {
           objeto?: string | null
           observacoes_autorizacao?: string | null
           participacao_permitida?: Json | null
+          possui_vagas?: boolean | null
           prazo_validade_proposta?: number | null
           processo_inscricao_id?: string | null
           regras_me_epp?: string | null
           status?: string
           titulo: string
           updated_at?: string | null
-          vagas?: number
+          vagas?: number | null
           workflow_id?: string | null
           workflow_version?: number | null
         }
@@ -327,13 +329,14 @@ export type Database = {
           objeto?: string | null
           observacoes_autorizacao?: string | null
           participacao_permitida?: Json | null
+          possui_vagas?: boolean | null
           prazo_validade_proposta?: number | null
           processo_inscricao_id?: string | null
           regras_me_epp?: string | null
           status?: string
           titulo?: string
           updated_at?: string | null
-          vagas?: number
+          vagas?: number | null
           workflow_id?: string | null
           workflow_version?: number | null
         }
