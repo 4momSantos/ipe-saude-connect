@@ -43,7 +43,8 @@ export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelec
   const [filteredSteps, setFilteredSteps] = useState<ProcessStep[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [stepDialogOpen, setStepDialogOpen] = useState(false);
   const [sourceType, setSourceType] = useState<"template" | "step">("template");
   const [selectedStepId, setSelectedStepId] = useState<string>();
 
@@ -100,8 +101,10 @@ export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelec
         .order("step_number");
 
       if (error) throw error;
-      setSteps((data || []) as ProcessStep[]);
-      setFilteredSteps((data || []) as ProcessStep[]);
+      const stepsData = (data || []) as ProcessStep[];
+      console.log('Etapas carregadas:', stepsData.length, stepsData);
+      setSteps(stepsData);
+      setFilteredSteps(stepsData);
     } catch (error: any) {
       toast({
         title: "Erro ao carregar etapas",
@@ -142,11 +145,16 @@ export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelec
     setFilteredSteps(filtered);
   };
 
+  const handleSourceTypeChange = (value: "template" | "step") => {
+    setSourceType(value);
+    setSelectedStepId(undefined);
+  };
+
   const handleSelectTemplate = (templateId: string) => {
     const template = templates.find((t) => t.id === templateId);
     if (template) {
       onSelect(templateId, template.fields);
-      setDialogOpen(false);
+      setTemplateDialogOpen(false);
     }
   };
 
@@ -163,8 +171,14 @@ export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelec
       if (template) {
         setSelectedStepId(stepId);
         onSelect(step.template_id, template.fields as any[]);
-        setDialogOpen(false);
+        setStepDialogOpen(false);
       }
+    } else {
+      toast({
+        title: "Etapa sem template",
+        description: "Esta etapa não possui um template de formulário associado.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -175,17 +189,17 @@ export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelec
     <div className="space-y-4">
       <div className="space-y-3">
         <Label>Fonte do Formulário</Label>
-        <RadioGroup value={sourceType} onValueChange={(value: "template" | "step") => setSourceType(value)}>
+        <RadioGroup value={sourceType} onValueChange={handleSourceTypeChange}>
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="template" id="template" />
             <Label htmlFor="template" className="font-normal cursor-pointer">
-              Usar Template de Formulário
+              Usar Template de Formulário ({templates.length} disponíveis)
             </Label>
           </div>
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="step" id="step" />
             <Label htmlFor="step" className="font-normal cursor-pointer">
-              Usar Etapa Já Selecionada
+              Usar Etapa Já Selecionada ({steps.length} disponíveis)
             </Label>
           </div>
         </RadioGroup>
@@ -208,7 +222,7 @@ export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelec
             </SelectContent>
           </Select>
 
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="icon">
                 <Search className="h-4 w-4" />
@@ -298,7 +312,7 @@ export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelec
               </SelectContent>
             </Select>
 
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <Dialog open={stepDialogOpen} onOpenChange={setStepDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="icon">
                   <Search className="h-4 w-4" />
@@ -306,7 +320,7 @@ export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelec
               </DialogTrigger>
               <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>Selecionar Etapa</DialogTitle>
+                  <DialogTitle>Selecionar Etapa ({filteredSteps.length} disponíveis)</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
                   <Input
