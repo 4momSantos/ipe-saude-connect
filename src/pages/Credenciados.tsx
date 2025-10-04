@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Eye, Download, Filter } from "lucide-react";
+import { Search, Eye, Download, Filter, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -20,113 +20,88 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
-
-interface Credenciado {
-  id: number;
-  nome: string;
-  cpfCnpj: string;
-  crm?: string;
-  especialidade: string;
-  cidade: string;
-  dataCredenciamento: string;
-  status: "habilitado" | "inabilitado";
-  avaliacoes: number;
-}
-
-const credenciadosData: Credenciado[] = [
-  {
-    id: 1,
-    nome: "Dr. João Silva",
-    cpfCnpj: "123.456.789-00",
-    crm: "12345-SC",
-    especialidade: "Cardiologia",
-    cidade: "São Paulo",
-    dataCredenciamento: "2024-01-15",
-    status: "habilitado",
-    avaliacoes: 4.8,
-  },
-  {
-    id: 2,
-    nome: "Clínica MedCenter",
-    cpfCnpj: "12.345.678/0001-00",
-    especialidade: "Clínica Geral",
-    cidade: "Rio de Janeiro",
-    dataCredenciamento: "2024-02-20",
-    status: "habilitado",
-    avaliacoes: 4.6,
-  },
-  {
-    id: 3,
-    nome: "Dra. Maria Santos",
-    cpfCnpj: "987.654.321-00",
-    especialidade: "Pediatria",
-    cidade: "Brasília",
-    dataCredenciamento: "2024-03-10",
-    status: "habilitado",
-    avaliacoes: 4.9,
-  },
-  {
-    id: 4,
-    nome: "Hospital Santa Clara",
-    cpfCnpj: "98.765.432/0001-00",
-    especialidade: "Hospitalar",
-    cidade: "Belo Horizonte",
-    dataCredenciamento: "2023-11-05",
-    status: "habilitado",
-    avaliacoes: 4.7,
-  },
-  {
-    id: 5,
-    nome: "Dr. Pedro Oliveira",
-    cpfCnpj: "456.789.123-00",
-    especialidade: "Ortopedia",
-    cidade: "Curitiba",
-    dataCredenciamento: "2024-04-22",
-    status: "inabilitado",
-    avaliacoes: 3.2,
-  },
-  {
-    id: 6,
-    nome: "Laboratório DiagLab",
-    cpfCnpj: "45.678.912/0001-00",
-    especialidade: "Laboratório",
-    cidade: "Porto Alegre",
-    dataCredenciamento: "2024-01-30",
-    status: "habilitado",
-    avaliacoes: 4.5,
-  },
-];
+import { useCredenciados } from "@/hooks/useCredenciados";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function Credenciados() {
   const navigate = useNavigate();
-  const [credenciados] = useState<Credenciado[]>(credenciadosData);
+  const { data: credenciados, isLoading, error } = useCredenciados();
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [filtroEspecialidade, setFiltroEspecialidade] = useState<string>("todas");
   const [filtroMunicipio, setFiltroMunicipio] = useState<string>("todos");
   const [busca, setBusca] = useState("");
 
-  const especialidades = Array.from(new Set(credenciados.map((c) => c.especialidade)));
-  const municipios = Array.from(new Set(credenciados.map((c) => c.cidade)));
+  const especialidades = useMemo(() => {
+    if (!credenciados) return [];
+    const especialidadesSet = new Set<string>();
+    credenciados.forEach((c) => {
+      c.crms.forEach((crm) => especialidadesSet.add(crm.especialidade));
+    });
+    return Array.from(especialidadesSet);
+  }, [credenciados]);
 
-  const credenciadosFiltrados = credenciados.filter((credenciado) => {
-    const matchStatus =
-      filtroStatus === "todos" || credenciado.status === filtroStatus;
-    const matchEspecialidade =
-      filtroEspecialidade === "todas" ||
-      credenciado.especialidade === filtroEspecialidade;
-    const matchMunicipio =
-      filtroMunicipio === "todos" ||
-      credenciado.cidade === filtroMunicipio;
-    const matchBusca =
-      busca === "" ||
-      credenciado.nome.toLowerCase().includes(busca.toLowerCase()) ||
-      credenciado.cpfCnpj.includes(busca) ||
-      credenciado.crm?.toLowerCase().includes(busca.toLowerCase());
-    return matchStatus && matchEspecialidade && matchMunicipio && matchBusca;
-  });
+  const municipios = useMemo(() => {
+    if (!credenciados) return [];
+    return Array.from(new Set(credenciados.map((c) => c.cidade).filter(Boolean)));
+  }, [credenciados]);
 
-  const totalAtivos = credenciados.filter((c) => c.status === "habilitado").length;
-  const totalInativos = credenciados.filter((c) => c.status === "inabilitado").length;
+  const credenciadosFiltrados = useMemo(() => {
+    if (!credenciados) return [];
+    return credenciados.filter((credenciado) => {
+      const matchStatus =
+        filtroStatus === "todos" || 
+        credenciado.status.toLowerCase() === filtroStatus.toLowerCase();
+      
+      const matchEspecialidade =
+        filtroEspecialidade === "todas" ||
+        credenciado.crms.some((crm) => crm.especialidade === filtroEspecialidade);
+      
+      const matchMunicipio =
+        filtroMunicipio === "todos" ||
+        credenciado.cidade === filtroMunicipio;
+      
+      const cpfCnpj = credenciado.cnpj || credenciado.cpf || "";
+      const primeirosCrms = credenciado.crms.map((c) => c.crm).join(" ");
+      
+      const matchBusca =
+        busca === "" ||
+        credenciado.nome.toLowerCase().includes(busca.toLowerCase()) ||
+        cpfCnpj.includes(busca) ||
+        primeirosCrms.toLowerCase().includes(busca.toLowerCase());
+      
+      return matchStatus && matchEspecialidade && matchMunicipio && matchBusca;
+    });
+  }, [credenciados, filtroStatus, filtroEspecialidade, filtroMunicipio, busca]);
+
+  const totalAtivos = useMemo(() => {
+    if (!credenciados) return 0;
+    return credenciados.filter((c) => c.status.toLowerCase() === "ativo").length;
+  }, [credenciados]);
+
+  const totalInativos = useMemo(() => {
+    if (!credenciados) return 0;
+    return credenciados.filter((c) => c.status.toLowerCase() === "inativo").length;
+  }, [credenciados]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <Alert variant="destructive">
+          <AlertDescription>
+            Erro ao carregar credenciados: {error.message}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -145,7 +120,7 @@ export default function Credenciados() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Total Credenciados</p>
-                <p className="text-2xl font-bold text-foreground">{credenciados.length}</p>
+                <p className="text-2xl font-bold text-foreground">{credenciados?.length || 0}</p>
               </div>
               <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center">
                 <span className="text-2xl">👥</span>
@@ -257,33 +232,51 @@ export default function Credenciados() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {credenciadosFiltrados.map((credenciado) => (
-                  <TableRow key={credenciado.id} className="hover:bg-muted/50 cursor-pointer transition-colors">
-                    <TableCell className="font-medium">{credenciado.nome}</TableCell>
-                    <TableCell className="font-mono text-sm">{credenciado.cpfCnpj}</TableCell>
-                    <TableCell className="font-mono text-sm">{credenciado.crm || "-"}</TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20">
-                        {credenciado.especialidade}
-                      </span>
-                    </TableCell>
-                    <TableCell>{credenciado.cidade}</TableCell>
-                    <TableCell>
-                      <StatusBadge status={credenciado.status} />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-2 hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all"
-                        onClick={() => navigate(`/credenciados/${credenciado.id}`)}
-                      >
-                        <Eye className="h-4 w-4" />
-                        Detalhes
-                      </Button>
+                {credenciadosFiltrados.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                      Nenhum credenciado encontrado
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  credenciadosFiltrados.map((credenciado) => {
+                    const cpfCnpj = credenciado.cnpj || credenciado.cpf || "-";
+                    const primeirosCrms = credenciado.crms.map((c) => `${c.crm}-${c.uf_crm}`).join(", ");
+                    const primeiraEspecialidade = credenciado.crms[0]?.especialidade || "-";
+
+                    return (
+                      <TableRow key={credenciado.id} className="hover:bg-muted/50 cursor-pointer transition-colors">
+                        <TableCell className="font-medium">{credenciado.nome}</TableCell>
+                        <TableCell className="font-mono text-sm">{cpfCnpj}</TableCell>
+                        <TableCell className="font-mono text-sm">{primeirosCrms || "-"}</TableCell>
+                        <TableCell>
+                          {primeiraEspecialidade !== "-" ? (
+                            <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20">
+                              {primeiraEspecialidade}
+                            </span>
+                          ) : (
+                            "-"
+                          )}
+                        </TableCell>
+                        <TableCell>{credenciado.cidade || "-"}</TableCell>
+                        <TableCell>
+                          <StatusBadge status={credenciado.status.toLowerCase() === "ativo" ? "habilitado" : "inabilitado"} />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-2 hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all"
+                            onClick={() => navigate(`/credenciados/${credenciado.id}`)}
+                          >
+                            <Eye className="h-4 w-4" />
+                            Detalhes
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
               </TableBody>
             </Table>
           </div>

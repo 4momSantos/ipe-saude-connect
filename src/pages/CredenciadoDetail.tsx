@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DadosCadastrais } from "@/components/credenciados/DadosCadastrais";
@@ -8,28 +8,40 @@ import { EspecialidadesHorarios } from "@/components/credenciados/Especialidades
 import { HistoricoCredenciado } from "@/components/credenciados/HistoricoCredenciado";
 import { SolicitacoesAlteracao } from "@/components/credenciados/SolicitacoesAlteracao";
 import { StatusBadge } from "@/components/StatusBadge";
-
-// Mock data - substituir por dados reais do backend
-const mockCredenciado = {
-  id: "1",
-  nome: "Dr. João Silva",
-  cpfCnpj: "12.345.678/0001-90",
-  crm: "12345-SC",
-  especialidade: "Cardiologia",
-  status: "habilitado" as const,
-  email: "joao.silva@example.com",
-  telefone: "(48) 99999-9999",
-  endereco: "Rua Principal, 123",
-  cidade: "Florianópolis",
-  estado: "SC",
-  cep: "88000-000",
-  dataCredenciamento: "15/01/2024",
-};
+import { useCredenciado } from "@/hooks/useCredenciados";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function CredenciadoDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState("dados");
+  const { data: credenciado, isLoading, error } = useCredenciado(id || "");
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error || !credenciado) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <Alert variant="destructive">
+          <AlertDescription>
+            {error ? `Erro ao carregar credenciado: ${error.message}` : "Credenciado não encontrado"}
+          </AlertDescription>
+        </Alert>
+        <Button onClick={() => navigate("/credenciados")}>
+          Voltar para Credenciados
+        </Button>
+      </div>
+    );
+  }
+
+  const cpfCnpj = credenciado.cnpj || credenciado.cpf || "N/A";
+  const primeirosCrms = credenciado.crms?.map((c: any) => `${c.crm}-${c.uf_crm}`).join(", ") || "N/A";
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -46,14 +58,14 @@ export default function CredenciadoDetail() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              {mockCredenciado.nome}
+              {credenciado.nome}
             </h1>
             <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-              <span>CNPJ: {mockCredenciado.cpfCnpj}</span>
+              <span>CPF/CNPJ: {cpfCnpj}</span>
               <span>•</span>
-              <span>CRM: {mockCredenciado.crm}</span>
+              <span>CRM: {primeirosCrms}</span>
               <span>•</span>
-              <StatusBadge status={mockCredenciado.status} />
+              <StatusBadge status={credenciado.status.toLowerCase() === "ativo" ? "habilitado" : "inabilitado"} />
             </div>
           </div>
         </div>
@@ -69,19 +81,33 @@ export default function CredenciadoDetail() {
         </TabsList>
 
         <TabsContent value="dados" className="space-y-6">
-          <DadosCadastrais credenciado={mockCredenciado} />
+          <DadosCadastrais 
+            credenciado={{
+              nome: credenciado.nome,
+              cpfCnpj: cpfCnpj,
+              crm: primeirosCrms,
+              especialidade: credenciado.crms?.[0]?.especialidade || "N/A",
+              email: credenciado.email || "N/A",
+              telefone: credenciado.telefone || "N/A",
+              endereco: credenciado.endereco || "N/A",
+              cidade: credenciado.cidade || "N/A",
+              estado: credenciado.estado || "N/A",
+              cep: credenciado.cep || "N/A",
+              dataCredenciamento: new Date(credenciado.created_at).toLocaleDateString("pt-BR"),
+            }} 
+          />
         </TabsContent>
 
         <TabsContent value="especialidades" className="space-y-6">
-          <EspecialidadesHorarios credenciadoId={id || "1"} />
+          <EspecialidadesHorarios credenciadoId={id || ""} />
         </TabsContent>
 
         <TabsContent value="historico" className="space-y-6">
-          <HistoricoCredenciado credenciadoId={id || "1"} />
+          <HistoricoCredenciado credenciadoId={id || ""} />
         </TabsContent>
 
         <TabsContent value="solicitacoes" className="space-y-6">
-          <SolicitacoesAlteracao credenciadoId={id || "1"} />
+          <SolicitacoesAlteracao credenciadoId={id || ""} />
         </TabsContent>
       </Tabs>
     </div>
