@@ -4,6 +4,11 @@ export type FieldType =
   | "email"
   | "cpf" 
   | "cnpj" 
+  | "crm"
+  | "nit"
+  | "cep"
+  | "rg"
+  | "phone"
   | "date" 
   | "file" 
   | "checkbox" 
@@ -22,6 +27,13 @@ export interface FieldValidation {
   customMessage?: string;
 }
 
+export interface APIFieldConfig {
+  enableValidation?: boolean;
+  enableAutoFill?: boolean;
+  autoFillFields?: string[]; // IDs of fields to auto-fill
+  validateOnBlur?: boolean;
+}
+
 export interface SelectOption {
   label: string;
   value: string;
@@ -37,6 +49,9 @@ export interface FormField {
   options?: SelectOption[];
   helpText?: string;
   conditionalRules?: ConditionalRule[];
+  apiConfig?: APIFieldConfig;
+  acceptedFiles?: string; // For file type
+  maxFileSize?: number; // For file type in MB
 }
 
 export interface ConditionalRule {
