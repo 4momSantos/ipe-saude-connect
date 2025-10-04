@@ -6,7 +6,8 @@ import { Plus, Trash2, Info } from "lucide-react";
 import { SignatureConfig } from "@/types/workflow-editor";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
+import { DraggableVariable } from "./DraggableVariable";
+import { useDroppableInput } from "@/hooks/useDroppableInput";
 
 interface SignatureConfigProps {
   config: SignatureConfig;
@@ -26,6 +27,11 @@ const AVAILABLE_VARIABLES = [
 ];
 
 export function SignatureConfigPanel({ config, onChange }: SignatureConfigProps) {
+  const documentTemplateInput = useDroppableInput(
+    config.documentTemplateId || "",
+    (value) => onChange({ ...config, documentTemplateId: value })
+  );
+
   const addSigner = () => {
     const signers = [...config.signers];
     signers.push({
@@ -47,6 +53,16 @@ export function SignatureConfigPanel({ config, onChange }: SignatureConfigProps)
     signers.forEach((s, i) => s.order = i + 1);
     onChange({ ...config, signers });
   };
+
+  const getSignerNameInput = (index: number) =>
+    useDroppableInput(config.signers[index]?.name || "", (value) =>
+      updateSigner(index, "name", value)
+    );
+
+  const getSignerEmailInput = (index: number) =>
+    useDroppableInput(config.signers[index]?.email || "", (value) =>
+      updateSigner(index, "email", value)
+    );
 
   return (
     <div className="space-y-6">
@@ -77,9 +93,12 @@ export function SignatureConfigPanel({ config, onChange }: SignatureConfigProps)
       <div className="space-y-2">
         <Label>Template do Documento</Label>
         <Input
+          ref={documentTemplateInput.inputRef}
           value={config.documentTemplateId || ""}
           onChange={(e) => onChange({ ...config, documentTemplateId: e.target.value })}
           placeholder="ID do template ou caminho do arquivo"
+          className={documentTemplateInput.isOver ? "ring-2 ring-primary" : ""}
+          {...documentTemplateInput.dropHandlers}
         />
         <p className="text-xs text-muted-foreground">
           Documento que será usado para coleta de assinaturas. Suporta variáveis como {"{candidato.nome}"}
@@ -100,50 +119,61 @@ export function SignatureConfigPanel({ config, onChange }: SignatureConfigProps)
           </p>
         </div>
 
-        {config.signers.map((signer, index) => (
-          <Card key={index} className="p-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Signatário {signer.order}</span>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => removeSigner(index)}
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Nome (ou variável)</Label>
-                <Input
-                  value={signer.name}
-                  onChange={(e) => updateSigner(index, "name", e.target.value)}
-                  placeholder="{candidato.nome} ou nome fixo"
-                />
-              </div>
+        {config.signers.map((signer, index) => {
+          const nameInput = getSignerNameInput(index);
+          const emailInput = getSignerEmailInput(index);
 
-              <div className="space-y-2">
-                <Label>Email (ou variável)</Label>
-                <Input
-                  value={signer.email}
-                  onChange={(e) => updateSigner(index, "email", e.target.value)}
-                  placeholder="{candidato.email} ou email@exemplo.com"
-                />
-              </div>
+          return (
+            <Card key={index} className="p-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">Signatário {signer.order}</span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => removeSigner(index)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Nome (ou variável)</Label>
+                  <Input
+                    ref={nameInput.inputRef}
+                    value={signer.name}
+                    onChange={(e) => updateSigner(index, "name", e.target.value)}
+                    placeholder="{candidato.nome} ou nome fixo"
+                    className={nameInput.isOver ? "ring-2 ring-primary" : ""}
+                    {...nameInput.dropHandlers}
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label>Ordem de Assinatura</Label>
-                <Input
-                  type="number"
-                  value={signer.order}
-                  onChange={(e) => updateSigner(index, "order", parseInt(e.target.value))}
-                  min="1"
-                />
+                <div className="space-y-2">
+                  <Label>Email (ou variável)</Label>
+                  <Input
+                    ref={emailInput.inputRef}
+                    value={signer.email}
+                    onChange={(e) => updateSigner(index, "email", e.target.value)}
+                    placeholder="{candidato.email} ou email@exemplo.com"
+                    className={emailInput.isOver ? "ring-2 ring-primary" : ""}
+                    {...emailInput.dropHandlers}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Ordem de Assinatura</Label>
+                  <Input
+                    type="number"
+                    value={signer.order}
+                    onChange={(e) => updateSigner(index, "order", parseInt(e.target.value))}
+                    min="1"
+                  />
+                </div>
               </div>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
 
         {config.signers.length === 0 && (
           <div className="text-center py-6 text-muted-foreground text-sm border border-dashed rounded-md">
@@ -153,12 +183,14 @@ export function SignatureConfigPanel({ config, onChange }: SignatureConfigProps)
       </div>
 
       <div className="border rounded-lg p-4 bg-muted/50 space-y-2">
-        <Label className="text-sm font-medium">Variáveis Disponíveis</Label>
+        <Label className="text-sm font-medium">Variáveis Disponíveis (arraste para os campos)</Label>
         <div className="flex flex-wrap gap-2">
           {AVAILABLE_VARIABLES.slice(0, 9).map((variable) => (
-            <Badge key={variable.key} variant="secondary" className="text-xs">
-              {variable.key}
-            </Badge>
+            <DraggableVariable
+              key={variable.key}
+              variableKey={variable.key}
+              description={variable.description}
+            />
           ))}
         </div>
       </div>

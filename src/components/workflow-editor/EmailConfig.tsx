@@ -4,12 +4,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { EmailConfig } from "@/types/workflow-editor";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Info, Save } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { DraggableVariable } from "./DraggableVariable";
+import { useDroppableInput } from "@/hooks/useDroppableInput";
 
 interface EmailConfigProps {
   config: EmailConfig;
@@ -43,6 +44,22 @@ export function EmailConfigPanel({ config, onChange }: EmailConfigProps) {
     config.to?.includes("{") ? config.to : "specific"
   );
   const { toast } = useToast();
+
+  const recipientInput = useDroppableInput(config.to || "", (value) =>
+    onChange({ ...config, to: value })
+  );
+  const subjectInput = useDroppableInput(config.subject || "", (value) =>
+    onChange({ ...config, subject: value })
+  );
+  const bodyInput = useDroppableInput<HTMLTextAreaElement>(config.body || "", (value) =>
+    onChange({ ...config, body: value })
+  );
+  const ccInput = useDroppableInput(config.cc || "", (value) =>
+    onChange({ ...config, cc: value })
+  );
+  const bccInput = useDroppableInput(config.bcc || "", (value) =>
+    onChange({ ...config, bcc: value })
+  );
 
   useEffect(() => {
     loadTemplates();
@@ -131,10 +148,12 @@ export function EmailConfigPanel({ config, onChange }: EmailConfigProps) {
         </Select>
         {recipientType === "specific" && (
           <Input
+            ref={recipientInput.inputRef}
             value={config.to || ""}
             onChange={(e) => onChange({ ...config, to: e.target.value })}
             placeholder="email@exemplo.com"
-            className="mt-2"
+            className={`mt-2 ${recipientInput.isOver ? "ring-2 ring-primary" : ""}`}
+            {...recipientInput.dropHandlers}
           />
         )}
       </div>
@@ -169,22 +188,27 @@ export function EmailConfigPanel({ config, onChange }: EmailConfigProps) {
       <div className="space-y-2">
         <Label htmlFor="subject">Assunto</Label>
         <Input
+          ref={subjectInput.inputRef}
           id="subject"
           value={config.subject || ""}
           onChange={(e) => onChange({ ...config, subject: e.target.value })}
           placeholder="Assunto do email - suporta variáveis"
+          className={subjectInput.isOver ? "ring-2 ring-primary" : ""}
+          {...subjectInput.dropHandlers}
         />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="body">Mensagem</Label>
         <Textarea
+          ref={bodyInput.inputRef}
           id="body"
           value={config.body || ""}
           onChange={(e) => onChange({ ...config, body: e.target.value })}
           placeholder="Digite o corpo do email. Use variáveis como {candidato.nome}"
           rows={8}
-          className="font-mono text-sm"
+          className={`font-mono text-sm ${bodyInput.isOver ? "ring-2 ring-primary" : ""}`}
+          {...bodyInput.dropHandlers}
         />
         <p className="text-xs text-muted-foreground flex items-center gap-1">
           <Info className="h-3 w-3" />
@@ -193,17 +217,14 @@ export function EmailConfigPanel({ config, onChange }: EmailConfigProps) {
       </div>
 
       <div className="border rounded-lg p-4 bg-muted/50 space-y-3">
-        <Label className="text-sm font-medium">Variáveis Disponíveis</Label>
+        <Label className="text-sm font-medium">Variáveis Disponíveis (arraste para os campos)</Label>
         <div className="flex flex-wrap gap-2">
           {AVAILABLE_VARIABLES.map((variable) => (
-            <Badge 
-              key={variable.key} 
-              variant="secondary" 
-              className="text-xs cursor-help"
-              title={variable.description}
-            >
-              {variable.key}
-            </Badge>
+            <DraggableVariable
+              key={variable.key}
+              variableKey={variable.key}
+              description={variable.description}
+            />
           ))}
         </div>
       </div>
@@ -211,20 +232,26 @@ export function EmailConfigPanel({ config, onChange }: EmailConfigProps) {
       <div className="space-y-2">
         <Label htmlFor="cc">CC (opcional)</Label>
         <Input
+          ref={ccInput.inputRef}
           id="cc"
           value={config.cc || ""}
           onChange={(e) => onChange({ ...config, cc: e.target.value })}
           placeholder="copia@exemplo.com ou {analista.email}"
+          className={ccInput.isOver ? "ring-2 ring-primary" : ""}
+          {...ccInput.dropHandlers}
         />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="bcc">CCO (opcional)</Label>
         <Input
+          ref={bccInput.inputRef}
           id="bcc"
           value={config.bcc || ""}
           onChange={(e) => onChange({ ...config, bcc: e.target.value })}
           placeholder="copia-oculta@exemplo.com"
+          className={bccInput.isOver ? "ring-2 ring-primary" : ""}
+          {...bccInput.dropHandlers}
         />
       </div>
 
