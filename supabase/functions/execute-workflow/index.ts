@@ -30,7 +30,7 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       {
         global: {
           headers: { Authorization: req.headers.get("Authorization")! },
@@ -240,10 +240,51 @@ async function executeWorkflowSteps(
 
       case "approval":
         console.log("Aguardando aprovação");
+        
+        // Obter configuração de aprovação do nó
+        const approvalConfig = currentNode.data.approvalConfig || { assignmentType: "all" };
+        
+        // Buscar analistas responsáveis
+        let assignedAnalysts: string[] = [];
+        
+        if (approvalConfig.assignmentType === "all") {
+          // Buscar todos os analistas
+          const { data: allAnalysts } = await supabaseClient
+            .from("user_roles")
+            .select("user_id")
+            .eq("role", "analista");
+          
+          assignedAnalysts = allAnalysts?.map((a: { user_id: string }) => a.user_id) || [];
+          console.log("Aprovação atribuída a todos os analistas:", assignedAnalysts.length);
+        } else if (approvalConfig.assignedAnalysts && approvalConfig.assignedAnalysts.length > 0) {
+          assignedAnalysts = approvalConfig.assignedAnalysts;
+          console.log("Aprovação atribuída a analistas específicos:", assignedAnalysts.length);
+        }
+        
+        // Criar registros de aprovação para cada analista
+        if (assignedAnalysts.length > 0) {
+          const approvalRecords = assignedAnalysts.map(analystId => ({
+            step_execution_id: stepExecution.id,
+            approver_id: analystId,
+            decision: "pending",
+          }));
+          
+          const { error: approvalError } = await supabaseClient
+            .from("workflow_approvals")
+            .insert(approvalRecords);
+          
+          if (approvalError) {
+            console.error("Erro ao criar registros de aprovação:", approvalError);
+          } else {
+            console.log("Registros de aprovação criados:", approvalRecords.length);
+          }
+        }
+        
         await supabaseClient
           .from("workflow_step_executions")
           .update({
             status: "pending",
+            output_data: { assignedAnalysts, approvalConfig },
             completed_at: new Date().toISOString(),
           })
           .eq("id", stepExecution.id);

@@ -12,6 +12,7 @@ import { HttpConfigPanel } from "./HttpConfig";
 import { SignatureConfigPanel } from "./SignatureConfig";
 import { EmailConfigPanel } from "./EmailConfig";
 import { DatabaseConfigPanel } from "./DatabaseConfig";
+import { ApprovalConfigPanel, ApprovalConfig } from "./ApprovalConfig";
 import { TemplateSelector } from "@/components/templates/TemplateSelector";
 import { WorkflowNodeData, FormField, FormTemplate } from "@/types/workflow-editor";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -180,7 +181,14 @@ export function ConfigPanel({
                 />
               )}
 
-              {!["form", "webhook", "http", "signature", "email", "database"].includes(nodeData.type) && (
+              {nodeData.type === "approval" && (
+                <ApprovalConfigPanel
+                  config={nodeData.approvalConfig || { assignmentType: "all" }}
+                  onChange={(config) => onUpdate({ approvalConfig: config })}
+                />
+              )}
+
+              {!["form", "webhook", "http", "signature", "email", "database", "approval"].includes(nodeData.type) && (
                 <div className="text-center py-8 text-muted-foreground">
                   <p>Este tipo de etapa não possui configuração avançada.</p>
                 </div>
