@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Eye, CheckCircle, XCircle, Clock, Filter } from "lucide-react";
+import { Search, Eye, Filter, Clock, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +22,9 @@ import {
 } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ProcessDetailPanel } from "@/components/ProcessDetailPanel";
+import { WorkflowApprovalPanel } from "@/components/workflow/WorkflowApprovalPanel";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 
 type StatusType = "em_analise" | "aprovado" | "pendente" | "inabilitado";
 
@@ -35,6 +37,10 @@ interface Processo {
   status: StatusType;
   analista?: string;
   edital_titulo?: string;
+  workflow_execution_id?: string;
+  workflow_status?: string;
+  workflow_current_step?: string;
+  workflow_name?: string;
 }
 
 export default function Analises() {
@@ -60,7 +66,7 @@ export default function Analises() {
         return;
       }
 
-      // Construir query baseada no role
+      // Construir query baseada no role - incluindo dados de workflow
       let query = supabase
         .from('inscricoes_edital')
         .select(`
@@ -71,14 +77,27 @@ export default function Analises() {
           edital_id,
           dados_inscricao,
           analisado_por,
+          workflow_execution_id,
           editais (
             titulo,
             numero_edital,
-            especialidade
+            especialidade,
+            workflow_id
           ),
           profiles!inscricoes_edital_candidato_id_fkey (
             nome,
             email
+          ),
+          workflow_executions (
+            id,
+            status,
+            current_node_id,
+            started_at,
+            completed_at,
+            workflows (
+              name,
+              version
+            )
           )
         `)
         .order('created_at', { ascending: false });
@@ -97,7 +116,7 @@ export default function Analises() {
 
       if (error) throw error;
 
-      // Transformar dados para o formato esperado
+      // Transformar dados para o formato esperado incluindo workflow
       const processosFormatados: Processo[] = (data || []).map((inscricao: any) => ({
         id: inscricao.id,
         protocolo: inscricao.editais?.numero_edital || `INS-${inscricao.id.substring(0, 8)}`,
@@ -107,6 +126,10 @@ export default function Analises() {
         status: inscricao.status as StatusType,
         analista: inscricao.analisado_por ? "Analista atribuído" : undefined,
         edital_titulo: inscricao.editais?.titulo,
+        workflow_execution_id: inscricao.workflow_execution_id,
+        workflow_status: inscricao.workflow_executions?.status,
+        workflow_current_step: inscricao.workflow_executions?.current_node_id,
+        workflow_name: inscricao.workflow_executions?.workflows?.name,
       }));
 
       setProcessos(processosFormatados);
@@ -147,20 +170,13 @@ export default function Analises() {
       setProcessos((prev) =>
         prev.map((p) => (p.id === id ? { ...p, status: newStatus } : p))
       );
+      
+      toast.success("Status atualizado com sucesso!");
+      loadInscricoes(); // Recarregar para pegar dados atualizados do workflow
     } catch (error) {
       console.error('Erro ao atualizar status:', error);
       toast.error("Erro ao atualizar status");
     }
-  };
-
-  const handleAprovar = (id: string) => {
-    handleStatusChange(id, "aprovado");
-    toast.success("Processo aprovado com sucesso!");
-  };
-
-  const handleRejeitar = (id: string) => {
-    handleStatusChange(id, "inabilitado");
-    toast.error("Processo inabilitado");
   };
 
   const statusCounts = {
@@ -186,6 +202,11 @@ export default function Analises() {
             Gestão e análise de processos de credenciamento
           </p>
         </div>
+
+        {/* Seção de Aprovações Pendentes */}
+        {(roles.includes('analista') || roles.includes('gestor') || roles.includes('admin')) && (
+          <WorkflowApprovalPanel />
+        )}
 
         <div className="grid gap-4 md:grid-cols-3">
           <Card className="border bg-card">
@@ -271,11 +292,11 @@ export default function Analises() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Protocolo</TableHead>
+                  <TableHead>Protocolo</TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>Especialidade</TableHead>
                     <TableHead>Data Submissão</TableHead>
-                    <TableHead>Analista</TableHead>
+                    <TableHead>Workflow</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
@@ -293,8 +314,28 @@ export default function Analises() {
                       <TableCell>
                         {new Date(processo.dataSubmissao).toLocaleDateString("pt-BR")}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {processo.analista || "-"}
+                      <TableCell>
+                        {processo.workflow_execution_id ? (
+                          <div className="flex flex-col gap-1">
+                            <span className="text-xs font-medium">{processo.workflow_name || "Workflow"}</span>
+                            <Badge 
+                              variant="outline" 
+                              className={
+                                processo.workflow_status === 'running' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                                processo.workflow_status === 'completed' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                                processo.workflow_status === 'failed' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                                'bg-orange-500/10 text-orange-400 border-orange-500/20'
+                              }
+                            >
+                              {processo.workflow_status === 'running' ? 'Em Execução' :
+                               processo.workflow_status === 'completed' ? 'Concluído' :
+                               processo.workflow_status === 'failed' ? 'Falhou' :
+                               'Pendente'}
+                            </Badge>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Sem workflow</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <StatusBadge status={processo.status} />
@@ -308,27 +349,8 @@ export default function Analises() {
                             onClick={() => setProcessoSelecionado(processo)}
                           >
                             <Eye className="h-4 w-4" />
+                            <span className="ml-1 hidden lg:inline">Ver Detalhes</span>
                           </Button>
-                          {processo.status === "em_analise" && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-green-500/30 hover:bg-green-500/10 text-green-400"
-                                onClick={() => handleAprovar(processo.id)}
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-red-500/30 hover:bg-red-500/10 text-red-400"
-                                onClick={() => handleRejeitar(processo.id)}
-                              >
-                                <XCircle className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
                         </div>
                       </TableCell>
                     </TableRow>

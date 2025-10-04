@@ -173,9 +173,21 @@ export function WorkflowApprovalPanel() {
 
       if (stepError) throw stepError;
 
-      // Se aprovado, continuar a workflow (isso seria tratado por um webhook ou trigger)
+      // Continuar workflow se aprovado
       if (decision === 'approved') {
-        toast.success("Aprovação registrada! O workflow continuará automaticamente.");
+        const { error: continueError } = await supabase.functions.invoke('continue-workflow', {
+          body: {
+            stepExecutionId: selectedApproval.step_execution_id,
+            decision,
+          }
+        });
+
+        if (continueError) {
+          console.error("Erro ao continuar workflow:", continueError);
+          toast.warning("Aprovação registrada, mas houve erro ao continuar o workflow automaticamente.");
+        } else {
+          toast.success("Aprovação registrada! O workflow continuará automaticamente.");
+        }
       } else {
         toast.success("Rejeição registrada. O candidato será notificado.");
       }

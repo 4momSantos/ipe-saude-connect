@@ -71,19 +71,22 @@ serve(async (req) => {
 
     if (executionError) throw executionError;
 
-    console.log("Execução iniciada:", execution.id);
+    console.log(`[WORKFLOW] Execução iniciada: ${execution.id} | Workflow: ${workflow.name} | User: ${user.id}`);
 
     // Se houver inscricaoId, vincular a execução à inscrição
     if (inscricaoId) {
       const { error: updateError } = await supabaseClient
         .from("inscricoes_edital")
-        .update({ workflow_execution_id: execution.id })
+        .update({ 
+          workflow_execution_id: execution.id,
+          status: 'em_analise'
+        })
         .eq("id", inscricaoId);
 
       if (updateError) {
-        console.error("Erro ao vincular execução à inscrição:", updateError);
+        console.error(`[WORKFLOW] Erro ao vincular execução à inscrição ${inscricaoId}:`, updateError);
       } else {
-        console.log("Execução vinculada à inscrição:", inscricaoId);
+        console.log(`[WORKFLOW] Execução ${execution.id} vinculada à inscrição ${inscricaoId}`);
       }
     }
 
@@ -296,7 +299,9 @@ async function executeWorkflowSteps(
         break;
 
       case "end":
-        console.log("Finalizando workflow");
+        console.log(`[WORKFLOW] Finalizando workflow: ${executionId}`);
+        
+        // Atualizar status do workflow
         await supabaseClient
           .from("workflow_executions")
           .update({
@@ -304,6 +309,9 @@ async function executeWorkflowSteps(
             completed_at: new Date().toISOString(),
           })
           .eq("id", executionId);
+
+        console.log(`[WORKFLOW] Workflow ${executionId} finalizado com sucesso`);
+        // Nota: A sincronização de status para inscricao será feita pelo trigger sync_workflow_status_to_inscricao
         break;
 
       default:

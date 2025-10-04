@@ -1,15 +1,18 @@
-import { useState } from "react";
-import { X, FileText, MessageSquare, History, CheckCircle, XCircle, AlertCircle, Workflow } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, FileText, MessageSquare, History, CheckCircle, XCircle, AlertCircle, Workflow, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { DocumentsTab } from "./process-tabs/DocumentsTab";
 import { MessagesTab } from "./process-tabs/MessagesTab";
 import { HistoryTab } from "./process-tabs/HistoryTab";
 import { WorkflowTimeline } from "./workflow/WorkflowTimeline";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import type { WorkflowStep, WorkflowAction } from "@/types/workflow";
 
 interface Processo {
   id: string;
@@ -30,39 +33,123 @@ interface ProcessDetailPanelProps {
 
 export function ProcessDetailPanel({ processo, onClose, onStatusChange }: ProcessDetailPanelProps) {
   const [activeTab, setActiveTab] = useState("workflow");
+  const [workflowData, setWorkflowData] = useState<any>(null);
+  const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>([]);
+  const [workflowActions, setWorkflowActions] = useState<WorkflowAction[]>([]);
+  const [currentStepId, setCurrentStepId] = useState<string>("");
+  const [loading, setLoading] = useState(true);
 
-  // Mock workflow data
-  const workflowSteps = [
-    {
-      id: "step-1",
-      name: "Submissão",
-      type: "submissao" as const,
-      order: 1,
-      description: "Envio inicial da solicitação de credenciamento",
-      color: "blue",
-      icon: "FileText",
-    },
-    {
-      id: "step-2",
-      name: "Análise de Documentos",
-      type: "analise_documentos" as const,
-      order: 2,
-      description: "Verificação da documentação enviada",
-      color: "purple",
-      icon: "FileCheck",
-    },
-    {
-      id: "step-3",
-      name: "Validação Técnica",
-      type: "validacao_tecnica" as const,
-      order: 3,
-      description: "Análise técnica dos requisitos",
-      color: "orange",
-      icon: "ClipboardCheck",
-    },
-  ];
+  useEffect(() => {
+    loadWorkflowData();
 
-  const currentStepId = processo.status === "em_analise" ? "step-2" : "step-1";
+    // Subscrever para atualizações em tempo real
+    const channel = supabase
+      .channel(`workflow-${processo.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'workflow_step_executions',
+        },
+        () => {
+          loadWorkflowData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [processo.id]);
+
+  async function loadWorkflowData() {
+    try {
+      setLoading(true);
+
+      // Buscar inscrição com workflow
+      const { data: inscricao, error: inscricaoError } = await supabase
+        .from('inscricoes_edital')
+        .select(`
+          id,
+          workflow_execution_id,
+          workflow_executions (
+            id,
+            status,
+            current_node_id,
+            started_at,
+            completed_at,
+            workflows (
+              id,
+              name,
+              version,
+              nodes,
+              edges
+            )
+          )
+        `)
+        .eq('id', processo.id)
+        .single();
+
+      if (inscricaoError) throw inscricaoError;
+
+      if (!inscricao?.workflow_executions) {
+        console.log("Sem workflow vinculado a esta inscrição");
+        setLoading(false);
+        return;
+      }
+
+      const execution = inscricao.workflow_executions;
+      setWorkflowData(execution);
+
+      // Buscar execuções de steps
+      const { data: stepExecutions, error: stepsError } = await supabase
+        .from('workflow_step_executions')
+        .select('*')
+        .eq('execution_id', execution.id)
+        .order('started_at', { ascending: true });
+
+      if (stepsError) throw stepsError;
+
+      // Converter nodes do workflow em WorkflowSteps
+      const nodes = execution.workflows.nodes as any[];
+      const steps: WorkflowStep[] = nodes
+        .filter(node => node.data.type !== 'start' && node.data.type !== 'end')
+        .map((node, index) => ({
+          id: node.id,
+          name: node.data.label || node.data.type,
+          type: node.data.type as any,
+          order: index + 1,
+          description: node.data.description || `Etapa: ${node.data.label}`,
+          color: node.data.color || 'blue',
+          icon: node.data.icon || 'Circle',
+        }));
+
+      setWorkflowSteps(steps);
+      setCurrentStepId(execution.current_node_id || steps[0]?.id || "");
+
+      // Converter step executions em actions (simulado)
+      const actions: WorkflowAction[] = (stepExecutions || [])
+        .filter(step => step.status === 'completed')
+        .map(step => ({
+          id: step.id,
+          workflowInstanceId: execution.id,
+          stepId: step.node_id,
+          action: 'advance' as const,
+          performedBy: 'Sistema',
+          performedAt: step.completed_at || step.started_at,
+          comment: step.error_message || undefined,
+        }));
+
+      setWorkflowActions(actions);
+
+    } catch (error) {
+      console.error('Erro ao carregar dados do workflow:', error);
+      toast.error("Erro ao carregar dados do workflow");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const handleAprovar = () => {
     onStatusChange(processo.id, "aprovado");
@@ -174,10 +261,52 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
           <ScrollArea className="flex-1">
             <TabsContent value="workflow" className="m-0 p-6">
               <div className="max-w-3xl mx-auto">
-                <WorkflowTimeline
-                  steps={workflowSteps}
-                  currentStepId={currentStepId}
-                />
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : workflowSteps.length > 0 ? (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold">
+                          {workflowData?.workflows?.name || "Workflow"}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          Status: {workflowData?.status === 'running' ? 'Em execução' : 
+                                   workflowData?.status === 'completed' ? 'Concluído' : 
+                                   workflowData?.status === 'failed' ? 'Falhou' : 'Aguardando'}
+                        </p>
+                      </div>
+                      {workflowData?.status && (
+                        <Badge 
+                          variant="outline"
+                          className={
+                            workflowData.status === 'running' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                            workflowData.status === 'completed' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                            workflowData.status === 'failed' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                            'bg-orange-500/10 text-orange-400 border-orange-500/20'
+                          }
+                        >
+                          {workflowData.status}
+                        </Badge>
+                      )}
+                    </div>
+                    <WorkflowTimeline
+                      steps={workflowSteps}
+                      currentStepId={currentStepId}
+                      actions={workflowActions}
+                    />
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Workflow className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Sem Workflow Vinculado</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Esta inscrição não possui um workflow automatizado configurado.
+                    </p>
+                  </div>
+                )}
               </div>
             </TabsContent>
             <TabsContent value="documentos" className="m-0 p-6">

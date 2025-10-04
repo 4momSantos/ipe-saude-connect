@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { MetricCard } from "@/components/MetricCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Clock, CheckCircle, FileText } from "lucide-react";
+import { Users, Clock, CheckCircle, FileText, Workflow as WorkflowIcon, TrendingUp } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
+import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { WorkflowApprovalPanel } from "@/components/workflow/WorkflowApprovalPanel";
 
 interface InscricaoPendente {
   id: string;
@@ -29,6 +31,9 @@ export function DashboardAnalista() {
     pendentes: 0,
     editais: 0,
     credenciados: 0,
+    workflowsRunning: 0,
+    workflowsCompleted: 0,
+    approvalsPending: 0,
   });
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -91,11 +96,31 @@ export function DashboardAnalista() {
         .select('*', { count: 'exact', head: true })
         .eq('status', 'Ativo');
 
+      // Buscar métricas de workflows
+      const { count: workflowsRunning } = await supabase
+        .from('workflow_executions')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'running');
+
+      const { count: workflowsCompleted } = await supabase
+        .from('workflow_executions')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'completed')
+        .gte('completed_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+
+      const { count: approvalsPending } = await supabase
+        .from('workflow_approvals')
+        .select('*', { count: 'exact', head: true })
+        .eq('decision', 'pending');
+
       setStats({
         total: totalInscricoes || 0,
         pendentes: pendentes || 0,
         editais: editais || 0,
         credenciados: credenciados || 0,
+        workflowsRunning: workflowsRunning || 0,
+        workflowsCompleted: workflowsCompleted || 0,
+        approvalsPending: approvalsPending || 0,
       });
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -131,20 +156,25 @@ export function DashboardAnalista() {
           trend={{ value: 0, isPositive: true }}
         />
         <MetricCard
-          title="Editais Ativos"
-          value={stats.editais}
-          icon={FileText}
+          title="Workflows em Execução"
+          value={stats.workflowsRunning}
+          icon={WorkflowIcon}
           color="purple"
           trend={{ value: 0, isPositive: true }}
         />
         <MetricCard
-          title="Credenciados Ativos"
-          value={stats.credenciados}
-          icon={CheckCircle}
+          title="Workflows Concluídos (30d)"
+          value={stats.workflowsCompleted}
+          icon={TrendingUp}
           color="green"
           trend={{ value: 0, isPositive: true }}
         />
       </div>
+
+      {/* Seção de Aprovações Pendentes */}
+      {stats.approvalsPending > 0 && (
+        <WorkflowApprovalPanel />
+      )}
 
       <Card>
         <CardHeader>
