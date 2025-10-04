@@ -101,15 +101,35 @@ serve(async (req) => {
         );
       }
 
+      // Verificar se o usuário é o criador OU tem permissão de gestor/admin
       if (existingWorkflow.created_by !== user.id) {
-        console.error("Usuário não tem permissão:", user.id, "criado por:", existingWorkflow.created_by);
-        return new Response(
-          JSON.stringify({ error: "Você não tem permissão para editar este workflow" }),
-          {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: 403,
-          }
-        );
+        console.log("Usuário não é o criador, verificando roles...");
+        
+        // Verificar se o usuário tem role de gestor ou admin
+        const { data: userRoles, error: rolesError } = await supabaseClient
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .in("role", ["gestor", "admin"]);
+
+        if (rolesError) {
+          console.error("Erro ao verificar roles:", rolesError);
+        }
+
+        const hasPermission = userRoles && userRoles.length > 0;
+        
+        if (!hasPermission) {
+          console.error("Usuário não tem permissão:", user.id, "criado por:", existingWorkflow.created_by);
+          return new Response(
+            JSON.stringify({ error: "Você não tem permissão para editar este workflow. Apenas o criador, gestores ou administradores podem editar." }),
+            {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 403,
+            }
+          );
+        }
+        
+        console.log("Usuário tem permissão (gestor/admin):", userRoles);
       }
 
       // Atualizar o workflow
