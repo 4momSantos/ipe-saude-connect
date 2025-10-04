@@ -123,8 +123,17 @@ export default function Editais() {
         throw new Error('Edital não selecionado');
       }
 
-      // Verificar se o edital está ativo
-      if (inscricaoEdital.status !== 'aberto') {
+      // Verificar se o edital está disponível para inscrições
+      const hoje = new Date();
+      const dataInicio = new Date(inscricaoEdital.data_inicio);
+      const dataFim = new Date(inscricaoEdital.data_fim);
+      
+      const statusValidos = ['publicado', 'aberto'];
+      const statusOk = statusValidos.includes(inscricaoEdital.status);
+      const dentroDataInicio = hoje >= dataInicio;
+      const antesDataFim = hoje <= dataFim;
+
+      if (!statusOk || !dentroDataInicio || !antesDataFim) {
         throw new Error('Este edital não está mais aberto para inscrições');
       }
 
@@ -252,12 +261,25 @@ export default function Editais() {
     const inscricao = getInscricaoForEdital(edital.id);
     
     if (!inscricao) {
-      return (
-        <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20">
-          <Clock className="h-3 w-3 mr-1" />
-          Aberto
-        </Badge>
-      );
+      // Verificar se o edital está aberto para inscrições
+      const hoje = new Date();
+      const dataFim = new Date(edital.data_fim);
+      const statusAbertos = ['publicado', 'aberto'];
+      
+      if (statusAbertos.includes(edital.status) && hoje <= dataFim) {
+        return (
+          <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20">
+            <Clock className="h-3 w-3 mr-1" />
+            Aberto
+          </Badge>
+        );
+      } else {
+        return (
+          <Badge variant="outline" className="bg-gray-500/10 text-gray-600 border-gray-500/20">
+            Encerrado
+          </Badge>
+        );
+      }
     }
 
     switch (inscricao.status) {
