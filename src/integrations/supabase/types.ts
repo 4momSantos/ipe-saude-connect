@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string | null
+          read_at: string | null
+          related_id: string | null
+          related_type: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string | null
+          read_at?: string | null
+          related_id?: string | null
+          related_type?: string | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string | null
+          read_at?: string | null
+          related_id?: string | null
+          related_type?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -315,6 +354,42 @@ export type Database = {
           },
         ]
       }
+      email_templates: {
+        Row: {
+          body: string
+          category: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          name: string
+          subject: string
+          updated_at: string | null
+          variables: Json | null
+        }
+        Insert: {
+          body: string
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name: string
+          subject: string
+          updated_at?: string | null
+          variables?: Json | null
+        }
+        Update: {
+          body?: string
+          category?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          name?: string
+          subject?: string
+          updated_at?: string | null
+          variables?: Json | null
+        }
+        Relationships: []
+      }
       form_templates: {
         Row: {
           category: string | null
@@ -562,6 +637,66 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      signature_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          document_url: string | null
+          external_id: string | null
+          id: string
+          metadata: Json | null
+          provider: string
+          signers: Json
+          status: string
+          step_execution_id: string | null
+          updated_at: string | null
+          workflow_execution_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          document_url?: string | null
+          external_id?: string | null
+          id?: string
+          metadata?: Json | null
+          provider?: string
+          signers?: Json
+          status?: string
+          step_execution_id?: string | null
+          updated_at?: string | null
+          workflow_execution_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          document_url?: string | null
+          external_id?: string | null
+          id?: string
+          metadata?: Json | null
+          provider?: string
+          signers?: Json
+          status?: string
+          step_execution_id?: string | null
+          updated_at?: string | null
+          workflow_execution_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signature_requests_step_execution_id_fkey"
+            columns: ["step_execution_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_step_executions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "signature_requests_workflow_execution_id_fkey"
+            columns: ["workflow_execution_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_executions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       solicitacoes_alteracao: {
         Row: {
