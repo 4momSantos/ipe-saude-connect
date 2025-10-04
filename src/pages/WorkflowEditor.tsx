@@ -301,24 +301,97 @@ export default function WorkflowEditor() {
   }, [nodes, selectedNode, setNodes, setEdges]);
 
   const saveWorkflow = async () => {
+    // Validação básica antes de salvar
+    if (!workflowName || workflowName.trim().length === 0) {
+      toast.error("Por favor, insira um nome para o workflow");
+      return;
+    }
+
+    if (nodes.length === 0) {
+      toast.error("Adicione pelo menos um módulo ao workflow");
+      return;
+    }
+
+    // Sanitizar dados antes de enviar
+    const sanitizedNodes = nodes.map(node => ({
+      ...node,
+      data: {
+        ...node.data,
+        // Remover qualquer referência circular ou dados problemáticos
+        ref: undefined,
+      }
+    }));
+
+    const sanitizedEdges = edges.map(edge => ({
+      ...edge,
+      // Remover dados desnecessários
+      ref: undefined,
+    }));
+
     try {
+      console.log("Salvando workflow:", {
+        id: searchParams.get("id"),
+        name: workflowName,
+        nodesCount: sanitizedNodes.length,
+        edgesCount: sanitizedEdges.length,
+      });
+
       const { data, error } = await supabase.functions.invoke("save-workflow", {
         body: {
           id: searchParams.get("id"),
-          name: workflowName,
+          name: workflowName.trim(),
           description: "",
-          nodes,
-          edges,
+          nodes: sanitizedNodes,
+          edges: sanitizedEdges,
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Erro da função:", error);
+        
+        // Mensagens específicas baseadas no erro
+        if (error.message?.includes("não encontrado")) {
+          toast.error("Workflow não encontrado. Criando novo workflow...");
+          // Tentar criar como novo
+          const { data: newData, error: newError } = await supabase.functions.invoke("save-workflow", {
+            body: {
+              id: null,
+              name: workflowName.trim(),
+              description: "",
+              nodes: sanitizedNodes,
+              edges: sanitizedEdges,
+            },
+          });
+          
+          if (newError) throw newError;
+          if (newData) {
+            toast.success("Workflow criado com sucesso!");
+            navigate(`/workflow-editor?id=${newData.id}`);
+            return;
+          }
+        } else if (error.message?.includes("permissão")) {
+          toast.error("Você não tem permissão para editar este workflow");
+          return;
+        } else if (error.message?.includes("autorizado")) {
+          toast.error("Sessão expirada. Por favor, faça login novamente");
+          return;
+        }
+        
+        throw error;
+      }
 
       toast.success("Workflow salvo com sucesso!");
-      navigate("/workflows");
-    } catch (error) {
+      
+      // Se for um novo workflow, redirecionar para o editor com o ID
+      if (!searchParams.get("id") && data?.id) {
+        navigate(`/workflow-editor?id=${data.id}`);
+      } else {
+        navigate("/workflows");
+      }
+    } catch (error: any) {
       console.error("Erro ao salvar workflow:", error);
-      toast.error("Erro ao salvar workflow");
+      const errorMessage = error?.message || "Erro desconhecido ao salvar workflow";
+      toast.error(errorMessage);
     }
   };
 
