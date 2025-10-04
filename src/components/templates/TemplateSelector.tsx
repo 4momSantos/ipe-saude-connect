@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Template {
   id: string;
@@ -46,7 +47,7 @@ export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelec
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [stepDialogOpen, setStepDialogOpen] = useState(false);
   const [sourceType, setSourceType] = useState<"template" | "step">("template");
-  const [selectedStepId, setSelectedStepId] = useState<string>();
+  const [selectedStepIds, setSelectedStepIds] = useState<string[]>([]);
 
   useEffect(() => {
     loadTemplates();
@@ -147,7 +148,7 @@ export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelec
 
   const handleSourceTypeChange = (value: "template" | "step") => {
     setSourceType(value);
-    setSelectedStepId(undefined);
+    setSelectedStepIds([]);
   };
 
   const handleSelectTemplate = (templateId: string) => {
@@ -158,32 +159,77 @@ export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelec
     }
   };
 
-  const handleSelectStep = async (stepId: string) => {
-    const step = steps.find((s) => s.id === stepId);
-    if (step && step.template_id) {
-      // Buscar os campos do template da etapa
-      const { data: template } = await supabase
-        .from("form_templates")
-        .select("fields")
-        .eq("id", step.template_id)
-        .single();
-      
-      if (template) {
-        setSelectedStepId(stepId);
-        onSelect(step.template_id, template.fields as any[]);
-        setStepDialogOpen(false);
-      }
+  const handleToggleStep = (stepId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedStepIds([...selectedStepIds, stepId]);
     } else {
+      setSelectedStepIds(selectedStepIds.filter(id => id !== stepId));
+    }
+  };
+
+  const handleApplySteps = async () => {
+    if (selectedStepIds.length === 0) {
       toast({
-        title: "Etapa sem template",
-        description: "Esta etapa não possui um template de formulário associado.",
+        title: "Nenhuma etapa selecionada",
+        description: "Selecione pelo menos uma etapa do processo.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Buscar templates de todas as etapas selecionadas
+      const selectedSteps = steps.filter(s => selectedStepIds.includes(s.id));
+      const allFields: any[] = [];
+      const templateIds: string[] = [];
+
+      for (const step of selectedSteps) {
+        if (step.template_id) {
+          const { data: template } = await supabase
+            .from("form_templates")
+            .select("fields")
+            .eq("id", step.template_id)
+            .single();
+          
+          if (template && template.fields) {
+            allFields.push(...(template.fields as any[]));
+            templateIds.push(step.template_id);
+          }
+        }
+      }
+
+      if (allFields.length > 0) {
+        // Usar o primeiro template ID como referência
+        onSelect(templateIds[0], allFields);
+        setStepDialogOpen(false);
+      } else {
+        toast({
+          title: "Etapas sem template",
+          description: "As etapas selecionadas não possuem templates de formulário associados.",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erro ao carregar templates",
+        description: error.message,
         variant: "destructive",
       });
     }
   };
 
   const selectedTemplate = templates.find((t) => t.id === selectedTemplateId);
-  const selectedStep = steps.find((s) => s.id === selectedStepId);
+  const selectedSteps = steps.filter((s) => selectedStepIds.includes(s.id));
+  
+  // Agrupar etapas por processo
+  const stepsByProcess = steps.reduce((acc, step) => {
+    const processName = step.process?.name || "Sem processo";
+    if (!acc[processName]) {
+      acc[processName] = [];
+    }
+    acc[processName].push(step);
+    return acc;
+  }, {} as Record<string, ProcessStep[]>);
 
   return (
     <div className="space-y-4">
@@ -297,77 +343,107 @@ export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelec
 
       {sourceType === "step" && (
         <div className="space-y-2">
-          <Label>Etapa do Processo</Label>
-          <div className="flex gap-2">
-            <Select value={selectedStepId} onValueChange={handleSelectStep}>
-              <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Selecione uma etapa..." />
-              </SelectTrigger>
-              <SelectContent className="bg-background">
-                {steps.map((step) => (
-                  <SelectItem key={step.id} value={step.id}>
-                    {step.process?.name} - {step.step_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <Label>Etapas do Processo ({selectedStepIds.length} selecionadas)</Label>
+          <Dialog open={stepDialogOpen} onOpenChange={setStepDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="w-full justify-start">
+                <Search className="h-4 w-4 mr-2" />
+                {selectedStepIds.length > 0 
+                  ? `${selectedStepIds.length} etapa(s) selecionada(s)` 
+                  : "Selecionar etapas do fluxo..."}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl max-h-[80vh]">
+              <DialogHeader>
+                <DialogTitle>Selecionar Etapas do Fluxo</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <Input
+                  placeholder="Buscar etapas..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <ScrollArea className="h-[400px]">
+                  <div className="space-y-6">
+                    {loading ? (
+                      <p className="text-center text-muted-foreground py-8">
+                        Carregando etapas...
+                      </p>
+                    ) : Object.keys(stepsByProcess).length === 0 ? (
+                      <p className="text-center text-muted-foreground py-8">
+                        Nenhuma etapa encontrada.
+                      </p>
+                    ) : (
+                      Object.entries(stepsByProcess).map(([processName, processSteps]) => {
+                        // Filtrar etapas do processo baseado na busca
+                        const filtered = processSteps.filter(s => 
+                          filteredSteps.some(fs => fs.id === s.id)
+                        );
+                        
+                        if (filtered.length === 0) return null;
 
-            <Dialog open={stepDialogOpen} onOpenChange={setStepDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="icon">
-                  <Search className="h-4 w-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Selecionar Etapa ({filteredSteps.length} disponíveis)</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <Input
-                    placeholder="Buscar etapas..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                  <ScrollArea className="h-[400px]">
-                    <div className="space-y-2">
-                      {loading ? (
-                        <p className="text-center text-muted-foreground py-8">
-                          Carregando etapas...
-                        </p>
-                      ) : filteredSteps.length === 0 ? (
-                        <p className="text-center text-muted-foreground py-8">
-                          Nenhuma etapa encontrada.
-                        </p>
-                      ) : (
-                        filteredSteps.map((step) => (
-                          <Button
-                            key={step.id}
-                            variant="outline"
-                            className="w-full justify-start h-auto p-4"
-                            onClick={() => handleSelectStep(step.id)}
-                          >
-                            <div className="text-left space-y-1 w-full">
-                              <div className="flex items-center justify-between">
-                                <span className="font-medium">{step.step_name}</span>
-                                <Badge variant="secondary" className="text-xs">
-                                  Etapa {step.step_number}
-                                </Badge>
-                              </div>
-                              {step.process?.name && (
-                                <p className="text-xs text-muted-foreground">
-                                  Processo: {step.process.name}
-                                </p>
-                              )}
+                        return (
+                          <div key={processName} className="space-y-2">
+                            <h4 className="font-medium text-sm sticky top-0 bg-background py-2">
+                              {processName}
+                            </h4>
+                            <div className="space-y-2 pl-2">
+                              {filtered
+                                .sort((a, b) => a.step_number - b.step_number)
+                                .map((step) => (
+                                  <div
+                                    key={step.id}
+                                    className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-accent/50 transition-colors"
+                                  >
+                                    <Checkbox
+                                      id={step.id}
+                                      checked={selectedStepIds.includes(step.id)}
+                                      onCheckedChange={(checked) => 
+                                        handleToggleStep(step.id, checked as boolean)
+                                      }
+                                      className="mt-1"
+                                    />
+                                    <label
+                                      htmlFor={step.id}
+                                      className="flex-1 cursor-pointer space-y-1"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="text-xs">
+                                          Etapa {step.step_number}
+                                        </Badge>
+                                        <span className="font-medium text-sm">
+                                          {step.step_name}
+                                        </span>
+                                      </div>
+                                      {!step.template_id && (
+                                        <p className="text-xs text-muted-foreground">
+                                          ⚠️ Sem template associado
+                                        </p>
+                                      )}
+                                    </label>
+                                  </div>
+                                ))}
                             </div>
-                          </Button>
-                        ))
-                      )}
-                    </div>
-                  </ScrollArea>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </ScrollArea>
+                <div className="flex justify-end gap-2 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => setStepDialogOpen(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleApplySteps}>
+                    Aplicar {selectedStepIds.length} etapa(s)
+                  </Button>
                 </div>
-              </DialogContent>
-            </Dialog>
-          </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       )}
 
@@ -388,17 +464,31 @@ export function TemplateSelector({ selectedTemplateId, onSelect }: TemplateSelec
         </div>
       )}
 
-      {sourceType === "step" && selectedStep && (
-        <div className="border rounded-lg p-4 space-y-2 bg-muted/50">
+      {sourceType === "step" && selectedSteps.length > 0 && (
+        <div className="border rounded-lg p-4 space-y-3 bg-muted/50">
           <div className="flex items-center justify-between">
-            <h4 className="font-medium">{selectedStep.step_name}</h4>
-            <Badge variant="outline">Etapa {selectedStep.step_number}</Badge>
+            <h4 className="font-medium">Fluxo Selecionado</h4>
+            <Badge variant="outline">{selectedSteps.length} etapa(s)</Badge>
           </div>
-          {selectedStep.process?.name && (
-            <p className="text-sm text-muted-foreground">
-              Processo: {selectedStep.process.name}
-            </p>
-          )}
+          <ScrollArea className="max-h-[200px]">
+            <div className="space-y-2">
+              {selectedSteps
+                .sort((a, b) => a.step_number - b.step_number)
+                .map((step) => (
+                  <div key={step.id} className="flex items-center gap-2 text-sm">
+                    <Badge variant="secondary" className="text-xs">
+                      {step.step_number}
+                    </Badge>
+                    <span>{step.step_name}</span>
+                    {step.process?.name && (
+                      <span className="text-xs text-muted-foreground">
+                        ({step.process.name})
+                      </span>
+                    )}
+                  </div>
+                ))}
+            </div>
+          </ScrollArea>
         </div>
       )}
     </div>
