@@ -45,7 +45,6 @@ export default function ProcessoEditor() {
   // Step 1: Informações básicas
   const [processName, setProcessName] = useState("");
   const [processDescription, setProcessDescription] = useState("");
-  const [processCategory, setProcessCategory] = useState("");
   
   // Step 2: Seleção de templates
   const [templates, setTemplates] = useState<FormTemplate[]>([]);
@@ -97,7 +96,6 @@ export default function ProcessoEditor() {
 
       setProcessName(processo.name);
       setProcessDescription(processo.description || "");
-      setProcessCategory(processo.category || "");
 
       const { data: steps, error: stepsError } = await supabase
         .from("process_steps")
@@ -262,7 +260,6 @@ export default function ProcessoEditor() {
           .update({
             name: processName,
             description: processDescription,
-            category: processCategory,
           })
           .eq("id", id);
 
@@ -282,7 +279,6 @@ export default function ProcessoEditor() {
           .insert({
             name: processName,
             description: processDescription,
-            category: processCategory,
             created_by: user.user.id,
           })
           .select()
@@ -378,7 +374,7 @@ export default function ProcessoEditor() {
             <CardHeader>
               <CardTitle>Informações Básicas</CardTitle>
               <CardDescription>
-                Defina o nome, descrição e categoria do processo
+                Defina o nome e descrição do processo de inscrição
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -400,21 +396,6 @@ export default function ProcessoEditor() {
                   rows={3}
                   className="mt-1"
                 />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Categoria</label>
-                <Select value={processCategory} onValueChange={setProcessCategory}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Selecione uma categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {FORM_CATEGORIES.filter(c => c !== "Todos").map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             </CardContent>
           </Card>
