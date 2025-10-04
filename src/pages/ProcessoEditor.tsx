@@ -415,12 +415,16 @@ export default function ProcessoEditor() {
                 {templates.map((template) => (
                   <div
                     key={template.id}
-                    className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
+                    className={`flex items-center gap-3 p-3 border-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-all ${
+                      selectedTemplates.includes(template.id) 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-border'
+                    }`}
                     onClick={() => handleToggleTemplate(template.id)}
                   >
                     <Checkbox
                       checked={selectedTemplates.includes(template.id)}
-                      onCheckedChange={() => handleToggleTemplate(template.id)}
+                      onClick={(e) => e.stopPropagation()}
                     />
                     <div className="flex-1">
                       <h4 className="font-medium">{template.name}</h4>
