@@ -102,39 +102,34 @@ export function AppSidebar() {
   return (
     <Sidebar 
       collapsible="icon" 
-      className="border-r-0 bg-gradient-to-b from-background via-background to-muted/20 backdrop-blur-xl"
+      className="border-r border-border/50 bg-card/50 backdrop-blur-sm"
     >
       <SidebarContent className="gap-0">
-        {/* Header Premium */}
-        <div className="px-5 py-8 border-b border-border/40">
-          <div className="flex items-center justify-between gap-3">
+        {/* Header Minimalista */}
+        <div className="p-6 pb-8">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary via-primary/90 to-accent shadow-lg shadow-primary/25 ring-1 ring-primary/20">
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/20 to-transparent" />
-                <span className="relative text-xl font-bold text-white tracking-tight">IPE</span>
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary shadow-sm">
+                <span className="text-lg font-extrabold text-primary-foreground">IPE</span>
               </div>
               {!isCollapsed && (
-                <div className="flex flex-col">
-                  <h2 className="text-lg font-bold text-foreground tracking-tight">IPE Saúde</h2>
-                  <p className="text-xs font-medium text-muted-foreground/80 tracking-wide">Credenciamento</p>
+                <div>
+                  <h2 className="text-base font-bold text-foreground">IPE Saúde</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Credenciamento</p>
                 </div>
               )}
             </div>
-            {!isCollapsed && (
-              <div className="relative">
-                <NotificationBell />
-              </div>
-            )}
+            {!isCollapsed && <NotificationBell />}
           </div>
         </div>
 
-        {/* Navigation Menu */}
-        <SidebarGroup className="px-3 py-4">
-          <SidebarGroupLabel className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60 mb-2">
-            Navegação
+        {/* Navigation Clean */}
+        <SidebarGroup className="px-4">
+          <SidebarGroupLabel className="px-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">
+            Menu
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="gap-1">
+            <SidebarMenu className="gap-0.5">
               {visibleMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
@@ -142,35 +137,18 @@ export function AppSidebar() {
                       to={item.url}
                       end={item.url === "/"}
                       className={({ isActive }) =>
-                        `group relative flex items-center gap-3.5 rounded-xl px-3.5 py-3 transition-all duration-200 ${
+                        `group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors ${
                           isActive
-                            ? "bg-gradient-to-r from-primary/15 via-primary/10 to-transparent text-primary shadow-sm shadow-primary/10 ring-1 ring-primary/20"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:shadow-sm"
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "text-foreground/70 hover:text-foreground hover:bg-muted"
                         }`
                       }
                     >
-                      {({ isActive }) => (
-                        <>
-                          {isActive && (
-                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-primary to-accent rounded-r-full shadow-lg shadow-primary/50" />
-                          )}
-                          <item.icon 
-                            className={`h-5 w-5 shrink-0 transition-transform duration-200 ${
-                              isActive ? "scale-110" : "group-hover:scale-105"
-                            }`}
-                            strokeWidth={isActive ? 2.5 : 2}
-                          />
-                          {!isCollapsed && (
-                            <span className={`text-sm font-medium tracking-wide ${
-                              isActive ? "font-semibold" : ""
-                            }`}>
-                              {item.title}
-                            </span>
-                          )}
-                          {isActive && !isCollapsed && (
-                            <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                          )}
-                        </>
+                      <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+                      {!isCollapsed && (
+                        <span className="text-sm font-medium">
+                          {item.title}
+                        </span>
                       )}
                     </NavLink>
                   </SidebarMenuButton>
@@ -179,44 +157,27 @@ export function AppSidebar() {
               
               {/* Admin Section */}
               <RoleGuard requiredRoles={['admin']}>
-                <div className="pt-4 mt-4 border-t border-border/40">
-                  <SidebarGroupLabel className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60 mb-2">
-                    Administração
+                <div className="mt-6 pt-6 border-t border-border/50">
+                  <SidebarGroupLabel className="px-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">
+                    Admin
                   </SidebarGroupLabel>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
                       <NavLink
                         to="/usuarios"
                         className={({ isActive }) =>
-                          `group relative flex items-center gap-3.5 rounded-xl px-3.5 py-3 transition-all duration-200 ${
+                          `group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors ${
                             isActive
-                              ? "bg-gradient-to-r from-primary/15 via-primary/10 to-transparent text-primary shadow-sm shadow-primary/10 ring-1 ring-primary/20"
-                              : "text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:shadow-sm"
+                              ? "bg-primary text-primary-foreground shadow-sm"
+                              : "text-foreground/70 hover:text-foreground hover:bg-muted"
                           }`
                         }
                       >
-                        {({ isActive }) => (
-                          <>
-                            {isActive && (
-                              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-primary to-accent rounded-r-full shadow-lg shadow-primary/50" />
-                            )}
-                            <Shield 
-                              className={`h-5 w-5 shrink-0 transition-transform duration-200 ${
-                                isActive ? "scale-110" : "group-hover:scale-105"
-                              }`}
-                              strokeWidth={isActive ? 2.5 : 2}
-                            />
-                            {!isCollapsed && (
-                              <span className={`text-sm font-medium tracking-wide ${
-                                isActive ? "font-semibold" : ""
-                              }`}>
-                                Usuários
-                              </span>
-                            )}
-                            {isActive && !isCollapsed && (
-                              <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                            )}
-                          </>
+                        <Shield className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+                        {!isCollapsed && (
+                          <span className="text-sm font-medium">
+                            Usuários
+                          </span>
                         )}
                       </NavLink>
                     </SidebarMenuButton>
