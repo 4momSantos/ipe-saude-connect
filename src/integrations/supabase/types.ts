@@ -314,6 +314,7 @@ export type Database = {
           fields: Json
           id: string
           is_active: boolean
+          is_system: boolean | null
           name: string
           tags: string[] | null
           updated_at: string
@@ -327,6 +328,7 @@ export type Database = {
           fields?: Json
           id?: string
           is_active?: boolean
+          is_system?: boolean | null
           name: string
           tags?: string[] | null
           updated_at?: string
@@ -340,6 +342,7 @@ export type Database = {
           fields?: Json
           id?: string
           is_active?: boolean
+          is_system?: boolean | null
           name?: string
           tags?: string[] | null
           updated_at?: string

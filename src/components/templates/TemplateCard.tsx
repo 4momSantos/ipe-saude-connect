@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Copy, Edit, Eye, MoreVertical, Power, Trash2 } from "lucide-react";
+import { Copy, Edit, Eye, MoreVertical, Power, Shield, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +33,7 @@ interface TemplateCardProps {
     category: string;
     tags: string[];
     is_active: boolean;
+    is_system?: boolean;
     usage_count: number;
     updated_at: string;
   };
@@ -93,13 +95,27 @@ export function TemplateCard({
                   {template.is_active ? "Desativar" : "Ativar"}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => setShowDeleteDialog(true)}
-                  className="text-destructive"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Excluir
-                </DropdownMenuItem>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div>
+                        <DropdownMenuItem
+                          onClick={() => !template.is_system && setShowDeleteDialog(true)}
+                          className="text-destructive"
+                          disabled={template.is_system}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </div>
+                    </TooltipTrigger>
+                    {template.is_system && (
+                      <TooltipContent>
+                        <p>Templates padrão não podem ser excluídos</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -111,6 +127,12 @@ export function TemplateCard({
               <Badge variant={template.is_active ? "default" : "secondary"}>
                 {template.is_active ? "Ativo" : "Inativo"}
               </Badge>
+              {template.is_system && (
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                  <Shield className="w-3 h-3 mr-1" />
+                  Template Padrão
+                </Badge>
+              )}
               {template.category && (
                 <Badge variant="outline">{template.category}</Badge>
               )}
