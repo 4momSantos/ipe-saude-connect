@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { DraggableVariable } from "./DraggableVariable";
 import { useDroppableInput } from "@/hooks/useDroppableInput";
+import { SignerInput } from "./SignerInput";
 
 interface SignatureConfigProps {
   config: SignatureConfig;
@@ -53,16 +54,6 @@ export function SignatureConfigPanel({ config, onChange }: SignatureConfigProps)
     signers.forEach((s, i) => s.order = i + 1);
     onChange({ ...config, signers });
   };
-
-  const getSignerNameInput = (index: number) =>
-    useDroppableInput(config.signers[index]?.name || "", (value) =>
-      updateSigner(index, "name", value)
-    );
-
-  const getSignerEmailInput = (index: number) =>
-    useDroppableInput(config.signers[index]?.email || "", (value) =>
-      updateSigner(index, "email", value)
-    );
 
   return (
     <div className="space-y-6">
@@ -137,61 +128,38 @@ export function SignatureConfigPanel({ config, onChange }: SignatureConfigProps)
           </p>
         </div>
 
-        {config.signers.map((signer, index) => {
-          const nameInput = getSignerNameInput(index);
-          const emailInput = getSignerEmailInput(index);
-
-          return (
-            <Card key={index} className="p-4">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Signatário {signer.order}</span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => removeSigner(index)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Nome (ou variável)</Label>
-                  <Input
-                    ref={nameInput.inputRef}
-                    value={signer.name}
-                    onChange={(e) => updateSigner(index, "name", e.target.value)}
-                    placeholder="{candidato.nome} ou nome fixo"
-                    className={nameInput.isOver ? "ring-2 ring-primary" : ""}
-                    {...nameInput.dropHandlers}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Email (ou variável)</Label>
-                  <Input
-                    ref={emailInput.inputRef}
-                    value={signer.email}
-                    onChange={(e) => updateSigner(index, "email", e.target.value)}
-                    placeholder="{candidato.email} ou email@exemplo.com"
-                    className={emailInput.isOver ? "ring-2 ring-primary" : ""}
-                    {...emailInput.dropHandlers}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Ordem de Assinatura</Label>
-                  <Input
-                    type="number"
-                    value={signer.order}
-                    onChange={(e) => updateSigner(index, "order", parseInt(e.target.value))}
-                    min="1"
-                  />
-                </div>
+        {config.signers.map((signer, index) => (
+          <Card key={index} className="p-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Signatário {signer.order}</span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => removeSigner(index)}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
               </div>
-            </Card>
-          );
-        })}
+              
+              <SignerInput
+                signer={signer}
+                index={index}
+                onUpdate={updateSigner}
+              />
+
+              <div className="space-y-2">
+                <Label>Ordem de Assinatura</Label>
+                <Input
+                  type="number"
+                  value={signer.order}
+                  onChange={(e) => updateSigner(index, "order", parseInt(e.target.value))}
+                  min="1"
+                />
+              </div>
+            </div>
+          </Card>
+        ))}
 
         {config.signers.length === 0 && (
           <div className="text-center py-6 text-muted-foreground text-sm border border-dashed rounded-md">
