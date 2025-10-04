@@ -91,18 +91,36 @@ export function SignatureConfigPanel({ config, onChange }: SignatureConfigProps)
       </div>
 
       <div className="space-y-2">
-        <Label>Template do Documento</Label>
+        <div className="flex items-center gap-2">
+          <Label>Template do Documento</Label>
+          <Info className="h-4 w-4 text-muted-foreground" />
+        </div>
         <Input
           ref={documentTemplateInput.inputRef}
           value={config.documentTemplateId || ""}
           onChange={(e) => onChange({ ...config, documentTemplateId: e.target.value })}
-          placeholder="ID do template ou caminho do arquivo"
+          placeholder="Ex: contrato-credenciamento-2024"
           className={documentTemplateInput.isOver ? "ring-2 ring-primary" : ""}
           {...documentTemplateInput.dropHandlers}
         />
-        <p className="text-xs text-muted-foreground">
-          Documento que será usado para coleta de assinaturas. Suporta variáveis como {"{candidato.nome}"}
-        </p>
+        <div className="rounded-md bg-muted/50 p-3 space-y-2 text-xs border">
+          <p className="font-semibold text-foreground">📄 O que é este campo?</p>
+          <p className="text-muted-foreground">Este é o identificador do documento que será enviado para assinatura digital.</p>
+          
+          <div className="space-y-1.5 pt-2">
+            <p className="font-semibold text-foreground">💡 Como usar:</p>
+            <div className="space-y-1.5 text-muted-foreground">
+              <p><strong className="text-foreground">• Com Assinafy:</strong> Digite o ID do template criado no painel da Assinafy</p>
+              <p className="pl-4 text-xs italic">Exemplo: "template-abc123"</p>
+              
+              <p className="pt-1"><strong className="text-foreground">• Manual (sistema):</strong> Digite o nome do arquivo PDF</p>
+              <p className="pl-4 text-xs italic">Exemplo: "contrato-credenciamento.pdf"</p>
+              
+              <p className="pt-1"><strong className="text-foreground">• Variáveis dinâmicas:</strong> Você pode usar as variáveis abaixo no documento</p>
+              <p className="pl-4 text-xs italic">Elas serão substituídas pelos dados reais: {"{candidato.nome}"}, {"{candidato.email}"}, etc.</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="space-y-3">
