@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { MetricCard } from "@/components/MetricCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, FileText, CheckCircle, TrendingUp, Clock, UserCheck, Workflow } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
 
 export function DashboardGestor() {
   const [stats, setStats] = useState({
@@ -140,51 +141,72 @@ export function DashboardGestor() {
         />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle>Distribuição por Status</CardTitle>
             <CardDescription>Inscrições por situação</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" fill="hsl(var(--primary))" />
-              </BarChart>
-            </ResponsiveContainer>
+            <ChartContainer config={{
+              inscricoes: { label: "Inscrições", color: "hsl(var(--chart-1))" },
+            }} className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="value" fill="hsl(var(--chart-1))" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Taxa de Aprovação</CardTitle>
+            <CardDescription>Performance geral</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-center h-[300px]">
+            <div className="text-center">
+              <div className="text-6xl font-bold text-primary mb-2">
+                {taxaAprovacao}%
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {stats.inscricoesAprovadas} de {stats.totalInscricoes} aprovadas
+              </p>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle>Resumo do Sistema</CardTitle>
-            <CardDescription>Estatísticas gerais</CardDescription>
+            <CardDescription>Métricas principais</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-3 border rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
               <div className="flex items-center gap-3">
                 <FileText className="h-5 w-5 text-primary" />
-                <span className="font-medium">Editais Ativos</span>
+                <span className="text-sm font-medium">Editais Ativos</span>
               </div>
-              <span className="text-2xl font-bold">{stats.editaisAtivos}</span>
+              <span className="text-2xl font-bold text-primary">{stats.editaisAtivos}</span>
             </div>
-            <div className="flex items-center justify-between p-3 border rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
               <div className="flex items-center gap-3">
-                <CheckCircle className="h-5 w-5 text-primary" />
-                <span className="font-medium">Aprovações</span>
+                <Clock className="h-5 w-5 text-orange-500" />
+                <span className="text-sm font-medium">Pendentes</span>
               </div>
-              <span className="text-2xl font-bold">{stats.inscricoesAprovadas}</span>
+              <span className="text-2xl font-bold text-orange-500">{stats.pendentesAnalise}</span>
             </div>
-            <div className="flex items-center justify-between p-3 border rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
               <div className="flex items-center gap-3">
-                <Workflow className="h-5 w-5 text-primary" />
-                <span className="font-medium">Workflows Ativos</span>
+                <Workflow className="h-5 w-5 text-blue-500" />
+                <span className="text-sm font-medium">Workflows</span>
               </div>
-              <span className="text-2xl font-bold">{stats.workflows}</span>
+              <span className="text-2xl font-bold text-blue-500">{stats.workflows}</span>
             </div>
           </CardContent>
         </Card>

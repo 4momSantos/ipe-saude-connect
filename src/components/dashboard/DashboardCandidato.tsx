@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { FileText, Clock, CheckCircle, XCircle } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { format } from "date-fns";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 
 interface Inscricao {
   id: string;
@@ -56,6 +58,17 @@ export function DashboardCandidato() {
     rejeitadas: inscricoes.filter(i => i.status === 'rejeitado').length,
   };
 
+  const statusChartData = [
+    { name: "Em Análise", value: stats.em_analise, fill: "hsl(var(--chart-1))" },
+    { name: "Aprovadas", value: stats.aprovadas, fill: "hsl(var(--chart-2))" },
+    { name: "Rejeitadas", value: stats.rejeitadas, fill: "hsl(var(--chart-3))" },
+  ].filter(item => item.value > 0);
+
+  const timelineData = inscricoes.slice(0, 6).map((insc, idx) => ({
+    mes: format(new Date(insc.created_at), 'MMM/yy'),
+    inscricoes: idx + 1,
+  }));
+
   if (loading) {
     return <div className="text-center">Carregando...</div>;
   }
@@ -96,6 +109,75 @@ export function DashboardCandidato() {
           color="red"
           trend={{ value: 0, isPositive: false }}
         />
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Distribuição por Status</CardTitle>
+            <CardDescription>Visão geral das suas inscrições</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {statusChartData.length > 0 ? (
+              <ChartContainer config={{
+                em_analise: { label: "Em Análise", color: "hsl(var(--chart-1))" },
+                aprovadas: { label: "Aprovadas", color: "hsl(var(--chart-2))" },
+                rejeitadas: { label: "Rejeitadas", color: "hsl(var(--chart-3))" },
+              }} className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={statusChartData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={90}
+                      dataKey="value"
+                    >
+                      {statusChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                Nenhuma inscrição ainda
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Linha do Tempo</CardTitle>
+            <CardDescription>Suas últimas inscrições</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {timelineData.length > 0 ? (
+              <ChartContainer config={{
+                inscricoes: { label: "Inscrições", color: "hsl(var(--chart-1))" },
+              }} className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={timelineData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="mes" />
+                    <YAxis />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Line type="monotone" dataKey="inscricoes" stroke="hsl(var(--chart-1))" strokeWidth={2} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                Nenhuma inscrição ainda
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <Card>

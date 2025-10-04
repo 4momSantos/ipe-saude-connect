@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { WorkflowApprovalPanel } from "@/components/workflow/WorkflowApprovalPanel";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 interface InscricaoPendente {
   id: string;
@@ -129,6 +131,16 @@ export function DashboardAnalista() {
     }
   }
 
+  const statusChartData = [
+    { name: "Pendentes", value: stats.pendentes, fill: "hsl(var(--chart-1))" },
+    { name: "Analisadas", value: stats.total - stats.pendentes, fill: "hsl(var(--chart-2))" },
+  ];
+
+  const workflowChartData = [
+    { name: "Em Execução", value: stats.workflowsRunning, fill: "hsl(var(--chart-3))" },
+    { name: "Concluídos", value: stats.workflowsCompleted, fill: "hsl(var(--chart-4))" },
+  ];
+
   if (loading) {
     return <div className="text-center">Carregando...</div>;
   }
@@ -175,6 +187,63 @@ export function DashboardAnalista() {
       {stats.approvalsPending > 0 && (
         <WorkflowApprovalPanel />
       )}
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Status das Análises</CardTitle>
+            <CardDescription>Distribuição de inscrições</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={{
+              pendentes: { label: "Pendentes", color: "hsl(var(--chart-1))" },
+              analisadas: { label: "Analisadas", color: "hsl(var(--chart-2))" },
+            }} className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={statusChartData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={90}
+                    dataKey="value"
+                  >
+                    {statusChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Workflows</CardTitle>
+            <CardDescription>Status dos fluxos de trabalho</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={{
+              emExecucao: { label: "Em Execução", color: "hsl(var(--chart-3))" },
+              concluidos: { label: "Concluídos", color: "hsl(var(--chart-4))" },
+            }} className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={workflowChartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="value" fill="fill" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card>
         <CardHeader>
