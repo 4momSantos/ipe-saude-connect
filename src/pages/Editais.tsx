@@ -125,15 +125,13 @@ export default function Editais() {
 
       // Verificar se o edital está disponível para inscrições
       const hoje = new Date();
-      const dataInicio = new Date(inscricaoEdital.data_inicio);
       const dataFim = new Date(inscricaoEdital.data_fim);
       
       const statusValidos = ['publicado', 'aberto'];
       const statusOk = statusValidos.includes(inscricaoEdital.status);
-      const dentroDataInicio = hoje >= dataInicio;
       const antesDataFim = hoje <= dataFim;
 
-      if (!statusOk || !dentroDataInicio || !antesDataFim) {
+      if (!statusOk || !antesDataFim) {
         throw new Error('Este edital não está mais aberto para inscrições');
       }
 
