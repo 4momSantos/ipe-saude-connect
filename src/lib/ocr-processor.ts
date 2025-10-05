@@ -1,4 +1,4 @@
-import { simulateOCR, OCRResult } from './ocr-simulator';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   validateCPFData, 
   validateCNPJData, 
@@ -6,6 +6,103 @@ import {
   validateNIT 
 } from './validators';
 import { OCRConfig, OCRFieldMapping } from '@/types/workflow-editor';
+
+interface OCRResult {
+  success: boolean;
+  extractedData: Record<string, any>;
+  confidence: number;
+  errors?: string[];
+  warnings?: string[];
+  message?: string;
+}
+
+/**
+ * Chama a edge function process-ocr com upload do arquivo
+ */
+async function callOCREdgeFunction(
+  file: File,
+  documentType: string,
+  expectedFields: string[]
+): Promise<OCRResult> {
+  try {
+    console.log('📤 Fazendo upload do arquivo para OCR...', {
+      fileName: file.name,
+      fileSize: file.size,
+      documentType
+    });
+
+    // 1. Upload do arquivo para storage temporário
+    const fileName = `${Date.now()}-${file.name}`;
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('ocr-temp-files')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('❌ Erro no upload:', uploadError);
+      throw new Error(`Erro ao fazer upload: ${uploadError.message}`);
+    }
+
+    console.log('✅ Upload concluído:', uploadData.path);
+
+    // 2. Obter URL pública do arquivo
+    const { data: { publicUrl } } = supabase.storage
+      .from('ocr-temp-files')
+      .getPublicUrl(fileName);
+
+    console.log('🔗 URL pública:', publicUrl);
+
+    // 3. Chamar edge function process-ocr
+    console.log('🚀 Chamando edge function process-ocr...');
+    const { data: ocrData, error: ocrError } = await supabase.functions.invoke('process-ocr', {
+      body: {
+        fileUrl: publicUrl,
+        documentType,
+        expectedFields
+      }
+    });
+
+    if (ocrError) {
+      console.error('❌ Erro na edge function:', ocrError);
+      throw new Error(`Erro ao processar OCR: ${ocrError.message}`);
+    }
+
+    console.log('✅ OCR processado com sucesso:', {
+      success: ocrData.success,
+      confidence: ocrData.confidence,
+      fieldsExtracted: Object.keys(ocrData.data || {}).length
+    });
+
+    // 4. Limpar arquivo temporário (opcional, pode ser feito depois)
+    supabase.storage
+      .from('ocr-temp-files')
+      .remove([fileName])
+      .then(() => console.log('🗑️ Arquivo temporário removido'))
+      .catch(err => console.warn('⚠️ Erro ao remover arquivo temporário:', err));
+
+    // 5. Retornar resultado no formato esperado
+    return {
+      success: ocrData.success,
+      extractedData: ocrData.data || {},
+      confidence: ocrData.confidence || 0,
+      errors: ocrData.success ? [] : [ocrData.message || 'Erro ao processar documento'],
+      warnings: [],
+      message: ocrData.message
+    };
+
+  } catch (error) {
+    console.error('❌ Erro ao processar OCR:', error);
+    return {
+      success: false,
+      extractedData: {},
+      confidence: 0,
+      errors: [error instanceof Error ? error.message : 'Erro desconhecido ao processar documento'],
+      warnings: []
+    };
+  }
+}
 
 export interface OCRFieldValidation {
   field: string;
@@ -49,8 +146,9 @@ export async function processOCRWithValidation(
     expectedFields: ocrConfig.expectedFields.length
   });
 
-  // 1. Extrair dados via OCR
-  const ocrResult = await simulateOCR(file);
+  // 1. Extrair dados via OCR usando Google Cloud Vision API
+  const expectedFieldNames = ocrConfig.expectedFields.map(f => f.ocrField);
+  const ocrResult = await callOCREdgeFunction(file, ocrConfig.documentType, expectedFieldNames);
   
   if (!ocrResult.success) {
     return {
