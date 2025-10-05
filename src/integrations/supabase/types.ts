@@ -107,6 +107,7 @@ export type Database = {
           credenciado_id: string
           crm: string
           especialidade: string
+          especialidade_id: string | null
           id: string
           uf_crm: string
         }
@@ -115,6 +116,7 @@ export type Database = {
           credenciado_id: string
           crm: string
           especialidade: string
+          especialidade_id?: string | null
           id?: string
           uf_crm: string
         }
@@ -123,6 +125,7 @@ export type Database = {
           credenciado_id?: string
           crm?: string
           especialidade?: string
+          especialidade_id?: string | null
           id?: string
           uf_crm?: string
         }
@@ -132,6 +135,13 @@ export type Database = {
             columns: ["credenciado_id"]
             isOneToOne: false
             referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credenciado_crms_especialidade_id_fkey"
+            columns: ["especialidade_id"]
+            isOneToOne: false
+            referencedRelation: "especialidades_medicas"
             referencedColumns: ["id"]
           },
         ]
@@ -368,6 +378,42 @@ export type Database = {
           },
         ]
       }
+      edital_especialidades: {
+        Row: {
+          created_at: string | null
+          edital_id: string
+          especialidade_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          edital_id: string
+          especialidade_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          edital_id?: string
+          especialidade_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "edital_especialidades_edital_id_fkey"
+            columns: ["edital_id"]
+            isOneToOne: false
+            referencedRelation: "editais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "edital_especialidades_especialidade_id_fkey"
+            columns: ["especialidade_id"]
+            isOneToOne: false
+            referencedRelation: "especialidades_medicas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_templates: {
         Row: {
           body: string
@@ -401,6 +447,36 @@ export type Database = {
           subject?: string
           updated_at?: string | null
           variables?: Json | null
+        }
+        Relationships: []
+      }
+      especialidades_medicas: {
+        Row: {
+          ativa: boolean | null
+          codigo: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          nome: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativa?: boolean | null
+          codigo?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          nome: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativa?: boolean | null
+          codigo?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string | null
         }
         Relationships: []
       }

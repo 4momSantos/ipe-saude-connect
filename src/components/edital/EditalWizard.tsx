@@ -37,6 +37,7 @@ const editalSchema = z.object({
   fonte_recursos: z.string().min(1, "Campo obrigatório"),
   possui_vagas: z.boolean().default(false),
   vagas: z.number().min(1, "Insira ao menos 1 vaga").optional(),
+  especialidades_ids: z.array(z.string().uuid()).min(1, "Selecione ao menos uma especialidade"),
   participacao_permitida: z.array(z.string()).min(1, "Selecione ao menos uma opção"),
   regras_me_epp: z.string().optional(),
   documentos_habilitacao: z.array(z.string()).min(1, "Selecione ao menos um documento"),
@@ -100,6 +101,7 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
           "prazo_validade_proposta",
           "criterio_julgamento",
           "fonte_recursos",
+          "especialidades_ids",
         ];
         
         // Validar vagas apenas se possui_vagas for true
@@ -216,7 +218,7 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
           ? currentEdital.historico_alteracoes 
           : [];
         
-        const { error } = await supabase
+        const { data: editalAtualizado, error } = await supabase
           .from("editais")
           .update({
             ...editalData,
@@ -229,12 +231,32 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
               },
             ],
           })
-          .eq("id", editalId);
+          .eq("id", editalId)
+          .select()
+          .single();
 
         if (error) throw error;
+
+        // Deletar especialidades antigas e inserir novas
+        await supabase
+          .from("edital_especialidades")
+          .delete()
+          .eq("edital_id", editalId);
+
+        if (data.especialidades_ids.length > 0) {
+          const especialidadesRelacionamento = data.especialidades_ids.map(espId => ({
+            edital_id: editalId,
+            especialidade_id: espId,
+          }));
+
+          await supabase
+            .from("edital_especialidades")
+            .insert(especialidadesRelacionamento);
+        }
+
         toast.success("Edital atualizado com sucesso!");
       } else {
-        const { error } = await supabase
+        const { data: editalCriado, error } = await supabase
           .from("editais")
           .insert([{
             ...editalData,
@@ -245,9 +267,24 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
                 acao: "Criação",
               },
             ],
-          }]);
+          }])
+          .select()
+          .single();
 
         if (error) throw error;
+
+        // Inserir especialidades
+        if (data.especialidades_ids.length > 0) {
+          const especialidadesRelacionamento = data.especialidades_ids.map(espId => ({
+            edital_id: editalCriado.id,
+            especialidade_id: espId,
+          }));
+
+          await supabase
+            .from("edital_especialidades")
+            .insert(especialidadesRelacionamento);
+        }
+
         toast.success("Edital criado com sucesso!");
       }
 

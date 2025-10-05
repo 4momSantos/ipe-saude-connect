@@ -118,7 +118,7 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit }: InscricaoW
           'email_correspondencia',
           'endereco_consultorio',
           'telefone_consultorio',
-          'especialidade_principal',
+          'especialidades_ids',
           'quantidade_consultas_minima',
           'horarios',
         ];

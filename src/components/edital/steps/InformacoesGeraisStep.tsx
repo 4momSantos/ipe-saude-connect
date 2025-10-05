@@ -10,6 +10,7 @@ import { CalendarIcon, FileText, Percent, Clock, Users } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { EspecialidadesSelector } from "../EspecialidadesSelector";
 
 interface InformacoesGeraisStepProps {
   form: UseFormReturn<any>;
@@ -287,6 +288,29 @@ export function InformacoesGeraisStep({ form }: InformacoesGeraisStepProps) {
             )}
           />
         )}
+
+        {/* Especialidades Médicas */}
+        <FormField
+          control={form.control}
+          name="especialidades_ids"
+          render={({ field }) => (
+            <FormItem className="md:col-span-2">
+              <FormLabel>Especialidades Médicas *</FormLabel>
+              <FormDescription>
+                Selecione as especialidades que serão aceitas neste edital
+              </FormDescription>
+              <FormControl>
+                <EspecialidadesSelector
+                  selectedIds={field.value || []}
+                  onChange={field.onChange}
+                  minSelection={1}
+                  allowCreate={true}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
       </div>
     </div>
   );

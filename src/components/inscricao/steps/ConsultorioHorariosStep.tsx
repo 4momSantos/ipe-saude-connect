@@ -17,6 +17,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Trash2, Clock, Sparkles } from 'lucide-react';
 import { useValidatedData } from '@/contexts/ValidatedDataContext';
 import { useEffect } from 'react';
+import { EspecialidadesSelector } from '@/components/edital/EspecialidadesSelector';
 
 interface ConsultorioHorariosStepProps {
   form: UseFormReturn<InscricaoCompletaForm>;
@@ -42,10 +43,8 @@ export function ConsultorioHorariosStep({ form }: ConsultorioHorariosStepProps) 
   // Auto-preencher especialidade e telefone do consultório com dados do CRM
   useEffect(() => {
     if (crm?.validated) {
-      // Preencher especialidade principal se disponível
-      if (crm.especialidades && crm.especialidades.length > 0 && !form.getValues('especialidade_principal')) {
-        form.setValue('especialidade_principal', crm.especialidades[0], { shouldValidate: true });
-      }
+      // Dados do CRM já foram validados
+      console.log('CRM validado:', crm);
     }
   }, [crm, form]);
 
@@ -178,44 +177,27 @@ export function ConsultorioHorariosStep({ form }: ConsultorioHorariosStepProps) 
       <div>
         <h4 className="font-medium mb-4">Especialidades e Atendimento</h4>
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="especialidade_principal"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Especialidade Principal *</FormLabel>
-                  <div className="space-y-2">
-                    <FormControl>
-                      <Input placeholder="Cardiologia" {...field} />
-                    </FormControl>
-                    {crm?.validated && crm.especialidades && crm.especialidades.length > 0 && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Sparkles className="h-3 w-3" />
-                        <span>Auto-preenchido do CRM</span>
-                      </div>
-                    )}
-                    <FormMessage />
-                  </div>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="especialidade_secundaria"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Especialidade Secundária</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Clínica Médica" {...field} />
-                  </FormControl>
-                  <FormDescription>Opcional</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          <FormField
+            control={form.control}
+            name="especialidades_ids"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Suas Especialidades *</FormLabel>
+                <FormDescription>
+                  Selecione as especialidades para as quais deseja se credenciar
+                </FormDescription>
+                <FormControl>
+                  <EspecialidadesSelector
+                    selectedIds={field.value || []}
+                    onChange={field.onChange}
+                    minSelection={1}
+                    allowCreate={false}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <FormField
             control={form.control}

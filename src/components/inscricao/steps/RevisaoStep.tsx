@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useEspecialidades } from '@/hooks/useEspecialidades';
 
 interface RevisaoStepProps {
   form: UseFormReturn<InscricaoCompletaForm>;
@@ -22,6 +23,14 @@ interface RevisaoStepProps {
 
 export function RevisaoStep({ form }: RevisaoStepProps) {
   const values = form.getValues();
+  const { data: especialidades } = useEspecialidades();
+  
+  const getEspecialidadesNomes = () => {
+    if (!values.especialidades_ids || !especialidades) return [];
+    return values.especialidades_ids
+      .map(id => especialidades.find(e => e.id === id)?.nome)
+      .filter(Boolean);
+  };
   const errors = form.formState.errors;
   const hasErrors = Object.keys(errors).length > 0;
 
@@ -145,15 +154,13 @@ export function RevisaoStep({ form }: RevisaoStepProps) {
         <CardContent className="space-y-3">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Especialidade Principal</p>
-              <p className="text-sm">{values.especialidade_principal}</p>
-            </div>
-            {values.especialidade_secundaria && (
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Especialidade Secundária</p>
-                <p className="text-sm">{values.especialidade_secundaria}</p>
+              <p className="text-sm font-medium text-muted-foreground">Especialidades</p>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {getEspecialidadesNomes().map((nome, idx) => (
+                  <Badge key={idx} variant="secondary">{nome}</Badge>
+                ))}
               </div>
-            )}
+            </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Consultas Mínimas</p>
               <p className="text-sm">{values.quantidade_consultas_minima}</p>

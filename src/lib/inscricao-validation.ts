@@ -96,8 +96,7 @@ export const horarioAtendimento = z.object({
 });
 
 export const consultorioHorariosSchema = z.object({
-  especialidade_principal: z.string().min(3, 'Especialidade principal é obrigatória'),
-  especialidade_secundaria: z.string().optional(),
+  especialidades_ids: z.array(z.string().uuid()).min(1, 'Selecione ao menos uma especialidade'),
   quantidade_consultas_minima: z.number().min(1, 'Mínimo 1 consulta'),
   atendimento_hora_marcada: z.boolean(),
   endereco_consultorio: z.string().min(5, 'Endereço do consultório é obrigatório'),
