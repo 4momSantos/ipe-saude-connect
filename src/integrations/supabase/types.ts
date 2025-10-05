@@ -1157,6 +1157,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_gestores: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          email: string
+          id: string
+          nome: string
+        }[]
+      }
       get_user_roles: {
         Args: { _user_id: string }
         Returns: {

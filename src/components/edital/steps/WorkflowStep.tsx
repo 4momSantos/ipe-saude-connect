@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Workflow, User, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface WorkflowStepProps {
   form: UseFormReturn<any>;
@@ -72,20 +73,28 @@ export function WorkflowStep({ form }: WorkflowStepProps) {
 
   async function loadGestores() {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select(`
-          id,
-          nome,
-          email,
-          user_roles!inner(role)
-        `)
-        .eq("user_roles.role", "gestor");
+      console.log('[WorkflowStep] Carregando gestores via RPC...');
+      
+      // Usar função RPC ao invés de query direta
+      const { data, error } = await supabase.rpc('get_gestores');
 
-      if (error) throw error;
+      if (error) {
+        console.error('[WorkflowStep] Erro ao carregar gestores:', error);
+        toast.error("Erro ao carregar lista de gestores");
+        setGestores([]);
+        return;
+      }
+      
+      console.log(`[WorkflowStep] ✅ ${data?.length || 0} gestor(es) carregado(s)`);
       setGestores(data || []);
+      
+      if (!data || data.length === 0) {
+        toast.warning("Nenhum gestor disponível no sistema");
+      }
     } catch (error) {
-      console.error("Erro ao carregar gestores:", error);
+      console.error('[WorkflowStep] Exceção ao carregar gestores:', error);
+      toast.error("Erro inesperado ao carregar gestores");
+      setGestores([]);
     } finally {
       setLoading(false);
     }
@@ -218,14 +227,27 @@ export function WorkflowStep({ form }: WorkflowStepProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {gestores.map((gestor) => (
-                          <SelectItem key={gestor.id} value={gestor.id}>
-                            <div className="flex items-center gap-2">
-                              <User className="h-4 w-4" />
-                              <span>{gestor.nome} ({gestor.email})</span>
-                            </div>
-                          </SelectItem>
-                        ))}
+                        {gestores.length === 0 ? (
+                          <div className="p-4 text-sm text-muted-foreground text-center">
+                            <User className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                            <p className="font-semibold">Nenhum gestor disponível</p>
+                            <p className="text-xs mt-1">
+                              Contate o administrador para criar perfis de gestores
+                            </p>
+                          </div>
+                        ) : (
+                          gestores.map((gestor) => (
+                            <SelectItem key={gestor.id} value={gestor.id}>
+                              <div className="flex items-center gap-2">
+                                <User className="h-4 w-4" />
+                                <span>{gestor.nome}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  ({gestor.email})
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                     <FormDescription>

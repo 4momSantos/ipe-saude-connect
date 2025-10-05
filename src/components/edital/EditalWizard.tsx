@@ -48,7 +48,19 @@ const editalSchema = z.object({
   workflow_version: z.number().optional(),
   gestor_autorizador_id: z.string().optional(),
   observacoes_autorizacao: z.string().optional(),
-});
+}).refine(
+  (data) => {
+    // Se workflow foi selecionada, gestor é obrigatório
+    if (data.workflow_id && !data.gestor_autorizador_id) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: "Selecione um gestor autorizador para a workflow escolhida",
+    path: ["gestor_autorizador_id"],
+  }
+);
 
 type EditalFormValues = z.infer<typeof editalSchema>;
 

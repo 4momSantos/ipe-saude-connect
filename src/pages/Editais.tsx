@@ -65,11 +65,19 @@ export default function Editais() {
     try {
       setLoading(true);
       
-      // Carregar editais
-      const { data: editaisData, error: editaisError } = await supabase
+      // Base query
+      let query = supabase
         .from("editais")
         .select("*")
         .order("created_at", { ascending: false });
+
+      // Filtro adicional para candidatos (camada extra de segurança)
+      if (isCandidato && !isGestor && !isAdmin) {
+        console.log('[Editais] Aplicando filtro de candidato: apenas publicados/abertos');
+        query = query.in("status", ["publicado", "aberto"]);
+      }
+
+      const { data: editaisData, error: editaisError } = await query;
 
       if (editaisError) throw editaisError;
       setEditais(editaisData || []);
