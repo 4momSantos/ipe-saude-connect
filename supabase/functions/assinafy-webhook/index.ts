@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,24 +24,52 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    // Validar variáveis de ambiente
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("Missing required environment variables");
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Validar API Key da Assinafy (opcional, mas recomendado para segurança)
+    // Validar API Key da Assinafy
     const apiKey = req.headers.get("X-Api-Key");
     const expectedApiKey = Deno.env.get("ASSINAFY_WEBHOOK_SECRET");
     
     if (expectedApiKey && apiKey !== expectedApiKey) {
-      console.error("Invalid webhook API key");
+      console.error("Invalid webhook API key received");
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const payload: AssignafyWebhookPayload = await req.json();
-    console.log("Received Assinafy webhook:", payload);
+    // Parse e validar payload
+    let payload: AssignafyWebhookPayload;
+    try {
+      payload = await req.json();
+      console.log("Received Assinafy webhook:", JSON.stringify(payload, null, 2));
+    } catch (parseError) {
+      console.error("Failed to parse webhook payload:", parseError);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON payload" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!payload.document_id || !payload.event) {
+      console.error("Missing required fields in payload");
+      return new Response(
+        JSON.stringify({ error: "Missing required fields: document_id and event" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Buscar a signature request pelo external_id (document_id da Assinafy)
     const { data: signatureRequest, error: fetchError } = await supabase
@@ -51,13 +79,23 @@ serve(async (req) => {
       .eq("provider", "assinafy")
       .single();
 
-    if (fetchError || !signatureRequest) {
-      console.error("Signature request not found:", payload.document_id);
+    if (fetchError) {
+      console.error("Database error fetching signature request:", fetchError);
+      return new Response(
+        JSON.stringify({ error: "Database error", details: fetchError.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!signatureRequest) {
+      console.error("Signature request not found for document_id:", payload.document_id);
       return new Response(
         JSON.stringify({ error: "Signature request not found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    console.log(`Processing event ${payload.event} for signature request ${signatureRequest.id}`);
 
     // Processar diferentes eventos
     let newStatus = signatureRequest.status;
@@ -135,7 +173,7 @@ serve(async (req) => {
     }
 
     // Atualizar signature request
-    await supabase
+    const { error: updateError } = await supabase
       .from("signature_requests")
       .update({
         status: newStatus,
@@ -146,7 +184,15 @@ serve(async (req) => {
       })
       .eq("id", signatureRequest.id);
 
-    console.log(`Signature request ${signatureRequest.id} updated to status: ${newStatus}`);
+    if (updateError) {
+      console.error("Failed to update signature request:", updateError);
+      return new Response(
+        JSON.stringify({ error: "Failed to update signature request", details: updateError.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`✓ Signature request ${signatureRequest.id} updated to status: ${newStatus}`);
 
     return new Response(
       JSON.stringify({ 
