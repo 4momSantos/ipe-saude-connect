@@ -414,6 +414,7 @@ export default function WorkflowEditor() {
     localStorage.setItem("formTemplates", JSON.stringify(allTemplates));
   };
 
+  // Função para carregar o template de credenciamento completo
   const loadCredenciamentoTemplate = () => {
     const CREDENCIAMENTO_TEMPLATE = {
       nodes: [
