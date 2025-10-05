@@ -28,23 +28,12 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        global: {
-          headers: { Authorization: req.headers.get("Authorization")! },
-        },
-      }
-    );
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const {
-      data: { user },
-    } = await supabaseClient.auth.getUser();
-
-    if (!user) {
-      throw new Error("Não autorizado");
-    }
+    console.log(`[CONTINUE-WORKFLOW] Using service role key for elevated permissions`);
 
     const { stepExecutionId, decision } = await req.json();
 
@@ -151,7 +140,7 @@ serve(async (req) => {
         'execute-workflow', 
         {
           body: {
-            workflowId: execution.workflows.id,
+            workflowId: execution.workflow_id,
             inputData: stepExecution.output_data || {},
             inscricaoId: inscricaoData?.id,
             continueFrom: nextNode.id

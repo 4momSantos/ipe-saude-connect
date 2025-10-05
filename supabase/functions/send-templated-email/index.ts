@@ -144,6 +144,12 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const emailRequest: EmailRequest = await req.json();
+    
+    console.log('[SEND-EMAIL] Processing email:', {
+      to: emailRequest.to,
+      subject: emailRequest.subject,
+      hasContext: !!emailRequest.context
+    });
 
     // Resolver variáveis no destinatário
     let resolvedTo = emailRequest.to;
@@ -186,7 +192,7 @@ serve(async (req) => {
       resolvedBcc
     );
 
-    console.log("Email sent successfully:", {
+    console.log("✓ Email sent successfully:", {
       to: resolvedTo,
       subject: resolvedSubject,
       id: result.id,
@@ -201,7 +207,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in send-templated-email:", error);
+    console.error("[SEND-EMAIL] Error:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { 

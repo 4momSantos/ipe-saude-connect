@@ -137,6 +137,31 @@ serve(async (req) => {
               output_data: { signature_completed: true, ...payload.data },
             })
             .eq("id", signatureRequest.step_execution_id);
+
+          console.log(`✓ Step ${signatureRequest.step_execution_id} marked as completed`);
+          
+          // Continuar workflow automaticamente
+          try {
+            console.log(`Calling continue-workflow for step ${signatureRequest.step_execution_id}...`);
+            
+            const { data: continueResult, error: continueError } = await supabase.functions.invoke(
+              'continue-workflow',
+              {
+                body: {
+                  stepExecutionId: signatureRequest.step_execution_id,
+                  decision: 'approved'
+                }
+              }
+            );
+            
+            if (continueError) {
+              console.error('Failed to continue workflow:', continueError);
+            } else {
+              console.log('✓ Workflow continued successfully:', continueResult);
+            }
+          } catch (continueErr) {
+            console.error('Error calling continue-workflow:', continueErr);
+          }
         }
         break;
 
