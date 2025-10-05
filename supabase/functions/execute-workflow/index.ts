@@ -1,3 +1,33 @@
+/**
+ * FASE 6-10: Execute Workflow - Motor principal de execução de workflows
+ * 
+ * Responsabilidades:
+ * 1. Criar e iniciar execução de workflow
+ * 2. Processar cada nó sequencialmente (start → steps → end)
+ * 3. Gerenciar contexto entre nós
+ * 4. Registrar histórico de execução em workflow_step_executions
+ * 5. Sincronizar status com inscricoes_edital
+ * 
+ * Tipos de Nós Suportados:
+ * - start: Ponto de entrada do workflow
+ * - form: Coleta de dados via formulário
+ * - email: Envio de e-mails templated
+ * - webhook/http: Chamadas HTTP externas
+ * - database: Atualizações no banco
+ * - signature: Solicitação de assinaturas (Assinafy)
+ * - ocr: Processamento de OCR (Google Vision)
+ * - approval: Ponto de aprovação manual
+ * - condition: Ramificação condicional
+ * - end: Finalização do workflow
+ * 
+ * Fluxo de Execução:
+ * 1. Validar autenticação e workflow
+ * 2. Criar workflow_execution
+ * 3. Vincular com inscricao_edital (se aplicável)
+ * 4. Executar nós recursivamente via executeWorkflowSteps()
+ * 5. Atualizar status final
+ */
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 

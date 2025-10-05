@@ -66,6 +66,7 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
   async function loadWorkflowData() {
     try {
       setLoading(true);
+      console.log('[PROCESS_DETAIL] Loading workflow data for processo:', processo.id);
 
       // Buscar inscrição com workflow
       const { data: inscricao, error: inscricaoError } = await supabase
@@ -91,13 +92,22 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
         .eq('id', processo.id)
         .single();
 
-      if (inscricaoError) throw inscricaoError;
+      if (inscricaoError) {
+        console.error('[PROCESS_DETAIL] ❌ Error loading inscricao:', inscricaoError);
+        throw inscricaoError;
+      }
 
       if (!inscricao?.workflow_executions) {
-        console.log("Sem workflow vinculado a esta inscrição");
+        console.log("[PROCESS_DETAIL] ⚠️ No workflow linked to this inscription");
         setLoading(false);
         return;
       }
+
+      console.log('[PROCESS_DETAIL] ✅ Workflow execution found:', {
+        executionId: inscricao.workflow_executions.id,
+        status: inscricao.workflow_executions.status,
+        workflowName: inscricao.workflow_executions.workflows?.name
+      });
 
       const execution = inscricao.workflow_executions;
       setWorkflowData(execution);

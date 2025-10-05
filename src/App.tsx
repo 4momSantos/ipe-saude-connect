@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Menu } from "lucide-react";
 import Dashboard from "./pages/Dashboard";
 import Inscricoes from "./pages/Inscricoes";
@@ -60,17 +61,18 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <Toaster />
-    <Sonner />
-    <BrowserRouter>
-      <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute>
-                <SidebarProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route
+              path="/*"
+              element={
+                <ProtectedRoute>
+                  <SidebarProvider>
                   <div className="flex min-h-screen w-full">
                     <AppSidebar />
                     <div className="flex-1 flex flex-col">
@@ -139,9 +141,10 @@ const App = () => (
               </ProtectedRoute>
             }
           />
-        </Routes>
-      </BrowserRouter>
-  </QueryClientProvider>
+          </Routes>
+        </BrowserRouter>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
