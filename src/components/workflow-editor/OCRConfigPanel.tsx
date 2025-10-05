@@ -332,7 +332,7 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField, allWorkflowFie
                         <SelectItem value="none">
                           ✓ Apenas comparar campos (sem API)
                         </SelectItem>
-                        <SelectItem value="" disabled className="text-xs font-semibold">
+                        <SelectItem value="divider-api" disabled className="text-xs font-semibold opacity-60 cursor-default">
                           — Validação com API externa —
                         </SelectItem>
                         {getValidationAPIs().map(api => (
