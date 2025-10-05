@@ -36,6 +36,7 @@ import { WorkflowNodeData, FormTemplate, VisualWorkflow } from "@/types/workflow
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 
 const nodeTypes = {
@@ -571,20 +572,22 @@ export default function WorkflowEditor() {
           </ReactFlow>
         </div>
 
-        {/* Config Panel */}
-        {selectedNode && (
-          <div className="w-96 flex-shrink-0">
-            <ConfigPanel
-              nodeData={selectedNode.data}
-              onUpdate={updateSelectedNode}
-              onClose={() => setSelectedNode(null)}
-              onDelete={() => deleteNode(selectedNode.id)}
-              templates={templates}
-              onSaveTemplate={saveTemplate}
-              allWorkflowNodes={nodes}
-            />
-          </div>
-        )}
+        {/* Config Panel Dialog */}
+        <Dialog open={selectedNode !== null} onOpenChange={(open) => !open && setSelectedNode(null)}>
+          <DialogContent className="max-w-[90vw] w-full h-[90vh] max-h-[90vh] p-0 gap-0">
+            {selectedNode && (
+              <ConfigPanel
+                nodeData={selectedNode.data}
+                onUpdate={updateSelectedNode}
+                onClose={() => setSelectedNode(null)}
+                onDelete={() => deleteNode(selectedNode.id)}
+                templates={templates}
+                onSaveTemplate={saveTemplate}
+                allWorkflowNodes={nodes}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

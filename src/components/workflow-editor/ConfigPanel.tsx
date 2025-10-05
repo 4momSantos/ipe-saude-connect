@@ -89,9 +89,9 @@ export function ConfigPanel({
   };
 
   return (
-    <div className="h-full flex flex-col bg-card border-l">
+    <div className="h-full flex flex-col bg-card">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex items-center justify-between p-4 border-b flex-shrink-0">
         <div>
           <h3 className="font-semibold">{nodeData.label}</h3>
           <p className="text-sm text-muted-foreground capitalize">
@@ -116,8 +116,9 @@ export function ConfigPanel({
       </div>
 
       {/* Content */}
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-4">
+      <div className="flex-1 overflow-hidden">
+        <ScrollArea className="h-full">
+          <div className="p-6 space-y-4">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="config">Config</TabsTrigger>
@@ -253,8 +254,9 @@ export function ConfigPanel({
               )}
             </TabsContent>
           </Tabs>
-        </div>
-      </ScrollArea>
+          </div>
+        </ScrollArea>
+      </div>
     </div>
   );
 }
