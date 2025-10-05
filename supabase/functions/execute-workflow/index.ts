@@ -58,23 +58,11 @@ serve(async (req) => {
   }
 
   try {
+    // Usar SERVICE_ROLE_KEY para operações internas do worker
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        global: {
-          headers: { Authorization: req.headers.get("Authorization")! },
-        },
-      }
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
-
-    const {
-      data: { user },
-    } = await supabaseClient.auth.getUser();
-
-    if (!user) {
-      throw new Error("Não autorizado");
-    }
 
     const { workflowId, inputData, inscricaoId, continueFrom } = await req.json();
 
@@ -83,8 +71,7 @@ serve(async (req) => {
       workflowId,
       inscricaoId,
       hasInputData: !!inputData,
-      userId: user.id,
-      userEmail: user.email
+      source: 'worker'
     });
 
     // Buscar workflow
@@ -118,7 +105,7 @@ serve(async (req) => {
       .from("workflow_executions")
       .insert({
         workflow_id: workflowId,
-        started_by: user.id,
+        started_by: null, // Worker executa sem contexto de usuário
         status: "running",
       })
       .select()
@@ -127,7 +114,7 @@ serve(async (req) => {
     if (executionError) throw executionError;
 
     // 🔍 Etapa 1: Log de execução criada com sucesso
-    console.log(`[WORKFLOW] ✅ Execução criada: ${execution.id} | Workflow: ${workflow.name} | User: ${user.id}`);
+    console.log(`[WORKFLOW] ✅ Execução criada: ${execution.id} | Workflow: ${workflow.name} | Source: worker`);
 
     // Se houver inscricaoId, vincular a execução à inscrição
     if (inscricaoId) {
