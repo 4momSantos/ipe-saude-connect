@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { ChevronLeft, ChevronRight, Send, Check, FileText } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Send, Check, FileText, Save, Clock } from 'lucide-react';
 import { DadosPessoaisStep } from './steps/DadosPessoaisStep';
 import { PessoaJuridicaStep } from './steps/PessoaJuridicaStep';
 import { ConsultorioHorariosStep } from './steps/ConsultorioHorariosStep';
@@ -19,6 +19,9 @@ import { DocumentosStep } from './steps/DocumentosStep';
 import { RevisaoStep } from './steps/RevisaoStep';
 import { toast } from 'sonner';
 import { ValidatedDataProvider } from '@/contexts/ValidatedDataContext';
+import { useAutoSaveInscricao } from '@/hooks/useAutoSaveInscricao';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const STEPS = [
   {
@@ -52,11 +55,13 @@ interface InscricaoWizardProps {
   editalId?: string;
   editalTitulo?: string;
   onSubmit: (data: InscricaoCompletaForm) => Promise<void>;
+  rascunhoInscricaoId?: string | null;
 }
 
-export function InscricaoWizard({ editalId, editalTitulo, onSubmit }: InscricaoWizardProps) {
+export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInscricaoId }: InscricaoWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasLoadedRascunho, setHasLoadedRascunho] = useState(false);
 
   const form = useForm<InscricaoCompletaForm>({
     resolver: zodResolver(inscricaoCompletaSchema),
@@ -73,6 +78,46 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit }: InscricaoW
     },
     mode: 'onChange',
   });
+
+  // Hook de auto-save
+  const {
+    saveRascunho,
+    loadRascunho,
+    lastSaved,
+    isSaving,
+    inscricaoId
+  } = useAutoSaveInscricao({
+    editalId: editalId || '',
+    formData: form.watch(),
+    enabled: !isSubmitting && hasLoadedRascunho && !!editalId,
+    onSaveSuccess: (id) => {
+      console.log('Rascunho salvo com ID:', id);
+    }
+  });
+
+  // Carregar rascunho ao montar
+  useEffect(() => {
+    const loadExistingRascunho = async () => {
+      if (hasLoadedRascunho || !editalId) return;
+      
+      const rascunhoData = await loadRascunho();
+      if (rascunhoData) {
+        console.log('Rascunho carregado:', rascunhoData);
+        
+        // Restaurar dados no formulário
+        Object.keys(rascunhoData).forEach((key) => {
+          form.setValue(key as any, rascunhoData[key]);
+        });
+        
+        setHasLoadedRascunho(true);
+        toast.success('📝 Continuando de onde você parou');
+      } else {
+        setHasLoadedRascunho(true);
+      }
+    };
+
+    loadExistingRascunho();
+  }, [loadRascunho, form, hasLoadedRascunho, editalId]);
 
   const progress = (currentStep / STEPS.length) * 100;
 
@@ -141,6 +186,9 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit }: InscricaoW
       toast.error('Por favor, corrija os erros antes de continuar');
       return;
     }
+
+    // Salvar rascunho ao avançar etapa
+    await saveRascunho();
 
     setCurrentStep((prev) => Math.min(prev + 1, STEPS.length));
   };
@@ -212,12 +260,33 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit }: InscricaoW
         {editalTitulo && (
           <Card className="border-primary/20 bg-primary/5">
             <CardContent className="pt-6">
-              <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
-                <div>
-                  <p className="text-sm font-medium">Inscrevendo-se em:</p>
-                  <p className="text-lg font-bold text-primary">{editalTitulo}</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="text-sm font-medium">Inscrevendo-se em:</p>
+                    <p className="text-lg font-bold text-primary">{editalTitulo}</p>
+                  </div>
                 </div>
+                
+                {/* Indicador de auto-save */}
+                {lastSaved && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    {isSaving ? (
+                      <>
+                        <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+                        <span>Salvando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="h-4 w-4" />
+                        <span>
+                          Salvo {formatDistanceToNow(lastSaved, { addSuffix: true, locale: ptBR })}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -291,20 +360,41 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit }: InscricaoW
       </Card>
 
       {/* Navigation Buttons */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <Button
           type="button"
           variant="outline"
           onClick={handlePrevious}
-          disabled={currentStep === 1}
+          disabled={currentStep === 1 || isSubmitting}
           className="gap-2"
         >
           <ChevronLeft className="h-4 w-4" />
           Voltar
         </Button>
 
+        {/* Botão manual de salvar rascunho */}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => saveRascunho()}
+          disabled={isSaving || isSubmitting}
+          className="gap-2"
+        >
+          {isSaving ? (
+            <>
+              <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+              Salvando...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4" />
+              Salvar
+            </>
+          )}
+        </Button>
+
         {currentStep < STEPS.length ? (
-          <Button type="button" onClick={handleNext} className="gap-2">
+          <Button type="button" onClick={handleNext} disabled={isSubmitting} className="gap-2 ml-auto">
             Próximo
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -313,7 +403,7 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit }: InscricaoW
             type="button"
             onClick={form.handleSubmit(handleSubmit)}
             disabled={isSubmitting}
-            className="gap-2 bg-[hsl(var(--green-approved))] hover:bg-[hsl(var(--green-approved)_/_0.9)]"
+            className="gap-2 ml-auto bg-[hsl(var(--green-approved))] hover:bg-[hsl(var(--green-approved)_/_0.9)]"
           >
             {isSubmitting ? (
               <>

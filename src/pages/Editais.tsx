@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { FluxoCredenciamento } from "@/components/credenciamento/FluxoCredenciamento";
 import { InscricaoWizard } from "@/components/inscricao/InscricaoWizard";
+import { RascunhoDialog } from "@/components/inscricao/RascunhoDialog";
 import { InscricaoCompletaForm } from "@/lib/inscricao-validation";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNavigate } from "react-router-dom";
@@ -53,6 +54,8 @@ export default function Editais() {
   const [selectedInscricao, setSelectedInscricao] = useState<Inscricao | null>(null);
   const [inscricaoEdital, setInscricaoEdital] = useState<Edital | null>(null);
   const [detalhesEdital, setDetalhesEdital] = useState<Edital | null>(null);
+  const [rascunhoData, setRascunhoData] = useState<{ id: string; lastSaved: Date } | null>(null);
+  const [isRascunhoDialogOpen, setIsRascunhoDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const { isGestor, isAdmin, isCandidato } = useUserRole();
   const navigate = useNavigate();
@@ -107,7 +110,7 @@ export default function Editais() {
     return inscricoes.find(i => i.edital_id === editalId);
   };
 
-  const handleEditalClick = (edital: Edital) => {
+  const handleEditalClick = async (edital: Edital) => {
     const inscricao = getInscricaoForEdital(edital.id);
     
     if (inscricao) {
@@ -115,8 +118,63 @@ export default function Editais() {
       setSelectedEdital(edital);
       setSelectedInscricao(inscricao);
     } else {
-      // Se não está inscrito, abrir formulário de inscrição
+      // Verificar se existe rascunho
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Você precisa estar autenticado para se inscrever');
+        return;
+      }
+
+      const { data: rascunho, error } = await supabase
+        .from('inscricoes_edital')
+        .select('*')
+        .eq('candidato_id', user.id)
+        .eq('edital_id', edital.id)
+        .eq('status', 'rascunho')
+        .maybeSingle();
+
+      if (error) {
+        console.error('Erro ao verificar rascunho:', error);
+      }
+
       setInscricaoEdital(edital);
+
+      if (rascunho) {
+        // Tem rascunho - mostrar dialog
+        setRascunhoData({
+          id: rascunho.id,
+          lastSaved: new Date(rascunho.updated_at)
+        });
+        setIsRascunhoDialogOpen(true);
+      }
+      // Se não tem rascunho, o dialog abre normalmente
+    }
+  };
+
+  const handleContinueRascunho = () => {
+    setIsRascunhoDialogOpen(false);
+    // inscricaoEdital já está setado, apenas fecha o dialog
+  };
+
+  const handleStartNewInscricao = async () => {
+    if (!rascunhoData) return;
+
+    try {
+      // Deletar rascunho antigo
+      const { error } = await supabase
+        .from('inscricoes_edital')
+        .delete()
+        .eq('id', rascunhoData.id);
+
+      if (error) throw error;
+
+      setRascunhoData(null);
+      setIsRascunhoDialogOpen(false);
+
+      toast.success('Rascunho excluído. Você pode começar uma nova inscrição.');
+    } catch (error: any) {
+      console.error('Erro ao deletar rascunho:', error);
+      toast.error('Erro ao excluir rascunho: ' + error.message);
     }
   };
 
@@ -643,7 +701,10 @@ export default function Editais() {
 
       {/* Dialog para nova inscrição */}
       <Dialog open={!!inscricaoEdital} onOpenChange={(open) => {
-        if (!open) setInscricaoEdital(null);
+        if (!open) {
+          setInscricaoEdital(null);
+          setRascunhoData(null);
+        }
       }}>
         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -655,10 +716,22 @@ export default function Editais() {
           <InscricaoWizard 
             editalId={inscricaoEdital?.id || ''}
             editalTitulo={inscricaoEdital?.titulo || ''}
-            onSubmit={handleSubmitInscricao} 
+            onSubmit={handleSubmitInscricao}
+            rascunhoInscricaoId={rascunhoData?.id}
           />
         </DialogContent>
       </Dialog>
+
+      {/* Dialog de rascunho encontrado */}
+      {rascunhoData && (
+        <RascunhoDialog
+          open={isRascunhoDialogOpen}
+          onOpenChange={setIsRascunhoDialogOpen}
+          lastSaved={rascunhoData.lastSaved}
+          onContinue={handleContinueRascunho}
+          onStartNew={handleStartNewInscricao}
+        />
+      )}
     </>
   );
 }
