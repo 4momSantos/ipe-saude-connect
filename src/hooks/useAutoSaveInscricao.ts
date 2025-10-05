@@ -34,6 +34,7 @@ export function useAutoSaveInscricao({
         candidato_id: user.id,
         edital_id: editalId,
         status: 'rascunho' as const,
+        is_rascunho: true,
         dados_inscricao: formData
       };
 
@@ -98,7 +99,7 @@ export function useAutoSaveInscricao({
         .select('*')
         .eq('candidato_id', user.id)
         .eq('edital_id', editalId)
-        .eq('status', 'rascunho')
+        .eq('is_rascunho', true)
         .maybeSingle();
 
       if (error) throw error;

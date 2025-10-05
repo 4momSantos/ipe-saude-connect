@@ -199,54 +199,60 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
 
   const handleSubmit = async (data: InscricaoCompletaForm) => {
     console.log('📝 [InscricaoWizard] handleSubmit chamado');
-    console.log('Data recebida do form:', data.data_nascimento);
     
-    if (isSubmitting) return; // Prevenir cliques múltiplos
-    
+    if (isSubmitting) return;
     setIsSubmitting(true);
+    
+    // Timeout de 30 segundos
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout: operação demorou mais de 30 segundos')), 30000)
+    );
+
     try {
-      // NORMALIZAR data_nascimento
-      if (typeof data.data_nascimento === 'string') {
-        console.warn('⚠️ data_nascimento é string, convertendo...');
-        data.data_nascimento = new Date(data.data_nascimento);
-      }
-      
-      // VALIDAR se é Date válido
-      if (!data.data_nascimento || !(data.data_nascimento instanceof Date)) {
-        toast.error('Por favor, selecione uma data de nascimento válida');
-        setIsSubmitting(false);
-        return;
-      }
-      
-      if (isNaN(data.data_nascimento.getTime())) {
-        toast.error('Data de nascimento inválida. Selecione uma data válida.');
-        setIsSubmitting(false);
-        return;
-      }
-      
-      console.log('✅ Data validada:', data.data_nascimento.toISOString());
-      
-      // ✅ SE EXISTE RASCUNHO, ATUALIZAR STATUS PARA 'em_analise'
-      if (inscricaoId) {
-        console.log('[InscricaoWizard] Atualizando rascunho para status final:', inscricaoId);
-        const { supabase } = await import('@/integrations/supabase/client');
-        const { error: updateError } = await supabase
-          .from('inscricoes_edital')
-          .update({ status: 'em_analise' })
-          .eq('id', inscricaoId);
-        
-        if (updateError) {
-          console.error('Erro ao atualizar status do rascunho:', updateError);
+      const submitPromise = (async () => {
+        // Validar campos obrigatórios
+        if (typeof data.data_nascimento === 'string') {
+          data.data_nascimento = new Date(data.data_nascimento);
         }
+        
+        if (!data.data_nascimento || !(data.data_nascimento instanceof Date) || isNaN(data.data_nascimento.getTime())) {
+          throw new Error('Data de nascimento inválida');
+        }
+        
+        // Atualizar status do rascunho
+        if (inscricaoId) {
+          const { supabase } = await import('@/integrations/supabase/client');
+          const { error: updateError } = await supabase
+            .from('inscricoes_edital')
+            .update({ 
+              status: 'em_analise',
+              is_rascunho: false 
+            })
+            .eq('id', inscricaoId);
+          
+          if (updateError) {
+            console.error('Erro ao atualizar rascunho:', updateError);
+          }
+        }
+        
+        await onSubmit(data);
+      })();
+
+      await Promise.race([submitPromise, timeoutPromise]);
+      toast.success('Inscrição enviada com sucesso!');
+    } catch (error: any) {
+      console.error('[INSCRICAO] Erro:', error);
+      
+      let errorMessage = 'Erro ao enviar inscrição. Tente novamente.';
+      if (error.message?.includes('Timeout')) {
+        errorMessage = 'A operação demorou muito. Tente novamente.';
+      } else if (error.message) {
+        errorMessage = error.message;
       }
       
-      await onSubmit(data);
-      toast.success('Inscrição enviada com sucesso!');
-      // Manter isSubmitting=true até o dialog fechar
-    } catch (error) {
-      console.error('Erro no handleSubmit:', error);
+      toast.error(errorMessage);
+    } finally {
       setIsSubmitting(false);
-      // Erro já tratado pelo onSubmit em Editais.tsx
     }
   };
 

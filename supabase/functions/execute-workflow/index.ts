@@ -207,45 +207,49 @@ async function executeWorkflowSteps(
         break;
 
       case "form":
-        console.log("Aguardando preenchimento de formulário");
+        console.log(`[WORKFLOW] 📝 Nó FORM detectado: ${currentNode.id}`);
         
-        // Se o nó tem formTemplateId, buscar template do banco
-        let formFields = currentNode.data.formFields;
-        
-        if (currentNode.data.formTemplateId) {
-          console.log("Buscando template de formulário:", currentNode.data.formTemplateId);
-          const { data: template, error: templateError } = await supabaseClient
-            .from("form_templates")
-            .select("fields")
-            .eq("id", currentNode.data.formTemplateId)
-            .eq("is_active", true)
-            .single();
+        // Se dados já estão no inputData, pular automaticamente
+        if (context && Object.keys(context).length > 0) {
+          console.log(`[WORKFLOW] ✅ Dados já coletados, pulando formulário`);
           
-          if (templateError) {
-            console.error("Erro ao buscar template:", templateError);
-            throw new Error(`Template de formulário não encontrado: ${currentNode.data.formTemplateId}`);
+          await supabaseClient
+            .from("workflow_step_executions")
+            .update({
+              status: "completed",
+              completed_at: new Date().toISOString(),
+              output_data: { 
+                skipped: true, 
+                reason: "Dados já na inscrição",
+                formData: context 
+              }
+            })
+            .eq("id", stepExecution.id);
+          
+          outputData = { ...context };
+          
+          // Avançar automaticamente
+          const nextEdge = edges.find(e => e.source === currentNode.id);
+          if (nextEdge) {
+            const nextNode = nodes.find(n => n.id === nextEdge.target);
+            if (nextNode) {
+              console.log(`[WORKFLOW] ➡️ Avançando para próximo nó: ${nextNode.id}`);
+              await executeWorkflowSteps(supabaseClient, executionId, nodes, edges, nextNode, outputData);
+            }
           }
-          
-          formFields = template.fields;
-          console.log("Template carregado com sucesso:", formFields?.length, "campos");
+          return;
         }
         
-        // Armazenar campos no contexto para uso posterior
-        outputData = { ...context, formFields };
-        
-        // Formulários precisam ser preenchidos manualmente
-        // A execução para aqui até que o formulário seja submetido
+        // Se não tem dados, pausar para preenchimento manual
+        console.log(`[WORKFLOW] ⏸️ Pausando para preenchimento de formulário`);
         await supabaseClient
           .from("workflow_step_executions")
           .update({
             status: "pending",
-            output_data: outputData,
-            completed_at: new Date().toISOString(),
+            output_data: { formFields: currentNode.data.formFields }
           })
           .eq("id", stepExecution.id);
-        
-        console.log(`[WORKFLOW] ⏸️ Execução ${executionId} pausada no formulário ${currentNode.id}`);
-        return; // Para a execução aqui
+        return;
 
       case "email":
         console.log("Enviando email (simulado)");
@@ -310,6 +314,26 @@ async function executeWorkflowSteps(
             console.error("Erro ao criar registros de aprovação:", approvalError);
           } else {
             console.log("Registros de aprovação criados:", approvalRecords.length);
+            
+            // Criar notificações para analistas
+            const notifications = assignedAnalysts.map(analystId => ({
+              user_id: analystId,
+              type: "info",
+              title: "⏰ Nova Aprovação Pendente",
+              message: `Inscrição aguarda sua análise`,
+              related_type: "workflow_approval",
+              related_id: stepExecution.id
+            }));
+            
+            const { error: notifError } = await supabaseClient
+              .from("app_notifications")
+              .insert(notifications);
+            
+            if (notifError) {
+              console.error("[WORKFLOW] ❌ Erro ao criar notificações:", notifError);
+            } else {
+              console.log(`[WORKFLOW] ✅ ${notifications.length} notificações enviadas`);
+            }
           }
         }
         

@@ -155,6 +155,49 @@ export default function Workflows() {
     setTemplateToDelete(null);
   };
 
+  const criarWorkflowCredenciamento = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const workflowData = {
+        name: "Fluxo de Credenciamento Completo",
+        description: "Workflow automático com formulário → aprovação → assinatura → database → notificação",
+        nodes: [
+          { id: "start-1", type: "start", position: { x: 100, y: 100 }, data: { type: "start", label: "Início", triggerConfig: { type: "form_submitted" } } },
+          { id: "form-1", type: "form", position: { x: 100, y: 200 }, data: { type: "form", label: "Formulário de Inscrição" } },
+          { id: "approval-1", type: "approval", position: { x: 100, y: 300 }, data: { type: "approval", label: "Aprovação Analista", approvalConfig: { assignmentType: "all" } } },
+          { id: "email-aprovado", type: "email", position: { x: 100, y: 400 }, data: { type: "email", label: "Email Aprovação" } },
+          { id: "signature-1", type: "signature", position: { x: 100, y: 500 }, data: { type: "signature", label: "Assinatura Digital" } },
+          { id: "database-1", type: "database", position: { x: 100, y: 600 }, data: { type: "database", label: "Atualizar Status" } },
+          { id: "email-confirmacao", type: "email", position: { x: 100, y: 700 }, data: { type: "email", label: "Email Confirmação" } },
+          { id: "end-1", type: "end", position: { x: 100, y: 800 }, data: { type: "end", label: "Concluído" } }
+        ],
+        edges: [
+          { id: "e1", source: "start-1", target: "form-1" },
+          { id: "e2", source: "form-1", target: "approval-1" },
+          { id: "e3", source: "approval-1", target: "email-aprovado" },
+          { id: "e4", source: "email-aprovado", target: "signature-1" },
+          { id: "e5", source: "signature-1", target: "database-1" },
+          { id: "e6", source: "database-1", target: "email-confirmacao" },
+          { id: "e7", source: "email-confirmacao", target: "end-1" }
+        ]
+      };
+
+      const { error: saveError } = await supabase.functions.invoke("save-workflow", {
+        body: workflowData,
+      });
+
+      if (saveError) throw saveError;
+
+      toast.success("✅ Template de credenciamento criado!");
+      loadWorkflows();
+    } catch (error) {
+      console.error("Erro ao criar template:", error);
+      toast.error("Erro ao criar template de credenciamento");
+    }
+  };
+
   return (
     <div className="container mx-auto py-6 px-4 space-y-6">
       {/* Header */}
@@ -165,10 +208,15 @@ export default function Workflows() {
             Configure e gerencie fluxos de credenciamento personalizados
           </p>
         </div>
-        <Button onClick={handleCreateNew} size="lg">
-          <Plus className="h-5 w-5 mr-2" />
-          Criar Workflow
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={criarWorkflowCredenciamento} variant="outline" size="lg">
+            🚀 Template de Credenciamento
+          </Button>
+          <Button onClick={handleCreateNew} size="lg">
+            <Plus className="h-5 w-5 mr-2" />
+            Criar Workflow
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (

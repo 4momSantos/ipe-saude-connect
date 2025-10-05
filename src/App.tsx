@@ -88,6 +88,7 @@ const App = () => (
                           <Route path="/editais/criar" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><CriarEdital /></RoleProtectedRoute>} />
                           <Route path="/editais/editar/:id" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><EditarEdital /></RoleProtectedRoute>} />
                           <Route path="/inscricoes" element={<Inscricoes />} />
+                          <Route path="/minhas-inscricoes" element={<Inscricoes />} />
                           <Route 
                             path="/analises" 
                             element={

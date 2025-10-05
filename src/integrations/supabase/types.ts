@@ -637,6 +637,7 @@ export type Database = {
           dados_inscricao: Json | null
           edital_id: string
           id: string
+          is_rascunho: boolean | null
           motivo_rejeicao: string | null
           status: string
           updated_at: string | null
@@ -650,6 +651,7 @@ export type Database = {
           dados_inscricao?: Json | null
           edital_id: string
           id?: string
+          is_rascunho?: boolean | null
           motivo_rejeicao?: string | null
           status?: string
           updated_at?: string | null
@@ -663,6 +665,7 @@ export type Database = {
           dados_inscricao?: Json | null
           edital_id?: string
           id?: string
+          is_rascunho?: boolean | null
           motivo_rejeicao?: string | null
           status?: string
           updated_at?: string | null
