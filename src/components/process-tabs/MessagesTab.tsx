@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Send, User, UserCircle } from "lucide-react";
+import { Send, User, UserCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -31,6 +31,7 @@ export function MessagesTab({ processoId, candidatoNome, executionId, inscricaoI
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserType, setCurrentUserType] = useState<"analista" | "candidato">("candidato");
+  const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -142,9 +143,10 @@ export function MessagesTab({ processoId, candidatoNome, executionId, inscricaoI
   };
 
   const handleEnviar = async () => {
-    if (!novaMensagem.trim() || !currentUserId) return;
+    if (!novaMensagem.trim() || !currentUserId || isSending) return;
 
     try {
+      setIsSending(true);
       const { error } = await supabase
         .from('workflow_messages')
         .insert({
@@ -162,6 +164,8 @@ export function MessagesTab({ processoId, candidatoNome, executionId, inscricaoI
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);
       toast.error('Erro ao enviar mensagem');
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -259,10 +263,14 @@ export function MessagesTab({ processoId, candidatoNome, executionId, inscricaoI
           />
           <Button
             onClick={handleEnviar}
-            disabled={!novaMensagem.trim()}
+            disabled={!novaMensagem.trim() || isSending}
             className="px-6"
           >
-            <Send className="h-4 w-4" />
+            {isSending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
           </Button>
         </div>
         <p className="text-xs text-muted-foreground mt-2">

@@ -133,19 +133,31 @@ export function WorkflowMonitoringPage() {
         (data || []).map(async (exec: any) => {
           if (exec.inscricoes_edital && exec.inscricoes_edital.length > 0) {
             const inscricaoId = exec.inscricoes_edital[0].id;
-            const { count } = await supabase
-              .from('workflow_messages')
-              .select('*', { count: 'exact', head: true })
-              .eq('inscricao_id', inscricaoId)
-              .eq('is_read', false);
+            
+            try {
+              const { count } = await supabase
+                .from('workflow_messages')
+                .select('*', { count: 'exact', head: true })
+                .eq('inscricao_id', inscricaoId)
+                .eq('is_read', false);
 
-            return {
-              ...exec,
-              inscricoes_edital: exec.inscricoes_edital.map((i: any) => ({
-                ...i,
-                unread_messages: count || 0,
-              })),
-            };
+              return {
+                ...exec,
+                inscricoes_edital: exec.inscricoes_edital.map((i: any) => ({
+                  ...i,
+                  unread_messages: count || 0,
+                })),
+              };
+            } catch (error) {
+              console.error('Erro ao buscar mensagens não lidas:', error);
+              return {
+                ...exec,
+                inscricoes_edital: exec.inscricoes_edital.map((i: any) => ({
+                  ...i,
+                  unread_messages: 0,
+                })),
+              };
+            }
           }
           return exec;
         })

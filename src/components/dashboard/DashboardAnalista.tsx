@@ -110,10 +110,12 @@ export function DashboardAnalista() {
         .eq('status', 'completed')
         .gte('completed_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
 
+      // Buscar aprovações pendentes (steps de approval com status running)
       const { count: approvalsPending } = await supabase
-        .from('workflow_approvals')
+        .from('workflow_step_executions')
         .select('*', { count: 'exact', head: true })
-        .eq('decision', 'pending');
+        .eq('node_type', 'approval')
+        .eq('status', 'running');
 
       setStats({
         total: totalInscricoes || 0,
