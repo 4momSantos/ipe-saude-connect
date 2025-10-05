@@ -1271,6 +1271,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      enqueue_orphan_inscricoes: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          result_inscricao_id: string
+          result_message: string
+          result_status: string
+          result_workflow_id: string
+        }[]
+      }
       get_gestores: {
         Args: Record<PropertyKey, never>
         Returns: {
