@@ -249,28 +249,11 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
             .eq('id', editalId)
             .single();
           
-          // Invocar execute-workflow DIRETAMENTE
+          // O workflow será iniciado automaticamente pelo trigger
+          console.log('[WIZARD] Inscrição enviada, workflow será processado pela fila automaticamente');
+          
           if (edital?.workflow_id) {
-            console.log('[INSCRICAO] Iniciando workflow:', edital.workflow_id);
-            const { error: workflowError } = await supabase.functions.invoke('execute-workflow', {
-              body: {
-                workflowId: edital.workflow_id,
-                inscricaoId,
-                inputData: data
-              }
-            });
-            
-            if (workflowError) {
-              console.error('❌ Erro ao iniciar workflow:', workflowError);
-              // Marcar como pendente para retry manual
-              await supabase
-                .from('inscricoes_edital')
-                .update({ status: 'pendente_workflow' })
-                .eq('id', inscricaoId);
-              
-              throw new Error('Erro ao iniciar workflow. Sua inscrição foi salva e será processada em breve.');
-            }
-            console.log('✅ Workflow iniciado com sucesso');
+            console.log('✅ Workflow será processado: ', edital.workflow_id);
           }
         }
       })();

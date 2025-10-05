@@ -89,6 +89,8 @@ export function WorkflowApprovalPanel() {
     try {
       setLoading(true);
       
+      console.log('[APPROVAL_PANEL] Buscando aprovações pendentes...');
+      
       // Query única com JOIN para buscar tudo de uma vez
       // ✅ Fase 17: Excluir workflows órfãs (sem step_executions)
       const { data: approvals, error: approvalsError } = await supabase
@@ -118,6 +120,8 @@ export function WorkflowApprovalPanel() {
           )
         `)
         .eq("decision", "pending")
+        .eq("workflow_step_executions.workflow_executions.status", "running")
+        .not("workflow_step_executions.id", "is", null)
         .eq("workflow_step_executions.workflow_executions.status", "running")
         .not("workflow_step_executions.id", "is", null)
         .order("created_at", { ascending: false });

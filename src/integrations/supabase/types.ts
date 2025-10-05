@@ -1117,6 +1117,66 @@ export type Database = {
           },
         ]
       }
+      workflow_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          error_message: string | null
+          id: string
+          input_data: Json | null
+          inscricao_id: string
+          max_attempts: number
+          processed_at: string | null
+          processing_started_at: string | null
+          status: string
+          workflow_id: string
+          workflow_version: number
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          input_data?: Json | null
+          inscricao_id: string
+          max_attempts?: number
+          processed_at?: string | null
+          processing_started_at?: string | null
+          status?: string
+          workflow_id: string
+          workflow_version: number
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          input_data?: Json | null
+          inscricao_id?: string
+          max_attempts?: number
+          processed_at?: string | null
+          processing_started_at?: string | null
+          status?: string
+          workflow_id?: string
+          workflow_version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_queue_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: true
+            referencedRelation: "inscricoes_edital"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_queue_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflow_step_executions: {
         Row: {
           completed_at: string | null
@@ -1249,6 +1309,16 @@ export type Database = {
           action_taken: string
           edital_id: string
           inscricao_id: string
+          workflow_id: string
+        }[]
+      }
+      process_workflow_queue: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          inscricao_id: string
+          message: string
+          queue_id: string
+          status: string
           workflow_id: string
         }[]
       }

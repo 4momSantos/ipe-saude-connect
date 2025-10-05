@@ -1,125 +1,231 @@
-import { CheckCircle2, Circle, Clock, XCircle } from "lucide-react";
-import { WorkflowStep, WorkflowAction } from "@/types/workflow";
+// FASE 11: Timeline visual com animações e real-time
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { 
+  CheckCircle2, 
+  Clock, 
+  AlertCircle, 
+  XCircle, 
+  Loader2,
+  FileSignature,
+  Mail,
+  UserCheck,
+  ChevronRight
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+
+interface WorkflowStep {
+  id: string;
+  node_id: string;
+  node_type: string;
+  status: string;
+  started_at: string | null;
+  completed_at: string | null;
+  error_message: string | null;
+  input_data: any;
+  output_data: any;
+}
 
 interface WorkflowTimelineProps {
-  steps: WorkflowStep[];
-  currentStepId: string;
-  actions?: WorkflowAction[];
+  execution_id: string;
   className?: string;
 }
 
-const stepIcons: Record<string, any> = {
-  completed: CheckCircle2,
-  active: Clock,
-  pending: Circle,
-  rejected: XCircle,
+const nodeIcons: Record<string, any> = {
+  start: Clock,
+  form: FileSignature,
+  email: Mail,
+  approval: UserCheck,
+  condition: ChevronRight,
+  end: CheckCircle2,
 };
 
-export function WorkflowTimeline({
-  steps,
-  currentStepId,
-  actions = [],
-  className,
-}: WorkflowTimelineProps) {
-  const currentStepIndex = steps.findIndex(step => step.id === currentStepId);
+const statusColors: Record<string, { bg: string; text: string; icon: any }> = {
+  pending: { 
+    bg: 'bg-secondary/20 dark:bg-secondary/10', 
+    text: 'text-secondary-foreground', 
+    icon: Clock 
+  },
+  running: { 
+    bg: 'bg-primary/20 dark:bg-primary/10', 
+    text: 'text-primary', 
+    icon: Loader2 
+  },
+  completed: { 
+    bg: 'bg-emerald-500/20 dark:bg-emerald-500/10', 
+    text: 'text-emerald-600 dark:text-emerald-400', 
+    icon: CheckCircle2 
+  },
+  failed: { 
+    bg: 'bg-destructive/20 dark:bg-destructive/10', 
+    text: 'text-destructive', 
+    icon: XCircle 
+  },
+};
 
-  const getStepStatus = (index: number) => {
-    if (index < currentStepIndex) return "completed";
-    if (index === currentStepIndex) return "active";
-    return "pending";
+export function WorkflowTimeline({ execution_id, className }: WorkflowTimelineProps) {
+  const [steps, setSteps] = useState<WorkflowStep[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadSteps();
+
+    // Real-time subscription
+    const channel = supabase
+      .channel(`workflow-${execution_id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'workflow_step_executions',
+          filter: `execution_id=eq.${execution_id}`,
+        },
+        () => {
+          loadSteps();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [execution_id]);
+
+  const loadSteps = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('workflow_step_executions')
+        .select('*')
+        .eq('execution_id', execution_id)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setSteps(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar steps:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const getStepAction = (stepId: string) => {
-    return actions.find(action => action.stepId === stepId);
-  };
+  if (loading) {
+    return (
+      <Card className={cn("p-6", className)}>
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </Card>
+    );
+  }
+
+  if (steps.length === 0) {
+    return (
+      <Card className={cn("p-6", className)}>
+        <div className="text-center py-8 text-muted-foreground">
+          Nenhuma etapa registrada ainda
+        </div>
+      </Card>
+    );
+  }
 
   return (
-    <div className={cn("relative", className)}>
-      {steps.map((step, index) => {
-        const status = getStepStatus(index);
-        const action = getStepAction(step.id);
-        const Icon = stepIcons[status];
-        const isLast = index === steps.length - 1;
+    <Card className={cn("p-6", className)}>
+      <h3 className="text-lg font-semibold mb-6">Timeline do Workflow</h3>
 
-        return (
-          <div key={step.id} className="relative pb-8">
-            {/* Linha conectora */}
-            {!isLast && (
-              <div
-                className={cn(
-                  "absolute left-4 top-8 w-0.5 h-full -ml-px transition-colors duration-500",
-                  status === "completed" ? "bg-primary" : "bg-muted"
-                )}
-              />
-            )}
+      <div className="relative">
+        {/* Linha vertical conectando os steps */}
+        <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-border" />
 
-            {/* Conteúdo da etapa */}
-            <div className="relative flex items-start gap-4 group">
-              {/* Ícone */}
-              <div
-                className={cn(
-                  "relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 transition-all duration-300",
-                  status === "completed" && "bg-primary border-primary text-primary-foreground",
-                  status === "active" && "bg-background border-primary text-primary animate-pulse",
-                  status === "pending" && "bg-muted border-muted-foreground/20 text-muted-foreground"
-                )}
+        <div className="space-y-6">
+          {steps.map((step, index) => {
+            const statusConfig = statusColors[step.status] || statusColors.pending;
+            const NodeIcon = nodeIcons[step.node_type] || ChevronRight;
+            const StatusIcon = statusConfig.icon;
+
+            return (
+              <div 
+                key={step.id} 
+                className="relative flex gap-4 animate-fade-in"
+                style={{ animationDelay: `${index * 50}ms` }}
               >
-                <Icon className="h-4 w-4" />
-              </div>
-
-              {/* Conteúdo */}
-              <div className="flex-1 min-w-0 pt-0.5">
-                <div className="flex items-center gap-2 mb-1">
-                  <h4
-                    className={cn(
-                      "font-semibold text-sm transition-colors",
-                      status === "completed" && "text-foreground",
-                      status === "active" && "text-primary",
-                      status === "pending" && "text-muted-foreground"
-                    )}
-                  >
-                    {step.name}
-                  </h4>
-                  {status === "active" && (
-                    <span className="px-2 py-0.5 text-xs font-medium bg-primary/10 text-primary rounded-full">
-                      Em andamento
-                    </span>
-                  )}
+                {/* Ícone do nó */}
+                <div className={cn(
+                  "relative z-10 flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center",
+                  "border-2 border-border shadow-sm",
+                  statusConfig.bg
+                )}>
+                  <NodeIcon className={cn("h-5 w-5", statusConfig.text)} />
+                  
+                  {/* Badge de status sobreposto */}
+                  <div className="absolute -bottom-1 -right-1">
+                    <StatusIcon 
+                      className={cn(
+                        "h-4 w-4 bg-background rounded-full",
+                        statusConfig.text,
+                        step.status === 'running' && 'animate-spin'
+                      )} 
+                    />
+                  </div>
                 </div>
 
-                <p className="text-xs text-muted-foreground mb-2">{step.description}</p>
+                {/* Conteúdo do step */}
+                <div className="flex-1 pb-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-medium">
+                          {step.input_data?.label || step.node_type}
+                        </h4>
+                        <Badge 
+                          variant="outline" 
+                          className={cn("text-xs", statusConfig.text)}
+                        >
+                          {step.status}
+                        </Badge>
+                      </div>
 
-                {action && (
-                  <div className="mt-2 p-3 rounded-lg bg-muted/50 border border-border">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-foreground">
-                        {action.performedBy}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {format(new Date(action.performedAt), "dd/MM/yyyy 'às' HH:mm", {
-                          locale: ptBR,
-                        })}
-                      </span>
+                      {step.started_at && (
+                        <p className="text-sm text-muted-foreground">
+                          Iniciado: {new Date(step.started_at).toLocaleString('pt-BR')}
+                        </p>
+                      )}
+
+                      {step.completed_at && (
+                        <p className="text-sm text-muted-foreground">
+                          Concluído: {new Date(step.completed_at).toLocaleString('pt-BR')}
+                        </p>
+                      )}
+
+                      {step.error_message && (
+                        <div className="mt-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                          <div className="flex items-start gap-2">
+                            <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+                            <p className="text-sm text-destructive">{step.error_message}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {step.output_data && Object.keys(step.output_data).length > 0 && (
+                        <details className="mt-2">
+                          <summary className="text-sm text-muted-foreground cursor-pointer hover:text-foreground">
+                            Ver detalhes
+                          </summary>
+                          <pre className="mt-2 p-3 rounded-lg bg-muted text-xs overflow-x-auto">
+                            {JSON.stringify(step.output_data, null, 2)}
+                          </pre>
+                        </details>
+                      )}
                     </div>
-                    {action.comment && (
-                      <p className="text-xs text-muted-foreground mt-1">{action.comment}</p>
-                    )}
                   </div>
-                )}
-
-                {status === "pending" && step.daysToComplete && (
-                  <div className="text-xs text-muted-foreground">
-                    Prazo estimado: {step.daysToComplete} dias
-                  </div>
-                )}
+                </div>
               </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
+            );
+          })}
+        </div>
+      </div>
+    </Card>
   );
 }
