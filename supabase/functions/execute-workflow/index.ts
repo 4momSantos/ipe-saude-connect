@@ -417,6 +417,100 @@ async function executeWorkflowSteps(
         }
         break;
 
+      case "signature":
+        console.log(`[WORKFLOW] ✍️ Nó SIGNATURE detectado`);
+        const signatureConfig = currentNode.data.signatureConfig || {};
+        
+        // Criar signature request
+        const { data: signatureRequest, error: sigError } = await supabaseClient
+          .from('signature_requests')
+          .insert({
+            workflow_execution_id: executionId,
+            step_execution_id: stepExecution.id,
+            provider: signatureConfig.provider || 'manual',
+            signers: signatureConfig.signers || [],
+            document_url: signatureConfig.documentUrl,
+            status: 'pending',
+          })
+          .select()
+          .single();
+        
+        if (sigError) {
+          console.error(`[WORKFLOW] ❌ Erro ao criar signature request:`, sigError);
+          throw sigError;
+        }
+        
+        console.log(`[WORKFLOW] ✅ Signature request criada: ${signatureRequest.id}`);
+        
+        // Invocar edge function para enviar solicitação
+        const { error: sendError } = await supabaseClient.functions.invoke(
+          'send-signature-request',
+          { body: { signatureRequestId: signatureRequest.id } }
+        );
+        
+        if (sendError) {
+          console.error(`[WORKFLOW] ❌ Erro ao enviar signature request:`, sendError);
+        } else {
+          console.log(`[WORKFLOW] ✅ Signature request enviada com sucesso`);
+        }
+        
+        // Pausar execução até assinatura completar
+        await supabaseClient
+          .from("workflow_step_executions")
+          .update({
+            status: "pending",
+            output_data: { signatureRequestId: signatureRequest.id }
+          })
+          .eq("id", stepExecution.id);
+        
+        console.log(`[WORKFLOW] ⏸️ Execução pausada aguardando assinatura`);
+        return;
+
+      case "ocr":
+        console.log(`[WORKFLOW] 📄 Nó OCR detectado`);
+        const ocrConfig = currentNode.data.ocrConfig || {};
+        
+        // Buscar documento para processar OCR
+        let documentUrl = ocrConfig.documentUrl;
+        
+        // Se documentUrl é uma variável, resolver do context
+        if (documentUrl && documentUrl.startsWith('{')) {
+          const varPath = documentUrl.slice(1, -1).split('.');
+          let resolved = context;
+          for (const part of varPath) {
+            resolved = resolved?.[part];
+          }
+          documentUrl = resolved;
+        }
+        
+        if (!documentUrl) {
+          console.error(`[WORKFLOW] ❌ URL do documento não fornecida para OCR`);
+          outputData = { ...context, ocrSuccess: false, ocrError: 'URL do documento não fornecida' };
+          break;
+        }
+        
+        console.log(`[WORKFLOW] 📄 Processando OCR para documento: ${documentUrl}`);
+        
+        // Invocar edge function de OCR
+        const { data: ocrResult, error: ocrError } = await supabaseClient.functions.invoke(
+          'process-ocr',
+          { body: { imageUrl: documentUrl, fieldMappings: ocrConfig.fieldMappings || [] } }
+        );
+        
+        if (ocrError) {
+          console.error(`[WORKFLOW] ❌ Erro ao processar OCR:`, ocrError);
+          outputData = { ...context, ocrSuccess: false, ocrError: ocrError.message };
+        } else {
+          console.log(`[WORKFLOW] ✅ OCR processado com sucesso`);
+          outputData = { 
+            ...context, 
+            ocrSuccess: true, 
+            ocrData: ocrResult,
+            ...ocrResult?.extractedData // Mesclar dados extraídos no context
+          };
+        }
+        break;
+
       case "approval":
         console.log("Aguardando aprovação");
         
