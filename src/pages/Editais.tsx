@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileText, Calendar, Users, CheckCircle2, Clock, Download, Eye, Plus, FileSearch, Edit } from "lucide-react";
+import { FileText, Calendar, Users, CheckCircle2, Clock, Download, Eye, Plus, FileSearch, Edit, Trash } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -109,6 +109,56 @@ export default function Editais() {
     } else {
       // Se não está inscrito, abrir formulário de inscrição
       setInscricaoEdital(edital);
+    }
+  };
+
+  const handleDeleteEdital = async (editalId: string) => {
+    const confirmMsg = 
+      `⚠️ ATENÇÃO: Deseja EXCLUIR este edital?\n\n` +
+      `Esta ação irá remover:\n` +
+      `• O edital\n` +
+      `• Todas as inscrições vinculadas\n` +
+      `• Workflows em execução\n` +
+      `• Aprovações pendentes\n\n` +
+      `Esta ação NÃO pode ser desfeita!`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      setLoading(true);
+      
+      // Verificar inscrições existentes
+      const { count } = await supabase
+        .from("inscricoes_edital")
+        .select("*", { count: "exact", head: true })
+        .eq("edital_id", editalId);
+
+      if (count && count > 0) {
+        const confirmWithData = window.confirm(
+          `Este edital possui ${count} inscrição(ões) ativas.\n\n` +
+          `Deseja continuar com a exclusão?`
+        );
+        if (!confirmWithData) {
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Deletar (CASCADE cuida das dependências)
+      const { error } = await supabase
+        .from("editais")
+        .delete()
+        .eq("id", editalId);
+
+      if (error) throw error;
+      
+      toast.success("✅ Edital excluído com sucesso!");
+      await loadData();
+    } catch (error: any) {
+      console.error("Erro ao excluir edital:", error);
+      toast.error(`❌ Erro: ${error.message || 'Tente novamente'}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -395,16 +445,26 @@ export default function Editais() {
                       </div>
                     </div>
                     <div className="mt-4 flex gap-3 flex-wrap">
-                      {(isGestor || isAdmin) && (
-                        <Button 
-                          onClick={() => navigate(`/editais/editar/${edital.id}`)}
-                          variant="outline" 
-                          className="border-border hover:bg-card"
-                        >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Editar
-                        </Button>
-                      )}
+                  {(isGestor || isAdmin) && (
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => navigate(`/editais/editar/${edital.id}`)}
+                        variant="outline" 
+                        className="border-border hover:bg-card"
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Editar
+                      </Button>
+                      <Button 
+                        onClick={() => handleDeleteEdital(edital.id)}
+                        variant="destructive"
+                        size="sm"
+                      >
+                        <Trash className="h-4 w-4 mr-2" />
+                        Excluir
+                      </Button>
+                    </div>
+                  )}
                       {isInscrito ? (
                         <Button 
                           onClick={() => handleEditalClick(edital)}

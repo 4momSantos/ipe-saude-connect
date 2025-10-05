@@ -37,19 +37,19 @@ interface PendingApproval {
         name: string;
         version: number;
       };
-      inscricoes_edital: Array<{
-        id: string;
-        edital_id: string;
-        candidato_id: string;
-        profiles: {
-          nome: string;
-          email: string;
-        };
-        editais: {
-          titulo: string;
-          numero_edital: string;
-        };
-      }>;
+    };
+  };
+  inscricao?: {
+    id: string;
+    edital_id: string;
+    candidato_id: string;
+    profiles: {
+      nome: string;
+      email: string;
+    };
+    editais: {
+      titulo: string;
+      numero_edital: string;
     };
   };
 }
@@ -87,33 +87,24 @@ export function WorkflowApprovalPanel() {
 
   async function loadPendingApprovals() {
     try {
-      const { data, error } = await supabase
+      setLoading(true);
+      
+      // Query 1: Buscar aprovações pendentes
+      const { data: approvals, error: approvalsError } = await supabase
         .from("workflow_approvals")
         .select(`
           *,
-          workflow_step_executions (
+          workflow_step_executions!inner (
             id,
-            node_type,
             node_id,
+            node_type,
             execution_id,
-            workflow_executions (
+            workflow_executions!inner (
               id,
+              started_at,
               workflows (
                 name,
                 version
-              ),
-              inscricoes_edital (
-                id,
-                edital_id,
-                candidato_id,
-                profiles (
-                  nome,
-                  email
-                ),
-                editais (
-                  titulo,
-                  numero_edital
-                )
               )
             )
           )
@@ -121,8 +112,57 @@ export function WorkflowApprovalPanel() {
         .eq("decision", "pending")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setApprovals((data as any) || []);
+      if (approvalsError) throw approvalsError;
+
+      // Query 2: Para cada approval, buscar inscrição relacionada
+      const enrichedApprovals = await Promise.all(
+        (approvals || []).map(async (approval) => {
+          const executionId = approval.workflow_step_executions.execution_id;
+          
+          // Buscar inscrição pelo workflow_execution_id
+          const { data: inscricao } = await supabase
+            .from("inscricoes_edital")
+            .select(`
+              id,
+              candidato_id,
+              edital_id,
+              status,
+              dados_inscricao
+            `)
+            .eq("workflow_execution_id", executionId)
+            .maybeSingle();
+          
+          if (!inscricao) {
+            return { ...approval, inscricao: null };
+          }
+
+          // Buscar dados do candidato
+          const { data: candidato } = await supabase
+            .from("profiles")
+            .select("nome, email")
+            .eq("id", inscricao.candidato_id)
+            .maybeSingle();
+
+          // Buscar dados do edital
+          const { data: edital } = await supabase
+            .from("editais")
+            .select("titulo, numero_edital")
+            .eq("id", inscricao.edital_id)
+            .maybeSingle();
+          
+          return {
+            ...approval,
+            inscricao: {
+              ...inscricao,
+              profiles: candidato || { nome: "N/A", email: "N/A" },
+              editais: edital || { titulo: "N/A", numero_edital: "N/A" }
+            }
+          };
+        })
+      );
+
+      // Filtrar apenas aprovações que têm inscrição vinculada
+      setApprovals(enrichedApprovals.filter(a => a.inscricao !== null) as PendingApproval[]);
     } catch (error) {
       console.error("Erro ao carregar aprovações pendentes:", error);
       toast.error("Erro ao carregar aprovações pendentes");
@@ -248,7 +288,7 @@ export function WorkflowApprovalPanel() {
         </div>
 
         {approvals.map((approval) => {
-          const inscricao = approval.workflow_step_executions.workflow_executions.inscricoes_edital[0];
+          const inscricao = approval.inscricao;
           if (!inscricao) return null;
 
           return (

@@ -84,9 +84,15 @@ serve(async (req) => {
         .eq("id", inscricaoId);
 
       if (updateError) {
-        console.error(`[WORKFLOW] Erro ao vincular execução à inscrição ${inscricaoId}:`, updateError);
+        console.error(`[WORKFLOW] ❌ ERRO ao vincular execution ${execution.id} à inscrição ${inscricaoId}:`, {
+          message: updateError.message,
+          code: updateError.code,
+          details: updateError.details,
+          hint: updateError.hint
+        });
+        // NÃO jogar erro, apenas logar (workflow já foi criada)
       } else {
-        console.log(`[WORKFLOW] Execução ${execution.id} vinculada à inscrição ${inscricaoId}`);
+        console.log(`[WORKFLOW] ✅ Vinculado com sucesso: execution ${execution.id} → inscrição ${inscricaoId}`);
       }
     }
 
