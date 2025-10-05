@@ -166,16 +166,15 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField }: OCRConfigPan
                   <div>
                     <Label className="text-xs">Comparar com campo do formulário</Label>
                     <Select
-                      value={fieldMapping.formFieldId || ''}
+                      value={fieldMapping.formFieldId || undefined}
                       onValueChange={(value) => 
                         handleUpdateFieldMapping(index, { formFieldId: value || undefined })
                       }
                     >
                       <SelectTrigger className="text-sm">
-                        <SelectValue placeholder="Nenhum" />
+                        <SelectValue placeholder="Nenhum campo" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Nenhum</SelectItem>
                         {availableFields.map(f => (
                           <SelectItem key={f.id} value={f.id}>
                             {f.label}
