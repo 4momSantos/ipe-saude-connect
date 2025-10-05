@@ -1271,6 +1271,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_orphan_workflows: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          cleaned_executions: number
+          reset_queue_items: number
+        }[]
+      }
       enqueue_orphan_inscricoes: {
         Args: Record<PropertyKey, never>
         Returns: {
