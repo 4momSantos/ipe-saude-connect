@@ -8,6 +8,14 @@ import { Slider } from '@/components/ui/slider';
 import { Card } from '@/components/ui/card';
 import { Trash2, Plus, FileCheck } from 'lucide-react';
 import { getDocumentTypes, getValidationAPIs, getDefaultFieldsForDocumentType } from '@/lib/ocr-processor';
+import { supabase } from '@/integrations/supabase/client';
+import { useEffect, useState } from 'react';
+
+interface FormTemplate {
+  id: string;
+  name: string;
+  fields: FormField[];
+}
 
 interface OCRConfigPanelProps {
   field: FormField;
@@ -17,6 +25,11 @@ interface OCRConfigPanelProps {
 }
 
 export const OCRConfigPanel = ({ field, allFields, onUpdateField, allWorkflowFields = [] }: OCRConfigPanelProps) => {
+  const [templates, setTemplates] = useState<FormTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [templateFields, setTemplateFields] = useState<FormField[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+
   const ocrConfig = field.ocrConfig || {
     enabled: false,
     documentType: 'rg' as const,
@@ -25,37 +38,52 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField, allWorkflowFie
     autoValidate: true
   };
 
-  // Combinar campos do formulário atual + todos os campos do workflow
-  // Remover duplicatas baseado no ID
-  const fieldsMap = new Map<string, FormField & { nodeName?: string }>();
-  
-  console.log('🔍 OCRConfigPanel - Campos recebidos:', {
-    allFieldsLength: allFields.length,
-    allFields: allFields.map(f => ({ id: f.id, label: f.label, type: f.type })),
-    currentFieldId: field.id,
-    currentFieldType: field.type
-  });
-  
-  // Adicionar campos do formulário atual
-  allFields
-    .filter(f => {
-      const isValid = f.id !== field.id && f.type !== 'file';
-      console.log(`Campo ${f.label} (${f.id}): isValid=${isValid}, isSameId=${f.id === field.id}, isFile=${f.type === 'file'}`);
-      return isValid;
-    })
-    .forEach(f => fieldsMap.set(f.id, f));
-  
-  // Adicionar campos de outros formulários do workflow
-  allWorkflowFields
-    .filter(f => f.id !== field.id && f.type !== 'file')
-    .forEach(f => fieldsMap.set(f.id, f));
-  
-  const allAvailableFields = Array.from(fieldsMap.values());
-  
-  console.log('🔍 OCRConfigPanel - Resultado:', {
-    fieldsMapSize: fieldsMap.size,
-    allAvailableFields: allAvailableFields.map(f => ({ id: f.id, label: f.label, type: f.type }))
-  });
+  // Carregar templates do banco
+  useEffect(() => {
+    loadTemplates();
+  }, []);
+
+  // Carregar campos do template selecionado
+  useEffect(() => {
+    if (selectedTemplateId) {
+      const template = templates.find(t => t.id === selectedTemplateId);
+      if (template) {
+        setTemplateFields(template.fields.filter(f => f.type !== 'file'));
+        console.log('📋 Template selecionado:', {
+          templateId: selectedTemplateId,
+          templateName: template.name,
+          camposDisponiveis: template.fields.filter(f => f.type !== 'file').length
+        });
+      }
+    } else {
+      setTemplateFields([]);
+    }
+  }, [selectedTemplateId, templates]);
+
+  const loadTemplates = async () => {
+    try {
+      setLoadingTemplates(true);
+      const { data, error } = await supabase
+        .from('form_templates')
+        .select('id, name, fields')
+        .order('name');
+
+      if (error) throw error;
+
+      const formattedTemplates = (data || []).map(t => ({
+        id: t.id,
+        name: t.name,
+        fields: (t.fields as any[]) || []
+      }));
+
+      setTemplates(formattedTemplates);
+      console.log('📚 Templates carregados:', formattedTemplates.length);
+    } catch (error) {
+      console.error('Erro ao carregar templates:', error);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
 
   const handleToggleOCR = (enabled: boolean) => {
     if (enabled && ocrConfig.expectedFields.length === 0) {
@@ -110,16 +138,15 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField, allWorkflowFie
     });
   };
 
-  // Debug: verificar campos disponíveis
+  // Debug: verificar templates e campos
   console.log('🔍 OCRConfigPanel - Debug:', {
-    currentFormFields: allFields.length,
-    workflowFields: allWorkflowFields.length,
-    totalAvailable: allAvailableFields.length,
-    fieldDetails: allAvailableFields.map(f => ({ 
+    templatesCarregados: templates.length,
+    templateSelecionado: selectedTemplateId,
+    camposDoTemplate: templateFields.length,
+    camposDisponiveis: templateFields.map(f => ({ 
       id: f.id, 
       label: f.label, 
-      type: f.type,
-      source: 'nodeName' in f ? f.nodeName : 'Formulário Atual'
+      type: f.type
     }))
   });
 
@@ -131,15 +158,12 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField, allWorkflowFie
       </div>
 
       {/* Info Alert */}
-      <div className="text-xs p-3 bg-muted/50 rounded-lg border border-border">
-        <p className="font-medium mb-1">ℹ️ Como funciona o mapeamento:</p>
-        <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
-          <li><strong>Campos OCR:</strong> dados que serão extraídos do documento</li>
-          <li><strong>Comparar com formulário:</strong> valida se corresponde ao preenchido</li>
-          <li><strong>Campos disponíveis:</strong> 
-            {allFields.length - 1} do formulário atual + {allWorkflowFields.length} de outras etapas
-            = <strong>{allAvailableFields.length} total</strong>
-          </li>
+      <div className="text-xs p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+        <p className="font-medium mb-1 text-blue-900 dark:text-blue-100">💡 Como funciona:</p>
+        <ul className="list-disc pl-4 space-y-1 text-blue-700 dark:text-blue-300">
+          <li>Selecione um <strong>template de formulário</strong> já salvo</li>
+          <li>Mapeie cada campo do OCR com um campo do template</li>
+          <li>Durante o preenchimento, o sistema validará automaticamente</li>
         </ul>
       </div>
 
@@ -155,6 +179,31 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField, allWorkflowFie
 
       {ocrConfig.enabled && (
         <>
+          {/* Selecionar Template de Formulário */}
+          <div className="space-y-2">
+            <Label>Template de Formulário para Comparação</Label>
+            <Select
+              value={selectedTemplateId}
+              onValueChange={setSelectedTemplateId}
+              disabled={loadingTemplates}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={loadingTemplates ? "Carregando..." : "Selecione um template"} />
+              </SelectTrigger>
+              <SelectContent className="bg-background">
+                {templates.map(template => (
+                  <SelectItem key={template.id} value={template.id}>
+                    {template.name} ({template.fields.filter(f => f.type !== 'file').length} campos)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedTemplateId && (
+              <p className="text-xs text-muted-foreground">
+                ✓ {templateFields.length} campos disponíveis para mapeamento
+              </p>
+            )}
+          </div>
           {/* Tipo de Documento */}
           <div className="space-y-2">
             <Label>Tipo de Documento</Label>
@@ -231,12 +280,16 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField, allWorkflowFie
                     </div>
                   </div>
 
-                  {/* Comparar com campo do formulário */}
+                  {/* Comparar com campo do template */}
                   <div>
-                    <Label className="text-xs">Comparar com campo do formulário</Label>
-                    {allAvailableFields.length === 0 ? (
+                    <Label className="text-xs">Comparar com campo do template</Label>
+                    {!selectedTemplateId ? (
+                      <div className="text-xs text-amber-600 dark:text-amber-400 p-2 border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950 rounded">
+                        ⚠️ Selecione um template primeiro
+                      </div>
+                    ) : templateFields.length === 0 ? (
                       <div className="text-xs text-muted-foreground p-2 border border-dashed rounded">
-                        Nenhum campo disponível. Adicione campos aos formulários do workflow.
+                        Nenhum campo disponível neste template
                       </div>
                     ) : (
                       <Select
@@ -248,15 +301,12 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField, allWorkflowFie
                         <SelectTrigger className="text-sm">
                           <SelectValue placeholder="Selecione um campo" />
                         </SelectTrigger>
-                        <SelectContent>
-                          {allAvailableFields.map(f => {
-                            const source = 'nodeName' in f && f.nodeName ? ` [${f.nodeName}]` : '';
-                            return (
-                              <SelectItem key={f.id} value={f.id}>
-                                {f.label} ({f.type}){source}
-                              </SelectItem>
-                            );
-                          })}
+                        <SelectContent className="bg-background z-50">
+                          {templateFields.map(f => (
+                            <SelectItem key={f.id} value={f.id}>
+                              {f.label} ({f.type})
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     )}
@@ -274,7 +324,7 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField, allWorkflowFie
                       <SelectTrigger className="text-sm">
                         <SelectValue placeholder="Nenhuma validação" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-background z-50">
                         {getValidationAPIs().map(api => (
                           <SelectItem key={api.value} value={api.value}>
                             {api.label}
