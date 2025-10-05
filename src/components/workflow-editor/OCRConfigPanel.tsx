@@ -82,11 +82,28 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField }: OCRConfigPan
     f => f.id !== field.id && f.type !== 'file'
   );
 
+  // Debug: verificar campos disponíveis
+  console.log('🔍 OCRConfigPanel - Debug:', {
+    totalFields: allFields.length,
+    availableFields: availableFields.length,
+    fieldTypes: availableFields.map(f => ({ id: f.id, label: f.label, type: f.type }))
+  });
+
   return (
     <div className="space-y-4 border-t pt-4">
       <div className="flex items-center gap-2">
         <FileCheck className="h-4 w-4 text-primary" />
         <h3 className="font-semibold">Configuração OCR</h3>
+      </div>
+
+      {/* Info Alert */}
+      <div className="text-xs p-3 bg-muted/50 rounded-lg border border-border">
+        <p className="font-medium mb-1">ℹ️ Como funciona o mapeamento:</p>
+        <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
+          <li><strong>Campos OCR:</strong> dados que serão extraídos do documento</li>
+          <li><strong>Comparar com formulário:</strong> valida se corresponde ao preenchido</li>
+          <li><strong>Campos disponíveis:</strong> apenas do formulário atual ({allFields.length} total, {availableFields.length} disponíveis)</li>
+        </ul>
       </div>
 
       {/* Habilitar OCR */}
@@ -165,23 +182,29 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField }: OCRConfigPan
                   {/* Comparar com campo do formulário */}
                   <div>
                     <Label className="text-xs">Comparar com campo do formulário</Label>
-                    <Select
-                      value={fieldMapping.formFieldId || undefined}
-                      onValueChange={(value) => 
-                        handleUpdateFieldMapping(index, { formFieldId: value || undefined })
-                      }
-                    >
-                      <SelectTrigger className="text-sm">
-                        <SelectValue placeholder="Nenhum campo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableFields.map(f => (
-                          <SelectItem key={f.id} value={f.id}>
-                            {f.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {availableFields.length === 0 ? (
+                      <div className="text-xs text-muted-foreground p-2 border border-dashed rounded">
+                        Nenhum campo disponível. Adicione campos ao formulário primeiro.
+                      </div>
+                    ) : (
+                      <Select
+                        value={fieldMapping.formFieldId || undefined}
+                        onValueChange={(value) => 
+                          handleUpdateFieldMapping(index, { formFieldId: value || undefined })
+                        }
+                      >
+                        <SelectTrigger className="text-sm">
+                          <SelectValue placeholder="Nenhum campo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableFields.map(f => (
+                            <SelectItem key={f.id} value={f.id}>
+                              {f.label} ({f.type})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
 
                   {/* API de validação */}
