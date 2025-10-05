@@ -150,15 +150,41 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit }: InscricaoW
   };
 
   const handleSubmit = async (data: InscricaoCompletaForm) => {
+    console.log('📝 [InscricaoWizard] handleSubmit chamado');
+    console.log('Data recebida do form:', data.data_nascimento);
+    
+    if (isSubmitting) return; // Prevenir cliques múltiplos
+    
     setIsSubmitting(true);
     try {
+      // NORMALIZAR data_nascimento
+      if (typeof data.data_nascimento === 'string') {
+        console.warn('⚠️ data_nascimento é string, convertendo...');
+        data.data_nascimento = new Date(data.data_nascimento);
+      }
+      
+      // VALIDAR se é Date válido
+      if (!data.data_nascimento || !(data.data_nascimento instanceof Date)) {
+        toast.error('Por favor, selecione uma data de nascimento válida');
+        setIsSubmitting(false);
+        return;
+      }
+      
+      if (isNaN(data.data_nascimento.getTime())) {
+        toast.error('Data de nascimento inválida. Selecione uma data válida.');
+        setIsSubmitting(false);
+        return;
+      }
+      
+      console.log('✅ Data validada:', data.data_nascimento.toISOString());
+      
       await onSubmit(data);
       toast.success('Inscrição enviada com sucesso!');
+      // Manter isSubmitting=true até o dialog fechar
     } catch (error) {
-      toast.error('Erro ao enviar inscrição. Tente novamente.');
-      console.error(error);
-    } finally {
+      console.error('Erro no handleSubmit:', error);
       setIsSubmitting(false);
+      // Erro já tratado pelo onSubmit em Editais.tsx
     }
   };
 

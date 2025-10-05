@@ -51,7 +51,10 @@ const validateCNPJ = (cnpj: string) => {
 // Schemas de validação para cada etapa
 
 export const dadosPessoaisSchema = z.object({
-  cpf: z.string().refine(validateCPF, 'CPF inválido'),
+  cpf: z.string()
+    .min(1, 'CPF é obrigatório')
+    .transform(val => val.replace(/\D/g, ''))
+    .refine(validateCPF, 'CPF inválido'),
   data_nascimento: z.date({ required_error: 'Data de nascimento é obrigatória' }),
   nome_completo: z.string().min(5, 'Nome completo é obrigatório'),
   rg: z.string().min(5, 'RG é obrigatório'),
@@ -65,7 +68,10 @@ export const dadosPessoaisSchema = z.object({
 });
 
 export const pessoaJuridicaSchema = z.object({
-  cnpj: z.string().refine(validateCNPJ, 'CNPJ inválido'),
+  cnpj: z.string()
+    .min(1, 'CNPJ é obrigatório')
+    .transform(val => val.replace(/\D/g, ''))
+    .refine(validateCNPJ, 'CNPJ inválido'),
   denominacao_social: z.string().min(3, 'Denominação social é obrigatória'),
   logradouro: z.string().min(3, 'Logradouro é obrigatório'),
   numero: z.string().min(1, 'Número é obrigatório'),

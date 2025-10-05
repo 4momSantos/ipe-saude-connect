@@ -171,8 +171,16 @@ export default function Editais() {
   };
 
   const handleSubmitInscricao = async (data: InscricaoCompletaForm) => {
+    console.group('🔍 [DEBUG] Submissão de Inscrição');
+    console.log('1️⃣ Dados recebidos (RAW):', JSON.stringify(data, (key, value) => 
+      value instanceof Date ? value.toISOString() : value
+    , 2));
+    console.log('2️⃣ Tipo de data_nascimento:', typeof data.data_nascimento, data.data_nascimento);
+    console.log('3️⃣ É instância de Date?', data.data_nascimento instanceof Date);
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      console.log('4️⃣ Usuário autenticado:', user?.id, user?.email);
       
       if (!user) {
         throw new Error('Usuário não autenticado');
@@ -182,6 +190,24 @@ export default function Editais() {
         throw new Error('Edital não selecionado');
       }
 
+      // NOVA VALIDAÇÃO: Garantir que data_nascimento é Date válido
+      if (!(data.data_nascimento instanceof Date)) {
+        console.error('❌ ERRO: data_nascimento não é Date!', {
+          tipo: typeof data.data_nascimento,
+          valor: data.data_nascimento,
+          isNull: data.data_nascimento === null,
+          isUndefined: data.data_nascimento === undefined
+        });
+        throw new Error('Data de nascimento inválida. Por favor, selecione uma data válida.');
+      }
+      
+      if (isNaN(data.data_nascimento.getTime())) {
+        console.error('❌ ERRO: data_nascimento é Date inválido!');
+        throw new Error('Data de nascimento inválida. Por favor, selecione uma data válida.');
+      }
+      
+      console.log('5️⃣ Data validada com sucesso:', data.data_nascimento.toISOString());
+
       // Verificar se o edital está disponível para inscrições
       const hoje = new Date();
       const dataFim = new Date(inscricaoEdital.data_fim);
@@ -189,6 +215,8 @@ export default function Editais() {
       const statusValidos = ['publicado', 'aberto'];
       const statusOk = statusValidos.includes(inscricaoEdital.status);
       const antesDataFim = hoje <= dataFim;
+      
+      console.log('6️⃣ Validação de edital:', { statusOk, antesDataFim });
 
       if (!statusOk || !antesDataFim) {
         throw new Error('Este edital não está mais aberto para inscrições');
@@ -255,14 +283,27 @@ export default function Editais() {
           })),
         },
       };
-
+      
+      console.log('7️⃣ inscricaoData montado:', JSON.stringify(inscricaoData, null, 2));
+      
+      console.log('8️⃣ Tentando inserir no banco...');
       const { data: inscricaoResult, error } = await supabase
         .from('inscricoes_edital')
         .insert([inscricaoData])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro do Supabase:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        throw error;
+      }
+      
+      console.log('✅ Inscrição criada:', inscricaoResult?.id);
 
       // Buscar workflow vinculada ao edital
       const { data: editalData } = await supabase
@@ -302,14 +343,30 @@ export default function Editais() {
       setInscricaoEdital(null);
       loadData(); // Recarregar dados para atualizar a lista
     } catch (error: any) {
-      console.error('Erro ao enviar inscrição:', error);
+      console.error('❌ ERRO CAPTURADO:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        code: error.code,
+        details: error.details
+      });
       
-      if (error.message?.includes('unique_candidato_edital')) {
+      // Tratamento específico por tipo de erro
+      if (error.message?.includes('data_nascimento')) {
+        toast.error('Erro: Data de nascimento inválida. Verifique se selecionou uma data válida.');
+      } else if (error.message?.includes('unique_candidato_edital')) {
         toast.error('Você já possui uma inscrição neste edital');
+      } else if (error.code === '23505') { // Unique constraint
+        toast.error('Você já possui uma inscrição neste edital');
+      } else if (error.code === '42501') { // RLS violation
+        toast.error('Erro de permissão. Entre em contato com o suporte.');
       } else {
         toast.error('Erro ao enviar inscrição: ' + (error.message || 'Tente novamente'));
       }
-      throw error;
+      
+      // NÃO re-lançar erro para prevenir double-submit
+    } finally {
+      console.groupEnd();
     }
   };
 
