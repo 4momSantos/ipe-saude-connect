@@ -18,6 +18,7 @@ import CredenciadoDetail from "./pages/CredenciadoDetail";
 import Workflows from "./pages/Workflows";
 import WorkflowEditor from "./pages/WorkflowEditor";
 import FluxoCredenciamentoPage from "./pages/FluxoCredenciamento";
+import TemplatesFormularios from "./pages/TemplatesFormularios";
 import FormulariosEtapas from "./pages/FormulariosEtapas";
 import TemplateEditor from "./pages/TemplateEditor";
 import ProcessoEditor from "./pages/ProcessoEditor";
@@ -100,8 +101,11 @@ const App = () => (
                           <Route path="/workflows" element={<Workflows />} />
                           <Route path="/workflow-editor" element={<WorkflowEditor />} />
                           <Route path="/formularios" element={<FormulariosEtapas />} />
+                          <Route path="/templates-formularios" element={<TemplatesFormularios />} />
                           <Route path="/formularios/templates/editor" element={<TemplateEditor />} />
                           <Route path="/formularios/templates/editor/:id" element={<TemplateEditor />} />
+                          <Route path="/templates-formularios/editor" element={<TemplateEditor />} />
+                          <Route path="/templates-formularios/editor/:id" element={<TemplateEditor />} />
                           <Route path="/formularios/processos/criar" element={<ProcessoEditor />} />
                           <Route path="/formularios/processos/editar/:id" element={<ProcessoEditor />} />
                           <Route path="/fluxo-credenciamento" element={<FluxoCredenciamentoPage />} />

@@ -26,10 +26,20 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField, allWorkflowFie
   };
 
   // Combinar campos do formulário atual + todos os campos do workflow
-  const allAvailableFields = [
-    ...allFields.filter(f => f.id !== field.id && f.type !== 'file'),
-    ...allWorkflowFields.filter(f => f.id !== field.id && f.type !== 'file')
-  ];
+  // Remover duplicatas baseado no ID
+  const fieldsMap = new Map<string, FormField & { nodeName?: string }>();
+  
+  // Adicionar campos do formulário atual
+  allFields
+    .filter(f => f.id !== field.id && f.type !== 'file')
+    .forEach(f => fieldsMap.set(f.id, f));
+  
+  // Adicionar campos de outros formulários do workflow
+  allWorkflowFields
+    .filter(f => f.id !== field.id && f.type !== 'file')
+    .forEach(f => fieldsMap.set(f.id, f));
+  
+  const allAvailableFields = Array.from(fieldsMap.values());
 
   const handleToggleOCR = (enabled: boolean) => {
     if (enabled && ocrConfig.expectedFields.length === 0) {
@@ -214,7 +224,7 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField, allWorkflowFie
                       </div>
                     ) : (
                       <Select
-                        value={fieldMapping.formFieldId || undefined}
+                        value={fieldMapping.formFieldId || ""}
                         onValueChange={(value) => 
                           handleUpdateFieldMapping(index, { formFieldId: value || undefined })
                         }
@@ -240,7 +250,7 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField, allWorkflowFie
                   <div>
                     <Label className="text-xs">API de Validação</Label>
                     <Select
-                      value={fieldMapping.validateAPI || undefined}
+                      value={fieldMapping.validateAPI || ""}
                       onValueChange={(value) => 
                         handleUpdateFieldMapping(index, { validateAPI: value || undefined })
                       }
