@@ -221,6 +221,7 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
         
         // Atualizar status do rascunho
         if (inscricaoId) {
+          console.log('[INSCRICAO] Atualizando rascunho existente:', inscricaoId);
           const { supabase } = await import('@/integrations/supabase/client');
           const { error: updateError } = await supabase
             .from('inscricoes_edital')
@@ -231,8 +232,10 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
             .eq('id', inscricaoId);
           
           if (updateError) {
-            console.error('Erro ao atualizar rascunho:', updateError);
+            console.error('❌ Erro ao atualizar rascunho:', updateError);
+            throw updateError;
           }
+          console.log('✅ Rascunho marcado como enviado:', inscricaoId);
         }
         
         await onSubmit(data);

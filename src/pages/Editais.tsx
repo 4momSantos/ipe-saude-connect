@@ -357,24 +357,55 @@ export default function Editais() {
       
       console.log('7️⃣ inscricaoData montado:', JSON.stringify(inscricaoData, null, 2));
       
-      console.log('8️⃣ Tentando inserir no banco...');
-      const { data: inscricaoResult, error } = await supabase
-        .from('inscricoes_edital')
-        .insert([inscricaoData])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('❌ Erro do Supabase:', {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
-        });
-        throw error;
-      }
+      console.log('8️⃣ Verificando se já existe inscrição...');
       
-      console.log('✅ Inscrição criada:', inscricaoResult?.id);
+      // Verificar se já existe inscrição/rascunho
+      const { data: existingInscricao } = await supabase
+        .from('inscricoes_edital')
+        .select('id, is_rascunho')
+        .eq('candidato_id', user.id)
+        .eq('edital_id', inscricaoEdital.id)
+        .maybeSingle();
+
+      let inscricaoResult;
+
+      if (existingInscricao) {
+        console.log('✏️ Atualizando inscrição existente:', existingInscricao.id);
+        
+        const { data, error } = await supabase
+          .from('inscricoes_edital')
+          .update({
+            dados_inscricao: inscricaoData.dados_inscricao,
+            status: 'em_analise',
+            is_rascunho: false,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingInscricao.id)
+          .select()
+          .single();
+        
+        if (error) {
+          console.error('❌ Erro ao atualizar:', error);
+          throw error;
+        }
+        inscricaoResult = data;
+      } else {
+        console.log('➕ Criando nova inscrição');
+        
+        const { data, error } = await supabase
+          .from('inscricoes_edital')
+          .insert([inscricaoData])
+          .select()
+          .single();
+        
+        if (error) {
+          console.error('❌ Erro ao criar:', error);
+          throw error;
+        }
+        inscricaoResult = data;
+      }
+
+      console.log('✅ Inscrição processada:', inscricaoResult?.id);
 
       // Buscar workflow vinculada ao edital
       const { data: editalData } = await supabase
@@ -451,6 +482,11 @@ export default function Editais() {
       await loadData();
       setIsReloading(false);
       setInscricaoEdital(null);
+      
+      // Redirecionar para "Minhas Inscrições"
+      setTimeout(() => {
+        navigate('/minhas-inscricoes');
+      }, 1000);
     } catch (error: any) {
       console.error('❌ ERRO CAPTURADO:', {
         name: error.name,

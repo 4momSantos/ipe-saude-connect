@@ -34,33 +34,62 @@ export default function MinhasInscricoes() {
   async function loadInscricoes() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        console.warn('[MINHAS_INSCRICOES] Usuário não autenticado');
+        return;
+      }
+
+      console.log('[MINHAS_INSCRICOES] User ID:', user.id);
 
       // Buscar rascunhos
+      console.log('[MINHAS_INSCRICOES] Buscando rascunhos...');
       const { data: rascunhosData, error: rascunhosError } = await supabase
         .from('inscricoes_edital')
-        .select('id, status, created_at, updated_at, is_rascunho, editais(titulo, numero_edital)')
+        .select(`
+          *,
+          editais (
+            titulo,
+            numero_edital
+          )
+        `)
         .eq('candidato_id', user.id)
         .eq('is_rascunho', true)
         .order('updated_at', { ascending: false });
 
-      if (rascunhosError) throw rascunhosError;
+      if (rascunhosError) {
+        console.error('[MINHAS_INSCRICOES] ❌ Erro ao buscar rascunhos:', rascunhosError);
+        throw rascunhosError;
+      }
+      
+      console.log('[MINHAS_INSCRICOES] ✅ Rascunhos encontrados:', rascunhosData?.length || 0);
 
       // Buscar inscrições enviadas
+      console.log('[MINHAS_INSCRICOES] Buscando inscrições enviadas...');
       const { data: inscricoesData, error: inscricoesError } = await supabase
         .from('inscricoes_edital')
-        .select('id, status, created_at, updated_at, is_rascunho, editais(titulo, numero_edital)')
+        .select(`
+          *,
+          editais (
+            titulo,
+            numero_edital
+          )
+        `)
         .eq('candidato_id', user.id)
         .eq('is_rascunho', false)
         .order('created_at', { ascending: false });
 
-      if (inscricoesError) throw inscricoesError;
+      if (inscricoesError) {
+        console.error('[MINHAS_INSCRICOES] ❌ Erro ao buscar inscrições:', inscricoesError);
+        throw inscricoesError;
+      }
+      
+      console.log('[MINHAS_INSCRICOES] ✅ Inscrições enviadas encontradas:', inscricoesData?.length || 0);
 
       setRascunhos(rascunhosData || []);
       setInscricoes(inscricoesData || []);
     } catch (error: any) {
-      console.error('Erro ao carregar:', error);
-      toast.error('Erro ao carregar inscrições');
+      console.error('[MINHAS_INSCRICOES] ❌ Erro geral:', error);
+      toast.error('Erro ao carregar inscrições: ' + (error.message || 'Tente novamente'));
     } finally {
       setLoading(false);
     }
