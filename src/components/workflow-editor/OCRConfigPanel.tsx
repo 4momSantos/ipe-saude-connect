@@ -169,14 +169,29 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField }: OCRConfigPan
                   </div>
 
                   {/* Nome do campo OCR */}
-                  <div>
-                    <Label className="text-xs">Nome do Campo OCR</Label>
-                    <Input
-                      value={fieldMapping.ocrField}
-                      onChange={(e) => handleUpdateFieldMapping(index, { ocrField: e.target.value })}
-                      placeholder="Ex: cpf, nome, rg"
-                      className="text-sm"
-                    />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Nome do campo no documento</Label>
+                      <Input
+                        value={fieldMapping.ocrField}
+                        onChange={(e) => handleUpdateFieldMapping(index, { ocrField: e.target.value })}
+                        placeholder="Ex: cpf, nome, data_nascimento"
+                        className="text-sm"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <label className="flex items-center gap-2 h-9 px-3 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={fieldMapping.required}
+                          onChange={(e) => 
+                            handleUpdateFieldMapping(index, { required: e.target.checked })
+                          }
+                          className="rounded"
+                        />
+                        <span className="text-xs font-medium">Obrigatório</span>
+                      </label>
+                    </div>
                   </div>
 
                   {/* Comparar com campo do formulário */}

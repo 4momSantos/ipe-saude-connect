@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Upload, CalendarIcon, Loader2, CheckCircle2, XCircle, FileCheck, X, AlertCircle } from "lucide-react";
+import { Upload, CalendarIcon, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { 
@@ -22,8 +22,9 @@ import {
   formatPhone
 } from "@/lib/validators";
 import { processOCRWithValidation, OCRValidationResult } from "@/lib/ocr-processor";
-import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { FieldLabel } from "./FieldLabel";
+import { OCRResultCard } from "./OCRResultCard";
 
 interface FieldPreviewProps {
   field: FormField;
@@ -165,7 +166,10 @@ export function FieldPreview({ field, value, onChange, onValidationComplete }: F
         validations: [],
         overallConfidence: 0,
         errors: ['Erro ao processar documento'],
-        warnings: []
+        warnings: [],
+        overallStatus: 'error',
+        missingRequiredFields: [],
+        completenessScore: 0
       });
     } finally {
       setOcrProcessing(false);
@@ -173,14 +177,25 @@ export function FieldPreview({ field, value, onChange, onValidationComplete }: F
   };
 
   const handleAcceptOCR = () => {
-    // Implementar lógica de aceitar OCR
+    // Implementar lógica de aceitar OCR - preencher campos do formulário
     console.log('OCR aceito:', ocrResult);
+    if (ocrResult && onValidationComplete) {
+      onValidationComplete(true, ocrResult.extractedData);
+    }
   };
 
   const handleRejectOCR = () => {
     setOcrResult(null);
     setUploadedFile(null);
     onChange?.(undefined);
+  };
+
+  const handleReupload = () => {
+    setOcrResult(null);
+    setUploadedFile(null);
+    onChange?.(undefined);
+    // Trigger file input click
+    document.querySelector(`input[type="file"][accept="${field.acceptedFiles}"]`)?.dispatchEvent(new MouseEvent('click'));
   };
 
   const renderValidationIcon = () => {
@@ -274,6 +289,9 @@ export function FieldPreview({ field, value, onChange, onValidationComplete }: F
     case 'file':
       return (
         <div className="space-y-3">
+          {/* Campo Label com Badge Obrigatório */}
+          <FieldLabel label={field.label} required={field.validation?.required} />
+
           {/* Upload Input */}
           {!uploadedFile && (
             <label className="block border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer bg-muted/20">
@@ -290,6 +308,11 @@ export function FieldPreview({ field, value, onChange, onValidationComplete }: F
               <p className="text-xs text-muted-foreground">
                 {field.acceptedFiles || 'Todos os tipos'} • Máximo {field.maxFileSize || 5}MB
               </p>
+              {field.ocrConfig?.enabled && (
+                <p className="text-xs text-primary mt-2 font-medium">
+                  🔍 OCR habilitado - Documento será processado automaticamente
+                </p>
+              )}
             </label>
           )}
 
@@ -303,145 +326,29 @@ export function FieldPreview({ field, value, onChange, onValidationComplete }: F
             </Alert>
           )}
 
-          {/* Uploaded File Info */}
-          {uploadedFile && !ocrProcessing && (
-            <Card className="p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <FileCheck className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="font-medium text-sm">{uploadedFile.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleRejectOCR}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+          {/* OCR Result Card */}
+          {uploadedFile && !ocrProcessing && ocrResult && field.ocrConfig?.enabled && (
+            <OCRResultCard
+              ocrResult={ocrResult}
+              field={field}
+              uploadedFile={uploadedFile}
+              onAccept={handleAcceptOCR}
+              onReject={handleRejectOCR}
+              onReupload={handleReupload}
+            />
+          )}
 
-              {/* OCR Results */}
-              {ocrResult && (
-                <div className="space-y-3 border-t pt-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">
-                      {ocrResult.success ? '✓ OCR Processado' : '✗ Erro no OCR'}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      Confiança: {ocrResult.overallConfidence}%
-                    </span>
-                  </div>
-
-                  {/* Extracted Data */}
-                  {Object.keys(ocrResult.extractedData).length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-muted-foreground">Dados Extraídos:</p>
-                      {Object.entries(ocrResult.extractedData).map(([key, val]) => (
-                        <div key={key} className="text-sm pl-3 border-l-2 border-muted">
-                          <span className="font-medium">{key}:</span> {String(val)}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Validations */}
-                  {ocrResult.validations.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-muted-foreground">Validações:</p>
-                      {ocrResult.validations.map((validation, idx) => (
-                        <div
-                          key={idx}
-                          className={cn(
-                            "text-sm pl-3 border-l-2 py-1",
-                            validation.status === 'valid' && "border-green-500",
-                            validation.status === 'invalid' && "border-red-500",
-                            validation.status === 'warning' && "border-yellow-500",
-                            validation.status === 'pending' && "border-gray-300"
-                          )}
-                        >
-                          <div className="flex items-center gap-1">
-                            {validation.status === 'valid' && <CheckCircle2 className="h-3 w-3 text-green-500" />}
-                            {validation.status === 'invalid' && <AlertCircle className="h-3 w-3 text-red-500" />}
-                            {validation.status === 'warning' && <AlertCircle className="h-3 w-3 text-yellow-500" />}
-                            <span className="font-medium">{validation.field}:</span>
-                          </div>
-                          {validation.message && (
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {validation.message}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Errors */}
-                  {ocrResult.errors.length > 0 && (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        <ul className="list-disc pl-4 space-y-1">
-                          {ocrResult.errors.map((error, idx) => (
-                            <li key={idx}>{error}</li>
-                          ))}
-                        </ul>
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  {/* Warnings */}
-                  {ocrResult.warnings.length > 0 && (
-                    <Alert>
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        <ul className="list-disc pl-4 space-y-1">
-                          {ocrResult.warnings.map((warning, idx) => (
-                            <li key={idx}>{warning}</li>
-                          ))}
-                        </ul>
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  {/* Actions */}
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      type="button"
-                      variant="default"
-                      size="sm"
-                      onClick={handleAcceptOCR}
-                      disabled={!ocrResult.success}
-                    >
-                      ✓ Aceitar
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleRejectOCR}
-                    >
-                      ✗ Rejeitar
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        handleRejectOCR();
-                      }}
-                    >
-                      🔄 Reenviar
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </Card>
+          {/* Fallback: arquivo sem OCR */}
+          {uploadedFile && !ocrProcessing && !field.ocrConfig?.enabled && (
+            <Alert>
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <AlertDescription>
+                <p className="text-sm font-medium">{uploadedFile.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+                </p>
+              </AlertDescription>
+            </Alert>
           )}
         </div>
       );

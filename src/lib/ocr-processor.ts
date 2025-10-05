@@ -28,6 +28,9 @@ export interface OCRValidationResult {
   overallConfidence: number;
   errors: string[];
   warnings: string[];
+  overallStatus: 'success' | 'warning' | 'error' | 'pending';
+  missingRequiredFields: string[];
+  completenessScore: number; // 0-100
 }
 
 /**
@@ -56,7 +59,10 @@ export async function processOCRWithValidation(
       validations: [],
       overallConfidence: 0,
       errors: ocrResult.errors || ['Falha ao processar documento'],
-      warnings: []
+      warnings: [],
+      overallStatus: 'error',
+      missingRequiredFields: [],
+      completenessScore: 0
     };
   }
 
@@ -96,13 +102,42 @@ export async function processOCRWithValidation(
     );
   }
 
+  // 4. Calcular campos faltantes obrigatórios
+  const missingRequiredFields = ocrConfig.expectedFields
+    .filter(field => field.required && !ocrResult.extractedData[field.ocrField])
+    .map(field => field.ocrField);
+
+  // 5. Calcular completude (% de campos esperados que foram extraídos)
+  const totalExpectedFields = ocrConfig.expectedFields.length;
+  const extractedFieldsCount = ocrConfig.expectedFields.filter(
+    field => ocrResult.extractedData[field.ocrField]
+  ).length;
+  const completenessScore = totalExpectedFields > 0 
+    ? Math.round((extractedFieldsCount / totalExpectedFields) * 100)
+    : 0;
+
+  // 6. Determinar status geral
+  let overallStatus: 'success' | 'warning' | 'error' | 'pending';
+  if (errors.length > 0 || missingRequiredFields.length > 0) {
+    overallStatus = 'error';
+  } else if (warnings.length > 0) {
+    overallStatus = 'warning';
+  } else if (errors.length === 0 && validations.length > 0) {
+    overallStatus = 'success';
+  } else {
+    overallStatus = 'pending';
+  }
+
   return {
-    success: errors.length === 0,
+    success: errors.length === 0 && missingRequiredFields.length === 0,
     extractedData: ocrResult.extractedData,
     validations,
     overallConfidence: confidence,
     errors,
-    warnings
+    warnings,
+    overallStatus,
+    missingRequiredFields,
+    completenessScore
   };
 }
 
