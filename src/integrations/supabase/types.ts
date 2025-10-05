@@ -1063,6 +1063,57 @@ export type Database = {
           },
         ]
       }
+      workflow_messages: {
+        Row: {
+          content: string
+          created_at: string | null
+          execution_id: string
+          id: string
+          inscricao_id: string | null
+          is_read: boolean | null
+          sender_id: string
+          sender_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          execution_id: string
+          id?: string
+          inscricao_id?: string | null
+          is_read?: boolean | null
+          sender_id: string
+          sender_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          execution_id?: string
+          id?: string
+          inscricao_id?: string | null
+          is_read?: boolean | null
+          sender_id?: string
+          sender_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_messages_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_executions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_messages_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: false
+            referencedRelation: "inscricoes_edital"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflow_step_executions: {
         Row: {
           completed_at: string | null

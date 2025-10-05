@@ -414,6 +414,213 @@ export default function WorkflowEditor() {
     localStorage.setItem("formTemplates", JSON.stringify(allTemplates));
   };
 
+  const loadCredenciamentoTemplate = () => {
+    const CREDENCIAMENTO_TEMPLATE = {
+      nodes: [
+        {
+          id: 'start',
+          type: 'workflowNode',
+          position: { x: 400, y: 50 },
+          data: {
+            label: 'Formulário Enviado',
+            type: 'start',
+            color: '#10b981',
+            icon: 'Play',
+            description: 'Gatilho: quando candidato envia formulário de inscrição',
+            category: 'Credenciamento'
+          }
+        },
+        {
+          id: 'form',
+          type: 'workflowNode',
+          position: { x: 400, y: 180 },
+          data: {
+            label: 'Dados de Inscrição',
+            type: 'form',
+            color: '#3b82f6',
+            icon: 'FileText',
+            description: 'Coleta dados do candidato para credenciamento',
+            category: 'Coleta de Dados',
+            formConfig: { fields: [] }
+          }
+        },
+        {
+          id: 'approval',
+          type: 'workflowNode',
+          position: { x: 400, y: 340 },
+          data: {
+            label: 'Aprovação do Analista',
+            type: 'approval',
+            color: '#14b8a6',
+            icon: 'CheckCircle',
+            description: 'Analista revisa e aprova/rejeita inscrição',
+            category: 'Decisão',
+            approvalConfig: { assignmentType: 'all' }
+          }
+        },
+        {
+          id: 'email-aprovado',
+          type: 'workflowNode',
+          position: { x: 600, y: 480 },
+          data: {
+            label: 'Email: Solicitação Assinatura',
+            type: 'email',
+            color: '#f59e0b',
+            icon: 'Mail',
+            description: 'Envia email solicitando assinatura do contrato',
+            category: 'Comunicação',
+            emailConfig: {
+              to: '{candidato.email}',
+              subject: 'Solicitação de Assinatura - Credenciamento',
+              body: 'Prezado(a) {candidato.nome},\n\nSua inscrição foi aprovada! Por favor, assine o contrato através do link abaixo.'
+            }
+          }
+        },
+        {
+          id: 'email-rejeitado',
+          type: 'workflowNode',
+          position: { x: 200, y: 480 },
+          data: {
+            label: 'Email: Notificação Rejeição',
+            type: 'email',
+            color: '#ef4444',
+            icon: 'Mail',
+            description: 'Notifica candidato sobre rejeição',
+            category: 'Comunicação',
+            emailConfig: {
+              to: '{candidato.email}',
+              subject: 'Inscrição não aprovada',
+              body: 'Prezado(a) {candidato.nome},\n\nInfelizmente sua inscrição não foi aprovada. Você pode corrigir e reenviar.'
+            }
+          }
+        },
+        {
+          id: 'condition',
+          type: 'workflowNode',
+          position: { x: 200, y: 620 },
+          data: {
+            label: 'Candidato Reenviou?',
+            type: 'condition',
+            color: '#f59e0b',
+            icon: 'GitBranch',
+            description: 'Verifica se candidato corrigiu e reenviou',
+            category: 'Decisão',
+            conditionConfig: {
+              question: 'Candidato corrigiu e reenviou a inscrição?',
+              assignmentType: 'all'
+            }
+          }
+        },
+        {
+          id: 'signature',
+          type: 'workflowNode',
+          position: { x: 600, y: 620 },
+          data: {
+            label: 'Assinatura Eletrônica',
+            type: 'signature',
+            color: '#8b5cf6',
+            icon: 'PenTool',
+            description: 'Processo de assinatura digital via Assinafy',
+            category: 'Documento',
+            signatureConfig: {
+              provider: 'assinafy',
+              signers: [
+                { name: '{candidato.nome}', email: '{candidato.email}' }
+              ]
+            }
+          }
+        },
+        {
+          id: 'email-confirmacao',
+          type: 'workflowNode',
+          position: { x: 600, y: 760 },
+          data: {
+            label: 'Email: Confirmação',
+            type: 'email',
+            color: '#22c55e',
+            icon: 'Mail',
+            description: 'Envia email de confirmação com contrato',
+            category: 'Comunicação',
+            emailConfig: {
+              to: '{candidato.email}',
+              subject: 'Confirmação de Credenciamento',
+              body: 'Parabéns {candidato.nome}!\n\nSeu credenciamento foi concluído com sucesso. Em anexo, o contrato assinado.'
+            }
+          }
+        },
+        {
+          id: 'database',
+          type: 'workflowNode',
+          position: { x: 600, y: 900 },
+          data: {
+            label: 'Atualizar Status no BD',
+            type: 'database',
+            color: '#06b6d4',
+            icon: 'Database',
+            description: 'Atualiza status para "credenciado" no banco',
+            category: 'Dados',
+            databaseConfig: {
+              table: 'inscricoes_edital',
+              action: 'update',
+              data: { status: 'aprovado' }
+            }
+          }
+        },
+        {
+          id: 'end-sucesso',
+          type: 'workflowNode',
+          position: { x: 600, y: 1040 },
+          data: {
+            label: 'Credenciado',
+            type: 'end',
+            color: '#22c55e',
+            icon: 'CheckCircle',
+            description: 'Processo concluído - candidato credenciado',
+            category: 'Credenciamento'
+          }
+        },
+        {
+          id: 'end-cancelado',
+          type: 'workflowNode',
+          position: { x: 200, y: 900 },
+          data: {
+            label: 'Processo Cancelado',
+            type: 'end',
+            color: '#ef4444',
+            icon: 'StopCircle',
+            description: 'Processo cancelado por não reenvio',
+            category: 'Credenciamento'
+          }
+        }
+      ],
+      edges: [
+        { id: 'e1', source: 'start', target: 'form', animated: true },
+        { id: 'e2', source: 'form', target: 'approval', animated: true },
+        { id: 'e3', source: 'approval', sourceHandle: 'approved', target: 'email-aprovado', animated: true, label: 'Aprovado' },
+        { id: 'e4', source: 'approval', sourceHandle: 'rejected', target: 'email-rejeitado', animated: true, label: 'Rejeitado' },
+        { id: 'e5', source: 'email-rejeitado', target: 'condition', animated: true },
+        { id: 'e6', source: 'condition', sourceHandle: 'yes', target: 'form', animated: true, label: 'Sim' },
+        { id: 'e7', source: 'condition', sourceHandle: 'no', target: 'end-cancelado', animated: true, label: 'Não' },
+        { id: 'e8', source: 'email-aprovado', target: 'signature', animated: true },
+        { id: 'e9', source: 'signature', target: 'email-confirmacao', animated: true },
+        { id: 'e10', source: 'email-confirmacao', target: 'database', animated: true },
+        { id: 'e11', source: 'database', target: 'end-sucesso', animated: true }
+      ]
+    };
+
+    setNodes(CREDENCIAMENTO_TEMPLATE.nodes as Node<WorkflowNodeData>[]);
+    setEdges(CREDENCIAMENTO_TEMPLATE.edges as Edge[]);
+    setWorkflowName('Fluxo de Credenciamento Completo');
+    
+    toast.success(
+      <div className="space-y-1">
+        <div className="font-semibold">🚀 Template carregado!</div>
+        <div className="text-xs">Fluxo completo com 11 etapas configurado</div>
+      </div>,
+      { duration: 4000 }
+    );
+  };
+
   // Função auxiliar para verificar se há caminho entre dois nós
   const findPath = (startId: string, endId: string, edges: Edge[]): boolean => {
     const visited = new Set<string>();
@@ -648,6 +855,14 @@ export default function WorkflowEditor() {
           />
         </div>
         <div className="flex items-center gap-2">
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            onClick={loadCredenciamentoTemplate}
+            className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-purple-500/20 hover:border-purple-500/40"
+          >
+            🚀 Criar Fluxo de Credenciamento
+          </Button>
           <Button variant="outline" size="sm" onClick={testWorkflow}>
             <Play className="h-4 w-4 mr-2" />
             Testar

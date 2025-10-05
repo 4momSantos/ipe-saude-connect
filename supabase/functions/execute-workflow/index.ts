@@ -390,3 +390,92 @@ async function executeWorkflowSteps(
     throw error;
   }
 }
+
+// Função auxiliar para enviar notificações
+async function notifyStakeholders(
+  supabaseClient: any,
+  inscricaoId: string,
+  type: 'aprovado' | 'rejeitado' | 'assinatura_pendente' | 'concluido',
+  details?: any
+) {
+  try {
+    console.log(`Enviando notificação tipo: ${type} para inscrição ${inscricaoId}`);
+
+    // Buscar dados da inscrição e candidato
+    const { data: inscricao, error: inscError } = await supabaseClient
+      .from('inscricoes_edital')
+      .select(`
+        candidato_id,
+        analisado_por,
+        editais (titulo)
+      `)
+      .eq('id', inscricaoId)
+      .single();
+
+    if (inscError) {
+      console.error('Erro ao buscar inscrição:', inscError);
+      return;
+    }
+
+    let title = '';
+    let message = '';
+    let notificationType = 'info';
+
+    switch (type) {
+      case 'aprovado':
+        title = '✅ Inscrição Aprovada';
+        message = `Sua inscrição no edital "${inscricao.editais?.titulo}" foi aprovada! Aguarde a solicitação de assinatura.`;
+        notificationType = 'success';
+        break;
+      case 'rejeitado':
+        title = '❌ Inscrição Não Aprovada';
+        message = `Sua inscrição no edital "${inscricao.editais?.titulo}" não foi aprovada. ${details?.motivo || 'Você pode corrigir e reenviar.'}`;
+        notificationType = 'error';
+        break;
+      case 'assinatura_pendente':
+        title = '✍️ Assinatura Pendente';
+        message = `Por favor, assine o contrato de credenciamento para o edital "${inscricao.editais?.titulo}".`;
+        notificationType = 'warning';
+        break;
+      case 'concluido':
+        title = '🎉 Credenciamento Concluído';
+        message = `Parabéns! Seu credenciamento para o edital "${inscricao.editais?.titulo}" foi concluído com sucesso.`;
+        notificationType = 'success';
+        break;
+    }
+
+    // Criar notificação para o candidato
+    const { error: notifError } = await supabaseClient
+      .from('app_notifications')
+      .insert({
+        user_id: inscricao.candidato_id,
+        type: notificationType,
+        title,
+        message,
+        related_type: 'inscricao',
+        related_id: inscricaoId
+      });
+
+    if (notifError) {
+      console.error('Erro ao criar notificação:', notifError);
+    } else {
+      console.log(`Notificação enviada com sucesso para candidato ${inscricao.candidato_id}`);
+    }
+
+    // Se for aprovação ou conclusão, notificar também o analista
+    if ((type === 'aprovado' || type === 'concluido') && inscricao.analisado_por) {
+      await supabaseClient
+        .from('app_notifications')
+        .insert({
+          user_id: inscricao.analisado_por,
+          type: 'info',
+          title: type === 'aprovado' ? '✅ Aprovação Registrada' : '🎉 Processo Concluído',
+          message: `O processo de credenciamento para o edital "${inscricao.editais?.titulo}" foi ${type === 'aprovado' ? 'aprovado' : 'concluído'}.`,
+          related_type: 'inscricao',
+          related_id: inscricaoId
+        });
+    }
+  } catch (error) {
+    console.error('Erro ao enviar notificações:', error);
+  }
+}
