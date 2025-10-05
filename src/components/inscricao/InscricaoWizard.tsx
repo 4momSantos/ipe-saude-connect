@@ -226,6 +226,20 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
       
       console.log('✅ Data validada:', data.data_nascimento.toISOString());
       
+      // ✅ SE EXISTE RASCUNHO, ATUALIZAR STATUS PARA 'em_analise'
+      if (inscricaoId) {
+        console.log('[InscricaoWizard] Atualizando rascunho para status final:', inscricaoId);
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { error: updateError } = await supabase
+          .from('inscricoes_edital')
+          .update({ status: 'em_analise' })
+          .eq('id', inscricaoId);
+        
+        if (updateError) {
+          console.error('Erro ao atualizar status do rascunho:', updateError);
+        }
+      }
+      
       await onSubmit(data);
       toast.success('Inscrição enviada com sucesso!');
       // Manter isSubmitting=true até o dialog fechar

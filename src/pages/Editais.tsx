@@ -57,6 +57,7 @@ export default function Editais() {
   const [rascunhoData, setRascunhoData] = useState<{ id: string; lastSaved: Date } | null>(null);
   const [isRascunhoDialogOpen, setIsRascunhoDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isReloading, setIsReloading] = useState(false);
   const { isGestor, isAdmin, isCandidato } = useUserRole();
   const navigate = useNavigate();
 
@@ -92,9 +93,19 @@ export default function Editais() {
           const { data: inscricoesData, error: inscricoesError } = await supabase
             .from("inscricoes_edital")
             .select("*")
-            .eq("candidato_id", user.id);
+            .eq("candidato_id", user.id)
+            .neq("status", "rascunho"); // ✅ EXCLUIR RASCUNHOS
 
           if (inscricoesError) throw inscricoesError;
+          
+          console.log('[Editais] Inscrições carregadas:', {
+            total: inscricoesData?.length,
+            porStatus: inscricoesData?.reduce((acc, i) => {
+              acc[i.status] = (acc[i.status] || 0) + 1;
+              return acc;
+            }, {} as Record<string, number>)
+          });
+          
           setInscricoes(inscricoesData || []);
         }
       }
@@ -107,7 +118,9 @@ export default function Editais() {
   };
 
   const getInscricaoForEdital = (editalId: string) => {
-    return inscricoes.find(i => i.edital_id === editalId);
+    const inscricao = inscricoes.find((i) => i.edital_id === editalId && i.status !== 'rascunho');
+    console.log('[Editais] Buscando inscrição para edital', editalId, '→', inscricao?.status || 'não encontrada');
+    return inscricao;
   };
 
   const handleEditalClick = async (edital: Edital) => {
@@ -395,11 +408,15 @@ export default function Editais() {
           toast.success('Inscrição enviada com sucesso! (Workflow será processada em breve)');
         }
       } else {
+        console.log('[Editais] Inscrição enviada com sucesso!');
         toast.success('Inscrição enviada com sucesso!');
       }
 
+      // ✅ AGUARDAR RELOAD ANTES DE FECHAR
+      setIsReloading(true);
+      await loadData();
+      setIsReloading(false);
       setInscricaoEdital(null);
-      loadData(); // Recarregar dados para atualizar a lista
     } catch (error: any) {
       console.error('❌ ERRO CAPTURADO:', {
         name: error.name,
@@ -527,7 +544,7 @@ export default function Editais() {
 
               return (
                 <Card 
-                  key={edital.id} 
+                  key={`${edital.id}-${inscricoes.length}`}
                   className={`border bg-card card-glow hover-lift transition-all duration-300 ${
                     isInscrito ? "ring-2 ring-primary/20" : ""
                   }`}
