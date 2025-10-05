@@ -1252,6 +1252,16 @@ export type Database = {
           workflow_id: string
         }[]
       }
+      retry_orphan_workflows: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          action: string
+          edital_id: string
+          inscricao_id: string
+          status: string
+          workflow_id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "candidato" | "analista" | "gestor" | "admin"

@@ -89,7 +89,7 @@ export function WorkflowApprovalPanel() {
     try {
       setLoading(true);
       
-      // Query 1: Buscar aprovações pendentes
+      // Query única com JOIN para buscar tudo de uma vez
       const { data: approvals, error: approvalsError } = await supabase
         .from("workflow_approvals")
         .select(`
@@ -102,9 +102,15 @@ export function WorkflowApprovalPanel() {
             workflow_executions!inner (
               id,
               started_at,
-              workflows (
-                name,
-                version
+              workflows (name, version),
+              inscricoes_edital!inscricoes_edital_workflow_execution_id_fkey (
+                id,
+                candidato_id,
+                edital_id,
+                status,
+                dados_inscricao,
+                profiles!inscricoes_edital_candidato_id_fkey (nome, email),
+                editais (titulo, numero_edital)
               )
             )
           )
@@ -114,52 +120,26 @@ export function WorkflowApprovalPanel() {
 
       if (approvalsError) throw approvalsError;
 
-      // Query 2: Para cada approval, buscar inscrição relacionada
-      const enrichedApprovals = await Promise.all(
-        (approvals || []).map(async (approval) => {
-          const executionId = approval.workflow_step_executions.execution_id;
-          
-          // Buscar inscrição pelo workflow_execution_id
-          const { data: inscricao } = await supabase
-            .from("inscricoes_edital")
-            .select(`
-              id,
-              candidato_id,
-              edital_id,
-              status,
-              dados_inscricao
-            `)
-            .eq("workflow_execution_id", executionId)
-            .maybeSingle();
-          
-          if (!inscricao) {
-            return { ...approval, inscricao: null };
+      // Transformar para o formato esperado
+      const enrichedApprovals = (approvals || []).map((approval) => {
+        const inscricaoArray = approval.workflow_step_executions.workflow_executions.inscricoes_edital;
+        const inscricao = inscricaoArray && inscricaoArray.length > 0 ? inscricaoArray[0] : null;
+        
+        if (!inscricao) {
+          return { ...approval, inscricao: null };
+        }
+
+        return {
+          ...approval,
+          inscricao: {
+            id: inscricao.id,
+            edital_id: inscricao.edital_id,
+            candidato_id: inscricao.candidato_id,
+            profiles: inscricao.profiles || { nome: "N/A", email: "N/A" },
+            editais: inscricao.editais || { titulo: "N/A", numero_edital: "N/A" }
           }
-
-          // Buscar dados do candidato
-          const { data: candidato } = await supabase
-            .from("profiles")
-            .select("nome, email")
-            .eq("id", inscricao.candidato_id)
-            .maybeSingle();
-
-          // Buscar dados do edital
-          const { data: edital } = await supabase
-            .from("editais")
-            .select("titulo, numero_edital")
-            .eq("id", inscricao.edital_id)
-            .maybeSingle();
-          
-          return {
-            ...approval,
-            inscricao: {
-              ...inscricao,
-              profiles: candidato || { nome: "N/A", email: "N/A" },
-              editais: edital || { titulo: "N/A", numero_edital: "N/A" }
-            }
-          };
-        })
-      );
+        };
+      });
 
       // Filtrar apenas aprovações que têm inscrição vinculada
       setApprovals(enrichedApprovals.filter(a => a.inscricao !== null) as PendingApproval[]);

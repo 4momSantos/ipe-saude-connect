@@ -40,6 +40,7 @@ export function DashboardCandidato() {
           editais (titulo, especialidade)
         `)
         .eq('candidato_id', user.id)
+        .eq('is_rascunho', false)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

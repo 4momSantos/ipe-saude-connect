@@ -219,14 +219,16 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
           throw new Error('Data de nascimento inválida');
         }
         
-        // Atualizar status do rascunho
+        // 1️⃣ Executar onSubmit PRIMEIRO
+        await onSubmit(data);
+        
+        // 2️⃣ SÓ DEPOIS marcar como enviado
         if (inscricaoId) {
           console.log('[INSCRICAO] Atualizando rascunho existente:', inscricaoId);
           const { supabase } = await import('@/integrations/supabase/client');
           const { error: updateError } = await supabase
             .from('inscricoes_edital')
             .update({ 
-              status: 'em_analise',
               is_rascunho: false 
             })
             .eq('id', inscricaoId);
@@ -237,8 +239,6 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
           }
           console.log('✅ Rascunho marcado como enviado:', inscricaoId);
         }
-        
-        await onSubmit(data);
       })();
 
       await Promise.race([submitPromise, timeoutPromise]);

@@ -33,7 +33,6 @@ export function useAutoSaveInscricao({
       const rascunhoData = {
         candidato_id: user.id,
         edital_id: editalId,
-        status: 'rascunho' as const,
         is_rascunho: true,
         dados_inscricao: formData
       };

@@ -94,7 +94,7 @@ export default function Editais() {
             .from("inscricoes_edital")
             .select("*")
             .eq("candidato_id", user.id)
-            .neq("status", "rascunho"); // ✅ EXCLUIR RASCUNHOS
+            .eq("is_rascunho", false); // ✅ EXCLUIR RASCUNHOS
 
           if (inscricoesError) throw inscricoesError;
           
@@ -359,12 +359,13 @@ export default function Editais() {
       
       console.log('8️⃣ Verificando se já existe inscrição...');
       
-      // Verificar se já existe inscrição/rascunho
+      // Verificar se já existe rascunho (não inscrição já enviada)
       const { data: existingInscricao } = await supabase
         .from('inscricoes_edital')
         .select('id, is_rascunho')
         .eq('candidato_id', user.id)
         .eq('edital_id', inscricaoEdital.id)
+        .eq('is_rascunho', true)
         .maybeSingle();
 
       let inscricaoResult;
@@ -441,12 +442,12 @@ export default function Editais() {
             console.log('✅ Workflow iniciada:', functionData);
             
             // 🔄 Etapa 2: POLLING - Aguardar vinculação do workflow_execution_id
-            console.log('⏳ Aguardando vinculação do workflow (máx 3 segundos)...');
+            console.log('⏳ Aguardando vinculação do workflow (máx 10 segundos)...');
             let tentativas = 0;
             let vinculado = false;
             
-            while (tentativas < 6 && !vinculado) { // 6 tentativas x 500ms = 3 segundos
-              await new Promise(resolve => setTimeout(resolve, 500));
+            while (tentativas < 10 && !vinculado) { // 10 tentativas x 1000ms = 10 segundos
+              await new Promise(resolve => setTimeout(resolve, 1000));
               
               const { data: inscricaoAtualizada } = await supabase
                 .from('inscricoes_edital')
@@ -464,7 +465,7 @@ export default function Editais() {
             }
             
             if (!vinculado) {
-              console.warn('⚠️ Workflow não foi vinculada após 3 segundos');
+              console.warn('⚠️ Workflow não foi vinculada após 10 segundos');
               toast.success('Inscrição enviada! O workflow será processado em breve.');
             }
           }

@@ -137,6 +137,33 @@ serve(async (req) => {
           completed_at: new Date().toISOString(),
         })
         .eq("id", execution.id);
+    } else {
+      // Se NÃO for nó final, continuar executando recursivamente
+      console.log(`[CONTINUE-WORKFLOW] Invocando execute-workflow recursivamente para nó ${nextNode.id}...`);
+      
+      const { data: inscricaoData } = await supabaseClient
+        .from("inscricoes_edital")
+        .select("id")
+        .eq("workflow_execution_id", execution.id)
+        .maybeSingle();
+      
+      const { error: invokeError } = await supabaseClient.functions.invoke(
+        'execute-workflow', 
+        {
+          body: {
+            workflowId: execution.workflows.id,
+            inputData: stepExecution.output_data || {},
+            inscricaoId: inscricaoData?.id,
+            continueFrom: nextNode.id
+          }
+        }
+      );
+      
+      if (invokeError) {
+        console.error(`[CONTINUE-WORKFLOW] ❌ Erro ao invocar execute-workflow:`, invokeError);
+      } else {
+        console.log(`[CONTINUE-WORKFLOW] ✅ Execute-workflow invocada com sucesso`);
+      }
     }
 
     return new Response(

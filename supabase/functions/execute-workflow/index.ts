@@ -111,13 +111,24 @@ serve(async (req) => {
         .eq("id", inscricaoId);
 
       if (updateError) {
-        console.error(`[WORKFLOW] ❌ ERRO ao vincular execution ${execution.id} à inscrição ${inscricaoId}:`, {
+        console.error(`[WORKFLOW] ❌ ERRO CRÍTICO ao vincular execution ${execution.id} à inscrição ${inscricaoId}:`, {
           message: updateError.message,
           code: updateError.code,
           details: updateError.details,
           hint: updateError.hint
         });
-        // NÃO jogar erro, apenas logar (workflow já foi criada)
+        
+        // Marcar workflow como failed
+        await supabaseClient
+          .from("workflow_executions")
+          .update({ 
+            status: "failed", 
+            error_message: `Erro ao vincular inscrição: ${updateError.message}`,
+            completed_at: new Date().toISOString()
+          })
+          .eq("id", execution.id);
+        
+        throw new Error(`Falha ao vincular execution à inscrição: ${updateError.message}`);
       } else {
         console.log(`[WORKFLOW] ✅ Vinculado com sucesso: execution ${execution.id} → inscrição ${inscricaoId}`);
       }
