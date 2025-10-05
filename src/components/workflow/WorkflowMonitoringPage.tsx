@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { WorkflowTimeline } from "./WorkflowTimeline";
+import { WorkflowExecutionTimeline } from "./WorkflowExecutionTimeline";
 import { 
   Search, 
   Filter, 
@@ -332,7 +332,7 @@ export function WorkflowMonitoringPage() {
         {/* Timeline do workflow selecionado */}
         <div className="lg:sticky lg:top-6 lg:h-[calc(100vh-8rem)]">
           {selectedExecution ? (
-            <WorkflowTimeline execution_id={selectedExecution} />
+            <WorkflowExecutionTimeline execution_id={selectedExecution} />
           ) : (
             <Card className="p-12 h-full flex items-center justify-center">
               <div className="text-center text-muted-foreground">
