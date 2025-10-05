@@ -414,19 +414,149 @@ export default function WorkflowEditor() {
   };
 
   const testWorkflow = async () => {
+    // 1. Validações básicas
     if (nodes.length === 0) {
-      toast.error("Adicione pelo menos um node ao workflow");
+      toast.error("❌ Adicione pelo menos um nó ao workflow");
       return;
     }
 
-    // Se o workflow não foi salvo ainda, salvar primeiro
+    // 2. Verificar se o workflow foi salvo
     let workflowId = searchParams.get("id");
     if (!workflowId) {
-      toast.error("Salve o workflow antes de testá-lo");
+      toast.error("💾 Salve o workflow antes de testá-lo");
       return;
     }
 
+    // 3. Validar estrutura do workflow
+    const validationErrors: string[] = [];
+
+    // Verificar nó inicial
+    const startNode = nodes.find(n => n.data.type === "start");
+    if (!startNode) {
+      validationErrors.push("❌ Falta nó inicial (Start)");
+    }
+
+    // Verificar nó final
+    const endNode = nodes.find(n => n.data.type === "end");
+    if (!endNode) {
+      validationErrors.push("❌ Falta nó final (End)");
+    }
+
+    // Verificar nodes órfãos (sem conexões de entrada exceto start)
+    const nodeIds = new Set(nodes.map(n => n.id));
+    const connectedSources = new Set(edges.map(e => e.source));
+    const connectedTargets = new Set(edges.map(e => e.target));
+    
+    nodes.forEach(node => {
+      if (node.data.type !== "start" && !connectedTargets.has(node.id)) {
+        validationErrors.push(`⚠️ Nó "${node.data.label}" não tem conexão de entrada`);
+      }
+      if (node.data.type !== "end" && !connectedSources.has(node.id)) {
+        validationErrors.push(`⚠️ Nó "${node.data.label}" não tem conexão de saída`);
+      }
+    });
+
+    // Verificar configurações específicas de cada tipo de nó
+    nodes.forEach(node => {
+      const nodeData = node.data;
+      
+      switch (nodeData.type) {
+        case "form":
+          if (!nodeData.formTemplateId && (!nodeData.formFields || nodeData.formFields.length === 0)) {
+            validationErrors.push(`📝 Formulário "${nodeData.label}" precisa de template ou campos configurados`);
+          }
+          break;
+        
+        case "approval":
+          const approvalConfig = nodeData.approvalConfig;
+          if (!approvalConfig || 
+              (approvalConfig.assignmentType === "specific" && 
+               (!approvalConfig.assignedAnalysts || approvalConfig.assignedAnalysts.length === 0))) {
+            validationErrors.push(`✅ Aprovação "${nodeData.label}" precisa de analistas atribuídos`);
+          }
+          break;
+        
+        case "email":
+          const emailConfig = nodeData.emailConfig;
+          if (!emailConfig || !emailConfig.templateId) {
+            validationErrors.push(`📧 Email "${nodeData.label}" precisa de template configurado`);
+          }
+          break;
+        
+        case "http":
+          const httpConfig = nodeData.httpConfig;
+          if (!httpConfig || !httpConfig.url || !httpConfig.method) {
+            validationErrors.push(`🌐 Chamada HTTP "${nodeData.label}" precisa de URL e método configurados`);
+          }
+          break;
+        
+        case "webhook":
+          const webhookConfig = nodeData.webhookConfig;
+          if (!webhookConfig || !webhookConfig.url) {
+            validationErrors.push(`🔗 Webhook "${nodeData.label}" precisa de URL configurada`);
+          }
+          break;
+        
+        case "database":
+          const dbConfig = nodeData.databaseConfig;
+          if (!dbConfig || !dbConfig.operation || !dbConfig.table) {
+            validationErrors.push(`💾 Banco de Dados "${nodeData.label}" precisa de operação e tabela configuradas`);
+          }
+          break;
+        
+        case "signature":
+          const signatureConfig = nodeData.signatureConfig;
+          if (!signatureConfig || !signatureConfig.signers || signatureConfig.signers.length === 0) {
+            validationErrors.push(`✍️ Assinatura "${nodeData.label}" precisa de signatários configurados`);
+          }
+          break;
+        
+        case "condition":
+          const conditionConfig = nodeData.conditionConfig;
+          if (!conditionConfig || !conditionConfig.question) {
+            validationErrors.push(`🔀 Condição "${nodeData.label}" precisa de pergunta configurada`);
+          }
+          break;
+      }
+    });
+
+    // Verificar se há caminho do start ao end
+    if (startNode && endNode) {
+      const visited = new Set<string>();
+      const canReachEnd = (currentId: string): boolean => {
+        if (currentId === endNode.id) return true;
+        if (visited.has(currentId)) return false;
+        
+        visited.add(currentId);
+        const outgoingEdges = edges.filter(e => e.source === currentId);
+        
+        return outgoingEdges.some(edge => canReachEnd(edge.target));
+      };
+      
+      if (!canReachEnd(startNode.id)) {
+        validationErrors.push("🚫 Não há caminho válido do início ao fim do workflow");
+      }
+    }
+
+    // Se houver erros de validação, exibir todos
+    if (validationErrors.length > 0) {
+      console.error("Erros de validação:", validationErrors);
+      toast.error(
+        <div className="space-y-1">
+          <div className="font-semibold">Workflow inválido:</div>
+          {validationErrors.map((err, idx) => (
+            <div key={idx} className="text-xs">{err}</div>
+          ))}
+        </div>,
+        { duration: 8000 }
+      );
+      return;
+    }
+
+    // 4. Executar workflow se passou em todas as validações
     try {
+      toast.loading("🔄 Iniciando teste do workflow...");
+      
       const { data, error } = await supabase.functions.invoke("execute-workflow", {
         body: {
           workflowId,
@@ -436,11 +566,23 @@ export default function WorkflowEditor() {
 
       if (error) throw error;
 
-      toast.success("Execução iniciada!");
-      console.log("Execution ID:", data.executionId);
-    } catch (error) {
-      console.error("Erro ao executar workflow:", error);
-      toast.error("Erro ao executar workflow");
+      toast.success(
+        <div className="space-y-1">
+          <div className="font-semibold">✅ Workflow testado com sucesso!</div>
+          <div className="text-xs">ID da execução: {data.executionId}</div>
+        </div>,
+        { duration: 5000 }
+      );
+      console.log("✅ Execution started:", data);
+    } catch (error: any) {
+      console.error("❌ Erro ao executar workflow:", error);
+      toast.error(
+        <div className="space-y-1">
+          <div className="font-semibold">Erro ao executar workflow</div>
+          <div className="text-xs">{error.message || "Erro desconhecido"}</div>
+        </div>,
+        { duration: 5000 }
+      );
     }
   };
 
