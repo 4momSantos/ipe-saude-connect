@@ -1189,6 +1189,15 @@ export type Database = {
         }
         Returns: string
       }
+      process_orphan_inscricoes: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          action_taken: string
+          edital_id: string
+          inscricao_id: string
+          workflow_id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "candidato" | "analista" | "gestor" | "admin"
