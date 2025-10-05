@@ -17,9 +17,13 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { useInscricaoDocumentos } from '@/hooks/useInscricaoDocumentos';
+import { processOCRWithValidation } from '@/lib/ocr-processor';
+import { toast } from 'sonner';
 
 interface DocumentosStepProps {
   form: UseFormReturn<InscricaoCompletaForm>;
+  inscricaoId?: string; // ID da inscrição para vincular documentos
 }
 
 const statusIcons = {
@@ -43,12 +47,13 @@ const statusLabels = {
   faltante: 'Não enviado',
 };
 
-export function DocumentosStep({ form }: DocumentosStepProps) {
+export function DocumentosStep({ form, inscricaoId }: DocumentosStepProps) {
   const { fields, update } = useFieldArray({
     control: form.control,
     name: 'documentos',
   });
 
+  const { salvarDocumento } = useInscricaoDocumentos(inscricaoId);
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
 
   const handleFileChange = async (index: number, file: File | null) => {
@@ -56,15 +61,57 @@ export function DocumentosStep({ form }: DocumentosStepProps) {
 
     setUploadingIndex(index);
 
-    // Simulação de validação OCR (em produção, seria uma chamada à API)
-    setTimeout(() => {
+    try {
+      // Processar OCR
+      const documentoConfig = {
+        documentType: (fields[index].tipo || 'cpf') as 'cpf' | 'rg' | 'cnpj' | 'crm' | 'cnh' | 'certidao' | 'diploma' | 'comprovante_endereco',
+        expectedFields: [],
+        enabled: true,
+        minConfidence: 0.7,
+        autoValidate: true,
+      };
+
+      toast.info('Processando OCR do documento...');
+      
+      const ocrResult = await processOCRWithValidation(
+        file,
+        documentoConfig,
+        form.getValues(),
+        []
+      );
+
+      // Atualizar estado local
+      update(index, {
+        ...fields[index],
+        arquivo: file,
+        status: ocrResult.overallStatus === 'success' ? 'validado' : 'pendente',
+      });
+
+      // Salvar no banco de dados se tiver inscricaoId
+      if (inscricaoId) {
+        await salvarDocumento.mutateAsync({
+          inscricaoId,
+          tipoDocumento: fields[index].tipo,
+          arquivo: file,
+          ocrResultado: ocrResult,
+          tempFileName: (ocrResult as any).tempFileName,
+        });
+      }
+
+      toast.success('Documento processado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao processar documento:', error);
+      toast.error('Erro ao processar documento');
+      
+      // Atualizar com status de erro
       update(index, {
         ...fields[index],
         arquivo: file,
         status: 'pendente',
       });
+    } finally {
       setUploadingIndex(null);
-    }, 1500);
+    }
   };
 
   const handleRemoveFile = (index: number) => {

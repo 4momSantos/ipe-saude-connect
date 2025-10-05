@@ -14,6 +14,7 @@ interface OCRResult {
   errors?: string[];
   warnings?: string[];
   message?: string;
+  tempFileName?: string;
 }
 
 /**
@@ -75,21 +76,15 @@ async function callOCREdgeFunction(
       fieldsExtracted: Object.keys(ocrData.data || {}).length
     });
 
-    // 4. Limpar arquivo temporário (opcional, pode ser feito depois)
-    supabase.storage
-      .from('ocr-temp-files')
-      .remove([fileName])
-      .then(() => console.log('🗑️ Arquivo temporário removido'))
-      .catch(err => console.warn('⚠️ Erro ao remover arquivo temporário:', err));
-
-    // 5. Retornar resultado no formato esperado
+    // 4. Retornar resultado no formato esperado (arquivo temporário será movido posteriormente)
     return {
       success: ocrData.success,
       extractedData: ocrData.data || {},
       confidence: ocrData.confidence || 0,
       errors: ocrData.success ? [] : [ocrData.message || 'Erro ao processar documento'],
       warnings: [],
-      message: ocrData.message
+      message: ocrData.message,
+      tempFileName: fileName // Retornar nome do arquivo temporário para movê-lo depois
     };
 
   } catch (error) {

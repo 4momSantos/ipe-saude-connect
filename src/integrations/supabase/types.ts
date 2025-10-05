@@ -560,6 +560,74 @@ export type Database = {
           },
         ]
       }
+      inscricao_documentos: {
+        Row: {
+          analisado_em: string | null
+          analisado_por: string | null
+          arquivo_nome: string
+          arquivo_tamanho: number | null
+          arquivo_url: string
+          created_at: string | null
+          id: string
+          inscricao_id: string
+          observacoes: string | null
+          ocr_confidence: number | null
+          ocr_processado: boolean | null
+          ocr_resultado: Json | null
+          status: string | null
+          tipo_documento: string
+          updated_at: string | null
+          uploaded_by: string | null
+          versao: number | null
+        }
+        Insert: {
+          analisado_em?: string | null
+          analisado_por?: string | null
+          arquivo_nome: string
+          arquivo_tamanho?: number | null
+          arquivo_url: string
+          created_at?: string | null
+          id?: string
+          inscricao_id: string
+          observacoes?: string | null
+          ocr_confidence?: number | null
+          ocr_processado?: boolean | null
+          ocr_resultado?: Json | null
+          status?: string | null
+          tipo_documento: string
+          updated_at?: string | null
+          uploaded_by?: string | null
+          versao?: number | null
+        }
+        Update: {
+          analisado_em?: string | null
+          analisado_por?: string | null
+          arquivo_nome?: string
+          arquivo_tamanho?: number | null
+          arquivo_url?: string
+          created_at?: string | null
+          id?: string
+          inscricao_id?: string
+          observacoes?: string | null
+          ocr_confidence?: number | null
+          ocr_processado?: boolean | null
+          ocr_resultado?: Json | null
+          status?: string | null
+          tipo_documento?: string
+          updated_at?: string | null
+          uploaded_by?: string | null
+          versao?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inscricao_documentos_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: false
+            referencedRelation: "inscricoes_edital"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inscricoes_edital: {
         Row: {
           analisado_em: string | null
