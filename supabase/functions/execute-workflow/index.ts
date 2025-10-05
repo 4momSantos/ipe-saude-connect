@@ -232,6 +232,8 @@ async function executeWorkflowSteps(
             completed_at: new Date().toISOString(),
           })
           .eq("id", stepExecution.id);
+        
+        console.log(`[WORKFLOW] ⏸️ Execução ${executionId} pausada no formulário ${currentNode.id}`);
         return; // Para a execução aqui
 
       case "email":
@@ -308,6 +310,9 @@ async function executeWorkflowSteps(
             completed_at: new Date().toISOString(),
           })
           .eq("id", stepExecution.id);
+        
+        // Workflow fica pendente até aprovação
+        console.log(`[WORKFLOW] ⏸️ Execução ${executionId} pausada na aprovação ${currentNode.id}`);
         return; // Para a execução aqui
 
       case "condition":
