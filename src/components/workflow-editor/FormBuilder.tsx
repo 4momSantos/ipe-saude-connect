@@ -11,13 +11,35 @@ interface FormBuilderProps {
   fields: FormField[];
   onChange: (fields: FormField[]) => void;
   allWorkflowFields?: Array<FormField & { nodeName?: string }>;
+  initialTitle?: string;
+  initialDescription?: string;
+  onTitleChange?: (title: string) => void;
+  onDescriptionChange?: (description: string) => void;
 }
 
-export function FormBuilder({ fields, onChange, allWorkflowFields = [] }: FormBuilderProps) {
+export function FormBuilder({ 
+  fields, 
+  onChange, 
+  allWorkflowFields = [],
+  initialTitle = "Formulário sem título",
+  initialDescription = "",
+  onTitleChange,
+  onDescriptionChange,
+}: FormBuilderProps) {
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState(false);
-  const [formTitle, setFormTitle] = useState("Formulário sem título");
-  const [formDescription, setFormDescription] = useState("");
+  const [formTitle, setFormTitle] = useState(initialTitle);
+  const [formDescription, setFormDescription] = useState(initialDescription);
+
+  const handleTitleChange = (newTitle: string) => {
+    setFormTitle(newTitle);
+    onTitleChange?.(newTitle);
+  };
+
+  const handleDescriptionChange = (newDescription: string) => {
+    setFormDescription(newDescription);
+    onDescriptionChange?.(newDescription);
+  };
 
   const addField = (type: FieldType) => {
     const newField: FormField = {
@@ -85,8 +107,8 @@ export function FormBuilder({ fields, onChange, allWorkflowFields = [] }: FormBu
           formDescription={formDescription}
           selectedFieldId={selectedFieldId}
           onFieldsChange={onChange}
-          onTitleChange={setFormTitle}
-          onDescriptionChange={setFormDescription}
+          onTitleChange={handleTitleChange}
+          onDescriptionChange={handleDescriptionChange}
           onSelectField={setSelectedFieldId}
           onDeleteField={deleteField}
         />

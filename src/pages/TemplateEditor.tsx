@@ -13,6 +13,8 @@ export default function TemplateEditor() {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [fields, setFields] = useState<FormField[]>([]);
+  const [formTitle, setFormTitle] = useState("Novo Formulário");
+  const [formDescription, setFormDescription] = useState("");
 
   useEffect(() => {
     if (id) {
@@ -31,6 +33,8 @@ export default function TemplateEditor() {
       if (error) throw error;
 
       setFields((data.fields as any[]) || []);
+      setFormTitle(data.name || "Novo Formulário");
+      setFormDescription(data.description || "");
     } catch (error: any) {
       toast({
         title: "Erro ao carregar template",
@@ -42,6 +46,15 @@ export default function TemplateEditor() {
   };
 
   const handleSave = async () => {
+    if (!formTitle || formTitle.trim() === "" || formTitle === "Formulário sem título") {
+      toast({
+        title: "Título obrigatório",
+        description: "Por favor, defina um título para o formulário antes de salvar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (fields.length === 0) {
       toast({
         title: "Campos obrigatórios",
@@ -57,6 +70,8 @@ export default function TemplateEditor() {
       if (!user.user) throw new Error("Usuário não autenticado");
 
       const templateData: any = {
+        name: formTitle.trim(),
+        description: formDescription.trim(),
         fields: fields as any,
       };
 
@@ -71,8 +86,7 @@ export default function TemplateEditor() {
         const { error } = await supabase
           .from("form_templates")
           .insert({ 
-            ...templateData, 
-            name: "Novo Template",
+            ...templateData,
             created_by: user.user.id 
           });
 
@@ -124,6 +138,10 @@ export default function TemplateEditor() {
         <FormBuilder
           fields={fields}
           onChange={setFields}
+          initialTitle={formTitle}
+          initialDescription={formDescription}
+          onTitleChange={setFormTitle}
+          onDescriptionChange={setFormDescription}
         />
       </div>
     </div>
