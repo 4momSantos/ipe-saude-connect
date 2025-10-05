@@ -137,6 +137,15 @@ serve(async (req) => {
     // Encontrar nó inicial (start) já foi feito acima
     const edges = workflow.edges as WorkflowEdge[];
 
+    // 🔍 Etapa 2: Log antes de iniciar steps
+    console.log(`[WORKFLOW] 🚀 Iniciando executeWorkflowSteps:`, {
+      executionId: execution.id,
+      startNodeId: startNode.id,
+      startNodeType: startNode.data.type,
+      totalNodes: nodes.length,
+      totalEdges: edges.length
+    });
+
     // Executar workflow em background
     executeWorkflowSteps(
       supabaseClient,
@@ -146,7 +155,10 @@ serve(async (req) => {
       startNode,
       inputData
     ).catch((error) => {
-      console.error("Erro na execução do workflow:", error);
+      console.error(`[WORKFLOW] ❌ ERRO na execução do workflow ${execution.id}:`, {
+        message: error.message,
+        stack: error.stack
+      });
       supabaseClient
         .from("workflow_executions")
         .update({
@@ -155,7 +167,7 @@ serve(async (req) => {
           completed_at: new Date().toISOString(),
         })
         .eq("id", execution.id)
-        .then(() => console.log("Execução marcada como falhada"));
+        .then(() => console.log(`[WORKFLOW] ⚠️ Execução ${execution.id} marcada como falhada`));
     });
 
     return new Response(
@@ -189,7 +201,15 @@ async function executeWorkflowSteps(
   currentNode: WorkflowNode,
   context: any
 ) {
-  console.log(`Executando nó: ${currentNode.id} (${currentNode.data.type})`);
+  // 🔍 Log detalhado do nó sendo executado
+  console.log(`[WORKFLOW] 📍 Executando nó:`, {
+    nodeId: currentNode.id,
+    nodeType: currentNode.data.type,
+    nodeLabel: currentNode.data.label,
+    executionId,
+    hasContext: !!context,
+    contextSize: context ? Object.keys(context).length : 0
+  });
 
   // Criar registro de step execution
   const { data: stepExecution, error: stepError } = await supabaseClient
@@ -205,7 +225,16 @@ async function executeWorkflowSteps(
     .select()
     .single();
 
-  if (stepError) throw stepError;
+  if (stepError) {
+    console.error(`[WORKFLOW] ❌ Erro ao criar step_execution:`, stepError);
+    throw stepError;
+  }
+  
+  console.log(`[WORKFLOW] ✅ Step execution criado:`, {
+    stepExecutionId: stepExecution.id,
+    nodeId: currentNode.id,
+    status: stepExecution.status
+  });
 
   try {
     let outputData = context;

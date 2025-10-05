@@ -90,6 +90,7 @@ export function WorkflowApprovalPanel() {
       setLoading(true);
       
       // Query única com JOIN para buscar tudo de uma vez
+      // ✅ Fase 17: Excluir workflows órfãs (sem step_executions)
       const { data: approvals, error: approvalsError } = await supabase
         .from("workflow_approvals")
         .select(`
@@ -102,6 +103,7 @@ export function WorkflowApprovalPanel() {
             workflow_executions!inner (
               id,
               started_at,
+              status,
               workflows (name, version),
               inscricoes_edital!inscricoes_edital_workflow_execution_id_fkey (
                 id,
@@ -116,6 +118,8 @@ export function WorkflowApprovalPanel() {
           )
         `)
         .eq("decision", "pending")
+        .eq("workflow_step_executions.workflow_executions.status", "running")
+        .not("workflow_step_executions.id", "is", null)
         .order("created_at", { ascending: false });
 
       if (approvalsError) throw approvalsError;

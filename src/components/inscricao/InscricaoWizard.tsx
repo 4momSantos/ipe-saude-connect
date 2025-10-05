@@ -222,14 +222,17 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
         // 1️⃣ Executar onSubmit PRIMEIRO
         await onSubmit(data);
         
-        // 2️⃣ SÓ DEPOIS marcar como enviado
-        if (inscricaoId) {
+        // 2️⃣ SÓ DEPOIS marcar como enviado e iniciar workflow
+        if (inscricaoId && editalId) {
           console.log('[INSCRICAO] Atualizando rascunho existente:', inscricaoId);
           const { supabase } = await import('@/integrations/supabase/client');
+          
+          // Marcar como não-rascunho
           const { error: updateError } = await supabase
             .from('inscricoes_edital')
             .update({ 
-              is_rascunho: false 
+              is_rascunho: false,
+              status: 'em_analise'
             })
             .eq('id', inscricaoId);
           
@@ -238,6 +241,37 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
             throw updateError;
           }
           console.log('✅ Rascunho marcado como enviado:', inscricaoId);
+          
+          // Buscar workflow do edital
+          const { data: edital } = await supabase
+            .from('editais')
+            .select('workflow_id')
+            .eq('id', editalId)
+            .single();
+          
+          // Invocar execute-workflow DIRETAMENTE
+          if (edital?.workflow_id) {
+            console.log('[INSCRICAO] Iniciando workflow:', edital.workflow_id);
+            const { error: workflowError } = await supabase.functions.invoke('execute-workflow', {
+              body: {
+                workflowId: edital.workflow_id,
+                inscricaoId,
+                inputData: data
+              }
+            });
+            
+            if (workflowError) {
+              console.error('❌ Erro ao iniciar workflow:', workflowError);
+              // Marcar como pendente para retry manual
+              await supabase
+                .from('inscricoes_edital')
+                .update({ status: 'pendente_workflow' })
+                .eq('id', inscricaoId);
+              
+              throw new Error('Erro ao iniciar workflow. Sua inscrição foi salva e será processada em breve.');
+            }
+            console.log('✅ Workflow iniciado com sucesso');
+          }
         }
       })();
 
