@@ -15,10 +15,11 @@ interface Inscricao {
   created_at: string;
   updated_at: string;
   is_rascunho: boolean;
+  edital_id: string;
   editais: {
     titulo: string;
-    numero_edital: string;
-  };
+    numero_edital: string | null;
+  } | null;
 }
 
 export default function MinhasInscricoes() {
@@ -144,7 +145,9 @@ export default function MinhasInscricoes() {
               <Card key={rascunho.id} className="border-yellow-300 bg-yellow-50 dark:bg-yellow-950/20">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{rascunho.editais.titulo}</CardTitle>
+                    <CardTitle className="text-lg">
+                      {rascunho.editais?.titulo || 'Edital não encontrado'}
+                    </CardTitle>
                     <StatusBadge status="rascunho" />
                   </div>
                 </CardHeader>
@@ -177,7 +180,9 @@ export default function MinhasInscricoes() {
             <Card key={inscricao.id}>
               <CardHeader>
                 <div className="flex items-start justify-between">
-                  <CardTitle className="text-lg">{inscricao.editais.titulo}</CardTitle>
+                  <CardTitle className="text-lg">
+                    {inscricao.editais?.titulo || 'Edital não encontrado'}
+                  </CardTitle>
                   <StatusBadge status={inscricao.status} />
                 </div>
               </CardHeader>
