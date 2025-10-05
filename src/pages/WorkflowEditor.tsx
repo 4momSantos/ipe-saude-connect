@@ -57,6 +57,9 @@ const initialNodes: Node<WorkflowNodeData>[] = [
       description: "Inicia o fluxo quando uma nova solicitação é criada.",
       category: "Credenciamento",
       status: "completed",
+      triggerConfig: {
+        type: "manual",
+      },
     },
   },
 ];
@@ -428,7 +431,15 @@ export default function WorkflowEditor() {
             color: '#10b981',
             icon: 'Play',
             description: 'Gatilho: quando candidato envia formulário de inscrição',
-            category: 'Credenciamento'
+            category: 'Credenciamento',
+            triggerConfig: {
+              type: 'database',
+              table: 'inscricoes_edital',
+              event: 'INSERT',
+              conditions: {
+                status: 'pendente_workflow'
+              }
+            }
           }
         },
         {
@@ -660,6 +671,7 @@ export default function WorkflowEditor() {
     
     // Validações completas
     const errors: string[] = [];
+    const warnings: string[] = [];
 
     // 1. Verificar se há nós
     if (nodes.length === 0) {
@@ -671,10 +683,28 @@ export default function WorkflowEditor() {
       errors.push("❌ Workflow não salvo - salve antes de testar");
     }
 
-    // 3. Verificar se há nó de início
+    // 3. Verificar se há nó de início e se tem configuração de gatilho
     const startNode = nodes.find(n => n.data.type === 'start');
     if (!startNode) {
       errors.push("❌ Falta nó de início (Start)");
+    } else if (!startNode.data.triggerConfig) {
+      warnings.push("⚠️ Nó Start não tem configuração de gatilho - será executado manualmente");
+    } else if (startNode.data.triggerConfig.type === 'database') {
+      // Validar configuração de database trigger
+      if (!startNode.data.triggerConfig.table) {
+        errors.push("❌ Nó Start com gatilho 'database' precisa especificar uma tabela");
+      }
+      if (!startNode.data.triggerConfig.event) {
+        errors.push("❌ Nó Start com gatilho 'database' precisa especificar um evento (INSERT/UPDATE/DELETE)");
+      }
+    } else if (startNode.data.triggerConfig.type === 'webhook') {
+      if (!startNode.data.triggerConfig.webhookUrl) {
+        errors.push("❌ Nó Start com gatilho 'webhook' precisa especificar uma URL");
+      }
+    } else if (startNode.data.triggerConfig.type === 'schedule') {
+      if (!startNode.data.triggerConfig.schedule) {
+        errors.push("❌ Nó Start com gatilho 'schedule' precisa especificar uma expressão cron");
+      }
     }
 
     // 4. Verificar se há nó de fim
@@ -781,6 +811,21 @@ export default function WorkflowEditor() {
         { duration: 8000 }
       );
       return;
+    }
+
+    // Se houver warnings, exibir mas permitir continuar
+    if (warnings.length > 0) {
+      toast.warning(
+        <div className="space-y-2">
+          <div className="font-semibold">⚠️ Avisos de configuração</div>
+          <div className="space-y-1 text-sm">
+            {warnings.map((warning, i) => (
+              <div key={i}>{warning}</div>
+            ))}
+          </div>
+        </div>,
+        { duration: 6000 }
+      );
     }
 
     // Se passou nas validações, executar workflow

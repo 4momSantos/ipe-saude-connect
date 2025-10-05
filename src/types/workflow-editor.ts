@@ -87,6 +87,15 @@ export interface FormTemplate {
   updatedAt: string;
 }
 
+export interface TriggerConfig {
+  type: "database" | "webhook" | "manual" | "schedule";
+  table?: string;
+  event?: "INSERT" | "UPDATE" | "DELETE";
+  conditions?: Record<string, any>;
+  webhookUrl?: string;
+  schedule?: string; // cron expression
+}
+
 export type NodeType = 
   | "start" 
   | "form" 
@@ -186,6 +195,7 @@ export interface WorkflowNodeData extends Record<string, unknown> {
   databaseConfig?: DatabaseConfig;
   approvalConfig?: ApprovalConfig;
   conditionConfig?: ConditionConfig;
+  triggerConfig?: TriggerConfig;
   config?: Record<string, any>;
 }
 

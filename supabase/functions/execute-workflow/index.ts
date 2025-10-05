@@ -67,6 +67,22 @@ serve(async (req) => {
     if (workflowError) throw workflowError;
     if (!workflow.is_active) throw new Error("Workflow está inativo");
 
+    // Verificar triggerConfig do nó start
+    const nodes = workflow.nodes as WorkflowNode[];
+    const startNode = nodes.find((n) => n.data.type === "start");
+
+    if (!startNode) {
+      throw new Error("Nó inicial não encontrado");
+    }
+
+    // Log da configuração do trigger
+    console.log('[WORKFLOW] 🎯 Configuração do gatilho:', {
+      hasTriggerConfig: !!startNode.data.triggerConfig,
+      triggerType: startNode.data.triggerConfig?.type,
+      triggerTable: startNode.data.triggerConfig?.table,
+      triggerEvent: startNode.data.triggerConfig?.event
+    });
+
     // Criar registro de execução
     const { data: execution, error: executionError } = await supabaseClient
       .from("workflow_executions")
@@ -107,14 +123,8 @@ serve(async (req) => {
       }
     }
 
-    // Encontrar nó inicial (start)
-    const nodes = workflow.nodes as WorkflowNode[];
+    // Encontrar nó inicial (start) já foi feito acima
     const edges = workflow.edges as WorkflowEdge[];
-    const startNode = nodes.find((n) => n.data.type === "start");
-
-    if (!startNode) {
-      throw new Error("Nó inicial não encontrado");
-    }
 
     // Executar workflow em background
     executeWorkflowSteps(
@@ -192,7 +202,8 @@ async function executeWorkflowSteps(
     // Executar lógica baseada no tipo de nó
     switch (currentNode.data.type) {
       case "start":
-        console.log("Nó inicial - passando para próximo");
+        console.log("Nó inicial - configuração:", currentNode.data.triggerConfig);
+        // Logica de trigger já foi processada no início da execução
         break;
 
       case "form":

@@ -14,6 +14,7 @@ import { EmailConfigPanel } from "./EmailConfig";
 import { DatabaseConfigPanel } from "./DatabaseConfig";
 import { ApprovalConfigPanel, ApprovalConfig } from "./ApprovalConfig";
 import { ConditionConfigPanel, ConditionConfig } from "./ConditionConfig";
+import { TriggerConfigPanel } from "./TriggerConfig";
 import { TemplateSelector } from "@/components/templates/TemplateSelector";
 import { WorkflowNodeData, FormField, FormTemplate } from "@/types/workflow-editor";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -156,6 +157,13 @@ export function ConfigPanel({
             </TabsContent>
 
             <TabsContent value="advanced" className="space-y-4 mt-4">
+              {nodeData.type === "start" && (
+                <TriggerConfigPanel
+                  config={nodeData.triggerConfig || { type: "manual" }}
+                  onChange={(config) => onUpdate({ triggerConfig: config })}
+                />
+              )}
+
               {nodeData.type === "form" && (
                 <div className="space-y-4">
                   <TemplateSelector
@@ -231,7 +239,7 @@ export function ConfigPanel({
                 />
               )}
 
-              {!["form", "webhook", "http", "signature", "email", "database", "approval", "condition"].includes(nodeData.type) && (
+              {!["start", "form", "webhook", "http", "signature", "email", "database", "approval", "condition"].includes(nodeData.type) && (
                 <div className="text-center py-8 text-muted-foreground">
                   <p>Este tipo de etapa não possui configuração avançada.</p>
                 </div>
