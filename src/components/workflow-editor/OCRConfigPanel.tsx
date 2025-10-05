@@ -13,9 +13,10 @@ interface OCRConfigPanelProps {
   field: FormField;
   allFields: FormField[];
   onUpdateField: (id: string, updates: Partial<FormField>) => void;
+  allWorkflowFields?: Array<FormField & { nodeName?: string }>;
 }
 
-export const OCRConfigPanel = ({ field, allFields, onUpdateField }: OCRConfigPanelProps) => {
+export const OCRConfigPanel = ({ field, allFields, onUpdateField, allWorkflowFields = [] }: OCRConfigPanelProps) => {
   const ocrConfig = field.ocrConfig || {
     enabled: false,
     documentType: 'rg' as const,
@@ -23,6 +24,12 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField }: OCRConfigPan
     minConfidence: 70,
     autoValidate: true
   };
+
+  // Combinar campos do formulário atual + todos os campos do workflow
+  const allAvailableFields = [
+    ...allFields.filter(f => f.id !== field.id && f.type !== 'file'),
+    ...allWorkflowFields.filter(f => f.id !== field.id && f.type !== 'file')
+  ];
 
   const handleToggleOCR = (enabled: boolean) => {
     if (enabled && ocrConfig.expectedFields.length === 0) {
@@ -77,16 +84,17 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField }: OCRConfigPan
     });
   };
 
-  // Filtrar campos disponíveis para mapeamento (exceto file e o próprio campo)
-  const availableFields = allFields.filter(
-    f => f.id !== field.id && f.type !== 'file'
-  );
-
   // Debug: verificar campos disponíveis
   console.log('🔍 OCRConfigPanel - Debug:', {
-    totalFields: allFields.length,
-    availableFields: availableFields.length,
-    fieldTypes: availableFields.map(f => ({ id: f.id, label: f.label, type: f.type }))
+    currentFormFields: allFields.length,
+    workflowFields: allWorkflowFields.length,
+    totalAvailable: allAvailableFields.length,
+    fieldDetails: allAvailableFields.map(f => ({ 
+      id: f.id, 
+      label: f.label, 
+      type: f.type,
+      source: 'nodeName' in f ? f.nodeName : 'Formulário Atual'
+    }))
   });
 
   return (
@@ -102,7 +110,10 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField }: OCRConfigPan
         <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
           <li><strong>Campos OCR:</strong> dados que serão extraídos do documento</li>
           <li><strong>Comparar com formulário:</strong> valida se corresponde ao preenchido</li>
-          <li><strong>Campos disponíveis:</strong> apenas do formulário atual ({allFields.length} total, {availableFields.length} disponíveis)</li>
+          <li><strong>Campos disponíveis:</strong> 
+            {allFields.length - 1} do formulário atual + {allWorkflowFields.length} de outras etapas
+            = <strong>{allAvailableFields.length} total</strong>
+          </li>
         </ul>
       </div>
 
@@ -197,9 +208,9 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField }: OCRConfigPan
                   {/* Comparar com campo do formulário */}
                   <div>
                     <Label className="text-xs">Comparar com campo do formulário</Label>
-                    {availableFields.length === 0 ? (
+                    {allAvailableFields.length === 0 ? (
                       <div className="text-xs text-muted-foreground p-2 border border-dashed rounded">
-                        Nenhum campo disponível. Adicione campos ao formulário primeiro.
+                        Nenhum campo disponível. Adicione campos aos formulários do workflow.
                       </div>
                     ) : (
                       <Select
@@ -209,14 +220,17 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField }: OCRConfigPan
                         }
                       >
                         <SelectTrigger className="text-sm">
-                          <SelectValue placeholder="Nenhum campo" />
+                          <SelectValue placeholder="Selecione um campo" />
                         </SelectTrigger>
                         <SelectContent>
-                          {availableFields.map(f => (
-                            <SelectItem key={f.id} value={f.id}>
-                              {f.label} ({f.type})
-                            </SelectItem>
-                          ))}
+                          {allAvailableFields.map(f => {
+                            const source = 'nodeName' in f && f.nodeName ? ` [${f.nodeName}]` : '';
+                            return (
+                              <SelectItem key={f.id} value={f.id}>
+                                {f.label} ({f.type}){source}
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                     )}

@@ -18,6 +18,7 @@ import { TemplateSelector } from "@/components/templates/TemplateSelector";
 import { WorkflowNodeData, FormField, FormTemplate } from "@/types/workflow-editor";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
+import { Node } from "@xyflow/react";
 import {
   Select,
   SelectContent,
@@ -33,6 +34,7 @@ interface ConfigPanelProps {
   onDelete: () => void;
   templates: FormTemplate[];
   onSaveTemplate: (template: Omit<FormTemplate, "id" | "createdAt" | "updatedAt">) => void;
+  allWorkflowNodes?: Node<WorkflowNodeData>[];
 }
 
 export function ConfigPanel({ 
@@ -41,11 +43,22 @@ export function ConfigPanel({
   onClose,
   onDelete,
   templates,
-  onSaveTemplate 
+  onSaveTemplate,
+  allWorkflowNodes = []
 }: ConfigPanelProps) {
   const [activeTab, setActiveTab] = useState("config");
   const [templateName, setTemplateName] = useState("");
   const [templateDescription, setTemplateDescription] = useState("");
+
+  // Extrair todos os campos de todos os formulários do workflow
+  const allWorkflowFields: Array<FormField & { nodeName?: string }> = allWorkflowNodes
+    .filter(node => node.data.type === 'form' && node.data.formFields)
+    .flatMap(node => 
+      (node.data.formFields || []).map(field => ({
+        ...field,
+        nodeName: node.data.label // Adicionar nome do nó para identificação
+      }))
+    );
 
   const handleSaveTemplate = () => {
     if (!templateName.trim()) {
@@ -155,9 +168,16 @@ export function ConfigPanel({
                   />
 
                   <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
-                    <p>💡 Os campos do formulário são definidos no template selecionado.</p>
-                    <p className="mt-1">Para criar ou editar templates, acesse o menu "Templates de Formulários".</p>
+                    <p>💡 Você pode usar um template ou editar os campos diretamente abaixo.</p>
                   </div>
+
+                  <FormBuilder
+                    fields={nodeData.formFields || []}
+                    onChange={(fields: FormField[]) =>
+                      onUpdate({ formFields: fields })
+                    }
+                    allWorkflowFields={allWorkflowFields}
+                  />
                 </div>
               )}
 

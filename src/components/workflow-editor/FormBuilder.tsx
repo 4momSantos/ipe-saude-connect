@@ -10,9 +10,10 @@ import { PreviewMode } from "./PreviewMode";
 interface FormBuilderProps {
   fields: FormField[];
   onChange: (fields: FormField[]) => void;
+  allWorkflowFields?: Array<FormField & { nodeName?: string }>;
 }
 
-export function FormBuilder({ fields, onChange }: FormBuilderProps) {
+export function FormBuilder({ fields, onChange, allWorkflowFields = [] }: FormBuilderProps) {
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState(false);
   const [formTitle, setFormTitle] = useState("Formulário sem título");
@@ -100,6 +101,7 @@ export function FormBuilder({ fields, onChange }: FormBuilderProps) {
             updateField(selectedFieldId, updates);
           }
         }}
+        allWorkflowFields={allWorkflowFields}
       />
     </div>
   );

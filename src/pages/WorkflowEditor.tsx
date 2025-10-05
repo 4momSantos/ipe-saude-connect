@@ -581,6 +581,7 @@ export default function WorkflowEditor() {
               onDelete={() => deleteNode(selectedNode.id)}
               templates={templates}
               onSaveTemplate={saveTemplate}
+              allWorkflowNodes={nodes}
             />
           </div>
         )}

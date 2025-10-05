@@ -13,9 +13,10 @@ interface FieldConfigPanelProps {
   field: FormField | null;
   allFields: FormField[];
   onUpdateField: (updates: Partial<FormField>) => void;
+  allWorkflowFields?: Array<FormField & { nodeName?: string }>;
 }
 
-export function FieldConfigPanel({ field, allFields, onUpdateField }: FieldConfigPanelProps) {
+export function FieldConfigPanel({ field, allFields, onUpdateField, allWorkflowFields = [] }: FieldConfigPanelProps) {
   if (!field) {
     return (
       <div className="w-80 bg-card border-l border-border overflow-y-auto">
@@ -258,6 +259,7 @@ export function FieldConfigPanel({ field, allFields, onUpdateField }: FieldConfi
             field={field}
             allFields={allFields}
             onUpdateField={(id, updates) => onUpdateField(updates)}
+            allWorkflowFields={allWorkflowFields}
           />
         )}
 
