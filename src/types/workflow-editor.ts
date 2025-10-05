@@ -39,6 +39,22 @@ export interface SelectOption {
   value: string;
 }
 
+export interface OCRFieldMapping {
+  ocrField: string;        // Campo extraído do OCR (ex: "cpf", "nome", "data_nascimento")
+  formFieldId?: string;    // ID do campo do formulário para comparação
+  validateAPI?: string;    // API para validação (ex: "validate-cpf", "validate-crm")
+  required: boolean;       // Se o campo é obrigatório no OCR
+  errorMessage?: string;   // Mensagem customizada de erro
+}
+
+export interface OCRConfig {
+  enabled: boolean;
+  documentType: "rg" | "cnh" | "cpf" | "crm" | "cnpj" | "comprovante_endereco" | "diploma" | "certidao";
+  expectedFields: OCRFieldMapping[];
+  minConfidence: number;   // Confiança mínima para aceitar (0-100)
+  autoValidate: boolean;   // Validar automaticamente após extração
+}
+
 export interface FormField {
   id: string;
   type: FieldType;
@@ -52,6 +68,7 @@ export interface FormField {
   apiConfig?: APIFieldConfig;
   acceptedFiles?: string; // For file type
   maxFileSize?: number; // For file type in MB
+  ocrConfig?: OCRConfig;
 }
 
 export interface ConditionalRule {

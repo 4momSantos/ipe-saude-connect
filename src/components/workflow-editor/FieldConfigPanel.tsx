@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Trash2, Plus } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { OCRConfigPanel } from "./OCRConfigPanel";
 
 interface FieldConfigPanelProps {
   field: FormField | null;
@@ -249,6 +250,15 @@ export function FieldConfigPanel({ field, allFields, onUpdateField }: FieldConfi
               </div>
             </div>
           </>
+        )}
+
+        {/* OCR Configuration */}
+        {field.type === 'file' && (
+          <OCRConfigPanel
+            field={field}
+            allFields={allFields}
+            onUpdateField={(id, updates) => onUpdateField(updates)}
+          />
         )}
 
         {/* API Field Configuration */}
