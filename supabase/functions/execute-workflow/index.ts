@@ -48,6 +48,15 @@ serve(async (req) => {
 
     const { workflowId, inputData, inscricaoId } = await req.json();
 
+    // 🔍 Etapa 1: Log detalhado de entrada
+    console.log('[WORKFLOW] 🚀 Função chamada:', {
+      workflowId,
+      inscricaoId,
+      hasInputData: !!inputData,
+      userId: user.id,
+      userEmail: user.email
+    });
+
     // Buscar workflow
     const { data: workflow, error: workflowError } = await supabaseClient
       .from("workflows")
@@ -71,10 +80,12 @@ serve(async (req) => {
 
     if (executionError) throw executionError;
 
-    console.log(`[WORKFLOW] Execução iniciada: ${execution.id} | Workflow: ${workflow.name} | User: ${user.id}`);
+    // 🔍 Etapa 1: Log de execução criada com sucesso
+    console.log(`[WORKFLOW] ✅ Execução criada: ${execution.id} | Workflow: ${workflow.name} | User: ${user.id}`);
 
     // Se houver inscricaoId, vincular a execução à inscrição
     if (inscricaoId) {
+      console.log(`[WORKFLOW] 📝 Tentando vincular execution ${execution.id} à inscrição ${inscricaoId}...`);
       const { error: updateError } = await supabaseClient
         .from("inscricoes_edital")
         .update({ 

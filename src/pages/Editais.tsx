@@ -385,7 +385,7 @@ export default function Editais() {
 
       // Se houver workflow, executá-la automaticamente
       if (editalData?.workflow_id && inscricaoResult) {
-        console.log('Executando workflow automaticamente...', editalData.workflow_id);
+        console.log('🔄 Executando workflow automaticamente...', editalData.workflow_id);
         
         try {
           const { data: functionData, error: functionError } = await supabase.functions.invoke('execute-workflow', {
@@ -397,18 +397,52 @@ export default function Editais() {
           });
 
           if (functionError) {
-            console.error('Erro ao executar workflow:', functionError);
-            toast.error('Inscrição criada, mas houve um erro ao iniciar o workflow.');
+            console.error('❌ Erro ao executar workflow:', functionError);
+            
+            // 🔧 Etapa 2: Marcar como pendente_workflow e avisar usuário
+            await supabase
+              .from('inscricoes_edital')
+              .update({ status: 'pendente_workflow' })
+              .eq('id', inscricaoResult.id);
+            
+            toast.warning('Inscrição criada, mas o workflow não pôde ser iniciado. Nossa equipe foi notificada.');
           } else {
-            console.log('Workflow iniciada:', functionData);
-            toast.success('Inscrição enviada e workflow iniciada com sucesso!');
+            console.log('✅ Workflow iniciada:', functionData);
+            
+            // 🔄 Etapa 2: POLLING - Aguardar vinculação do workflow_execution_id
+            console.log('⏳ Aguardando vinculação do workflow (máx 3 segundos)...');
+            let tentativas = 0;
+            let vinculado = false;
+            
+            while (tentativas < 6 && !vinculado) { // 6 tentativas x 500ms = 3 segundos
+              await new Promise(resolve => setTimeout(resolve, 500));
+              
+              const { data: inscricaoAtualizada } = await supabase
+                .from('inscricoes_edital')
+                .select('workflow_execution_id')
+                .eq('id', inscricaoResult.id)
+                .single();
+              
+              if (inscricaoAtualizada?.workflow_execution_id) {
+                vinculado = true;
+                console.log('✅ Workflow vinculado com sucesso:', inscricaoAtualizada.workflow_execution_id);
+                toast.success('Inscrição enviada e workflow iniciada com sucesso!');
+              }
+              
+              tentativas++;
+            }
+            
+            if (!vinculado) {
+              console.warn('⚠️ Workflow não foi vinculada após 3 segundos');
+              toast.success('Inscrição enviada! O workflow será processado em breve.');
+            }
           }
         } catch (workflowError) {
-          console.error('Erro ao executar workflow:', workflowError);
+          console.error('❌ Erro ao executar workflow:', workflowError);
           toast.success('Inscrição enviada com sucesso! (Workflow será processada em breve)');
         }
       } else {
-        console.log('[Editais] Inscrição enviada com sucesso!');
+        console.log('[Editais] Inscrição enviada com sucesso (sem workflow)!');
         toast.success('Inscrição enviada com sucesso!');
       }
 
