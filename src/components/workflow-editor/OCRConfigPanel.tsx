@@ -189,13 +189,13 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField }: OCRConfigPan
                   <div>
                     <Label className="text-xs">API de Validação</Label>
                     <Select
-                      value={fieldMapping.validateAPI || ''}
+                      value={fieldMapping.validateAPI || undefined}
                       onValueChange={(value) => 
                         handleUpdateFieldMapping(index, { validateAPI: value || undefined })
                       }
                     >
                       <SelectTrigger className="text-sm">
-                        <SelectValue />
+                        <SelectValue placeholder="Nenhuma validação" />
                       </SelectTrigger>
                       <SelectContent>
                         {getValidationAPIs().map(api => (

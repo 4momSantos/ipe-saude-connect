@@ -280,7 +280,6 @@ export function getDocumentTypes() {
  */
 export function getValidationAPIs() {
   return [
-    { value: '', label: 'Nenhuma' },
     { value: 'validate-cpf', label: 'Validar CPF' },
     { value: 'validate-cnpj', label: 'Validar CNPJ' },
     { value: 'validate-crm', label: 'Validar CRM' },
