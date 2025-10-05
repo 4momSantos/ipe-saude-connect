@@ -29,9 +29,20 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField, allWorkflowFie
   // Remover duplicatas baseado no ID
   const fieldsMap = new Map<string, FormField & { nodeName?: string }>();
   
+  console.log('🔍 OCRConfigPanel - Campos recebidos:', {
+    allFieldsLength: allFields.length,
+    allFields: allFields.map(f => ({ id: f.id, label: f.label, type: f.type })),
+    currentFieldId: field.id,
+    currentFieldType: field.type
+  });
+  
   // Adicionar campos do formulário atual
   allFields
-    .filter(f => f.id !== field.id && f.type !== 'file')
+    .filter(f => {
+      const isValid = f.id !== field.id && f.type !== 'file';
+      console.log(`Campo ${f.label} (${f.id}): isValid=${isValid}, isSameId=${f.id === field.id}, isFile=${f.type === 'file'}`);
+      return isValid;
+    })
     .forEach(f => fieldsMap.set(f.id, f));
   
   // Adicionar campos de outros formulários do workflow
@@ -40,6 +51,11 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField, allWorkflowFie
     .forEach(f => fieldsMap.set(f.id, f));
   
   const allAvailableFields = Array.from(fieldsMap.values());
+  
+  console.log('🔍 OCRConfigPanel - Resultado:', {
+    fieldsMapSize: fieldsMap.size,
+    allAvailableFields: allAvailableFields.map(f => ({ id: f.id, label: f.label, type: f.type }))
+  });
 
   const handleToggleOCR = (enabled: boolean) => {
     if (enabled && ocrConfig.expectedFields.length === 0) {
