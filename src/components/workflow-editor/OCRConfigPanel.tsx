@@ -312,19 +312,29 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField, allWorkflowFie
                     )}
                   </div>
 
-                  {/* API de validação */}
-                  <div>
-                    <Label className="text-xs">API de Validação</Label>
+                  {/* Tipo de validação */}
+                  <div className="space-y-2">
+                    <Label className="text-xs">Tipo de Validação</Label>
+                    <div className="p-2 bg-muted/50 rounded-md text-xs text-muted-foreground space-y-1">
+                      <p><strong>Sem API:</strong> Compara apenas os valores do OCR com o formulário</p>
+                      <p><strong>Com API:</strong> Valida em base de dados externa (CPF, CNPJ, etc)</p>
+                    </div>
                     <Select
-                      value={fieldMapping.validateAPI || ""}
+                      value={fieldMapping.validateAPI || "none"}
                       onValueChange={(value) => 
-                        handleUpdateFieldMapping(index, { validateAPI: value || undefined })
+                        handleUpdateFieldMapping(index, { validateAPI: value === "none" ? undefined : value })
                       }
                     >
                       <SelectTrigger className="text-sm">
-                        <SelectValue placeholder="Nenhuma validação" />
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-background z-50">
+                        <SelectItem value="none">
+                          ✓ Apenas comparar campos (sem API)
+                        </SelectItem>
+                        <SelectItem value="" disabled className="text-xs font-semibold">
+                          — Validação com API externa —
+                        </SelectItem>
                         {getValidationAPIs().map(api => (
                           <SelectItem key={api.value} value={api.value}>
                             {api.label}
@@ -332,6 +342,11 @@ export const OCRConfigPanel = ({ field, allFields, onUpdateField, allWorkflowFie
                         ))}
                       </SelectContent>
                     </Select>
+                    {(!fieldMapping.validateAPI || fieldMapping.validateAPI === "none") && fieldMapping.formFieldId && (
+                      <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                        ✓ Validação por comparação direta ativada
+                      </p>
+                    )}
                   </div>
 
                   {/* Obrigatório */}
