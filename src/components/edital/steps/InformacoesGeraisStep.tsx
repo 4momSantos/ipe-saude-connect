@@ -112,24 +112,51 @@ export function InformacoesGeraisStep({ form }: InformacoesGeraisStepProps) {
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="data_licitacao"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Data e Horário da Licitação *</FormLabel>
-              <FormControl>
-                <Input 
-                  type="datetime-local"
-                  {...field}
-                  value={field.value ? new Date(field.value).toISOString().slice(0, 16) : ''}
-                  onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)}
+      <FormField
+        control={form.control}
+        name="data_licitacao"
+        render={({ field }) => (
+          <FormItem className="flex flex-col">
+            <FormLabel>Data e Horário da Licitação *</FormLabel>
+            <FormControl>
+              <Input 
+                type="datetime-local"
+                {...field}
+                value={field.value ? new Date(field.value).toISOString().slice(0, 16) : ''}
+                onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="prazo_inscricao_dias"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Prazo para Inscrições (dias) *</FormLabel>
+            <FormControl>
+              <div className="relative">
+                <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="Ex: 30 dias"
+                  className="pl-10"
+                  value={field.value || ''}
+                  onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                 />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+              </div>
+            </FormControl>
+            <FormDescription>
+              Número de dias a partir da publicação para receber inscrições
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
         <FormField
           control={form.control}

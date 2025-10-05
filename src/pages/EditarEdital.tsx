@@ -39,6 +39,23 @@ export default function EditarEdital() {
         return;
       }
 
+      // Buscar especialidades vinculadas
+      const { data: especialidadesData } = await supabase
+        .from("edital_especialidades")
+        .select("especialidade_id")
+        .eq("edital_id", id);
+
+      const especialidades_ids = especialidadesData?.map(e => e.especialidade_id) || [];
+
+      // Calcular prazo de inscrição em dias
+      let prazo_inscricao_dias = 30; // valor padrão
+      if (data.data_inicio && data.data_fim) {
+        const inicio = new Date(data.data_inicio);
+        const fim = new Date(data.data_fim);
+        const diffTime = Math.abs(fim.getTime() - inicio.getTime());
+        prazo_inscricao_dias = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      }
+
       // Transformar os dados do banco para o formato do formulário
       const formData = {
         numero_edital: data.numero_edital || "",
@@ -46,6 +63,7 @@ export default function EditarEdital() {
         descricao: data.descricao || "",
         data_publicacao: data.data_publicacao ? new Date(data.data_publicacao) : undefined,
         data_licitacao: data.data_licitacao ? new Date(data.data_licitacao) : undefined,
+        prazo_inscricao_dias: prazo_inscricao_dias,
         local_portal: data.local_portal || "",
         prazo_validade_proposta: data.prazo_validade_proposta || 30,
         criterio_julgamento: data.criterio_julgamento || "",
@@ -53,6 +71,7 @@ export default function EditarEdital() {
         fonte_recursos: data.fonte_recursos || "",
         possui_vagas: data.possui_vagas || false,
         vagas: data.vagas || undefined,
+        especialidades_ids: especialidades_ids,
         participacao_permitida: Array.isArray(data.participacao_permitida) ? data.participacao_permitida : [],
         regras_me_epp: data.regras_me_epp || "",
         documentos_habilitacao: Array.isArray(data.documentos_habilitacao) ? data.documentos_habilitacao : [],

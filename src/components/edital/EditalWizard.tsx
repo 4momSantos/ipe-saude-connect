@@ -30,6 +30,7 @@ const editalSchema = z.object({
   descricao: z.string().min(1, "Campo obrigatório"),
   data_publicacao: z.date({ required_error: "Campo obrigatório" }),
   data_licitacao: z.date({ required_error: "Campo obrigatório" }),
+  prazo_inscricao_dias: z.number().min(1, "Campo obrigatório"),
   local_portal: z.string().min(1, "Campo obrigatório"),
   prazo_validade_proposta: z.number().min(1, "Campo obrigatório"),
   criterio_julgamento: z.string().min(1, "Campo obrigatório"),
@@ -81,6 +82,7 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
       objeto: "",
       descricao: "",
       local_portal: "",
+      prazo_inscricao_dias: 30,
       prazo_validade_proposta: 30,
       criterio_julgamento: "",
       garantia_execucao: 0,
@@ -111,6 +113,7 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
           "data_licitacao",
           "local_portal",
           "prazo_validade_proposta",
+          "prazo_inscricao_dias",
           "criterio_julgamento",
           "fonte_recursos",
           "especialidades_ids",
@@ -188,6 +191,11 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
+      // Calcular data_fim com base no prazo de inscrição
+      const dataInicio = new Date(data.data_publicacao);
+      const dataFim = new Date(dataInicio);
+      dataFim.setDate(dataFim.getDate() + data.prazo_inscricao_dias);
+
       const editalData = {
         numero_edital: data.numero_edital,
         titulo: data.objeto,
@@ -195,8 +203,8 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
         descricao: data.descricao,
         data_publicacao: data.data_publicacao.toISOString().split('T')[0],
         data_licitacao: data.data_licitacao.toISOString(),
-        data_inicio: data.data_publicacao.toISOString().split('T')[0],
-        data_fim: data.data_licitacao.toISOString().split('T')[0],
+        data_inicio: dataInicio.toISOString().split('T')[0],
+        data_fim: dataFim.toISOString().split('T')[0],
         local_portal: data.local_portal,
         prazo_validade_proposta: data.prazo_validade_proposta,
         criterio_julgamento: data.criterio_julgamento,
