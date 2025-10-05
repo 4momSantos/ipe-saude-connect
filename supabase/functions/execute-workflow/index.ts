@@ -46,7 +46,7 @@ serve(async (req) => {
       throw new Error("Não autorizado");
     }
 
-    const { workflowId, inputData, inscricaoId } = await req.json();
+    const { workflowId, inputData, inscricaoId, continueFrom } = await req.json();
 
     // 🔍 Etapa 1: Log detalhado de entrada
     console.log('[WORKFLOW] 🚀 Função chamada:', {
@@ -134,14 +134,27 @@ serve(async (req) => {
       }
     }
 
-    // Encontrar nó inicial (start) já foi feito acima
+    // Determinar nó inicial
     const edges = workflow.edges as WorkflowEdge[];
+    let initialNode = startNode;
+    
+    // Se continueFrom foi especificado, iniciar daquele nó
+    if (continueFrom) {
+      const continueNode = nodes.find(n => n.id === continueFrom);
+      if (continueNode) {
+        console.log(`[WORKFLOW] 🔄 Continuando execução do nó: ${continueFrom}`);
+        initialNode = continueNode;
+      } else {
+        console.warn(`[WORKFLOW] ⚠️ Nó continueFrom não encontrado: ${continueFrom}, usando start`);
+      }
+    }
 
     // 🔍 Etapa 2: Log antes de iniciar steps
     console.log(`[WORKFLOW] 🚀 Iniciando executeWorkflowSteps:`, {
       executionId: execution.id,
-      startNodeId: startNode.id,
-      startNodeType: startNode.data.type,
+      startNodeId: initialNode.id,
+      startNodeType: initialNode.data.type,
+      continueFrom: continueFrom || 'início',
       totalNodes: nodes.length,
       totalEdges: edges.length
     });
@@ -152,7 +165,7 @@ serve(async (req) => {
       execution.id,
       nodes,
       edges,
-      startNode,
+      initialNode,
       inputData
     ).catch((error) => {
       console.error(`[WORKFLOW] ❌ ERRO na execução do workflow ${execution.id}:`, {
@@ -311,8 +324,97 @@ async function executeWorkflowSteps(
         break;
 
       case "database":
-        console.log("Operação de banco de dados (simulado)");
-        outputData = { ...context, dbOperation: true };
+        console.log(`[WORKFLOW] 💾 Executando operação de banco de dados`);
+        const dbConfig = currentNode.data.databaseConfig;
+        
+        if (dbConfig && dbConfig.table && dbConfig.operation) {
+          console.log(`[WORKFLOW] 💾 DB Operation: ${dbConfig.operation} em ${dbConfig.table}`);
+          
+          try {
+            const tableName = dbConfig.table;
+            const operation = dbConfig.operation;
+            const fields = dbConfig.fields || {};
+            
+            // Resolver variáveis nos campos usando context
+            const resolvedFields: Record<string, any> = {};
+            for (const [key, value] of Object.entries(fields)) {
+              if (typeof value === 'string' && value.startsWith('{') && value.endsWith('}')) {
+                // Extrair path da variável: {inscricao.id} -> ['inscricao', 'id']
+                const varPath = value.slice(1, -1).split('.');
+                let resolvedValue = context;
+                for (const part of varPath) {
+                  resolvedValue = resolvedValue?.[part];
+                }
+                resolvedFields[key] = resolvedValue;
+              } else {
+                resolvedFields[key] = value;
+              }
+            }
+            
+            console.log(`[WORKFLOW] 💾 Campos resolvidos:`, resolvedFields);
+            
+            // Executar operação no banco
+            let dbResult;
+            switch (operation) {
+              case 'insert':
+                dbResult = await supabaseClient
+                  .from(tableName)
+                  .insert(resolvedFields)
+                  .select();
+                break;
+              
+              case 'update':
+                const updateConditions = dbConfig.conditions || {};
+                let updateQuery = supabaseClient.from(tableName).update(resolvedFields);
+                
+                for (const [condKey, condValue] of Object.entries(updateConditions)) {
+                  updateQuery = updateQuery.eq(condKey, condValue);
+                }
+                
+                dbResult = await updateQuery.select();
+                break;
+              
+              case 'delete':
+                const deleteConditions = dbConfig.conditions || {};
+                let deleteQuery = supabaseClient.from(tableName).delete();
+                
+                for (const [condKey, condValue] of Object.entries(deleteConditions)) {
+                  deleteQuery = deleteQuery.eq(condKey, condValue);
+                }
+                
+                dbResult = await deleteQuery;
+                break;
+              
+              default:
+                throw new Error(`Operação de banco não suportada: ${operation}`);
+            }
+            
+            if (dbResult.error) {
+              throw dbResult.error;
+            }
+            
+            console.log(`[WORKFLOW] ✅ Operação de banco concluída com sucesso`);
+            outputData = { 
+              ...context, 
+              dbOperation: true, 
+              dbResult: dbResult.data,
+              dbOperation_success: true
+            };
+            
+          } catch (dbError: any) {
+            console.error(`[WORKFLOW] ❌ Erro na operação de banco:`, dbError);
+            outputData = { 
+              ...context, 
+              dbOperation: false,
+              dbError: dbError.message,
+              dbOperation_success: false
+            };
+            throw new Error(`Erro ao executar operação no banco: ${dbError.message}`);
+          }
+        } else {
+          console.warn(`[WORKFLOW] ⚠️ Nó database sem configuração válida`);
+          outputData = { ...context, dbOperation: false };
+        }
         break;
 
       case "approval":
