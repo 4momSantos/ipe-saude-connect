@@ -672,7 +672,7 @@ export default function WorkflowEditor() {
     }
 
     // 3. Verificar se há nó de início
-    const startNode = nodes.find(n => n.type === 'start');
+    const startNode = nodes.find(n => n.data.type === 'start');
     if (!startNode) {
       errors.push("❌ Falta nó de início (Start)");
     }
