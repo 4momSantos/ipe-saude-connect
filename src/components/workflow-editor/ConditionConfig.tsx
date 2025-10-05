@@ -140,7 +140,7 @@ export function ConditionConfigPanel({ config, onChange }: ConditionConfigPanelP
 
       {/* Seleção de Analistas Específicos */}
       {config.assignmentType === "specific" && (
-        <div className="space-y-3">
+        <div className="space-y-3 animate-fade-in">
           <div className="flex items-center justify-between">
             <Label>Selecionar Analistas</Label>
             <Badge variant="secondary">
@@ -160,34 +160,42 @@ export function ConditionConfigPanel({ config, onChange }: ConditionConfigPanelP
               </p>
             </div>
           ) : (
-            <ScrollArea className="h-[200px] border rounded-lg p-3">
-              <div className="space-y-2">
-                {analysts.map((analyst) => (
-                  <div
-                    key={analyst.id}
-                    className="flex items-start space-x-3 p-2 rounded-md hover:bg-accent/50 transition-colors"
-                  >
-                    <Checkbox
-                      id={`condition-${analyst.id}`}
-                      checked={config.assignedAnalysts?.includes(analyst.id) || false}
-                      onCheckedChange={(checked) =>
-                        handleAnalystToggle(analyst.id, checked as boolean)
-                      }
-                      className="mt-1"
-                    />
-                    <label
-                      htmlFor={`condition-${analyst.id}`}
-                      className="flex-1 cursor-pointer space-y-0.5"
+            <div className="border rounded-lg bg-background/50 transition-all duration-300">
+              <ScrollArea className="max-h-[300px] min-h-[150px]">
+                <div className="p-3 space-y-2">
+                  {analysts.map((analyst) => (
+                    <div
+                      key={analyst.id}
+                      className="flex items-start space-x-3 p-3 rounded-md hover:bg-accent/50 transition-all duration-200 cursor-pointer group"
+                      onClick={() => {
+                        const isChecked = config.assignedAnalysts?.includes(analyst.id) || false;
+                        handleAnalystToggle(analyst.id, !isChecked);
+                      }}
                     >
-                      <div className="font-medium text-sm">{analyst.nome}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {analyst.email}
-                      </div>
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
+                      <Checkbox
+                        id={`condition-${analyst.id}`}
+                        checked={config.assignedAnalysts?.includes(analyst.id) || false}
+                        onCheckedChange={(checked) =>
+                          handleAnalystToggle(analyst.id, checked as boolean)
+                        }
+                        className="mt-1 pointer-events-none"
+                      />
+                      <label
+                        htmlFor={`condition-${analyst.id}`}
+                        className="flex-1 cursor-pointer space-y-0.5 pointer-events-none"
+                      >
+                        <div className="font-medium text-sm group-hover:text-primary transition-colors">
+                          {analyst.nome}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {analyst.email}
+                        </div>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
           )}
         </div>
       )}
