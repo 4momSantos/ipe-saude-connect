@@ -1,14 +1,20 @@
 /**
  * FASE 6-10: Execute Workflow - Motor principal de execução de workflows
  * 
- * Responsabilidades:
- * 1. Criar e iniciar execução de workflow
- * 2. Processar cada nó sequencialmente (start → steps → end)
- * 3. Gerenciar contexto entre nós
- * 4. Registrar histórico de execução em workflow_step_executions
- * 5. Sincronizar status com inscricoes_edital
+ * ARQUITETURA MODULAR:
+ * Este arquivo atua apenas como ORQUESTRADOR, delegando a execução de cada nó
+ * para executores especializados seguindo o padrão Strategy.
  * 
- * Tipos de Nós Suportados:
+ * Responsabilidades do Orquestrador:
+ * 1. Criar e iniciar execução de workflow
+ * 2. Validar autenticação e workflow
+ * 3. Vincular com inscricao_edital (se aplicável)
+ * 4. Coordenar execução sequencial dos nós via executeWorkflowSteps()
+ * 5. Gerenciar contexto entre nós
+ * 6. Registrar histórico de execução em workflow_step_executions
+ * 7. Sincronizar status com inscricoes_edital
+ * 
+ * Tipos de Nós Suportados (via executores modulares):
  * - start: Ponto de entrada do workflow
  * - form: Coleta de dados via formulário
  * - email: Envio de e-mails templated
@@ -19,38 +25,17 @@
  * - approval: Ponto de aprovação manual
  * - condition: Ramificação condicional
  * - end: Finalização do workflow
- * 
- * Fluxo de Execução:
- * 1. Validar autenticação e workflow
- * 2. Criar workflow_execution
- * 3. Vincular com inscricao_edital (se aplicável)
- * 4. Executar nós recursivamente via executeWorkflowSteps()
- * 5. Atualizar status final
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { WorkflowNode, WorkflowEdge, ExecutionContext } from './executors/types.ts';
+import { getExecutor, hasExecutor } from './executors/index.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-interface WorkflowNode {
-  id: string;
-  type: string;
-  data: {
-    type: string;
-    label: string;
-    [key: string]: any;
-  };
-}
-
-interface WorkflowEdge {
-  id: string;
-  source: string;
-  target: string;
-}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -223,13 +208,26 @@ serve(async (req) => {
   }
 });
 
+/**
+ * ORQUESTRADOR DE EXECUÇÃO DE NÓS
+ * 
+ * Esta função atua como coordenador, delegando a execução de cada nó
+ * para seu executor especializado via padrão Strategy.
+ * 
+ * Fluxo:
+ * 1. Criar step_execution
+ * 2. Obter executor apropriado via getExecutor()
+ * 3. Delegar execução ao executor
+ * 4. Processar resultado (pause, continue, error)
+ * 5. Navegar para próximo nó se aplicável
+ */
 async function executeWorkflowSteps(
   supabaseClient: any,
   executionId: string,
   nodes: WorkflowNode[],
   edges: WorkflowEdge[],
   currentNode: WorkflowNode,
-  context: any
+  context: ExecutionContext
 ) {
   // 🔍 Log detalhado do nó sendo executado
   console.log(`[WORKFLOW] 📍 Executando nó:`, {
@@ -267,391 +265,39 @@ async function executeWorkflowSteps(
   });
 
   try {
-    let outputData = context;
+    // ORQUESTRAÇÃO: Obter executor apropriado para o tipo de nó
+    const nodeType = currentNode.data.type;
+    
+    if (!hasExecutor(nodeType)) {
+      console.error(`[WORKFLOW] ❌ Tipo de nó desconhecido: ${nodeType}`);
+      throw new Error(`Tipo de nó não suportado: ${nodeType}`);
+    }
+    
+    const executor = getExecutor(nodeType);
+    
+    // DELEGAÇÃO: Executar nó via executor especializado
+    console.log(`[WORKFLOW] 🎯 Delegando execução para ${nodeType}Executor`);
+    const result = await executor.execute(
+      supabaseClient,
+      executionId,
+      stepExecution.id,
+      currentNode,
+      context
+    );
 
-    // Executar lógica baseada no tipo de nó
-    switch (currentNode.data.type) {
-      case "start":
-        console.log("Nó inicial - configuração:", currentNode.data.triggerConfig);
-        // Logica de trigger já foi processada no início da execução
-        break;
-
-      case "form":
-        console.log(`[WORKFLOW] 📝 Nó FORM detectado: ${currentNode.id}`);
-        
-        const formFields = currentNode.data.formFields || [];
-        const forcePause = currentNode.data.forcePause || false;
-        
-        // Verificar campos obrigatórios faltando
-        const missingRequired = formFields
-          .filter((f: any) => f.required && !context?.[f.name])
-          .map((f: any) => f.name);
-        
-        // DECISÃO: pausar se forcePause=true OU campos obrigatórios faltam
-        const shouldPause = forcePause || missingRequired.length > 0;
-        
-        if (shouldPause) {
-          console.log(`[WORKFLOW] ⏸️ Pausando - campos faltando: ${missingRequired.join(', ')}`);
-          await supabaseClient
-            .from("workflow_step_executions")
-            .update({
-              status: "paused",
-              output_data: { 
-                formFields,
-                missingFields: missingRequired,
-                pausedAt: new Date().toISOString()
-              }
-            })
-            .eq("id", stepExecution.id);
-          return;
-        }
-        
-        // Se tudo OK, pular
-        console.log(`[WORKFLOW] ✅ Todos campos presentes, pulando formulário`);
-        await supabaseClient
-          .from("workflow_step_executions")
-          .update({
-            status: "completed",
-            completed_at: new Date().toISOString(),
-            output_data: { skipped: true, formData: context }
-          })
-          .eq("id", stepExecution.id);
-        
-        outputData = { ...context };
-        break;
-
-      case "email":
-        console.log("Enviando email (simulado)");
-        outputData = { ...context, emailSent: true };
-        break;
-
-      case "webhook":
-        console.log("Chamando webhook (simulado)");
-        outputData = { ...context, webhookCalled: true };
-        break;
-
-      case "http":
-        console.log("Fazendo chamada HTTP (simulado)");
-        if (currentNode.data.httpConfig) {
-          const config = currentNode.data.httpConfig;
-          console.log(`HTTP ${config.method} para ${config.url}`);
-        }
-        outputData = { ...context, httpCalled: true };
-        break;
-
-      case "database":
-        console.log(`[WORKFLOW] 💾 Executando operação de banco de dados`);
-        const dbConfig = currentNode.data.databaseConfig;
-        
-        if (dbConfig && dbConfig.table && dbConfig.operation) {
-          console.log(`[WORKFLOW] 💾 DB Operation: ${dbConfig.operation} em ${dbConfig.table}`);
-          
-          try {
-            const tableName = dbConfig.table;
-            const operation = dbConfig.operation;
-            const fields = dbConfig.fields || {};
-            
-            // Resolver variáveis nos campos usando context
-            const resolvedFields: Record<string, any> = {};
-            for (const [key, value] of Object.entries(fields)) {
-              if (typeof value === 'string' && value.startsWith('{') && value.endsWith('}')) {
-                // Extrair path da variável: {inscricao.id} -> ['inscricao', 'id']
-                const varPath = value.slice(1, -1).split('.');
-                let resolvedValue = context;
-                for (const part of varPath) {
-                  resolvedValue = resolvedValue?.[part];
-                }
-                resolvedFields[key] = resolvedValue;
-              } else {
-                resolvedFields[key] = value;
-              }
-            }
-            
-            console.log(`[WORKFLOW] 💾 Campos resolvidos:`, resolvedFields);
-            
-            // Executar operação no banco
-            let dbResult;
-            switch (operation) {
-              case 'insert':
-                dbResult = await supabaseClient
-                  .from(tableName)
-                  .insert(resolvedFields)
-                  .select();
-                break;
-              
-              case 'update':
-                const updateConditions = dbConfig.conditions || {};
-                let updateQuery = supabaseClient.from(tableName).update(resolvedFields);
-                
-                for (const [condKey, condValue] of Object.entries(updateConditions)) {
-                  updateQuery = updateQuery.eq(condKey, condValue);
-                }
-                
-                dbResult = await updateQuery.select();
-                break;
-              
-              case 'delete':
-                const deleteConditions = dbConfig.conditions || {};
-                let deleteQuery = supabaseClient.from(tableName).delete();
-                
-                for (const [condKey, condValue] of Object.entries(deleteConditions)) {
-                  deleteQuery = deleteQuery.eq(condKey, condValue);
-                }
-                
-                dbResult = await deleteQuery;
-                break;
-              
-              default:
-                throw new Error(`Operação de banco não suportada: ${operation}`);
-            }
-            
-            if (dbResult.error) {
-              throw dbResult.error;
-            }
-            
-            console.log(`[WORKFLOW] ✅ Operação de banco concluída com sucesso`);
-            outputData = { 
-              ...context, 
-              dbOperation: true, 
-              dbResult: dbResult.data,
-              dbOperation_success: true
-            };
-            
-          } catch (dbError: any) {
-            console.error(`[WORKFLOW] ❌ Erro na operação de banco:`, dbError);
-            outputData = { 
-              ...context, 
-              dbOperation: false,
-              dbError: dbError.message,
-              dbOperation_success: false
-            };
-            throw new Error(`Erro ao executar operação no banco: ${dbError.message}`);
-          }
-        } else {
-          console.warn(`[WORKFLOW] ⚠️ Nó database sem configuração válida`);
-          outputData = { ...context, dbOperation: false };
-        }
-        break;
-
-      case "signature":
-        console.log(`[WORKFLOW] ✍️ Nó SIGNATURE detectado`);
-        const signatureConfig = currentNode.data.signatureConfig || {};
-        const DEV_MODE = Deno.env.get('ENVIRONMENT') !== 'production';
-        
-        // Criar signature request
-        const { data: signatureRequest, error: sigError } = await supabaseClient
-          .from('signature_requests')
-          .insert({
-            workflow_execution_id: executionId,
-            step_execution_id: stepExecution.id,
-            provider: signatureConfig.provider || 'manual',
-            signers: signatureConfig.signers || [],
-            document_url: signatureConfig.documentUrl,
-            status: 'pending',
-            metadata: DEV_MODE ? { dev_mode: true } : {}
-          })
-          .select()
-          .single();
-        
-        if (sigError) {
-          console.error(`[WORKFLOW] ❌ Erro ao criar signature request:`, sigError);
-          throw sigError;
-        }
-        
-        console.log(`[WORKFLOW] ✅ Signature request criada: ${signatureRequest.id}`);
-        
-        // MODO DEV: simular callback automático após 10s
-        if (DEV_MODE && signatureRequest.provider === 'manual') {
-          console.log(`[WORKFLOW] 🔧 DEV MODE: agendando auto-complete em 10s`);
-          
-          // Adicionar job na fila para simular callback
-          await supabaseClient.from('workflow_queue').insert({
-            inscricao_id: null,
-            workflow_id: executionId,
-            workflow_version: 1,
-            input_data: {
-              __dev_callback: true,
-              signature_request_id: signatureRequest.id,
-              step_execution_id: stepExecution.id,
-              execution_id: executionId,
-              delay_seconds: 10
-            },
-            status: 'pending',
-            attempts: 0
-          });
-        } else {
-          // MODO PROD: invocar send-signature-request real
-          const { error: sendError } = await supabaseClient.functions.invoke(
-            'send-signature-request',
-            { body: { signatureRequestId: signatureRequest.id } }
-          );
-          
-          if (sendError) {
-            console.error(`[WORKFLOW] ❌ Erro ao enviar signature request:`, sendError);
-          } else {
-            console.log(`[WORKFLOW] ✅ Signature request enviada`);
-          }
-        }
-        
-        // Pausar com status 'paused'
-        await supabaseClient
-          .from("workflow_step_executions")
-          .update({
-            status: "paused",
-            output_data: { 
-              signatureRequestId: signatureRequest.id,
-              pausedAt: new Date().toISOString(),
-              devMode: DEV_MODE
-            }
-          })
-          .eq("id", stepExecution.id);
-        
-        console.log(`[WORKFLOW] ⏸️ Execução pausada aguardando assinatura`);
-        return;
-
-      case "ocr":
-        console.log(`[WORKFLOW] 📄 Nó OCR detectado`);
-        const ocrConfig = currentNode.data.ocrConfig || {};
-        
-        // Buscar documento para processar OCR
-        let documentUrl = ocrConfig.documentUrl;
-        
-        // Se documentUrl é uma variável, resolver do context
-        if (documentUrl && documentUrl.startsWith('{')) {
-          const varPath = documentUrl.slice(1, -1).split('.');
-          let resolved = context;
-          for (const part of varPath) {
-            resolved = resolved?.[part];
-          }
-          documentUrl = resolved;
-        }
-        
-        if (!documentUrl) {
-          console.error(`[WORKFLOW] ❌ URL do documento não fornecida para OCR`);
-          outputData = { ...context, ocrSuccess: false, ocrError: 'URL do documento não fornecida' };
-          break;
-        }
-        
-        console.log(`[WORKFLOW] 📄 Processando OCR para documento: ${documentUrl}`);
-        
-        // Invocar edge function de OCR
-        const { data: ocrResult, error: ocrError } = await supabaseClient.functions.invoke(
-          'process-ocr',
-          { body: { imageUrl: documentUrl, fieldMappings: ocrConfig.fieldMappings || [] } }
-        );
-        
-        if (ocrError) {
-          console.error(`[WORKFLOW] ❌ Erro ao processar OCR:`, ocrError);
-          outputData = { ...context, ocrSuccess: false, ocrError: ocrError.message };
-        } else {
-          console.log(`[WORKFLOW] ✅ OCR processado com sucesso`);
-          outputData = { 
-            ...context, 
-            ocrSuccess: true, 
-            ocrData: ocrResult,
-            ...ocrResult?.extractedData // Mesclar dados extraídos no context
-          };
-        }
-        break;
-
-      case "approval":
-        console.log("Aguardando aprovação");
-        
-        // Obter configuração de aprovação do nó
-        const approvalConfig = currentNode.data.approvalConfig || { assignmentType: "all" };
-        
-        // Buscar analistas responsáveis
-        let assignedAnalysts: string[] = [];
-        
-        if (approvalConfig.assignmentType === "all") {
-          // Buscar todos os analistas
-          const { data: allAnalysts } = await supabaseClient
-            .from("user_roles")
-            .select("user_id")
-            .eq("role", "analista");
-          
-          assignedAnalysts = allAnalysts?.map((a: { user_id: string }) => a.user_id) || [];
-          console.log("Aprovação atribuída a todos os analistas:", assignedAnalysts.length);
-        } else if (approvalConfig.assignedAnalysts && approvalConfig.assignedAnalysts.length > 0) {
-          assignedAnalysts = approvalConfig.assignedAnalysts;
-          console.log("Aprovação atribuída a analistas específicos:", assignedAnalysts.length);
-        }
-        
-        // Criar registros de aprovação para cada analista
-        if (assignedAnalysts.length > 0) {
-          const approvalRecords = assignedAnalysts.map(analystId => ({
-            step_execution_id: stepExecution.id,
-            approver_id: analystId,
-            decision: "pending",
-          }));
-          
-          const { error: approvalError } = await supabaseClient
-            .from("workflow_approvals")
-            .insert(approvalRecords);
-          
-          if (approvalError) {
-            console.error("Erro ao criar registros de aprovação:", approvalError);
-          } else {
-            console.log("Registros de aprovação criados:", approvalRecords.length);
-            
-            // Criar notificações para analistas
-            const notifications = assignedAnalysts.map(analystId => ({
-              user_id: analystId,
-              type: "info",
-              title: "⏰ Nova Aprovação Pendente",
-              message: `Inscrição aguarda sua análise`,
-              related_type: "workflow_approval",
-              related_id: stepExecution.id
-            }));
-            
-            const { error: notifError } = await supabaseClient
-              .from("app_notifications")
-              .insert(notifications);
-            
-            if (notifError) {
-              console.error("[WORKFLOW] ❌ Erro ao criar notificações:", notifError);
-            } else {
-              console.log(`[WORKFLOW] ✅ ${notifications.length} notificações enviadas`);
-            }
-          }
-        }
-        
-        await supabaseClient
-          .from("workflow_step_executions")
-          .update({
-            status: "pending",
-            output_data: { assignedAnalysts, approvalConfig },
-            completed_at: new Date().toISOString(),
-          })
-          .eq("id", stepExecution.id);
-        
-        // Workflow fica pendente até aprovação
-        console.log(`[WORKFLOW] ⏸️ Execução ${executionId} pausada na aprovação ${currentNode.id}`);
-        return; // Para a execução aqui
-
-      case "condition":
-        console.log("Avaliando condição");
-        // Aqui implementaríamos a lógica de bifurcação
-        break;
-
-      case "end":
-        console.log(`[WORKFLOW] Finalizando workflow: ${executionId}`);
-        
-        // Atualizar status do workflow
-        await supabaseClient
-          .from("workflow_executions")
-          .update({
-            status: "completed",
-            completed_at: new Date().toISOString(),
-          })
-          .eq("id", executionId);
-
-        console.log(`[WORKFLOW] Workflow ${executionId} finalizado com sucesso`);
-        // Nota: A sincronização de status para inscricao será feita pelo trigger sync_workflow_status_to_inscricao
-        break;
-
-      default:
-        console.log(`Tipo de nó desconhecido: ${currentNode.data.type}`);
+    // Processar resultado da execução
+    const { outputData, shouldPause, shouldContinue } = result;
+    
+    // Se deve pausar (form incompleto, signature, approval), parar aqui
+    if (shouldPause) {
+      console.log(`[WORKFLOW] ⏸️ Execução pausada no nó ${currentNode.id}`);
+      return;
+    }
+    
+    // Se é nó END, não continuar
+    if (currentNode.data.type === "end" || shouldContinue === false) {
+      console.log(`[WORKFLOW] 🏁 Workflow finalizado`);
+      return;
     }
 
     // Marcar step como completo
@@ -664,34 +310,35 @@ async function executeWorkflowSteps(
       })
       .eq("id", stepExecution.id);
 
-    // Se não é um nó final, continuar para o próximo
-    if (currentNode.data.type !== "end") {
-      const nextEdge = edges.find((e) => e.source === currentNode.id);
-      if (nextEdge) {
-        const nextNode = nodes.find((n) => n.id === nextEdge.target);
-        if (nextNode) {
-          await executeWorkflowSteps(
-            supabaseClient,
-            executionId,
-            nodes,
-            edges,
-            nextNode,
-            outputData
-          );
-        }
+    // Navegar para o próximo nó
+    const nextEdge = edges.find((e) => e.source === currentNode.id);
+    if (nextEdge) {
+      const nextNode = nodes.find((n) => n.id === nextEdge.target);
+      if (nextNode) {
+        console.log(`[WORKFLOW] ➡️ Navegando para próximo nó: ${nextNode.id}`);
+        await executeWorkflowSteps(
+          supabaseClient,
+          executionId,
+          nodes,
+          edges,
+          nextNode,
+          outputData
+        );
       } else {
-        console.log("Nenhum próximo nó encontrado");
-        await supabaseClient
-          .from("workflow_executions")
-          .update({
-            status: "completed",
-            completed_at: new Date().toISOString(),
-          })
-          .eq("id", executionId);
+        console.warn(`[WORKFLOW] ⚠️ Próximo nó não encontrado para edge ${nextEdge.id}`);
       }
+    } else {
+      console.log(`[WORKFLOW] 🏁 Nenhum próximo nó encontrado, finalizando`);
+      await supabaseClient
+        .from("workflow_executions")
+        .update({
+          status: "completed",
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", executionId);
     }
   } catch (error) {
-    console.error(`Erro ao executar nó ${currentNode.id}:`, error);
+    console.error(`[WORKFLOW] ❌ Erro ao executar nó ${currentNode.id}:`, error);
     const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
     await supabaseClient
       .from("workflow_step_executions")
@@ -705,7 +352,10 @@ async function executeWorkflowSteps(
   }
 }
 
-// Função auxiliar para enviar notificações
+/**
+ * FUNÇÃO AUXILIAR: Notificar stakeholders
+ * (Mantida para compatibilidade, mas não está sendo usada atualmente)
+ */
 async function notifyStakeholders(
   supabaseClient: any,
   inscricaoId: string,
