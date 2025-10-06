@@ -54,12 +54,32 @@ export class OcrExecutor implements NodeExecutor {
     }
     
     console.log(`[OCR_EXECUTOR] ✅ OCR processado com sucesso`);
+    
+    // Mapear campos extraídos para o contexto conforme fieldMappings
+    const mappedData: Record<string, any> = {};
+    const fieldMappings = ocrConfig.fieldMappings || [];
+    
+    if (ocrResult?.extractedData && fieldMappings.length > 0) {
+      for (const mapping of fieldMappings) {
+        const sourceField = mapping.ocrField || mapping.sourceField;
+        const targetField = mapping.contextField || mapping.targetField;
+        
+        if (sourceField && targetField && ocrResult.extractedData[sourceField] !== undefined) {
+          mappedData[targetField] = ocrResult.extractedData[sourceField];
+          console.log(`[OCR_EXECUTOR] Mapeado: ${sourceField} -> ${targetField} = ${mappedData[targetField]}`);
+        }
+      }
+    } else if (ocrResult?.extractedData) {
+      // Se não há mappings, mesclar todos os dados extraídos
+      Object.assign(mappedData, ocrResult.extractedData);
+    }
+    
     return {
       outputData: { 
         ...context, 
         ocrSuccess: true, 
         ocrData: ocrResult,
-        ...ocrResult?.extractedData // Mesclar dados extraídos no context
+        ...mappedData // Dados mapeados no contexto
       },
       shouldContinue: true
     };
