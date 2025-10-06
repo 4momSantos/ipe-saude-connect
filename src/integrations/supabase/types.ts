@@ -639,6 +639,7 @@ export type Database = {
           id: string
           is_rascunho: boolean | null
           motivo_rejeicao: string | null
+          retry_count: number | null
           status: string
           updated_at: string | null
           workflow_execution_id: string | null
@@ -653,6 +654,7 @@ export type Database = {
           id?: string
           is_rascunho?: boolean | null
           motivo_rejeicao?: string | null
+          retry_count?: number | null
           status?: string
           updated_at?: string | null
           workflow_execution_id?: string | null
@@ -667,6 +669,7 @@ export type Database = {
           id?: string
           is_rascunho?: boolean | null
           motivo_rejeicao?: string | null
+          retry_count?: number | null
           status?: string
           updated_at?: string | null
           workflow_execution_id?: string | null
@@ -991,6 +994,8 @@ export type Database = {
           current_node_id: string | null
           error_message: string | null
           id: string
+          is_retry: boolean | null
+          previous_execution_id: string | null
           started_at: string
           started_by: string | null
           status: string
@@ -1002,6 +1007,8 @@ export type Database = {
           current_node_id?: string | null
           error_message?: string | null
           id?: string
+          is_retry?: boolean | null
+          previous_execution_id?: string | null
           started_at?: string
           started_by?: string | null
           status?: string
@@ -1013,12 +1020,21 @@ export type Database = {
           current_node_id?: string | null
           error_message?: string | null
           id?: string
+          is_retry?: boolean | null
+          previous_execution_id?: string | null
           started_at?: string
           started_by?: string | null
           status?: string
           workflow_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "workflow_executions_previous_execution_id_fkey"
+            columns: ["previous_execution_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_executions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workflow_executions_workflow_id_fkey"
             columns: ["workflow_id"]

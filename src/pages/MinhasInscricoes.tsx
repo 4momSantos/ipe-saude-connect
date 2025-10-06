@@ -3,11 +3,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Clock, CheckCircle, XCircle, Edit, Loader2 } from 'lucide-react';
+import { FileText, Clock, CheckCircle, XCircle, Edit, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { RetryWorkflowDialog } from '@/components/inscricao/RetryWorkflowDialog';
+import { InscricaoCard } from '@/components/inscricao/InscricaoCard';
 
 interface Inscricao {
   id: string;
@@ -16,9 +18,15 @@ interface Inscricao {
   updated_at: string;
   is_rascunho: boolean;
   edital_id: string;
+  workflow_execution_id: string | null;
+  retry_count: number;
   editais: {
     titulo: string;
     numero_edital: string | null;
+  } | null;
+  workflow_executions?: {
+    status: string;
+    error_message: string | null;
   } | null;
 }
 
@@ -26,6 +34,8 @@ export default function MinhasInscricoes() {
   const [rascunhos, setRascunhos] = useState<Inscricao[]>([]);
   const [inscricoes, setInscricoes] = useState<Inscricao[]>([]);
   const [loading, setLoading] = useState(true);
+  const [retryDialogOpen, setRetryDialogOpen] = useState(false);
+  const [selectedInscricao, setSelectedInscricao] = useState<Inscricao | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -64,7 +74,7 @@ export default function MinhasInscricoes() {
       
       console.log('[MINHAS_INSCRICOES] ✅ Rascunhos encontrados:', rascunhosData?.length || 0);
 
-      // Buscar inscrições enviadas
+      // Buscar inscrições enviadas com status do workflow
       console.log('[MINHAS_INSCRICOES] Buscando inscrições enviadas...');
       const { data: inscricoesData, error: inscricoesError } = await supabase
         .from('inscricoes_edital')
@@ -73,6 +83,10 @@ export default function MinhasInscricoes() {
           editais (
             titulo,
             numero_edital
+          ),
+          workflow_executions (
+            status,
+            error_message
           )
         `)
         .eq('candidato_id', user.id)
@@ -177,27 +191,15 @@ export default function MinhasInscricoes() {
         </h2>
         <div className="grid gap-4">
           {inscricoes.map((inscricao) => (
-            <Card key={inscricao.id}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <CardTitle className="text-lg">
-                    {inscricao.editais?.titulo || 'Edital não encontrado'}
-                  </CardTitle>
-                  <StatusBadge status={inscricao.status} />
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <p className="text-sm text-muted-foreground">
-                  Enviado: {formatDistanceToNow(new Date(inscricao.created_at), {
-                    addSuffix: true,
-                    locale: ptBR
-                  })}
-                </p>
-                <Button variant="outline" onClick={() => navigate(`/analises`)}>
-                  Acompanhar Processo
-                </Button>
-              </CardContent>
-            </Card>
+            <InscricaoCard
+              key={inscricao.id}
+              inscricao={inscricao}
+              onRetry={() => {
+                setSelectedInscricao(inscricao);
+                setRetryDialogOpen(true);
+              }}
+              onView={() => navigate(`/analises`)}
+            />
           ))}
           {inscricoes.length === 0 && (
             <p className="text-center text-muted-foreground py-8">
@@ -205,6 +207,16 @@ export default function MinhasInscricoes() {
             </p>
           )}
         </div>
+        
+        {selectedInscricao && (
+          <RetryWorkflowDialog
+            open={retryDialogOpen}
+            onOpenChange={setRetryDialogOpen}
+            inscricaoId={selectedInscricao.id}
+            errorMessage={selectedInscricao.workflow_executions?.error_message || undefined}
+            retryCount={selectedInscricao.retry_count}
+          />
+        )}
       </div>
     </div>
   );

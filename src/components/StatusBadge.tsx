@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 
-type StatusType = "em_habilitacao" | "habilitado" | "inabilitado" | "em_analise" | "pendente" | "aprovado";
+type StatusType = "em_habilitacao" | "habilitado" | "inabilitado" | "em_analise" | "pendente" | "aprovado" | "pendente_workflow" | "rejeitado";
 
 interface StatusBadgeProps {
   status: StatusType;
@@ -18,7 +18,7 @@ const statusConfig = {
   },
   inabilitado: {
     label: "Inabilitado",
-    className: "bg-destructive/10 text-destructive border-destructive/20",
+    className: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
   },
   em_analise: {
     label: "Em Análise",
@@ -28,9 +28,17 @@ const statusConfig = {
     label: "Pendente",
     className: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
   },
+  pendente_workflow: {
+    label: "Aguardando Processamento",
+    className: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+  },
   aprovado: {
     label: "Aprovado",
     className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+  },
+  rejeitado: {
+    label: "Rejeitado",
+    className: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
   },
 };
 
