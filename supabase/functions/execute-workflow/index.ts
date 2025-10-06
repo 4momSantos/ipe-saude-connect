@@ -318,17 +318,7 @@ async function executeWorkflowSteps(
           .eq("id", stepExecution.id);
         
         outputData = { ...context };
-        
-        // Avançar automaticamente
-        const nextEdge = edges.find((e: WorkflowEdge) => e.source === currentNode.id);
-        if (nextEdge) {
-          const nextNode = nodes.find((n: WorkflowNode) => n.id === nextEdge.target);
-          if (nextNode) {
-            console.log(`[WORKFLOW] ➡️ Avançando para: ${nextNode.id}`);
-            await executeWorkflowSteps(supabaseClient, executionId, nodes, edges, nextNode, outputData);
-          }
-        }
-        return;
+        break;
 
       case "email":
         console.log("Enviando email (simulado)");
