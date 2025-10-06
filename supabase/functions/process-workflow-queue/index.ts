@@ -48,9 +48,11 @@ serve(async (req) => {
 
     const results = [];
 
-    // Processar cada item da fila
-    for (const item of queueItems) {
-      console.log(`[WORKER] Processando inscrição ${item.inscricao_id}`);
+    // Processar cada item da fila (batch de 5)
+    const limitedItems = queueItems.slice(0, 5);
+    
+    for (const item of limitedItems) {
+      console.log(`[WORKER] Processando item ${item.queue_id}`);
 
       try {
         // Marcar como processando
@@ -71,7 +73,58 @@ serve(async (req) => {
 
         if (!queueData) throw new Error('Queue item não encontrado');
 
-        // Chamar execute-workflow
+        // DETECTAR CALLBACK DEV
+        if (queueData.input_data?.__dev_callback) {
+          console.log(`[WORKER] 🔧 DEV Callback detectado para signature`);
+          
+          const { signature_request_id, execution_id, step_execution_id, delay_seconds } = queueData.input_data;
+          
+          // Aguardar delay simulado
+          await new Promise(resolve => setTimeout(resolve, delay_seconds * 1000));
+          
+          // Completar signature_request
+          await supabase
+            .from('signature_requests')
+            .update({
+              status: 'completed',
+              completed_at: new Date().toISOString(),
+              metadata: { dev_mode_auto_complete: true }
+            })
+            .eq('id', signature_request_id);
+          
+          // Completar step_execution
+          await supabase
+            .from('workflow_step_executions')
+            .update({
+              status: 'completed',
+              completed_at: new Date().toISOString(),
+              output_data: { dev_mode_signed: true }
+            })
+            .eq('id', step_execution_id);
+          
+          // Invocar continue-workflow
+          await supabase.functions.invoke('continue-workflow', {
+            body: {
+              stepExecutionId: step_execution_id,
+              decision: 'approved'
+            }
+          });
+          
+          // Marcar job como completed
+          await supabase
+            .from('workflow_queue')
+            .update({ status: 'completed', processed_at: new Date().toISOString() })
+            .eq('id', item.queue_id);
+          
+          results.push({
+            inscricao_id: item.inscricao_id || 'dev-callback',
+            status: 'dev_callback_success',
+          });
+          
+          continue; // Próximo item
+        }
+
+        // Processar workflow normal
         const { data: executeResult, error: executeError } = await supabase.functions.invoke(
           'execute-workflow',
           {

@@ -22,6 +22,26 @@ interface WorkflowEdge {
   target: string;
 }
 
+// Função auxiliar para lock pessimista
+async function acquireStepLock(supabase: any, stepExecutionId: string) {
+  const { data, error } = await supabase
+    .from('workflow_step_executions')
+    .update({ 
+      status: 'processing',
+      output_data: supabase.raw('COALESCE(output_data, \'{}\'::jsonb) || \'{"locked_at": "' + new Date().toISOString() + '"}\'::jsonb')
+    })
+    .eq('id', stepExecutionId)
+    .in('status', ['paused', 'pending'])
+    .select()
+    .maybeSingle();
+  
+  if (error || !data) {
+    return { success: false, message: 'Step já está sendo processado ou não existe' };
+  }
+  
+  return { success: true, data };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -33,9 +53,21 @@ serve(async (req) => {
     
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log(`[CONTINUE-WORKFLOW] Using service role key for elevated permissions`);
+    console.log(`[CONTINUE-WORKFLOW] Using service role key`);
 
     const { stepExecutionId, decision } = await req.json();
+    
+    // ADQUIRIR LOCK
+    console.log(`[CONTINUE-WORKFLOW] Tentando lock em step ${stepExecutionId}`);
+    const lock = await acquireStepLock(supabaseClient, stepExecutionId);
+    if (!lock.success) {
+      console.warn(`[CONTINUE-WORKFLOW] ⚠️ ${lock.message}`);
+      return new Response(
+        JSON.stringify({ error: lock.message }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    console.log(`[CONTINUE-WORKFLOW] ✅ Lock adquirido`);
 
     console.log(`[CONTINUE-WORKFLOW] Continuando workflow após decisão: ${decision} para step ${stepExecutionId}`);
 

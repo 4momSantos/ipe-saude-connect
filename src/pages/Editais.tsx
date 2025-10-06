@@ -430,44 +430,44 @@ export default function Editais() {
 
           if (functionError) {
             console.error('❌ Erro ao executar workflow:', functionError);
-            
-            // 🔧 Etapa 2: Marcar como pendente_workflow e avisar usuário
             await supabase
               .from('inscricoes_edital')
               .update({ status: 'pendente_workflow' })
               .eq('id', inscricaoResult.id);
-            
-            toast.warning('Inscrição criada, mas o workflow não pôde ser iniciado. Nossa equipe foi notificada.');
+            toast.warning('Inscrição criada, mas o workflow não pôde ser iniciado.');
           } else {
             console.log('✅ Workflow iniciada:', functionData);
+            toast.loading('Aguardando início do workflow...', { id: 'workflow-wait' });
             
-            // 🔄 Etapa 2: POLLING - Aguardar vinculação do workflow_execution_id
-            console.log('⏳ Aguardando vinculação do workflow (máx 10 segundos)...');
-            let tentativas = 0;
-            let vinculado = false;
+            // SUBSTITUIR POLLING POR REALTIME
+            const channel = supabase
+              .channel(`inscricao-${inscricaoResult.id}`)
+              .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'inscricoes_edital',
+                filter: `id=eq.${inscricaoResult.id}`
+              }, (payload: any) => {
+                const newWorkflowId = payload.new.workflow_execution_id;
+                const newStatus = payload.new.status;
+                
+                console.log('[REALTIME] Atualização:', newStatus, newWorkflowId);
+                
+                if (newWorkflowId) {
+                  toast.success('Workflow iniciada com sucesso!', { id: 'workflow-wait' });
+                  supabase.removeChannel(channel);
+                } else if (newStatus === 'failed') {
+                  toast.error('Erro ao iniciar workflow', { id: 'workflow-wait' });
+                  supabase.removeChannel(channel);
+                }
+              })
+              .subscribe();
             
-            while (tentativas < 10 && !vinculado) { // 10 tentativas x 1000ms = 10 segundos
-              await new Promise(resolve => setTimeout(resolve, 1000));
-              
-              const { data: inscricaoAtualizada } = await supabase
-                .from('inscricoes_edital')
-                .select('workflow_execution_id')
-                .eq('id', inscricaoResult.id)
-                .single();
-              
-              if (inscricaoAtualizada?.workflow_execution_id) {
-                vinculado = true;
-                console.log('✅ Workflow vinculado com sucesso:', inscricaoAtualizada.workflow_execution_id);
-                toast.success('Inscrição enviada e workflow iniciada com sucesso!');
-              }
-              
-              tentativas++;
-            }
-            
-            if (!vinculado) {
-              console.warn('⚠️ Workflow não foi vinculada após 10 segundos');
-              toast.success('Inscrição enviada! O workflow será processado em breve.');
-            }
+            // Timeout de segurança (15s)
+            setTimeout(() => {
+              supabase.removeChannel(channel);
+              toast.info('Processamento iniciado. Acompanhe em Análises.', { id: 'workflow-wait' });
+            }, 15000);
           }
         } catch (workflowError) {
           console.error('❌ Erro ao executar workflow:', workflowError);

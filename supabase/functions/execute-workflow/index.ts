@@ -279,46 +279,55 @@ async function executeWorkflowSteps(
       case "form":
         console.log(`[WORKFLOW] 📝 Nó FORM detectado: ${currentNode.id}`);
         
-        // Se dados já estão no inputData, pular automaticamente
-        if (context && Object.keys(context).length > 0) {
-          console.log(`[WORKFLOW] ✅ Dados já coletados, pulando formulário`);
-          
+        const formFields = currentNode.data.formFields || [];
+        const forcePause = currentNode.data.forcePause || false;
+        
+        // Verificar campos obrigatórios faltando
+        const missingRequired = formFields
+          .filter((f: any) => f.required && !context?.[f.name])
+          .map((f: any) => f.name);
+        
+        // DECISÃO: pausar se forcePause=true OU campos obrigatórios faltam
+        const shouldPause = forcePause || missingRequired.length > 0;
+        
+        if (shouldPause) {
+          console.log(`[WORKFLOW] ⏸️ Pausando - campos faltando: ${missingRequired.join(', ')}`);
           await supabaseClient
             .from("workflow_step_executions")
             .update({
-              status: "completed",
-              completed_at: new Date().toISOString(),
+              status: "paused",
               output_data: { 
-                skipped: true, 
-                reason: "Dados já na inscrição",
-                formData: context 
+                formFields,
+                missingFields: missingRequired,
+                pausedAt: new Date().toISOString()
               }
             })
             .eq("id", stepExecution.id);
-          
-          outputData = { ...context };
-          
-          // Avançar automaticamente
-          const nextEdge = edges.find(e => e.source === currentNode.id);
-          if (nextEdge) {
-            const nextNode = nodes.find(n => n.id === nextEdge.target);
-            if (nextNode) {
-              console.log(`[WORKFLOW] ➡️ Avançando para próximo nó: ${nextNode.id}`);
-              await executeWorkflowSteps(supabaseClient, executionId, nodes, edges, nextNode, outputData);
-            }
-          }
           return;
         }
         
-        // Se não tem dados, pausar para preenchimento manual
-        console.log(`[WORKFLOW] ⏸️ Pausando para preenchimento de formulário`);
+        // Se tudo OK, pular
+        console.log(`[WORKFLOW] ✅ Todos campos presentes, pulando formulário`);
         await supabaseClient
           .from("workflow_step_executions")
           .update({
-            status: "pending",
-            output_data: { formFields: currentNode.data.formFields }
+            status: "completed",
+            completed_at: new Date().toISOString(),
+            output_data: { skipped: true, formData: context }
           })
           .eq("id", stepExecution.id);
+        
+        outputData = { ...context };
+        
+        // Avançar automaticamente
+        const nextEdge = edges.find((e: WorkflowEdge) => e.source === currentNode.id);
+        if (nextEdge) {
+          const nextNode = nodes.find((n: WorkflowNode) => n.id === nextEdge.target);
+          if (nextNode) {
+            console.log(`[WORKFLOW] ➡️ Avançando para: ${nextNode.id}`);
+            await executeWorkflowSteps(supabaseClient, executionId, nodes, edges, nextNode, outputData);
+          }
+        }
         return;
 
       case "email":
@@ -437,6 +446,7 @@ async function executeWorkflowSteps(
       case "signature":
         console.log(`[WORKFLOW] ✍️ Nó SIGNATURE detectado`);
         const signatureConfig = currentNode.data.signatureConfig || {};
+        const DEV_MODE = Deno.env.get('ENVIRONMENT') !== 'production';
         
         // Criar signature request
         const { data: signatureRequest, error: sigError } = await supabaseClient
@@ -448,6 +458,7 @@ async function executeWorkflowSteps(
             signers: signatureConfig.signers || [],
             document_url: signatureConfig.documentUrl,
             status: 'pending',
+            metadata: DEV_MODE ? { dev_mode: true } : {}
           })
           .select()
           .single();
@@ -459,24 +470,49 @@ async function executeWorkflowSteps(
         
         console.log(`[WORKFLOW] ✅ Signature request criada: ${signatureRequest.id}`);
         
-        // Invocar edge function para enviar solicitação
-        const { error: sendError } = await supabaseClient.functions.invoke(
-          'send-signature-request',
-          { body: { signatureRequestId: signatureRequest.id } }
-        );
-        
-        if (sendError) {
-          console.error(`[WORKFLOW] ❌ Erro ao enviar signature request:`, sendError);
+        // MODO DEV: simular callback automático após 10s
+        if (DEV_MODE && signatureRequest.provider === 'manual') {
+          console.log(`[WORKFLOW] 🔧 DEV MODE: agendando auto-complete em 10s`);
+          
+          // Adicionar job na fila para simular callback
+          await supabaseClient.from('workflow_queue').insert({
+            inscricao_id: null,
+            workflow_id: executionId,
+            workflow_version: 1,
+            input_data: {
+              __dev_callback: true,
+              signature_request_id: signatureRequest.id,
+              step_execution_id: stepExecution.id,
+              execution_id: executionId,
+              delay_seconds: 10
+            },
+            status: 'pending',
+            attempts: 0
+          });
         } else {
-          console.log(`[WORKFLOW] ✅ Signature request enviada com sucesso`);
+          // MODO PROD: invocar send-signature-request real
+          const { error: sendError } = await supabaseClient.functions.invoke(
+            'send-signature-request',
+            { body: { signatureRequestId: signatureRequest.id } }
+          );
+          
+          if (sendError) {
+            console.error(`[WORKFLOW] ❌ Erro ao enviar signature request:`, sendError);
+          } else {
+            console.log(`[WORKFLOW] ✅ Signature request enviada`);
+          }
         }
         
-        // Pausar execução até assinatura completar
+        // Pausar com status 'paused'
         await supabaseClient
           .from("workflow_step_executions")
           .update({
-            status: "pending",
-            output_data: { signatureRequestId: signatureRequest.id }
+            status: "paused",
+            output_data: { 
+              signatureRequestId: signatureRequest.id,
+              pausedAt: new Date().toISOString(),
+              devMode: DEV_MODE
+            }
           })
           .eq("id", stepExecution.id);
         
