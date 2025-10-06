@@ -124,17 +124,51 @@ serve(async (req) => {
           continue; // Próximo item
         }
 
-        // Processar workflow normal
-        const { data: executeResult, error: executeError } = await supabase.functions.invoke(
-          'execute-workflow',
-          {
+        // Verificar feature flag use_orchestrator_v2
+        const { data: editalData } = await supabase
+          .from('inscricoes_edital')
+          .select('edital:editais(use_orchestrator_v2)')
+          .eq('id', item.inscricao_id)
+          .single();
+
+        const useV2 = (editalData?.edital as any)?.use_orchestrator_v2 || false;
+        const functionName = useV2 ? 'execute-workflow-v2' : 'execute-workflow';
+
+        console.log(`[WORKER] Usando ${functionName} para inscrição ${item.inscricao_id}`);
+
+        // Processar workflow (tentar v2, fallback para v1)
+        let executeResult: any;
+        let executeError: any;
+
+        try {
+          const result = await supabase.functions.invoke(functionName, {
             body: {
               workflowId: item.workflow_id,
               inputData: queueData.input_data,
               inscricaoId: item.inscricao_id,
             }
+          });
+          executeResult = result.data;
+          executeError = result.error;
+        } catch (err: any) {
+          console.error(`[WORKER] Erro ao invocar ${functionName}:`, err);
+          
+          // Fallback para v1 se v2 falhar
+          if (useV2) {
+            console.log('[WORKER] Tentando fallback para execute-workflow (v1)');
+            const fallbackResult = await supabase.functions.invoke('execute-workflow', {
+              body: {
+                workflowId: item.workflow_id,
+                inputData: queueData.input_data,
+                inscricaoId: item.inscricao_id,
+              }
+            });
+            executeResult = fallbackResult.data;
+            executeError = fallbackResult.error;
+          } else {
+            throw err;
           }
-        );
+        }
 
         if (executeError) throw executeError;
 

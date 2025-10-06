@@ -14,6 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { WorkflowExecutionTimeline } from "./WorkflowExecutionTimeline";
+import { WorkflowGraphView } from "@/components/analytics/WorkflowGraphView";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Search, 
   Filter, 
@@ -23,7 +25,8 @@ import {
   Clock,
   XCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  Network
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -341,15 +344,32 @@ export function WorkflowMonitoringPage() {
           )}
         </div>
 
-        {/* Timeline do workflow selecionado */}
+        {/* Timeline e Grafo do workflow selecionado */}
         <div className="lg:sticky lg:top-6 lg:h-[calc(100vh-8rem)]">
           {selectedExecution ? (
-            <WorkflowExecutionTimeline execution_id={selectedExecution} />
+            <Tabs defaultValue="timeline" className="h-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="timeline">
+                  <Clock className="h-4 w-4 mr-2" />
+                  Timeline
+                </TabsTrigger>
+                <TabsTrigger value="graph">
+                  <Network className="h-4 w-4 mr-2" />
+                  Grafo
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="timeline" className="mt-0">
+                <WorkflowExecutionTimeline execution_id={selectedExecution} />
+              </TabsContent>
+              <TabsContent value="graph" className="mt-0">
+                <WorkflowGraphView executionId={selectedExecution} />
+              </TabsContent>
+            </Tabs>
           ) : (
             <Card className="p-12 h-full flex items-center justify-center">
               <div className="text-center text-muted-foreground">
                 <Eye className="h-12 w-12 mx-auto mb-4" />
-                <p>Selecione uma execução para ver a timeline</p>
+                <p>Selecione uma execução para ver detalhes</p>
               </div>
             </Card>
           )}

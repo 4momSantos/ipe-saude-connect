@@ -289,6 +289,7 @@ export type Database = {
           status: string
           titulo: string
           updated_at: string | null
+          use_orchestrator_v2: boolean | null
           vagas: number | null
           workflow_id: string | null
           workflow_version: number | null
@@ -323,6 +324,7 @@ export type Database = {
           status?: string
           titulo: string
           updated_at?: string | null
+          use_orchestrator_v2?: boolean | null
           vagas?: number | null
           workflow_id?: string | null
           workflow_version?: number | null
@@ -357,6 +359,7 @@ export type Database = {
           status?: string
           titulo?: string
           updated_at?: string | null
+          use_orchestrator_v2?: boolean | null
           vagas?: number | null
           workflow_id?: string | null
           workflow_version?: number | null

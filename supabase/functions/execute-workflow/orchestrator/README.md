@@ -346,11 +346,68 @@ assert(next.length <= config.maxParallelNodes);
 4. Sem rollback automático em falhas
 5. Paralelismo limitado por memória
 
+## Migração de `execute-workflow` para `execute-workflow-v2`
+
+### Feature Flag Incremental
+
+A migração usa feature flag por edital para ativação gradual:
+
+```sql
+-- Habilitar v2 para edital específico
+UPDATE editais 
+SET use_orchestrator_v2 = true 
+WHERE id = 'uuid-do-edital';
+```
+
+O worker `process-workflow-queue` detecta automaticamente:
+- Se `use_orchestrator_v2 = true` → invoca `execute-workflow-v2`
+- Caso contrário → invoca `execute-workflow` (legado)
+
+**Fallback automático:** Se v2 falhar, worker tenta v1 como backup.
+
+### Benefícios do v2
+
+1. **Paralelismo**: Executa até 3 nós simultaneamente (configurável)
+2. **Condicionais**: Avalia expressões JavaScript nas arestas
+3. **Join Strategies**: Aguarda múltiplos nós (wait_all, wait_any, first_complete)
+4. **State Tracking**: Transições detalhadas com histórico
+5. **Monitoramento**: Dashboard com grafo visual em tempo real
+
+### Quando Usar v2
+
+✅ **Use v2 se o workflow tem:**
+- Nós paralelos (ex: validar CPF + CRM + CNPJ ao mesmo tempo)
+- Condicionais (ex: "Se aprovado → email positivo, senão → email negativo")
+- Aprovações múltiplas (ex: "aguardar 2 de 3 gestores")
+- >10 nós
+
+❌ **Mantenha v1 se:**
+- Workflow simples linear (start → form → email → end)
+- Sem condicionais ou paralelismo
+- Performance não é crítica
+
+### Recursos Adicionais
+
+- **Guia Completo**: `/MIGRATION_GUIDE.md` (raiz do projeto)
+- **Troubleshooting**: `/docs/WORKFLOW_TROUBLESHOOTING.md`
+- **Testes E2E**: `__tests__/e2e.test.ts` (5 cenários)
+- **Dashboard**: `/workflow-monitoring` → Tab "Grafo"
+
+---
+
 ## Roadmap
 
-- [ ] Funções customizadas em expressões
-- [ ] Rollback automático
-- [ ] Sub-workflows
-- [ ] Loops e iterações
-- [ ] Eventos externos
-- [ ] Dashboard visual em tempo real
+**Concluído (Sprint 1-4):**
+- ✅ Orquestrador cognitivo completo
+- ✅ Paralelismo, condicionais, join strategies
+- ✅ Dashboard com grafo visual
+- ✅ Testes E2E (5 cenários)
+- ✅ Documentação completa
+
+**Próximas Fases:**
+- [ ] Sub-workflows aninhados
+- [ ] Loops e iterações (foreach)
+- [ ] Eventos externos (webhooks in)
+- [ ] Rollback automático em falhas
+- [ ] Dashboard com métricas de performance (latência, throughput)
+- [ ] Versionamento de workflows (A/B testing)

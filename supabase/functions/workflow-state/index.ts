@@ -56,7 +56,7 @@ serve(async (req) => {
       throw new Error(`Execution não encontrada: ${execError?.message}`);
     }
 
-    // 2. Buscar step executions
+    // 2. Buscar step executions com output_data expandido
     const { data: steps, error: stepsError } = await supabaseClient
       .from('workflow_step_executions')
       .select('*')
@@ -67,27 +67,40 @@ serve(async (req) => {
       throw new Error(`Erro ao buscar steps: ${stepsError.message}`);
     }
 
-    // 3. Processar estados dos nós
+    // 3. Processar estados dos nós (integrado com StateTracker)
     const nodeStates = steps?.map(step => {
+      // Extrair estado do StateTracker salvo em output_data
+      const trackerState = step.output_data?.nodeState;
+      
       const state: any = {
         nodeId: step.node_id,
         nodeType: step.node_type,
         status: step.status,
         startedAt: step.started_at,
         completedAt: step.completed_at,
-        errorMessage: step.error_message
+        errorMessage: step.error_message,
+        // Dados do StateTracker
+        progress: trackerState?.progress || 0,
+        retryCount: trackerState?.retryCount || 0,
+        blockedBy: trackerState?.blockedBy || [],
       };
 
-      // Incluir transições se solicitado
-      if (includeTransitions && step.output_data?.transitions) {
-        state.transitions = step.output_data.transitions;
+      // Incluir transições detalhadas do StateTracker
+      if (includeTransitions && trackerState?.transitions) {
+        state.transitions = trackerState.transitions.map((t: any) => ({
+          from: t.from,
+          to: t.to,
+          timestamp: t.timestamp,
+          reason: t.reason,
+          metadata: t.metadata
+        }));
       }
 
-      // Incluir metadata adicional
-      if (step.output_data) {
-        state.progress = step.output_data.progress;
-        state.retryCount = step.output_data.retryCount;
-        state.blockedBy = step.output_data.blockedBy;
+      // Incluir metadata adicional do StateTracker
+      if (trackerState) {
+        state.duration = trackerState.completedAt && trackerState.startedAt 
+          ? new Date(trackerState.completedAt).getTime() - new Date(trackerState.startedAt).getTime()
+          : null;
       }
 
       return state;
