@@ -128,12 +128,13 @@ serve(async (req) => {
 
     console.log('[RETRY_WORKFLOW] Item criado na fila:', queueItem.id);
 
-    // 6. Atualizar inscrição
+    // 6. Atualizar inscrição (garantir is_rascunho = false)
     const { error: updateError } = await supabase
       .from('inscricoes_edital')
       .update({
         status: 'pendente_workflow',
         retry_count: inscricao.retry_count + 1,
+        is_rascunho: false,
         updated_at: new Date().toISOString()
       })
       .eq('id', inscricao.id);

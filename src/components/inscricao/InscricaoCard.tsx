@@ -27,12 +27,24 @@ interface InscricaoCardProps {
 }
 
 export function InscricaoCard({ inscricao, onRetry, onView }: InscricaoCardProps) {
+  // Debug logging
+  console.log('[INSCRICAO_CARD] Dados da inscrição:', {
+    id: inscricao.id,
+    status: inscricao.status,
+    retry_count: inscricao.retry_count,
+    workflow_status: inscricao.workflow_executions?.status,
+    has_error: !!inscricao.workflow_executions?.error_message
+  });
+
   const canRetry = 
-    (inscricao.status === 'inabilitado' || inscricao.workflow_executions?.status === 'failed') &&
+    (inscricao.status === 'inabilitado' || 
+     inscricao.status === 'rejeitado' || 
+     inscricao.workflow_executions?.status === 'failed') &&
     inscricao.retry_count < 3;
 
   const isFailed = 
     inscricao.status === 'inabilitado' || 
+    inscricao.status === 'rejeitado' ||
     inscricao.workflow_executions?.status === 'failed';
 
   return (

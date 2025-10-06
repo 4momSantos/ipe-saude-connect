@@ -75,6 +75,7 @@ export default function MinhasInscricoes() {
       console.log('[MINHAS_INSCRICOES] ✅ Rascunhos encontrados:', rascunhosData?.length || 0);
 
       // Buscar inscrições enviadas com status do workflow
+      // Usar .or() para capturar inscrições processadas mesmo que is_rascunho não tenha sido atualizado
       console.log('[MINHAS_INSCRICOES] Buscando inscrições enviadas...');
       const { data: inscricoesData, error: inscricoesError } = await supabase
         .from('inscricoes_edital')
@@ -90,7 +91,7 @@ export default function MinhasInscricoes() {
           )
         `)
         .eq('candidato_id', user.id)
-        .eq('is_rascunho', false)
+        .or('is_rascunho.eq.false,workflow_execution_id.not.is.null')
         .order('created_at', { ascending: false });
 
       if (inscricoesError) {
