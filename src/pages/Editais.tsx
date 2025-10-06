@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileText, Calendar, Users, CheckCircle2, Clock, Download, Eye, Plus, FileSearch, Edit, Trash } from "lucide-react";
+import { FileText, Calendar, Users, CheckCircle2, Clock, Download, Eye, Plus, FileSearch, Edit, Trash, Filter, X } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import { InscricaoCompletaForm } from "@/lib/inscricao-validation";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNavigate } from "react-router-dom";
 import { EditalDetalhes } from "@/components/edital/EditalDetalhes";
+import { useEspecialidades } from "@/hooks/useEspecialidades";
 
 type Edital = {
   id: string;
@@ -38,6 +39,11 @@ type Edital = {
   regras_me_epp: string | null;
   documentos_habilitacao: any;
   anexos: any;
+  especialidades?: Array<{
+    id: string;
+    nome: string;
+    codigo: string | null;
+  }>;
 };
 
 type Inscricao = {
@@ -58,7 +64,9 @@ export default function Editais() {
   const [isRascunhoDialogOpen, setIsRascunhoDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isReloading, setIsReloading] = useState(false);
+  const [selectedEspecialidade, setSelectedEspecialidade] = useState<string | null>(null);
   const { isGestor, isAdmin, isCandidato } = useUserRole();
+  const { data: especialidades } = useEspecialidades();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -69,10 +77,20 @@ export default function Editais() {
     try {
       setLoading(true);
       
-      // Base query
+      // Base query com join de especialidades
       let query = supabase
         .from("editais")
-        .select("*")
+        .select(`
+          *,
+          edital_especialidades (
+            especialidade_id,
+            especialidades_medicas (
+              id,
+              nome,
+              codigo
+            )
+          )
+        `)
         .order("created_at", { ascending: false });
 
       // Filtro adicional para candidatos (camada extra de segurança)
@@ -84,7 +102,18 @@ export default function Editais() {
       const { data: editaisData, error: editaisError } = await query;
 
       if (editaisError) throw editaisError;
-      setEditais(editaisData || []);
+      
+      // Transformar dados para incluir especialidades
+      const editaisComEspecialidades = editaisData?.map(edital => ({
+        ...edital,
+        especialidades: edital.edital_especialidades?.map((ee: any) => ({
+          id: ee.especialidades_medicas.id,
+          nome: ee.especialidades_medicas.nome,
+          codigo: ee.especialidades_medicas.codigo
+        })) || []
+      })) || [];
+      
+      setEditais(editaisComEspecialidades);
 
       // Se for candidato, carregar suas inscrições
       if (isCandidato) {
@@ -578,6 +607,13 @@ export default function Editais() {
     );
   }
 
+  // Filtrar editais por especialidade
+  const editaisFiltrados = selectedEspecialidade
+    ? editais.filter(edital => 
+        edital.especialidades?.some(esp => esp.id === selectedEspecialidade)
+      )
+    : editais;
+
   return (
     <>
       <div className="space-y-8 animate-fade-in">
@@ -601,15 +637,58 @@ export default function Editais() {
           )}
         </div>
 
+        {/* Filtro de Especialidades */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Filter className="h-4 w-4" />
+            <span>Filtrar por especialidade:</span>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              variant={selectedEspecialidade === null ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedEspecialidade(null)}
+            >
+              Todas
+            </Button>
+            {especialidades?.map((esp) => {
+              const count = editais.filter(e => 
+                e.especialidades?.some(es => es.id === esp.id)
+              ).length;
+              
+              return (
+                <Button
+                  key={esp.id}
+                  variant={selectedEspecialidade === esp.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedEspecialidade(esp.id)}
+                  className="gap-2"
+                >
+                  {esp.nome}
+                  <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
+                    {count}
+                  </Badge>
+                  {selectedEspecialidade === esp.id && (
+                    <X className="h-3 w-3 ml-1" onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedEspecialidade(null);
+                    }} />
+                  )}
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="grid gap-6">
-          {editais.length === 0 ? (
+          {editaisFiltrados.length === 0 ? (
             <Card className="border bg-card">
               <CardContent className="flex items-center justify-center py-12">
                 <p className="text-muted-foreground">Nenhum edital disponível no momento</p>
               </CardContent>
             </Card>
           ) : (
-            editais.map((edital) => {
+            editaisFiltrados.map((edital) => {
               const inscricao = getInscricaoForEdital(edital.id);
               const isInscrito = !!inscricao;
 
@@ -622,16 +701,30 @@ export default function Editais() {
                 >
                   <CardHeader>
                     <div className="flex items-start justify-between">
-                      <div className="space-y-2 flex-1">
+                      <div className="space-y-3 flex-1">
                         <CardTitle className="text-foreground flex items-center gap-2">
                           <FileText className="h-5 w-5 text-primary" />
                           {edital.titulo}
                         </CardTitle>
                         <CardDescription>{edital.descricao}</CardDescription>
-                        {edital.especialidade && (
-                          <Badge variant="secondary" className="mt-2">
-                            {edital.especialidade}
-                          </Badge>
+                        
+                        {/* Tags de Especialidades */}
+                        {edital.especialidades && edital.especialidades.length > 0 && (
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            {edital.especialidades.map((esp) => (
+                              <Badge 
+                                key={esp.id} 
+                                variant="secondary" 
+                                className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 cursor-pointer transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedEspecialidade(esp.id);
+                                }}
+                              >
+                                {esp.nome}
+                              </Badge>
+                            ))}
+                          </div>
                         )}
                       </div>
                       {getStatusBadge(edital)}
