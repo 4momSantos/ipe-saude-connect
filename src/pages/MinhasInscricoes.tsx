@@ -193,8 +193,8 @@ export default function MinhasInscricoes() {
                     locale: ptBR
                   })}
                 </p>
-                <Button variant="outline" onClick={() => navigate(`/inscricoes`)}>
-                  Ver Detalhes
+                <Button variant="outline" onClick={() => navigate(`/analises`)}>
+                  Acompanhar Processo
                 </Button>
               </CardContent>
             </Card>

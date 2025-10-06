@@ -84,7 +84,7 @@ export default function Analises() {
             especialidade,
             workflow_id
           ),
-          profiles!inscricoes_edital_candidato_id_fkey (
+          profiles!inscricoes_edital_candidato_profile_fkey (
             nome,
             email
           ),

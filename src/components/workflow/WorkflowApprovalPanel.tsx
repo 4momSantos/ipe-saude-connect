@@ -113,7 +113,7 @@ export function WorkflowApprovalPanel() {
                 edital_id,
                 status,
                 dados_inscricao,
-                profiles!inscricoes_edital_candidato_id_fkey (nome, email),
+                profiles!inscricoes_edital_candidato_profile_fkey (nome, email),
                 editais (titulo, numero_edital)
               )
             )
