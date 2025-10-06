@@ -1,8 +1,18 @@
 import { useState, useEffect } from "react";
-import { FileText, Calendar, Users, CheckCircle2, Clock, Download, Eye, Plus, FileSearch, Edit, Trash, Filter, X } from "lucide-react";
+import { FileText, Calendar, Users, CheckCircle2, Clock, Download, Eye, Plus, FileSearch, Edit, Trash, Filter, X, Search, ChevronDown } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,7 +74,8 @@ export default function Editais() {
   const [isRascunhoDialogOpen, setIsRascunhoDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isReloading, setIsReloading] = useState(false);
-  const [selectedEspecialidade, setSelectedEspecialidade] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedEspecialidades, setSelectedEspecialidades] = useState<string[]>([]);
   const { isGestor, isAdmin, isCandidato } = useUserRole();
   const { data: especialidades } = useEspecialidades();
   const navigate = useNavigate();
@@ -607,12 +618,26 @@ export default function Editais() {
     );
   }
 
-  // Filtrar editais por especialidade
-  const editaisFiltrados = selectedEspecialidade
-    ? editais.filter(edital => 
-        edital.especialidades?.some(esp => esp.id === selectedEspecialidade)
-      )
-    : editais;
+  const toggleEspecialidade = (especialidadeId: string) => {
+    setSelectedEspecialidades(prev => 
+      prev.includes(especialidadeId)
+        ? prev.filter(id => id !== especialidadeId)
+        : [...prev, especialidadeId]
+    );
+  };
+
+  // Filtrar editais por busca e especialidades
+  const editaisFiltrados = editais.filter(edital => {
+    const matchSearch = !searchTerm || 
+      edital.titulo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      edital.descricao?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      edital.numero_edital?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchEspecialidades = selectedEspecialidades.length === 0 ||
+      edital.especialidades?.some(esp => selectedEspecialidades.includes(esp.id));
+    
+    return matchSearch && matchEspecialidades;
+  });
 
   return (
     <>
@@ -637,54 +662,99 @@ export default function Editais() {
           )}
         </div>
 
-        {/* Filtro de Especialidades */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Filter className="h-4 w-4" />
-            <span>Filtrar por especialidade:</span>
+        {/* Barra de Busca e Filtros */}
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Barra de Busca */}
+          <div className="relative flex-1 min-w-[300px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar editais por título, descrição ou número..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <Button
-              variant={selectedEspecialidade === null ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedEspecialidade(null)}
-            >
-              Todas
-            </Button>
-            {especialidades?.map((esp) => {
-              const count = editais.filter(e => 
-                e.especialidades?.some(es => es.id === esp.id)
-              ).length;
-              
-              return (
-                <Button
-                  key={esp.id}
-                  variant={selectedEspecialidade === esp.id ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedEspecialidade(esp.id)}
-                  className="gap-2"
-                >
-                  {esp.nome}
-                  <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
-                    {count}
+
+          {/* Dropdown de Especialidades */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Filter className="h-4 w-4" />
+                Especialidades
+                {selectedEspecialidades.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 px-1.5 py-0">
+                    {selectedEspecialidades.length}
                   </Badge>
-                  {selectedEspecialidade === esp.id && (
-                    <X className="h-3 w-3 ml-1" onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedEspecialidade(null);
-                    }} />
-                  )}
-                </Button>
-              );
-            })}
-          </div>
+                )}
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              align="end" 
+              className="w-64 max-h-[400px] overflow-y-auto bg-popover z-50"
+            >
+              <DropdownMenuLabel>Filtrar por especialidades</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {selectedEspecialidades.length > 0 && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedEspecialidades([])}
+                    className="w-full justify-start text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3 w-3 mr-2" />
+                    Limpar filtros
+                  </Button>
+                  <DropdownMenuSeparator />
+                </>
+              )}
+              {especialidades?.map((esp) => {
+                const count = editais.filter(e => 
+                  e.especialidades?.some(es => es.id === esp.id)
+                ).length;
+                
+                return (
+                  <DropdownMenuCheckboxItem
+                    key={esp.id}
+                    checked={selectedEspecialidades.includes(esp.id)}
+                    onCheckedChange={() => toggleEspecialidade(esp.id)}
+                    className="cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span>{esp.nome}</span>
+                      <Badge variant="secondary" className="ml-2 px-1.5 py-0 text-xs">
+                        {count}
+                      </Badge>
+                    </div>
+                  </DropdownMenuCheckboxItem>
+                );
+              })}
+              {(!especialidades || especialidades.length === 0) && (
+                <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                  Nenhuma especialidade disponível
+                </div>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Indicador de filtros ativos */}
+          {(searchTerm || selectedEspecialidades.length > 0) && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>{editaisFiltrados.length} de {editais.length} editais</span>
+            </div>
+          )}
         </div>
 
         <div className="grid gap-6">
           {editaisFiltrados.length === 0 ? (
             <Card className="border bg-card">
               <CardContent className="flex items-center justify-center py-12">
-                <p className="text-muted-foreground">Nenhum edital disponível no momento</p>
+                <p className="text-muted-foreground">
+                  {searchTerm || selectedEspecialidades.length > 0
+                    ? "Nenhum edital encontrado com os filtros aplicados"
+                    : "Nenhum edital disponível no momento"}
+                </p>
               </CardContent>
             </Card>
           ) : (
@@ -718,7 +788,7 @@ export default function Editais() {
                                 className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 cursor-pointer transition-colors"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setSelectedEspecialidade(esp.id);
+                                  setSelectedEspecialidades([esp.id]);
                                 }}
                               >
                                 {esp.nome}
