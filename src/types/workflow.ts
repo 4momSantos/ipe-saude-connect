@@ -19,6 +19,11 @@ export interface WorkflowStep {
   requiredDocuments?: string[];
   autoAdvance?: boolean;
   daysToComplete?: number;
+  // Dados reais de execução
+  executionStatus?: 'pending' | 'running' | 'paused' | 'completed' | 'failed';
+  startedAt?: string;
+  completedAt?: string;
+  errorMessage?: string;
 }
 
 export interface WorkflowTemplate {

@@ -121,35 +121,58 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
 
       if (stepsError) throw stepsError;
 
-      // Converter nodes do workflow em WorkflowSteps
+      // Converter nodes do workflow em WorkflowSteps com dados reais de execução
       const nodes = execution.workflows.nodes as any[];
+      
+      // Criar mapa de execuções por node_id
+      const executionMap = new Map(
+        (stepExecutions || []).map(step => [step.node_id, step])
+      );
+
       const steps: WorkflowStep[] = nodes
         .filter(node => node.data.type !== 'start' && node.data.type !== 'end')
-        .map((node, index) => ({
-          id: node.id,
-          name: node.data.label || node.data.type,
-          type: node.data.type as any,
-          order: index + 1,
-          description: node.data.description || `Etapa: ${node.data.label}`,
-          color: node.data.color || 'blue',
-          icon: node.data.icon || 'Circle',
-        }));
+        .map((node, index) => {
+          const stepExecution = executionMap.get(node.id);
+          return {
+            id: node.id,
+            name: node.data.label || node.data.type,
+            type: node.data.type as any,
+            order: index + 1,
+            description: node.data.description || `Etapa: ${node.data.label}`,
+            color: node.data.color || 'blue',
+            icon: node.data.icon || 'Circle',
+            // Adicionar dados reais de execução com type casting correto
+            executionStatus: stepExecution?.status as 'pending' | 'running' | 'paused' | 'completed' | 'failed' | undefined,
+            startedAt: stepExecution?.started_at,
+            completedAt: stepExecution?.completed_at,
+            errorMessage: stepExecution?.error_message,
+          };
+        });
 
       setWorkflowSteps(steps);
       setCurrentStepId(execution.current_node_id || steps[0]?.id || "");
 
-      // Converter step executions em actions (simulado)
-      const actions: WorkflowAction[] = (stepExecutions || [])
-        .filter(step => step.status === 'completed')
-        .map(step => ({
-          id: step.id,
-          workflowInstanceId: execution.id,
-          stepId: step.node_id,
-          action: 'advance' as const,
-          performedBy: 'Sistema',
-          performedAt: step.completed_at || step.started_at,
-          comment: step.error_message || undefined,
-        }));
+      // Converter step executions em actions com dados reais
+      const actions: WorkflowAction[] = (stepExecutions || []).map(step => ({
+        id: step.id,
+        workflowInstanceId: execution.id,
+        stepId: step.node_id,
+        action: step.status === 'completed' ? 'advance' : 
+                step.status === 'failed' ? 'reject' : 'request_info',
+        performedBy: step.status === 'completed' ? 'Sistema' : 'Pendente',
+        performedAt: step.completed_at || step.started_at,
+        comment: step.error_message || 
+                 (step.status === 'paused' ? 'Aguardando ação' : undefined),
+        metadata: {
+          status: step.status,
+          nodeType: step.node_type,
+          inputData: step.input_data,
+          outputData: step.output_data,
+          duration: step.completed_at && step.started_at ? 
+            Math.round((new Date(step.completed_at).getTime() - 
+                       new Date(step.started_at).getTime()) / 1000) : null
+        }
+      }));
 
       setWorkflowActions(actions);
 
@@ -278,15 +301,30 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
                 ) : workflowSteps.length > 0 ? (
                   <div className="space-y-6">
                     <div className="flex items-center justify-between">
-                      <div>
+                      <div className="space-y-1">
                         <h3 className="text-lg font-semibold">
-                          {workflowData?.workflows?.name || "Workflow"}
+                          {workflowData?.workflows?.name || "Workflow"} 
+                          <span className="text-sm font-normal text-muted-foreground ml-2">
+                            v{workflowData?.workflows?.version}
+                          </span>
                         </h3>
-                        <p className="text-sm text-muted-foreground">
-                          Status: {workflowData?.status === 'running' ? 'Em execução' : 
-                                   workflowData?.status === 'completed' ? 'Concluído' : 
-                                   workflowData?.status === 'failed' ? 'Falhou' : 'Aguardando'}
-                        </p>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <span>
+                            Status: {workflowData?.status === 'running' ? 'Em execução' : 
+                                     workflowData?.status === 'completed' ? 'Concluído' : 
+                                     workflowData?.status === 'failed' ? 'Falhou' : 'Aguardando'}
+                          </span>
+                          {workflowData?.started_at && (
+                            <span>
+                              Iniciado: {new Date(workflowData.started_at).toLocaleString('pt-BR')}
+                            </span>
+                          )}
+                          {workflowData?.completed_at && (
+                            <span>
+                              Concluído: {new Date(workflowData.completed_at).toLocaleString('pt-BR')}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       {workflowData?.status && (
                         <Badge 
@@ -302,6 +340,29 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
                         </Badge>
                       )}
                     </div>
+
+                    {/* Métricas de Execução */}
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="p-4 rounded-lg bg-card border">
+                        <div className="text-2xl font-bold text-foreground">
+                          {workflowSteps.filter(s => s.executionStatus === 'completed').length}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Steps Completados</div>
+                      </div>
+                      <div className="p-4 rounded-lg bg-card border">
+                        <div className="text-2xl font-bold text-blue-400">
+                          {workflowSteps.filter(s => s.executionStatus === 'running' || s.executionStatus === 'paused').length}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Em Execução</div>
+                      </div>
+                      <div className="p-4 rounded-lg bg-card border">
+                        <div className="text-2xl font-bold text-red-400">
+                          {workflowSteps.filter(s => s.executionStatus === 'failed').length}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Falhas</div>
+                      </div>
+                    </div>
+
                     <WorkflowTimeline
                       steps={workflowSteps}
                       currentStepId={currentStepId}
