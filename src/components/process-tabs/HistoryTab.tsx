@@ -94,24 +94,32 @@ export function HistoryTab({ processoId }: { processoId: string }) {
     });
   }
 
-  // Adicionar eventos do workflow
+  // Adicionar eventos do workflow (apenas os que realmente executaram)
   if (workflowEvents) {
     workflowEvents.forEach(step => {
+      // Só adicionar ao histórico se o step realmente foi iniciado ou completado
+      if (!step.started_at && step.status === 'pending') {
+        return; // Skip pending steps que nunca executaram
+      }
+
       let tipo: HistoryEvent['tipo'] = 'workflow';
-      let descricao = `Step ${step.node_type}`;
+      let descricao = `${step.node_type}`;
 
       if (step.status === 'completed') {
         tipo = 'aprovacao';
         descricao = `✓ Etapa concluída: ${step.node_type}`;
       } else if (step.status === 'failed') {
         tipo = 'rejeicao';
-        descricao = `✗ Etapa falhou: ${step.node_type} - ${step.error_message || 'Erro desconhecido'}`;
+        descricao = `✗ Etapa falhou: ${step.node_type}${step.error_message ? ' - ' + step.error_message : ''}`;
       } else if (step.status === 'paused') {
         tipo = 'solicitacao';
         descricao = `⏸ Etapa pausada: ${step.node_type}`;
-      } else if (step.status === 'running') {
+      } else if (step.status === 'running' && step.started_at) {
         tipo = 'workflow';
-        descricao = `▶ Executando: ${step.node_type}`;
+        descricao = `▶ Iniciado: ${step.node_type}`;
+      } else {
+        // Se chegou aqui e não tem started_at, skip
+        return;
       }
 
       allEvents.push({
