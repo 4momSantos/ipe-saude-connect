@@ -42,6 +42,16 @@ import { supabase } from "@/integrations/supabase/client";
 
 const nodeTypes = {
   workflowNode: WorkflowNode,
+  database: WorkflowNode,
+  email: WorkflowNode,
+  form: WorkflowNode,
+  webhook: WorkflowNode,
+  http: WorkflowNode,
+  signature: WorkflowNode,
+  approval: WorkflowNode,
+  condition: WorkflowNode,
+  start: WorkflowNode,
+  end: WorkflowNode,
 };
 
 const initialNodes: Node<WorkflowNodeData>[] = [
