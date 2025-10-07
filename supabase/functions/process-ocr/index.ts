@@ -922,6 +922,196 @@ function parseDocumentText(
         }
       }
       
+      // Situação Especial - Novo campo
+      if (expectedFields.includes('situacao_especial')) {
+        let sitEspecialMatch = normalizedText.match(/(?:SITUA[CÇ][AÃ]O\s*ESPECIAL)[:\s]+(FUSAO|FUSÃO|CISAO|CISÃO|INCORPORA[CÇ][AÃ]O|TRANSFORMA[CÇ][AÃ]O|EXTIN[CÇ][AÃ]O|LIQUIDA[CÇ][AÃ]O|NENHUMA|N[AÃ]O\s*H[AÁ]|SEM\s*SITUA[CÇ][AÃ]O)/i);
+        if (!sitEspecialMatch) {
+          // Fallback: detectar palavras-chave isoladas
+          sitEspecialMatch = normalizedText.match(/\b(FUSAO|FUSÃO|CISAO|CISÃO|INCORPORA[CÇ][AÃ]O|TRANSFORMA[CÇ][AÃ]O)\b/i);
+        }
+        if (sitEspecialMatch) {
+          data.situacao_especial = sitEspecialMatch[1].toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          console.log(`[CNPJ] ✓ Situação Especial found: ${data.situacao_especial}`);
+        } else {
+          data.situacao_especial = null;
+          console.log('[CNPJ] Situação Especial: nenhuma');
+        }
+      }
+      
+      // Data Situação Especial - Novo campo
+      if (expectedFields.includes('data_situacao_especial')) {
+        let dataSitEspecialMatch = normalizedText.match(/(?:DATA\s*SITUA[CÇ][AÃ]O\s*ESPECIAL)[:\s]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+        if (!dataSitEspecialMatch && data.situacao_especial) {
+          // Fallback: data após menção de situação especial
+          const regex = new RegExp(`${data.situacao_especial}[^\\d]+(\\d{2}[\\/\\-\\.]\\d{2}[\\/\\-\\.]\\d{4})`, 'i');
+          dataSitEspecialMatch = normalizedText.match(regex);
+        }
+        if (dataSitEspecialMatch) {
+          data.data_situacao_especial = dataSitEspecialMatch[1].replace(/[\-\.]/g, '/');
+          console.log(`[CNPJ] ✓ Data Situação Especial found: ${data.data_situacao_especial}`);
+        }
+      }
+      
+      // Opção Simples Nacional - Novo campo
+      if (expectedFields.includes('opcao_simples_nacional')) {
+        let simplesMatch = normalizedText.match(/(?:OP[CÇ][AÃ]O\s*PELO\s*SIMPLES|SIMPLES\s*NACIONAL)[:\s]+(SIM|N[AÃ]O|NAO\s*OPTANTE|OPTANTE)/i);
+        if (!simplesMatch) {
+          // Fallback: detectar contexto
+          if (/OPTANTE\s*PELO\s*SIMPLES/i.test(normalizedText)) {
+            simplesMatch = ['', 'SIM'];
+          } else if (/N[AÃ]O\s*OPTANTE|NAO\s*OPTANTE/i.test(normalizedText)) {
+            simplesMatch = ['', 'NAO'];
+          }
+        }
+        if (simplesMatch) {
+          data.opcao_simples_nacional = /SIM|OPTANTE/i.test(simplesMatch[1]) ? 'SIM' : 'NAO';
+          console.log(`[CNPJ] ✓ Opção Simples Nacional found: ${data.opcao_simples_nacional}`);
+        }
+      }
+      
+      // Data Opção Simples - Novo campo
+      if (expectedFields.includes('data_opcao_simples')) {
+        let dataOpcaoMatch = normalizedText.match(/(?:DATA\s*(?:DE\s*)?OP[CÇ][AÃ]O\s*(?:PELO\s*)?SIMPLES)[:\s]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+        if (!dataOpcaoMatch) {
+          // Fallback: data após "optante pelo simples"
+          dataOpcaoMatch = normalizedText.match(/OPTANTE\s*PELO\s*SIMPLES[^0-9]{0,20}(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+        }
+        if (dataOpcaoMatch) {
+          data.data_opcao_simples = dataOpcaoMatch[1].replace(/[\-\.]/g, '/');
+          console.log(`[CNPJ] ✓ Data Opção Simples found: ${data.data_opcao_simples}`);
+        }
+      }
+      
+      // Data Exclusão Simples - Novo campo
+      if (expectedFields.includes('data_exclusao_simples')) {
+        let dataExclusaoMatch = normalizedText.match(/(?:DATA\s*(?:DE\s*)?EXCLUS[AÃ]O\s*(?:DO\s*)?SIMPLES)[:\s]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+        if (!dataExclusaoMatch) {
+          // Fallback: data após "excluído do simples"
+          dataExclusaoMatch = normalizedText.match(/EXCLU[IÍ]D[OA]\s*DO\s*SIMPLES[^0-9]{0,20}(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+        }
+        if (dataExclusaoMatch) {
+          data.data_exclusao_simples = dataExclusaoMatch[1].replace(/[\-\.]/g, '/');
+          console.log(`[CNPJ] ✓ Data Exclusão Simples found: ${data.data_exclusao_simples}`);
+        }
+      }
+      
+      // Opção MEI - Novo campo
+      if (expectedFields.includes('opcao_mei')) {
+        const isMEI = /MEI|MICROEMPREENDEDOR\s*INDIVIDUAL/i.test(normalizedText) || 
+                     (data.porte && data.porte === 'MEI');
+        data.opcao_mei = isMEI ? 'SIM' : 'NAO';
+        console.log(`[CNPJ] ✓ Opção MEI found: ${data.opcao_mei}`);
+      }
+      
+      // Ente Federativo Responsável - Novo campo
+      if (expectedFields.includes('ente_federativo_responsavel')) {
+        let enteMatch = normalizedText.match(/(?:ENTE\s*FEDERATIVO|RESPONS[AÁ]VEL)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][^\n]{5,60}?)(?=\s*(?:\n|CPF|QUALIFICA))/i);
+        if (!enteMatch) {
+          // Fallback: detectar órgãos públicos
+          enteMatch = normalizedText.match(/\b(UNIÃO|ESTADO\s*DE\s*[A-Z]{2,20}|MUNIC[IÍ]PIO\s*DE\s*[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{3,40})\b/i);
+        }
+        if (enteMatch) {
+          data.ente_federativo_responsavel = enteMatch[1].trim();
+          console.log(`[CNPJ] ✓ Ente Federativo found: ${data.ente_federativo_responsavel}`);
+        }
+      }
+      
+      // Qualificação Responsável - Novo campo
+      if (expectedFields.includes('qualificacao_responsavel')) {
+        let qualifMatch = normalizedText.match(/(?:QUALIFICA[CÇ][AÃ]O)[:\s]+(S[OÓ]CIO|ADMINISTRADOR|PROCURADOR|DIRETOR|PRESIDENTE|S[OÓ]CIO[\-\s]ADMINISTRADOR)/i);
+        if (!qualifMatch) {
+          // Fallback: detectar palavras-chave isoladas
+          qualifMatch = normalizedText.match(/\b(S[OÓ]CIO|ADMINISTRADOR|PROCURADOR|DIRETOR|PRESIDENTE)\b/i);
+        }
+        if (qualifMatch) {
+          data.qualificacao_responsavel = qualifMatch[1].toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          console.log(`[CNPJ] ✓ Qualificação Responsável found: ${data.qualificacao_responsavel}`);
+        }
+      }
+      
+      // Nome Responsável - Novo campo
+      if (expectedFields.includes('nome_responsavel')) {
+        let nomeRespMatch = normalizedText.match(/(?:NOME\s*(?:DO\s*)?RESPONS[AÁ]VEL|NOME\s*(?:DO\s*)?S[OÓ]CIO)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s*(?:CPF|QUALIFICA|QSA|\n))/i);
+        if (!nomeRespMatch) {
+          // Fallback: nome após qualificação
+          nomeRespMatch = normalizedText.match(/(?:S[OÓ]CIO|ADMINISTRADOR)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{10,60}?)(?=\s*CPF)/i);
+        }
+        if (nomeRespMatch) {
+          data.nome_responsavel = nomeRespMatch[1].trim();
+          console.log(`[CNPJ] ✓ Nome Responsável found: ${data.nome_responsavel}`);
+        }
+      }
+      
+      // CPF Responsável - Novo campo
+      if (expectedFields.includes('cpf_responsavel')) {
+        let cpfRespMatch = normalizedText.match(/(?:CPF\s*(?:DO\s*)?RESPONS[AÁ]VEL|CPF\s*(?:DO\s*)?S[OÓ]CIO)[:\s]*(\d{3}[\.\s]?\d{3}[\.\s]?\d{3}[\-\s]?\d{2})/i);
+        if (!cpfRespMatch && data.nome_responsavel) {
+          // Fallback: CPF após nome do responsável
+          const regex = new RegExp(`${data.nome_responsavel.split(' ')[0]}[^\\d]+(\\d{3}[\.\\s]?\\d{3}[\.\\s]?\\d{3}[\\-\\s]?\\d{2})`, 'i');
+          cpfRespMatch = normalizedText.match(regex);
+        }
+        if (cpfRespMatch) {
+          data.cpf_responsavel = cpfRespMatch[1].replace(/[^\d]/g, '');
+          console.log(`[CNPJ] ✓ CPF Responsável found: ${data.cpf_responsavel}`);
+        }
+      }
+      
+      // Sócios (QSA) - Novo campo (array)
+      if (expectedFields.includes('socios')) {
+        const sociosArray: Array<{nome: string; cpf?: string; qualificacao?: string; percentual?: string}> = [];
+        
+        // Buscar seção de QSA ou Sócios
+        const qsaMatch = normalizedText.match(/(?:QUADRO\s*DE\s*S[OÓ]CIOS|QSA|S[OÓ]CIOS)[:\s]+(.+?)(?=\s*(?:CAPITAL|ATIVIDADE|CNAE|ENDERECO|\n\n))/is);
+        
+        if (qsaMatch) {
+          // Padrão: Nome do Sócio seguido de CPF
+          const sociosMatches = qsaMatch[1].matchAll(/([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{10,60}?)\s+CPF[:\s]*(\d{3}[\.\s]?\d{3}[\.\s]?\d{3}[\-\s]?\d{2})/gi);
+          
+          for (const match of sociosMatches) {
+            const socio: {nome: string; cpf?: string; qualificacao?: string; percentual?: string} = {
+              nome: match[1].trim(),
+              cpf: match[2].replace(/[^\d]/g, '')
+            };
+            
+            // Tentar extrair qualificação próxima ao nome
+            const qualifRegex = new RegExp(`${socio.nome}[^\\n]{0,50}(S[OÓ]CIO|ADMINISTRADOR|PROCURADOR)`, 'i');
+            const qualifMatch = normalizedText.match(qualifRegex);
+            if (qualifMatch) {
+              socio.qualificacao = qualifMatch[1].toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            }
+            
+            // Tentar extrair percentual
+            const percRegex = new RegExp(`${socio.nome}[^\\n]{0,50}(\\d{1,3}[\\.,]?\\d*)\\s*%`, 'i');
+            const percMatch = normalizedText.match(percRegex);
+            if (percMatch) {
+              socio.percentual = percMatch[1].replace(',', '.');
+            }
+            
+            sociosArray.push(socio);
+          }
+        }
+        
+        if (sociosArray.length > 0) {
+          data.socios = sociosArray;
+          console.log(`[CNPJ] ✓ Sócios found: ${sociosArray.length} sócio(s)`);
+        } else {
+          console.log('[CNPJ] ✗ Sócios not found');
+        }
+      }
+      
+      // Capital Social Data - Novo campo
+      if (expectedFields.includes('capital_social_data')) {
+        let capitalDataMatch = normalizedText.match(/(?:DATA\s*(?:DO\s*)?CAPITAL|CAPITAL\s*SOCIAL\s*EM)[:\s]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+        if (!capitalDataMatch && data.capital_social) {
+          // Fallback: data próxima ao valor do capital
+          capitalDataMatch = normalizedText.match(/CAPITAL\s*SOCIAL[^0-9]{0,50}(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+        }
+        if (capitalDataMatch) {
+          data.capital_social_data = capitalDataMatch[1].replace(/[\-\.]/g, '/');
+          console.log(`[CNPJ] ✓ Capital Social Data found: ${data.capital_social_data}`);
+        }
+      }
+      
       console.log(`[CNPJ] Extraction complete. Fields found: ${Object.keys(data).length}`);
       break;
 
