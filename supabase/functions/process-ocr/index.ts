@@ -611,43 +611,77 @@ function parseDocumentText(
         }
       }
       
-      // CNAE Principal
+      // CNAE Principal - Refinar padrões
       if (expectedFields.includes('cnae_principal')) {
-        const cnaeMatch = normalizedText.match(/(?:CNAE\s*PRINCIPAL|ATIVIDADE\s*PRINCIPAL)[:\s]+(\d{4}[\-\/]\d[\-\/]\d{2})\s*[\-\s]*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][^(\n]{10,100})/i);
+        let cnaeMatch = normalizedText.match(/(?:CNAE\s*PRINCIPAL|ATIVIDADE\s*PRINCIPAL)[:\s]+(\d{4}[\-\/\s]\d[\-\/\s]\d{2})\s*[\-\s]*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][^(\n]{10,100})/i);
+        if (!cnaeMatch) {
+          // Fallback 1: CNAE com espaços em vez de hífen
+          cnaeMatch = normalizedText.match(/(?:CNAE\s*PRINCIPAL)[:\s]+(\d{4}\s*\d\s*\d{2})\s*[\-\s]*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][^\n]{10,80})/i);
+        }
+        if (!cnaeMatch) {
+          // Fallback 2: Primeira sequência CNAE no texto
+          cnaeMatch = normalizedText.match(/(\d{4}[\-\/]\d[\-\/]\d{2})\s*[\-\s]*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][^\n]{10,80})/);
+        }
         if (cnaeMatch) {
-          data.cnae_principal = `${cnaeMatch[1]} - ${cnaeMatch[2].trim()}`;
+          const codigo = cnaeMatch[1].replace(/\s/g, '-');
+          data.cnae_principal = `${codigo} - ${cnaeMatch[2].trim()}`;
           console.log(`[CNPJ] ✓ CNAE Principal found: ${data.cnae_principal}`);
+        } else {
+          console.log('[CNPJ] ✗ CNAE Principal not found');
         }
       }
       
-      // CNAEs Secundários
+      // CNAEs Secundários - Melhorar parsing
       if (expectedFields.includes('cnaes_secundarios')) {
         const cnaesSecMatch = normalizedText.match(/(?:CNAE\s*SECUNDAR[IÍ]|ATIVIDADE\s*SECUNDAR)[:\s]+(.+?)(?=\s*(?:ENDERECO|CAPITAL|PORTE|NATUREZA|\n\n))/is);
         if (cnaesSecMatch) {
           const cnaes = cnaesSecMatch[1]
-            .match(/\d{4}[\-\/]\d[\-\/]\d{2}\s*[\-\s]*[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][^\n]{10,100}/gi);
+            .match(/\d{4}[\-\/\s]\d[\-\/\s]\d{2}\s*[\-\s]*[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][^\n]{10,100}/gi);
           if (cnaes) {
-            data.cnaes_secundarios = cnaes.map(c => c.trim());
+            // Limitar a 10 CNAEs para evitar ruído
+            data.cnaes_secundarios = cnaes.slice(0, 10).map(c => {
+              const normalized = c.trim().replace(/\s+/g, ' ');
+              return normalized.replace(/(\d{4})\s+(\d)\s+(\d{2})/, '$1-$2-$3');
+            });
             console.log(`[CNPJ] ✓ CNAEs Secundários found: ${data.cnaes_secundarios.length} items`);
           }
+        } else {
+          console.log('[CNPJ] ✗ CNAEs Secundários not found');
         }
       }
       
-      // Logradouro
+      // Logradouro - Múltiplas tentativas
       if (expectedFields.includes('logradouro')) {
-        const logradouroMatch = normalizedText.match(/(?:LOGRADOURO|ENDERECO)[:\s]+((?:RUA|AVENIDA|AV|ALAMEDA|TRAVESSA|PRACA|ROD)[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s\.]+?)(?=\s*(?:NUMERO|N[UÚ]MERO|,\s*\d|\d+))/i);
-        if (logradouroMatch) {
-          data.logradouro = logradouroMatch[1].trim();
+        let logMatch = normalizedText.match(/(?:LOGRADOURO|ENDERECO|ENDEREÇO)[:\s]+((?:RUA|AVENIDA|AV|ALAMEDA|AL|TRAVESSA|TRAV|TV|PRACA|PCA|RODOVIA|ROD|ESTRADA|EST)[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s\.]+?)(?=\s*(?:NUMERO|N[UÚ]MERO|,\s*\d|\d+|BAIRRO))/i);
+        if (!logMatch) {
+          // Fallback 1: Padrão de endereço sem marcador
+          logMatch = normalizedText.match(/\b(RUA|AVENIDA|AV|ALAMEDA|TRAVESSA|RODOVIA)\s+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{5,60}?)(?=\s*[,\d])/i);
+          if (logMatch) logMatch[1] = `${logMatch[1]} ${logMatch[2]}`;
+        }
+        if (!logMatch) {
+          // Fallback 2: Qualquer texto antes de número
+          logMatch = normalizedText.match(/(?:ENDERECO)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s,\.]{10,60}?)(?=\s*\d{1,5}\b)/i);
+        }
+        if (logMatch) {
+          data.logradouro = logMatch[1].trim();
           console.log(`[CNPJ] ✓ Logradouro found: ${data.logradouro}`);
+        } else {
+          console.log('[CNPJ] ✗ Logradouro not found');
         }
       }
       
-      // Número
+      // Número - Aceitar variações
       if (expectedFields.includes('numero')) {
-        const numeroMatch = normalizedText.match(/(?:NUMERO|N[UÚ]MERO)[:\s]+(\d+|S\/N)/i);
+        let numeroMatch = normalizedText.match(/(?:NUMERO|N[UÚ]MERO|Nº)[:\s]*(\d+|S\/N|SN|S\.N\.)/i);
+        if (!numeroMatch) {
+          // Fallback: número após logradouro
+          numeroMatch = normalizedText.match(/(?:RUA|AVENIDA|AV)[^,\n]+[,\s]+(\d+|S\/N)/i);
+        }
         if (numeroMatch) {
-          data.numero = numeroMatch[1];
+          data.numero = numeroMatch[1].replace(/\./g, '');
           console.log(`[CNPJ] ✓ Número found: ${data.numero}`);
+        } else {
+          console.log('[CNPJ] ✗ Número not found');
         }
       }
       
@@ -687,57 +721,103 @@ function parseDocumentText(
         }
       }
       
-      // CEP
+      // CEP - Aceitar com/sem hífen
       if (expectedFields.includes('cep')) {
-        const cepMatch = normalizedText.match(/(?:CEP)[:\s]+(\d{5}[\-\.]?\d{3})/i);
+        let cepMatch = normalizedText.match(/(?:CEP)[:\s]*(\d{5}[\-\.]?\d{3})/i);
+        if (!cepMatch) {
+          // Fallback: CEP sem marcador, 8 dígitos
+          cepMatch = normalizedText.match(/\b(\d{5}[\-\.]?\d{3})\b/);
+        }
         if (cepMatch) {
           data.cep = cepMatch[1].replace(/[^\d]/g, '');
           console.log(`[CNPJ] ✓ CEP found: ${data.cep}`);
+        } else {
+          console.log('[CNPJ] ✗ CEP not found');
         }
       }
       
-      // Capital Social
+      // Capital Social - Normalizar valores
       if (expectedFields.includes('capital_social')) {
-        const capitalMatch = normalizedText.match(/(?:CAPITAL\s*SOCIAL)[:\s]+R?\$?\s*([\d\.,]+)/i);
+        let capitalMatch = normalizedText.match(/(?:CAPITAL\s*SOCIAL)[:\s]+R?\$?\s*([\d\.,]+)/i);
+        if (!capitalMatch) {
+          // Fallback: Valor monetário após palavra "CAPITAL"
+          capitalMatch = normalizedText.match(/CAPITAL[^0-9]{0,20}([\d\.,]+)/i);
+        }
         if (capitalMatch) {
-          data.capital_social = capitalMatch[1].replace(/\./g, '').replace(',', '.');
+          // Converter para número decimal (1.000,00 -> 1000.00)
+          const valor = capitalMatch[1].replace(/\./g, '').replace(',', '.');
+          data.capital_social = parseFloat(valor).toFixed(2);
           console.log(`[CNPJ] ✓ Capital Social found: ${data.capital_social}`);
+        } else {
+          console.log('[CNPJ] ✗ Capital Social not found');
         }
       }
       
-      // Porte
+      // Porte - Expandir opções e normalizar
       if (expectedFields.includes('porte')) {
-        const porteMatch = normalizedText.match(/(?:PORTE)[:\s]+(MEI|ME|EPP|DEMAIS)/i);
+        let porteMatch = normalizedText.match(/(?:PORTE)[:\s]+(MEI|ME|EPP|MICROEMPRESA|MICRO\s*EMPRESA|PEQUENO\s*PORTE|DEMAIS)/i);
+        if (!porteMatch) {
+          // Fallback: Buscar siglas isoladas
+          porteMatch = normalizedText.match(/\b(MEI|ME|EPP)\b/i);
+        }
         if (porteMatch) {
-          data.porte = porteMatch[1].toUpperCase();
+          let porte = porteMatch[1].toUpperCase().replace(/\s+/g, ' ');
+          // Normalizar para siglas padrão
+          if (porte.includes('MICROEMPRESA') || porte.includes('MICRO EMPRESA')) porte = 'ME';
+          if (porte.includes('PEQUENO PORTE')) porte = 'EPP';
+          data.porte = porte;
           console.log(`[CNPJ] ✓ Porte found: ${data.porte}`);
+        } else {
+          console.log('[CNPJ] ✗ Porte not found');
         }
       }
       
-      // Natureza Jurídica
+      // Natureza Jurídica - Melhorar parsing
       if (expectedFields.includes('natureza_juridica')) {
-        const naturezaMatch = normalizedText.match(/(?:NATUREZA\s*JUR[IÍ]DICA)[:\s]+(\d{3}[\-\/]\d)\s*[\-\s]*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][^\n]{10,80})/i);
+        let naturezaMatch = normalizedText.match(/(?:NATUREZA\s*JUR[IÍ]DICA)[:\s]+(\d{3}[\-\/]\d)\s*[\-\s]*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][^\n]{10,80})/i);
+        if (!naturezaMatch) {
+          // Fallback: Só descrição sem código
+          naturezaMatch = normalizedText.match(/(?:NATUREZA\s*JUR[IÍ]DICA)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][^\n]{10,80})/i);
+          if (naturezaMatch) naturezaMatch[2] = naturezaMatch[1];
+        }
         if (naturezaMatch) {
-          data.natureza_juridica = `${naturezaMatch[1]} - ${naturezaMatch[2].trim()}`;
+          data.natureza_juridica = naturezaMatch[2] ? `${naturezaMatch[1]} - ${naturezaMatch[2].trim()}` : naturezaMatch[1].trim();
           console.log(`[CNPJ] ✓ Natureza Jurídica found: ${data.natureza_juridica}`);
+        } else {
+          console.log('[CNPJ] ✗ Natureza Jurídica not found');
         }
       }
       
-      // Email
+      // Email - Aceitar múltiplos, retornar o primeiro válido
       if (expectedFields.includes('email')) {
-        const emailMatch = normalizedText.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z]{2,})/i);
-        if (emailMatch) {
-          data.email = emailMatch[1].toLowerCase();
+        const emailMatches = normalizedText.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z]{2,})/gi);
+        if (emailMatches && emailMatches.length > 0) {
+          // Filtrar emails comuns de domínios públicos se houver corporativo
+          const corporateEmail = emailMatches.find(e => !/@(gmail|hotmail|yahoo|outlook|uol)\./.test(e));
+          data.email = (corporateEmail || emailMatches[0]).toLowerCase();
           console.log(`[CNPJ] ✓ Email found: ${data.email}`);
+        } else {
+          console.log('[CNPJ] ✗ Email not found');
         }
       }
       
-      // Telefone
+      // Telefone - Aceitar múltiplos formatos
       if (expectedFields.includes('telefone')) {
-        const telefoneMatch = normalizedText.match(/(?:TELEFONE|FONE|TEL)[:\s]*(\(?\d{2}\)?\s*\d{4,5}[\-\s]?\d{4})/i);
+        let telefoneMatch = normalizedText.match(/(?:TELEFONE|FONE|TEL)[:\s]*(\(?\d{2}\)?\s*\d{4,5}[\-\s]?\d{4})/i);
+        if (!telefoneMatch) {
+          // Fallback 1: (11) 99999-9999
+          telefoneMatch = normalizedText.match(/\((\d{2})\)\s*(\d{4,5})[\-\s]?(\d{4})/);
+          if (telefoneMatch) telefoneMatch[1] = telefoneMatch[0];
+        }
+        if (!telefoneMatch) {
+          // Fallback 2: 11999999999
+          telefoneMatch = normalizedText.match(/\b(\d{10,11})\b/);
+        }
         if (telefoneMatch) {
           data.telefone = telefoneMatch[1].replace(/[^\d]/g, '');
           console.log(`[CNPJ] ✓ Telefone found: ${data.telefone}`);
+        } else {
+          console.log('[CNPJ] ✗ Telefone not found');
         }
       }
       
