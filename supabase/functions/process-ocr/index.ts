@@ -1352,63 +1352,128 @@ function parseDocumentText(
     case 'diploma':
       console.log('[DIPLOMA] Starting diploma field extraction...');
       
-      // Nome do diplomado
+      // Mapeamento de meses por extenso
+      const mesesExtenso: Record<string, string> = {
+        'janeiro': '01', 'fevereiro': '02', 'março': '03', 'marco': '03', 'abril': '04',
+        'maio': '05', 'junho': '06', 'julho': '07', 'agosto': '08',
+        'setembro': '09', 'outubro': '10', 'novembro': '11', 'dezembro': '12'
+      };
+      
+      // Nome do diplomado - Fallbacks refinados
       if (expectedFields.includes('nome')) {
-        let nomeMatch = normalizedText.match(/(?:OUTORGA|CONFERE|DIPLOMA|CERTIFICA)[:\s]+(?:A|O|QUE|DE)?[:\s]*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s*(?:CURSO|GRAU|GRADUAÇÃO|CONCLUIU|COLOU))/i);
+        let nomeMatch = normalizedText.match(/(?:CERTIFICA\s+QUE|CONFERE\s+O\s+T[IÍ]TULO\s+(?:DE|A))[\s\S]{0,80}?\s+([A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ][A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ\s]{10,70}?)(?=\s*(?:CONCLUIU|COLOU|TENDO|CONCLUS|BACHARELADO|LICENCIATURA|SUPERIOR))/i);
+        
         if (!nomeMatch) {
-          // Fallback: nome próximo ao início
-          nomeMatch = normalizedText.match(/(?:NOME)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{10,60}?)(?=\s*(?:CURSO|CPF|RG))/i);
+          // Fallback 2: Após BACHARELA/BACHAREL EM
+          nomeMatch = normalizedText.match(/BACHARELA?\s+EM[\s\S]{0,50}?\s+(?:A|AO)\s+([A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ][A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ\s]{10,70}?)\b/i);
         }
+        
+        if (!nomeMatch) {
+          // Fallback 3: Entre DIPLOMA e CONCLUIU
+          nomeMatch = normalizedText.match(/DIPLOMA[\s\S]{0,100}?([A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ][A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ\s]{10,70}?)(?=\s*(?:CONCLUIU|TENDO|CONCLUS))/i);
+        }
+        
+        if (!nomeMatch) {
+          // Fallback 4: Nome isolado em MAIÚSCULAS (primeira ocorrência longa)
+          nomeMatch = text.match(/\b([A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ][A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ\s]{15,70}?)\b/);
+        }
+        
         if (nomeMatch) {
-          data.nome = nomeMatch[1].trim();
-          console.log(`[DIPLOMA] ✓ Nome found: ${data.nome}`);
+          data.nome = nomeMatch[1].trim().replace(/\s+/g, ' ');
+          console.log('[DIPLOMA] ✓ Nome found:', data.nome);
         } else {
           console.log('[DIPLOMA] ✗ Nome not found');
         }
       }
       
-      // Curso/Graduação
+      // Curso - Fallbacks refinados
       if (expectedFields.includes('curso')) {
-        let cursoMatch = normalizedText.match(/(?:CURSO|GRADUAÇÃO|GRADUACAO|BACHAREL|LICENCIATURA)[:\s]+(?:DE|EM)?[:\s]*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s*(?:PELA|NA|INSTITUIÇÃO|UNIVERSIDADE|FACULDADE|EM\s+\d{2}))/i);
+        let cursoMatch = normalizedText.match(/(?:CURSO\s+DE|BACHARELADO\s+EM|LICENCIATURA\s+EM|TECNÓLOGO\s+EM|SUPERIOR\s+(?:DE|EM))\s+([A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ][A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ\s]{3,50}?)(?=\s*(?:PELA|NA|DO|DA|NO|CONCLUIU|TENDO|\.))/i);
+        
         if (!cursoMatch) {
-          // Fallback: padrão "EM <CURSO>"
-          cursoMatch = normalizedText.match(/\bEM\s+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{5,40}?)(?=\s*(?:PELA|NA|INSTITUIÇÃO))/i);
+          // Fallback 2: Curso antes de instituição (ex: "Medicina na Universidade")
+          cursoMatch = normalizedText.match(/\b([A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ]{4,30}?)\s+(?:NA|NO|DA|DO|PELA)\s+(?:UNIVERSIDADE|FACULDADE|CENTRO|INSTITUTO)/i);
         }
+        
+        if (!cursoMatch) {
+          // Fallback 3: Entre CONCLUIU e O CURSO
+          cursoMatch = normalizedText.match(/CONCLUIU[\s\S]{0,50}?(?:O\s+CURSO\s+DE\s+)?([A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ][A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ\s]{3,50}?)(?=\s*(?:PELA|NA|DO|DA|NO|,|\.))/i);
+        }
+        
         if (cursoMatch) {
-          data.curso = cursoMatch[1].trim();
-          console.log(`[DIPLOMA] ✓ Curso found: ${data.curso}`);
+          data.curso = cursoMatch[1].trim().replace(/\s+/g, ' ');
+          console.log('[DIPLOMA] ✓ Curso found:', data.curso);
         } else {
           console.log('[DIPLOMA] ✗ Curso not found');
         }
       }
       
-      // Instituição de ensino
+      // Instituição - Fallbacks refinados
       if (expectedFields.includes('instituicao')) {
-        let instMatch = normalizedText.match(/(?:INSTITUIÇÃO|INSTITUICAO|UNIVERSIDADE|FACULDADE|ESCOLA|CENTRO)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s\-]+?)(?=\s*(?:EM|DATA|CONCLUSAO|OUTORGADO|\d{2}[\/\-]))/i);
+        let instMatch = normalizedText.match(/(?:PELA|NA|NO|DA|DO)\s+((?:UNIVERSIDADE|FACULDADE|CENTRO|INSTITUTO)[A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ\s]{5,100}?)(?=\s*(?:,|\.|EM|NO\s+DIA|COLAÇÃO))/i);
+        
         if (!instMatch) {
-          // Fallback: padrão "PELA/NA <INSTITUICAO>"
-          instMatch = normalizedText.match(/(?:PELA|NA)\s+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s\-]{10,60}?)(?=\s*(?:EM|DATA|\d{2}[\/\-]))/i);
+          // Fallback 2: Instituição no cabeçalho (primeiras 200 caracteres)
+          const cabecalho = normalizedText.slice(0, 200);
+          instMatch = cabecalho.match(/((?:UNIVERSIDADE|FACULDADE|CENTRO|INSTITUTO)[A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ\s]{5,100}?)\b/i);
         }
+        
+        if (!instMatch) {
+          // Fallback 3: Nome composto com quebras de linha
+          instMatch = text.match(/((?:UNIVERSIDADE|FACULDADE|CENTRO|INSTITUTO)[\s\S]{5,150}?)(?=\s*(?:CERTIFICA|CONFERE|DIPLOMA))/i);
+        }
+        
         if (instMatch) {
-          data.instituicao = instMatch[1].trim();
-          console.log(`[DIPLOMA] ✓ Instituição found: ${data.instituicao}`);
+          data.instituicao = instMatch[1].trim().replace(/\s+/g, ' ');
+          console.log('[DIPLOMA] ✓ Instituição found:', data.instituicao);
         } else {
           console.log('[DIPLOMA] ✗ Instituição not found');
         }
       }
       
-      // Data de conclusão/colação de grau
+      // Data de conclusão - Fallbacks refinados
       if (expectedFields.includes('data_conclusao')) {
-        let dataMatch = normalizedText.match(/(?:CONCLUSÃO|CONCLUSAO|COLACAO|COLAÇÃO|DATA)[:\s]+(?:DE\s+GRAU)?[:\s]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+        let dataMatch = normalizedText.match(/(?:COLAÇÃO\s+DE\s+GRAU|CONCLUSÃO|CONCLUIU)[\s\S]{0,50}?(?:EM|NO\s+DIA|AOS)?\s*(\d{1,2})\s*(?:\/|DE)\s*(\d{2}|[A-Z]{3,9})\s*(?:\/|DE)\s*(\d{2,4})/i);
+        
         if (!dataMatch) {
-          // Fallback: padrão "EM dd/mm/yyyy"
-          dataMatch = normalizedText.match(/\bEM\s+(\d{2}[\/\-]\d{2}[\/\-]\d{4})\b/i);
+          // Fallback 2: Data por extenso
+          dataMatch = normalizedText.match(/(\d{1,2})\s+de\s+(janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+(\d{4})/i);
+          if (dataMatch) {
+            const dia = dataMatch[1].padStart(2, '0');
+            const mes = mesesExtenso[dataMatch[2].toLowerCase()];
+            const ano = dataMatch[3];
+            data.data_conclusao = `${dia}/${mes}/${ano}`;
+            console.log('[DIPLOMA] ✓ Data conclusão found (extenso):', data.data_conclusao);
+          }
         }
-        if (dataMatch) {
-          data.data_conclusao = dataMatch[1];
-          console.log(`[DIPLOMA] ✓ Data conclusão found: ${data.data_conclusao}`);
-        } else {
-          console.log('[DIPLOMA] ✗ Data conclusão not found');
+        
+        if (!dataMatch) {
+          // Fallback 3: Última data no documento
+          const todasDatas = normalizedText.match(/\b(\d{1,2})[\s\/\-](\d{2}|[A-Z]{3,9})[\s\/\-](\d{2,4})\b/gi);
+          if (todasDatas && todasDatas.length > 0) {
+            dataMatch = todasDatas[todasDatas.length - 1].match(/(\d{1,2})[\s\/\-](\d{2}|[A-Z]{3,9})[\s\/\-](\d{2,4})/i);
+          }
+        }
+        
+        if (dataMatch && !data.data_conclusao) {
+          let dia = dataMatch[1].padStart(2, '0');
+          let mes = dataMatch[2];
+          let ano = dataMatch[3];
+          
+          // Converter mês se for texto
+          if (isNaN(parseInt(mes))) {
+            mes = mesesExtenso[mes.toLowerCase()] || mes;
+          } else {
+            mes = mes.padStart(2, '0');
+          }
+          
+          // Ajustar ano se for 2 dígitos
+          if (ano.length === 2) {
+            ano = parseInt(ano) > 50 ? '19' + ano : '20' + ano;
+          }
+          
+          data.data_conclusao = `${dia}/${mes}/${ano}`;
+          console.log('[DIPLOMA] ✓ Data conclusão found:', data.data_conclusao);
         }
       }
       
@@ -1436,16 +1501,37 @@ function parseDocumentText(
     case 'certidao':
       console.log('[CERTIDAO] Starting birth certificate field extraction...');
       
-      // Nome registrado
+      // Reutilizar meses por extenso
+      const mesesExtensoCertidao: Record<string, string> = {
+        'janeiro': '01', 'fevereiro': '02', 'março': '03', 'marco': '03', 'abril': '04',
+        'maio': '05', 'junho': '06', 'julho': '07', 'agosto': '08',
+        'setembro': '09', 'outubro': '10', 'novembro': '11', 'dezembro': '12'
+      };
+      
+      // Nome registrado - Fallbacks refinados
       if (expectedFields.includes('nome')) {
-        let nomeMatch = normalizedText.match(/(?:NOME|REGISTRADO|NASCIDO)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s*(?:FILHO|FILHA|NASCIDO|NASCIDA|DATA|LIVRO))/i);
+        let nomeMatch = normalizedText.match(/(?:CERTIDÃO|CERTIDAO|REGISTRO)[\s\S]{0,100}?(?:DE|QUE)\s+([A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ][A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ\s]{10,70}?)(?=\s*(?:NASCEU|NASCIDO|NASCIDA|FILHO|FILHA|,))/i);
+        
         if (!nomeMatch) {
-          // Fallback: procurar nome completo no início
-          nomeMatch = normalizedText.match(/^([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{10,60}?)(?=\s*(?:FILHO|NASCIDO))/i);
+          // Fallback 2: Nome antes de FILHO(A) DE
+          nomeMatch = normalizedText.match(/\b([A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ][A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ\s]{10,70}?)\s+FILHO[A]?\s+DE/i);
         }
+        
+        if (!nomeMatch) {
+          // Fallback 3: Primeira linha em MAIÚSCULAS (isolada)
+          const primeirasLinhas = text.split('\n').slice(0, 5);
+          for (const linha of primeirasLinhas) {
+            const match = linha.match(/^([A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ][A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ\s]{15,70}?)$/);
+            if (match) {
+              nomeMatch = match;
+              break;
+            }
+          }
+        }
+        
         if (nomeMatch) {
-          data.nome = nomeMatch[1].trim();
-          console.log(`[CERTIDAO] ✓ Nome found: ${data.nome}`);
+          data.nome = nomeMatch[1].trim().replace(/\s+/g, ' ');
+          console.log('[CERTIDAO] ✓ Nome found:', data.nome);
         } else {
           console.log('[CERTIDAO] ✗ Nome not found');
         }
@@ -1473,78 +1559,155 @@ function parseDocumentText(
         }
       }
       
-      // Data de nascimento/evento
+      // Data de nascimento - Fallbacks refinados
       if (expectedFields.includes('data_nascimento')) {
-        let dataMatch = normalizedText.match(/(?:NASCIMENTO|NASCIDO|DATA\s+DO\s+EVENTO)[:\s]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+        let dataMatch = normalizedText.match(/(?:NASCEU|NASCIDO[A]?|NO\s+DIA)[\s\S]{0,50}?(?:EM|AOS|NO)?\s*(\d{1,2})\s*(?:\/|DE)\s*(\d{2}|[A-Z]{3,9})\s*(?:\/|DE)\s*(\d{2,4})/i);
+        
         if (!dataMatch) {
-          // Fallback: primeira data encontrada
-          dataMatch = normalizedText.match(/\b(\d{2}[\/\-]\d{2}[\/\-]\d{4})\b/);
+          // Fallback 2: Data por extenso
+          dataMatch = normalizedText.match(/(\d{1,2})\s+de\s+(janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+((?:mil|dois\s+mil)?[\s\w]+)/i);
+          if (dataMatch) {
+            const dia = dataMatch[1].padStart(2, '0');
+            const mes = mesesExtensoCertidao[dataMatch[2].toLowerCase()];
+            // Tentar extrair ano numérico do extenso
+            const anoTexto = dataMatch[3];
+            const anoNumMatch = anoTexto.match(/(\d{4})/);
+            const ano = anoNumMatch ? anoNumMatch[1] : '2000';
+            data.data_nascimento = `${dia}/${mes}/${ano}`;
+            console.log('[CERTIDAO] ✓ Data nascimento found (extenso):', data.data_nascimento);
+          }
         }
-        if (dataMatch) {
-          data.data_nascimento = dataMatch[1];
-          console.log(`[CERTIDAO] ✓ Data nascimento found: ${data.data_nascimento}`);
+        
+        if (!dataMatch) {
+          // Fallback 3: Primeira data encontrada (geralmente é a de nascimento)
+          dataMatch = normalizedText.match(/\b(\d{1,2})[\s\/\-](\d{2}|[A-Z]{3,9})[\s\/\-](\d{2,4})\b/i);
+        }
+        
+        if (dataMatch && !data.data_nascimento) {
+          let dia = dataMatch[1].padStart(2, '0');
+          let mes = dataMatch[2];
+          let ano = dataMatch[3];
+          
+          if (isNaN(parseInt(mes))) {
+            mes = mesesExtensoCertidao[mes.toLowerCase()] || mes;
+          } else {
+            mes = mes.padStart(2, '0');
+          }
+          
+          if (ano.length === 2) {
+            ano = parseInt(ano) > 50 ? '19' + ano : '20' + ano;
+          }
+          
+          data.data_nascimento = `${dia}/${mes}/${ano}`;
+          console.log('[CERTIDAO] ✓ Data nascimento found:', data.data_nascimento);
         }
       }
       
-      // Data de emissão/expedição
+      // Data de emissão - Fallbacks refinados
       if (expectedFields.includes('data_emissao')) {
-        const dataEmissaoMatch = normalizedText.match(/(?:EMISSAO|EMISSÃO|EXPEDIÇÃO|EXPEDICAO|EMITIDA)[:\s]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
-        if (dataEmissaoMatch) {
-          data.data_emissao = dataEmissaoMatch[1];
-          console.log(`[CERTIDAO] ✓ Data emissão found: ${data.data_emissao}`);
-        } else {
-          console.log('[CERTIDAO] ✗ Data emissão not found');
+        let dataMatch = normalizedText.match(/(?:EMITID[OA]|EXPEDID[OA]|EMISSÃO|EMISSAO)[\s\S]{0,50}?(?:EM|AOS)?\s*(\d{1,2})\s*(?:\/|DE)\s*(\d{2}|[A-Z]{3,9})\s*(?:\/|DE)\s*(\d{2,4})/i);
+        
+        if (!dataMatch) {
+          // Fallback 2: Data por extenso no final
+          const ultimosCaracteres = normalizedText.slice(-300);
+          dataMatch = ultimosCaracteres.match(/(\d{1,2})\s+de\s+(janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+(\d{4})/i);
+          if (dataMatch) {
+            const dia = dataMatch[1].padStart(2, '0');
+            const mes = mesesExtensoCertidao[dataMatch[2].toLowerCase()];
+            const ano = dataMatch[3];
+            data.data_emissao = `${dia}/${mes}/${ano}`;
+            console.log('[CERTIDAO] ✓ Data emissão found (extenso):', data.data_emissao);
+          }
+        }
+        
+        if (!dataMatch) {
+          // Fallback 3: Última data no documento (geralmente é a de emissão)
+          const todasDatas = normalizedText.match(/\b(\d{1,2})[\s\/\-](\d{2}|[A-Z]{3,9})[\s\/\-](\d{2,4})\b/gi);
+          if (todasDatas && todasDatas.length > 1) {
+            dataMatch = todasDatas[todasDatas.length - 1].match(/(\d{1,2})[\s\/\-](\d{2}|[A-Z]{3,9})[\s\/\-](\d{2,4})/i);
+          }
+        }
+        
+        if (dataMatch && !data.data_emissao) {
+          let dia = dataMatch[1].padStart(2, '0');
+          let mes = dataMatch[2];
+          let ano = dataMatch[3];
+          
+          if (isNaN(parseInt(mes))) {
+            mes = mesesExtensoCertidao[mes.toLowerCase()] || mes;
+          } else {
+            mes = mes.padStart(2, '0');
+          }
+          
+          if (ano.length === 2) {
+            ano = parseInt(ano) > 50 ? '19' + ano : '20' + ano;
+          }
+          
+          data.data_emissao = `${dia}/${mes}/${ano}`;
+          console.log('[CERTIDAO] ✓ Data emissão found:', data.data_emissao);
         }
       }
       
-      // Nome do pai
+      // Nome do pai - Fallbacks refinados
       if (expectedFields.includes('pai')) {
-        const paiMatch = normalizedText.match(/(?:PAI|FILHO\s+DE)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{10,60}?)(?=\s*(?:MAE|MÃE|E\s+DE))/i);
+        const paiMatch = normalizedText.match(/(?:PAI|FILHO\s+DE)[:\s]+([A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ][A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ\s]{10,60}?)(?=\s*(?:MAE|MÃE|E\s+DE))/i);
         if (paiMatch) {
           data.pai = paiMatch[1].trim();
-          console.log(`[CERTIDAO] ✓ Nome do pai found`);
+          console.log('[CERTIDAO] ✓ Nome do pai found');
         }
       }
       
-      // Nome da mãe
+      // Nome da mãe - Fallbacks refinados
       if (expectedFields.includes('mae')) {
-        const maeMatch = normalizedText.match(/(?:MAE|MÃE|E\s+DE)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{10,60}?)(?=\s*(?:LIVRO|FOLHA|TERMO|DATA))/i);
+        const maeMatch = normalizedText.match(/(?:MAE|MÃE|E\s+DE)[:\s]+([A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ][A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ\s]{10,60}?)(?=\s*(?:LIVRO|FOLHA|TERMO|DATA))/i);
         if (maeMatch) {
           data.mae = maeMatch[1].trim();
-          console.log(`[CERTIDAO] ✓ Nome da mãe found`);
+          console.log('[CERTIDAO] ✓ Nome da mãe found');
         }
       }
       
-      // Livro
+      // Livro - Fallbacks refinados
       if (expectedFields.includes('livro')) {
-        const livroMatch = normalizedText.match(/(?:LIVRO)[:\s]+(\w+)/i);
+        let livroMatch = normalizedText.match(/LIVRO[:\s]+([A-Z0-9\-]+)/i);
+        if (!livroMatch) {
+          // Fallback: Livro sem dois pontos
+          livroMatch = normalizedText.match(/LIVRO\s+([A-Z0-9\-]+)/i);
+        }
         if (livroMatch) {
-          data.livro = livroMatch[1];
-          console.log(`[CERTIDAO] ✓ Livro found: ${data.livro}`);
+          data.livro = livroMatch[1].trim();
+          console.log('[CERTIDAO] ✓ Livro found:', data.livro);
         }
       }
       
-      // Folha
+      // Folha - Fallbacks refinados
       if (expectedFields.includes('folha')) {
-        const folhaMatch = normalizedText.match(/(?:FOLHA|FLS)[:\s]+(\d+)/i);
+        let folhaMatch = normalizedText.match(/(?:FOLHA|FLS|FL)[:\s]+([A-Z0-9\-v]+)/i);
+        if (!folhaMatch) {
+          // Fallback: Folha sem dois pontos
+          folhaMatch = normalizedText.match(/(?:FOLHA|FLS|FL)\s+([A-Z0-9\-v]+)/i);
+        }
         if (folhaMatch) {
-          data.folha = folhaMatch[1];
-          console.log(`[CERTIDAO] ✓ Folha found: ${data.folha}`);
+          data.folha = folhaMatch[1].trim();
+          console.log('[CERTIDAO] ✓ Folha found:', data.folha);
         }
       }
       
-      // Termo
+      // Termo - Fallbacks refinados
       if (expectedFields.includes('termo')) {
-        const termoMatch = normalizedText.match(/(?:TERMO)[:\s]+(\d+)/i);
+        let termoMatch = normalizedText.match(/TERMO[:\s]+([A-Z0-9\-]+)/i);
+        if (!termoMatch) {
+          // Fallback: Termo sem dois pontos
+          termoMatch = normalizedText.match(/TERMO\s+([A-Z0-9\-]+)/i);
+        }
         if (termoMatch) {
-          data.termo = termoMatch[1];
-          console.log(`[CERTIDAO] ✓ Termo found: ${data.termo}`);
+          data.termo = termoMatch[1].trim();
+          console.log('[CERTIDAO] ✓ Termo found:', data.termo);
         }
       }
       
       // Cartório
       if (expectedFields.includes('cartorio')) {
-        const cartorioMatch = normalizedText.match(/(?:CARTORIO|CARTÓRIO|OFICIAL)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s\-]{10,60}?)(?=\s*(?:LIVRO|FOLHA|DATA))/i);
+        const cartorioMatch = normalizedText.match(/(?:CARTORIO|CARTÓRIO|OFICIAL)[:\s]+([A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ][A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÇ\s\-]{10,60}?)(?=\s*(?:LIVRO|FOLHA|DATA))/i);
         if (cartorioMatch) {
           data.cartorio = cartorioMatch[1].trim();
           console.log(`[CERTIDAO] ✓ Cartório found`);
