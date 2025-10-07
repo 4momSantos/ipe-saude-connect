@@ -446,9 +446,61 @@ export function getDefaultFieldsForDocumentType(documentType: string): OCRFieldM
       { ocrField: 'especialidades', required: false }
     ],
     cnpj: [
+      // Campos básicos obrigatórios
       { ocrField: 'razao_social', required: true },
       { ocrField: 'cnpj', required: true },
-      { ocrField: 'endereco', required: false }
+      { ocrField: 'nome_empresarial', required: true },
+      
+      // Campos de identificação
+      { ocrField: 'nome_fantasia', required: false },
+      { ocrField: 'data_abertura', required: true },
+      { ocrField: 'situacao_cadastral', required: true },
+      { ocrField: 'data_situacao_cadastral', required: false },
+      { ocrField: 'natureza_juridica', required: false },
+      
+      // Campos de endereço
+      { ocrField: 'logradouro', required: true },
+      { ocrField: 'numero', required: false },
+      { ocrField: 'complemento', required: false },
+      { ocrField: 'bairro', required: false },
+      { ocrField: 'municipio', required: true },
+      { ocrField: 'uf', required: true },
+      { ocrField: 'cep', required: true },
+      
+      // Campos de atividade econômica
+      { ocrField: 'cnae_principal', required: true },
+      { ocrField: 'cnae_principal_descricao', required: false },
+      { ocrField: 'cnaes_secundarios', required: false },
+      
+      // Campos financeiros
+      { ocrField: 'capital_social', required: false },
+      { ocrField: 'capital_social_data', required: false },
+      
+      // Campos de situação especial
+      { ocrField: 'situacao_especial', required: false },
+      { ocrField: 'data_situacao_especial', required: false },
+      
+      // Campos do Simples Nacional
+      { ocrField: 'opcao_simples_nacional', required: false },
+      { ocrField: 'data_opcao_simples', required: false },
+      { ocrField: 'data_exclusao_simples', required: false },
+      { ocrField: 'opcao_mei', required: false },
+      
+      // Campos de responsável/QSA
+      { ocrField: 'qualificacao_responsavel', required: false },
+      { ocrField: 'nome_responsavel', required: false },
+      { ocrField: 'cpf_responsavel', required: false },
+      { ocrField: 'ente_federativo_responsavel', required: false },
+      
+      // Campos de contato
+      { ocrField: 'email', required: false },
+      { ocrField: 'telefone', required: false },
+      
+      // Campos de data
+      { ocrField: 'data_emissao', required: false },
+      
+      // Campo array de sócios
+      { ocrField: 'socios', required: false }
     ],
     comprovante_endereco: [
       { ocrField: 'logradouro', required: true },
