@@ -229,27 +229,99 @@ function parseDocumentText(
 
   switch (documentType) {
     case 'rg':
-      // RG patterns
+      console.log('[RG] Starting RG field extraction...');
+      
+      // Nome completo
       if (expectedFields.includes('nome')) {
-        const nomeMatch = normalizedText.match(/(?:nome|name)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?:\s+(?:filiac|nasc|rg|doc|nat))/i);
-        if (nomeMatch) data.nome = nomeMatch[1].trim();
+        let nomeMatch = normalizedText.match(/(?:NOME|NOME\s+COMPLETO|TITULAR)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s*(?:FILIACAO|FILIAÇÃO|NASCIMENTO|RG|CPF|DOCUMENTO|\d))/i);
+        if (!nomeMatch) {
+          // Fallback: nome no início do documento
+          nomeMatch = normalizedText.match(/^([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{10,60}?)(?=\s*(?:RG|CPF|FILIACAO))/i);
+        }
+        if (nomeMatch) {
+          data.nome = nomeMatch[1].trim();
+          console.log(`[RG] ✓ Nome found: ${data.nome}`);
+        } else {
+          console.log('[RG] ✗ Nome not found');
+        }
       }
+      
+      // Número do RG - 7 a 10 dígitos
       if (expectedFields.includes('rg')) {
-        const rgMatch = normalizedText.match(/(?:rg|registro)[:\s#]*([0-9.]{7,15})/i);
-        if (rgMatch) data.rg = rgMatch[1].replace(/\D/g, '');
+        let rgMatch = normalizedText.match(/(?:RG|REGISTRO\s+GERAL|IDENTIDADE)[:\s#\-]*(\d{1,2}\.?\d{3}\.?\d{3}[\-\.]?\d{1,2}?)/i);
+        if (!rgMatch) {
+          // Fallback: sequência de 7-10 dígitos com pontos/traços
+          rgMatch = normalizedText.match(/\b(\d{1,2}\.?\d{3}\.?\d{3}[\-\.]?\d{1,2}?)\b/);
+        }
+        if (rgMatch) {
+          data.rg = rgMatch[1].replace(/\D/g, '');
+          console.log(`[RG] ✓ RG found: ${data.rg}`);
+        } else {
+          console.log('[RG] ✗ RG not found');
+        }
       }
+      
+      // CPF
       if (expectedFields.includes('cpf')) {
-        const cpfMatch = normalizedText.match(/(?:cpf)[:\s]*([0-9.]{11,14})/i);
-        if (cpfMatch) data.cpf = cpfMatch[1];
+        const cpfMatch = normalizedText.match(/(?:CPF)[:\s]*(\d{3}\.?\d{3}\.?\d{3}[\-\.]?\d{2})/i);
+        if (cpfMatch) {
+          data.cpf = cpfMatch[1].replace(/[^\d]/g, '');
+          console.log(`[RG] ✓ CPF found: ${data.cpf}`);
+        } else {
+          console.log('[RG] ✗ CPF not found');
+        }
       }
+      
+      // Data de nascimento
       if (expectedFields.includes('data_nascimento')) {
-        const dataMatch = normalizedText.match(/(?:nasc|nascimento)[:\s]*([0-9]{2}[\/\-][0-9]{2}[\/\-][0-9]{4})/i);
-        if (dataMatch) data.data_nascimento = dataMatch[1];
+        let dataMatch = normalizedText.match(/(?:NASCIMENTO|NASC|DATA\s+DE\s+NASCIMENTO)[:\s]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+        if (!dataMatch) {
+          // Fallback: procurar padrão de data isolado
+          dataMatch = normalizedText.match(/\b(\d{2}[\/\-]\d{2}[\/\-]\d{4})\b/);
+        }
+        if (dataMatch) {
+          data.data_nascimento = dataMatch[1];
+          console.log(`[RG] ✓ Data nascimento found: ${data.data_nascimento}`);
+        } else {
+          console.log('[RG] ✗ Data nascimento not found');
+        }
       }
+      
+      // Órgão emissor
       if (expectedFields.includes('orgao_emissor')) {
-        const orgaoMatch = normalizedText.match(/(?:orgao|órgão|emissor)[:\s]*([A-Z]{2,10}[\/\-]?[A-Z]{2})/i);
-        if (orgaoMatch) data.orgao_emissor = orgaoMatch[1];
+        let orgaoMatch = normalizedText.match(/(?:ORGAO\s+EMISSOR|ÓRGÃO\s+EMISSOR|EMISSOR)[:\s]*([A-Z]{2,10}[\/\-]?[A-Z]{2})/i);
+        if (!orgaoMatch) {
+          // Fallback: SSP/UF pattern
+          orgaoMatch = normalizedText.match(/\b(SSP|PC|PM|DETRAN|IFP)[\s\/\-]*([A-Z]{2})\b/i);
+          if (orgaoMatch) orgaoMatch[1] = `${orgaoMatch[1]}/${orgaoMatch[2]}`;
+        }
+        if (orgaoMatch) {
+          data.orgao_emissor = orgaoMatch[1].toUpperCase();
+          console.log(`[RG] ✓ Órgão emissor found: ${data.orgao_emissor}`);
+        } else {
+          console.log('[RG] ✗ Órgão emissor not found');
+        }
       }
+      
+      // Data de emissão
+      if (expectedFields.includes('data_emissao')) {
+        const dataEmissaoMatch = normalizedText.match(/(?:EMISSAO|EMISSÃO|EXPEDIÇÃO|EXPEDICAO)[:\s]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+        if (dataEmissaoMatch) {
+          data.data_emissao = dataEmissaoMatch[1];
+          console.log(`[RG] ✓ Data emissão found: ${data.data_emissao}`);
+        }
+      }
+      
+      // Filiação (pai e mãe)
+      if (expectedFields.includes('filiacao')) {
+        const filiacaoMatch = normalizedText.match(/(?:FILIACAO|FILIAÇÃO|PAI|MAE|MÃE)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s,]+?)(?=\s*(?:RG|CPF|NASCIMENTO|NATURALIDADE))/i);
+        if (filiacaoMatch) {
+          data.filiacao = filiacaoMatch[1].trim();
+          console.log(`[RG] ✓ Filiação found`);
+        }
+      }
+      
+      console.log(`[RG] Extraction complete. Fields found: ${Object.keys(data).length}`);
       break;
 
     case 'cnh':
@@ -329,18 +401,71 @@ function parseDocumentText(
       break;
 
     case 'cpf':
+      console.log('[CPF] Starting CPF field extraction...');
+      
+      // Nome completo
       if (expectedFields.includes('nome')) {
-        const nomeMatch = normalizedText.match(/(?:nome|name)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?:\s+(?:cpf|nasc))/i);
-        if (nomeMatch) data.nome = nomeMatch[1].trim();
+        let nomeMatch = normalizedText.match(/(?:NOME|NOME\s+COMPLETO|TITULAR)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s*(?:CPF|NASCIMENTO|SITUACAO|DATA|\d))/i);
+        if (!nomeMatch) {
+          // Fallback: capturar nome no início
+          nomeMatch = normalizedText.match(/^([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{10,60}?)(?=\s*(?:CPF|\d{3}\.))/i);
+        }
+        if (nomeMatch) {
+          data.nome = nomeMatch[1].trim();
+          console.log(`[CPF] ✓ Nome found: ${data.nome}`);
+        } else {
+          console.log('[CPF] ✗ Nome not found');
+        }
       }
+      
+      // Número do CPF
       if (expectedFields.includes('cpf')) {
-        const cpfMatch = normalizedText.match(/([0-9]{3}[.\-]?[0-9]{3}[.\-]?[0-9]{3}[.\-]?[0-9]{2})/);
-        if (cpfMatch) data.cpf = cpfMatch[1];
+        let cpfMatch = normalizedText.match(/(?:CPF|CADASTRO)[:\s#\-]*(\d{3}\.?\d{3}\.?\d{3}[\-\.]?\d{2})/i);
+        if (!cpfMatch) {
+          // Fallback: procurar padrão de CPF isolado
+          cpfMatch = normalizedText.match(/\b(\d{3}\.?\d{3}\.?\d{3}[\-\.]?\d{2})\b/);
+        }
+        if (cpfMatch) {
+          data.cpf = cpfMatch[1].replace(/[^\d]/g, '');
+          console.log(`[CPF] ✓ CPF found: ${data.cpf}`);
+        } else {
+          console.log('[CPF] ✗ CPF not found');
+        }
       }
+      
+      // Data de nascimento
       if (expectedFields.includes('data_nascimento')) {
-        const dataMatch = normalizedText.match(/(?:nasc|nascimento)[:\s]*([0-9]{2}[\/\-][0-9]{2}[\/\-][0-9]{4})/i);
-        if (dataMatch) data.data_nascimento = dataMatch[1];
+        let dataMatch = normalizedText.match(/(?:NASCIMENTO|NASC|DATA\s+DE\s+NASCIMENTO)[:\s]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+        if (!dataMatch) {
+          dataMatch = normalizedText.match(/\b(\d{2}[\/\-]\d{2}[\/\-]\d{4})\b/);
+        }
+        if (dataMatch) {
+          data.data_nascimento = dataMatch[1];
+          console.log(`[CPF] ✓ Data nascimento found: ${data.data_nascimento}`);
+        } else {
+          console.log('[CPF] ✗ Data nascimento not found');
+        }
       }
+      
+      // Situação cadastral
+      if (expectedFields.includes('situacao')) {
+        const situacaoMatch = normalizedText.match(/(?:SITUACAO|SITUAÇÃO)[:\s]+(REGULAR|IRREGULAR|SUSPENSA|CANCELADA|NULA|PENDENTE)/i);
+        if (situacaoMatch) {
+          data.situacao = situacaoMatch[1].toUpperCase();
+          console.log(`[CPF] ✓ Situação found: ${data.situacao}`);
+        }
+      }
+      
+      // Data de emissão do comprovante
+      if (expectedFields.includes('data_emissao')) {
+        const dataEmissaoMatch = normalizedText.match(/(?:EMISSAO|EMISSÃO|EMITIDO)[:\s]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+        if (dataEmissaoMatch) {
+          data.data_emissao = dataEmissaoMatch[1];
+          console.log(`[CPF] ✓ Data emissão found: ${data.data_emissao}`);
+        }
+      }
+      
+      console.log(`[CPF] Extraction complete. Fields found: ${Object.keys(data).length}`);
       break;
 
     case 'crm':
@@ -620,60 +745,322 @@ function parseDocumentText(
       break;
 
     case 'comprovante_endereco':
+      console.log('[COMPROVANTE] Starting address proof field extraction...');
+      
+      // Nome do titular/destinatário
       if (expectedFields.includes('nome')) {
-        const nomeMatch = normalizedText.match(/(?:nome|destinatário|destinatario)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?:\s+(?:end|rua|av|cep))/i);
-        if (nomeMatch) data.nome = nomeMatch[1].trim();
+        let nomeMatch = normalizedText.match(/(?:NOME|DESTINATARIO|DESTINATÁRIO|TITULAR|CLIENTE)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s*(?:ENDERECO|ENDEREÇO|RUA|AV|CPF|CEP))/i);
+        if (!nomeMatch) {
+          nomeMatch = normalizedText.match(/^([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{10,60}?)(?=\s*(?:RUA|AV|ENDERECO))/i);
+        }
+        if (nomeMatch) {
+          data.nome = nomeMatch[1].trim();
+          console.log(`[COMPROVANTE] ✓ Nome found: ${data.nome}`);
+        } else {
+          console.log('[COMPROVANTE] ✗ Nome not found');
+        }
       }
+      
+      // Logradouro
       if (expectedFields.includes('logradouro')) {
-        const logMatch = normalizedText.match(/(?:rua|av|avenida|travessa)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?:\s*[,\d])/i);
-        if (logMatch) data.logradouro = logMatch[1].trim();
+        let logMatch = normalizedText.match(/(?:LOGRADOURO|ENDERECO|ENDEREÇO)[:\s]+((?:RUA|AVENIDA|AV|ALAMEDA|TRAVESSA|PRACA|ROD)[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s\.]+?)(?=\s*(?:NUMERO|N[UÚ]MERO|,\s*\d|\d+|BAIRRO))/i);
+        if (!logMatch) {
+          // Fallback: procurar padrão de rua/av seguido de nome
+          logMatch = normalizedText.match(/\b(RUA|AVENIDA|AV|ALAMEDA|TRAVESSA)\s+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{5,50}?)(?=\s*[,\d])/i);
+          if (logMatch) logMatch[1] = `${logMatch[1]} ${logMatch[2]}`;
+        }
+        if (logMatch) {
+          data.logradouro = logMatch[1].trim();
+          console.log(`[COMPROVANTE] ✓ Logradouro found: ${data.logradouro}`);
+        } else {
+          console.log('[COMPROVANTE] ✗ Logradouro not found');
+        }
       }
+      
+      // Número
+      if (expectedFields.includes('numero')) {
+        const numeroMatch = normalizedText.match(/(?:NUMERO|N[UÚ]MERO|Nº)[:\s]*(\d+|S\/N)/i);
+        if (numeroMatch) {
+          data.numero = numeroMatch[1];
+          console.log(`[COMPROVANTE] ✓ Número found: ${data.numero}`);
+        }
+      }
+      
+      // Complemento
+      if (expectedFields.includes('complemento')) {
+        const complementoMatch = normalizedText.match(/(?:COMPLEMENTO|COMPL|APT|APTO|SALA)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ0-9\s]+?)(?=\s*(?:BAIRRO|CEP|CIDADE))/i);
+        if (complementoMatch) {
+          data.complemento = complementoMatch[1].trim();
+          console.log(`[COMPROVANTE] ✓ Complemento found: ${data.complemento}`);
+        }
+      }
+      
+      // Bairro
+      if (expectedFields.includes('bairro')) {
+        const bairroMatch = normalizedText.match(/(?:BAIRRO|DISTRITO)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s*(?:CIDADE|MUNICIPIO|CEP|UF))/i);
+        if (bairroMatch) {
+          data.bairro = bairroMatch[1].trim();
+          console.log(`[COMPROVANTE] ✓ Bairro found: ${data.bairro}`);
+        }
+      }
+      
+      // CEP
       if (expectedFields.includes('cep')) {
-        const cepMatch = normalizedText.match(/([0-9]{5}[\-\.]?[0-9]{3})/);
-        if (cepMatch) data.cep = cepMatch[1];
+        const cepMatch = normalizedText.match(/(?:CEP)[:\s]*(\d{5}[\-\.]?\d{3})/i);
+        if (cepMatch) {
+          data.cep = cepMatch[1].replace(/[^\d]/g, '');
+          console.log(`[COMPROVANTE] ✓ CEP found: ${data.cep}`);
+        } else {
+          console.log('[COMPROVANTE] ✗ CEP not found');
+        }
       }
+      
+      // Cidade
       if (expectedFields.includes('cidade')) {
-        const cidadeMatch = normalizedText.match(/(?:cidade)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?:\s+(?:estado|uf|cep))/i);
-        if (cidadeMatch) data.cidade = cidadeMatch[1].trim();
+        let cidadeMatch = normalizedText.match(/(?:CIDADE|MUNICIPIO|MUNIC)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s*(?:ESTADO|UF|CEP|\d))/i);
+        if (!cidadeMatch) {
+          // Fallback: cidade antes de UF
+          cidadeMatch = normalizedText.match(/([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{3,30}?)[\s\-\/]+([A-Z]{2})\b/);
+          if (cidadeMatch) cidadeMatch[1] = cidadeMatch[1];
+        }
+        if (cidadeMatch) {
+          data.cidade = cidadeMatch[1].trim();
+          console.log(`[COMPROVANTE] ✓ Cidade found: ${data.cidade}`);
+        } else {
+          console.log('[COMPROVANTE] ✗ Cidade not found');
+        }
       }
+      
+      // Estado (UF)
       if (expectedFields.includes('estado')) {
-        const estadoMatch = normalizedText.match(/(?:estado|uf)[:\s]+([A-Z]{2})/i);
-        if (estadoMatch) data.estado = estadoMatch[1];
+        let estadoMatch = normalizedText.match(/(?:ESTADO|UF)[:\s]+([A-Z]{2})\b/i);
+        if (!estadoMatch) {
+          // Fallback: 2 letras maiúsculas isoladas
+          estadoMatch = normalizedText.match(/\b([A-Z]{2})\b/);
+        }
+        if (estadoMatch) {
+          data.estado = estadoMatch[1].toUpperCase();
+          console.log(`[COMPROVANTE] ✓ Estado found: ${data.estado}`);
+        } else {
+          console.log('[COMPROVANTE] ✗ Estado not found');
+        }
       }
+      
+      // Data de emissão/vencimento
+      if (expectedFields.includes('data_emissao')) {
+        const dataMatch = normalizedText.match(/(?:EMISSAO|EMISSÃO|DATA)[:\s]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+        if (dataMatch) {
+          data.data_emissao = dataMatch[1];
+          console.log(`[COMPROVANTE] ✓ Data emissão found: ${data.data_emissao}`);
+        }
+      }
+      
+      console.log(`[COMPROVANTE] Extraction complete. Fields found: ${Object.keys(data).length}`);
       break;
 
     case 'diploma':
+      console.log('[DIPLOMA] Starting diploma field extraction...');
+      
+      // Nome do diplomado
       if (expectedFields.includes('nome')) {
-        const nomeMatch = normalizedText.match(/(?:outorga|confere|nome)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?:\s+(?:curso|grau))/i);
-        if (nomeMatch) data.nome = nomeMatch[1].trim();
+        let nomeMatch = normalizedText.match(/(?:OUTORGA|CONFERE|DIPLOMA|CERTIFICA)[:\s]+(?:A|O|QUE|DE)?[:\s]*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s*(?:CURSO|GRAU|GRADUAÇÃO|CONCLUIU|COLOU))/i);
+        if (!nomeMatch) {
+          // Fallback: nome próximo ao início
+          nomeMatch = normalizedText.match(/(?:NOME)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{10,60}?)(?=\s*(?:CURSO|CPF|RG))/i);
+        }
+        if (nomeMatch) {
+          data.nome = nomeMatch[1].trim();
+          console.log(`[DIPLOMA] ✓ Nome found: ${data.nome}`);
+        } else {
+          console.log('[DIPLOMA] ✗ Nome not found');
+        }
       }
+      
+      // Curso/Graduação
       if (expectedFields.includes('curso')) {
-        const cursoMatch = normalizedText.match(/(?:curso|graduação|graduacao)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?:\s+(?:instituição|instituicao|data))/i);
-        if (cursoMatch) data.curso = cursoMatch[1].trim();
+        let cursoMatch = normalizedText.match(/(?:CURSO|GRADUAÇÃO|GRADUACAO|BACHAREL|LICENCIATURA)[:\s]+(?:DE|EM)?[:\s]*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s*(?:PELA|NA|INSTITUIÇÃO|UNIVERSIDADE|FACULDADE|EM\s+\d{2}))/i);
+        if (!cursoMatch) {
+          // Fallback: padrão "EM <CURSO>"
+          cursoMatch = normalizedText.match(/\bEM\s+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{5,40}?)(?=\s*(?:PELA|NA|INSTITUIÇÃO))/i);
+        }
+        if (cursoMatch) {
+          data.curso = cursoMatch[1].trim();
+          console.log(`[DIPLOMA] ✓ Curso found: ${data.curso}`);
+        } else {
+          console.log('[DIPLOMA] ✗ Curso not found');
+        }
       }
+      
+      // Instituição de ensino
       if (expectedFields.includes('instituicao')) {
-        const instMatch = normalizedText.match(/(?:instituição|instituicao|universidade)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?:\s+(?:data|em))/i);
-        if (instMatch) data.instituicao = instMatch[1].trim();
+        let instMatch = normalizedText.match(/(?:INSTITUIÇÃO|INSTITUICAO|UNIVERSIDADE|FACULDADE|ESCOLA|CENTRO)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s\-]+?)(?=\s*(?:EM|DATA|CONCLUSAO|OUTORGADO|\d{2}[\/\-]))/i);
+        if (!instMatch) {
+          // Fallback: padrão "PELA/NA <INSTITUICAO>"
+          instMatch = normalizedText.match(/(?:PELA|NA)\s+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s\-]{10,60}?)(?=\s*(?:EM|DATA|\d{2}[\/\-]))/i);
+        }
+        if (instMatch) {
+          data.instituicao = instMatch[1].trim();
+          console.log(`[DIPLOMA] ✓ Instituição found: ${data.instituicao}`);
+        } else {
+          console.log('[DIPLOMA] ✗ Instituição not found');
+        }
       }
+      
+      // Data de conclusão/colação de grau
       if (expectedFields.includes('data_conclusao')) {
-        const dataMatch = normalizedText.match(/(?:conclusão|conclusao|data)[:\s]*([0-9]{2}[\/\-][0-9]{2}[\/\-][0-9]{4})/i);
-        if (dataMatch) data.data_conclusao = dataMatch[1];
+        let dataMatch = normalizedText.match(/(?:CONCLUSÃO|CONCLUSAO|COLACAO|COLAÇÃO|DATA)[:\s]+(?:DE\s+GRAU)?[:\s]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+        if (!dataMatch) {
+          // Fallback: padrão "EM dd/mm/yyyy"
+          dataMatch = normalizedText.match(/\bEM\s+(\d{2}[\/\-]\d{2}[\/\-]\d{4})\b/i);
+        }
+        if (dataMatch) {
+          data.data_conclusao = dataMatch[1];
+          console.log(`[DIPLOMA] ✓ Data conclusão found: ${data.data_conclusao}`);
+        } else {
+          console.log('[DIPLOMA] ✗ Data conclusão not found');
+        }
       }
+      
+      // Grau obtido
+      if (expectedFields.includes('grau')) {
+        const grauMatch = normalizedText.match(/(?:GRAU|TÍTULO|TITULO)[:\s]+(BACHAREL|LICENCIADO|TECNÓLOGO|TECNOLOGO|MESTRE|DOUTOR)/i);
+        if (grauMatch) {
+          data.grau = grauMatch[1].toUpperCase();
+          console.log(`[DIPLOMA] ✓ Grau found: ${data.grau}`);
+        }
+      }
+      
+      // Número do registro/diploma
+      if (expectedFields.includes('numero_registro')) {
+        const registroMatch = normalizedText.match(/(?:REGISTRO|DIPLOMA|N[UÚ]MERO)[:\s#]*(\d{4,10})/i);
+        if (registroMatch) {
+          data.numero_registro = registroMatch[1];
+          console.log(`[DIPLOMA] ✓ Número registro found: ${data.numero_registro}`);
+        }
+      }
+      
+      console.log(`[DIPLOMA] Extraction complete. Fields found: ${Object.keys(data).length}`);
       break;
 
     case 'certidao':
+      console.log('[CERTIDAO] Starting birth certificate field extraction...');
+      
+      // Nome registrado
       if (expectedFields.includes('nome')) {
-        const nomeMatch = normalizedText.match(/(?:nome|registro)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?:\s+(?:filho|data|cert))/i);
-        if (nomeMatch) data.nome = nomeMatch[1].trim();
+        let nomeMatch = normalizedText.match(/(?:NOME|REGISTRADO|NASCIDO)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s*(?:FILHO|FILHA|NASCIDO|NASCIDA|DATA|LIVRO))/i);
+        if (!nomeMatch) {
+          // Fallback: procurar nome completo no início
+          nomeMatch = normalizedText.match(/^([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{10,60}?)(?=\s*(?:FILHO|NASCIDO))/i);
+        }
+        if (nomeMatch) {
+          data.nome = nomeMatch[1].trim();
+          console.log(`[CERTIDAO] ✓ Nome found: ${data.nome}`);
+        } else {
+          console.log('[CERTIDAO] ✗ Nome not found');
+        }
       }
+      
+      // Tipo de certidão
       if (expectedFields.includes('tipo_certidao')) {
-        const tipoMatch = normalizedText.match(/(?:certidão|certidao)[:\s]+(?:de\s+)?([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?:\s+(?:livro|folha|data))/i);
-        if (tipoMatch) data.tipo_certidao = tipoMatch[1].trim();
+        let tipoMatch = normalizedText.match(/(?:CERTIDÃO|CERTIDAO)[:\s]+(?:DE\s+)?(NASCIMENTO|CASAMENTO|OBITO|ÓBITO)/i);
+        if (!tipoMatch) {
+          // Inferir do contexto
+          if (normalizedText.includes('NASCIMENTO') || normalizedText.includes('NASCIDO')) {
+            data.tipo_certidao = 'NASCIMENTO';
+          } else if (normalizedText.includes('CASAMENTO')) {
+            data.tipo_certidao = 'CASAMENTO';
+          } else if (normalizedText.includes('OBITO') || normalizedText.includes('ÓBITO')) {
+            data.tipo_certidao = 'ÓBITO';
+          }
+        } else {
+          data.tipo_certidao = tipoMatch[1].toUpperCase();
+        }
+        if (data.tipo_certidao) {
+          console.log(`[CERTIDAO] ✓ Tipo found: ${data.tipo_certidao}`);
+        } else {
+          console.log('[CERTIDAO] ✗ Tipo not found');
+        }
       }
+      
+      // Data de nascimento/evento
+      if (expectedFields.includes('data_nascimento')) {
+        let dataMatch = normalizedText.match(/(?:NASCIMENTO|NASCIDO|DATA\s+DO\s+EVENTO)[:\s]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+        if (!dataMatch) {
+          // Fallback: primeira data encontrada
+          dataMatch = normalizedText.match(/\b(\d{2}[\/\-]\d{2}[\/\-]\d{4})\b/);
+        }
+        if (dataMatch) {
+          data.data_nascimento = dataMatch[1];
+          console.log(`[CERTIDAO] ✓ Data nascimento found: ${data.data_nascimento}`);
+        }
+      }
+      
+      // Data de emissão/expedição
       if (expectedFields.includes('data_emissao')) {
-        const dataMatch = normalizedText.match(/(?:emissão|emissao|expedição|expedicao)[:\s]*([0-9]{2}[\/\-][0-9]{2}[\/\-][0-9]{4})/i);
-        if (dataMatch) data.data_emissao = dataMatch[1];
+        const dataEmissaoMatch = normalizedText.match(/(?:EMISSAO|EMISSÃO|EXPEDIÇÃO|EXPEDICAO|EMITIDA)[:\s]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+        if (dataEmissaoMatch) {
+          data.data_emissao = dataEmissaoMatch[1];
+          console.log(`[CERTIDAO] ✓ Data emissão found: ${data.data_emissao}`);
+        } else {
+          console.log('[CERTIDAO] ✗ Data emissão not found');
+        }
       }
+      
+      // Nome do pai
+      if (expectedFields.includes('pai')) {
+        const paiMatch = normalizedText.match(/(?:PAI|FILHO\s+DE)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{10,60}?)(?=\s*(?:MAE|MÃE|E\s+DE))/i);
+        if (paiMatch) {
+          data.pai = paiMatch[1].trim();
+          console.log(`[CERTIDAO] ✓ Nome do pai found`);
+        }
+      }
+      
+      // Nome da mãe
+      if (expectedFields.includes('mae')) {
+        const maeMatch = normalizedText.match(/(?:MAE|MÃE|E\s+DE)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{10,60}?)(?=\s*(?:LIVRO|FOLHA|TERMO|DATA))/i);
+        if (maeMatch) {
+          data.mae = maeMatch[1].trim();
+          console.log(`[CERTIDAO] ✓ Nome da mãe found`);
+        }
+      }
+      
+      // Livro
+      if (expectedFields.includes('livro')) {
+        const livroMatch = normalizedText.match(/(?:LIVRO)[:\s]+(\w+)/i);
+        if (livroMatch) {
+          data.livro = livroMatch[1];
+          console.log(`[CERTIDAO] ✓ Livro found: ${data.livro}`);
+        }
+      }
+      
+      // Folha
+      if (expectedFields.includes('folha')) {
+        const folhaMatch = normalizedText.match(/(?:FOLHA|FLS)[:\s]+(\d+)/i);
+        if (folhaMatch) {
+          data.folha = folhaMatch[1];
+          console.log(`[CERTIDAO] ✓ Folha found: ${data.folha}`);
+        }
+      }
+      
+      // Termo
+      if (expectedFields.includes('termo')) {
+        const termoMatch = normalizedText.match(/(?:TERMO)[:\s]+(\d+)/i);
+        if (termoMatch) {
+          data.termo = termoMatch[1];
+          console.log(`[CERTIDAO] ✓ Termo found: ${data.termo}`);
+        }
+      }
+      
+      // Cartório
+      if (expectedFields.includes('cartorio')) {
+        const cartorioMatch = normalizedText.match(/(?:CARTORIO|CARTÓRIO|OFICIAL)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s\-]{10,60}?)(?=\s*(?:LIVRO|FOLHA|DATA))/i);
+        if (cartorioMatch) {
+          data.cartorio = cartorioMatch[1].trim();
+          console.log(`[CERTIDAO] ✓ Cartório found`);
+        }
+      }
+      
+      console.log(`[CERTIDAO] Extraction complete. Fields found: ${Object.keys(data).length}`);
       break;
 
     default:
