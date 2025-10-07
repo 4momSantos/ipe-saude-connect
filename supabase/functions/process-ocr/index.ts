@@ -231,11 +231,15 @@ function parseDocumentText(
     case 'rg':
       console.log('[RG] Starting RG field extraction...');
       
-      // Nome completo
+      // Nome completo - Múltiplas tentativas
       if (expectedFields.includes('nome')) {
         let nomeMatch = normalizedText.match(/(?:NOME|NOME\s+COMPLETO|TITULAR)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s*(?:FILIACAO|FILIAÇÃO|NASCIMENTO|RG|CPF|DOCUMENTO|\d))/i);
         if (!nomeMatch) {
-          // Fallback: nome no início do documento
+          // Fallback 1: Após "NOME" sem dois pontos
+          nomeMatch = normalizedText.match(/NOME\s+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{10,60}?)(?=\s*(?:FILIACAO|FILIAÇÃO|CPF|RG))/i);
+        }
+        if (!nomeMatch) {
+          // Fallback 2: Nome no início do documento
           nomeMatch = normalizedText.match(/^([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{10,60}?)(?=\s*(?:RG|CPF|FILIACAO))/i);
         }
         if (nomeMatch) {
@@ -246,12 +250,26 @@ function parseDocumentText(
         }
       }
       
-      // Número do RG - 7 a 10 dígitos
+      // Número do RG - Múltiplas tentativas
       if (expectedFields.includes('rg')) {
-        let rgMatch = normalizedText.match(/(?:RG|REGISTRO\s+GERAL|IDENTIDADE)[:\s#\-]*(\d{1,2}\.?\d{3}\.?\d{3}[\-\.]?\d{1,2}?)/i);
+        let rgMatch = normalizedText.match(/(?:RG|REGISTRO\s+GERAL|REGISTRO\s*GERAL|IDENTIDADE)[:\s#\-]*(\d{1,2}\.?\d{3}\.?\d{3}[\-\.]?\d{1,2})/i);
         if (!rgMatch) {
-          // Fallback: sequência de 7-10 dígitos com pontos/traços
-          rgMatch = normalizedText.match(/\b(\d{1,2}\.?\d{3}\.?\d{3}[\-\.]?\d{1,2}?)\b/);
+          // Fallback 1: Após "GERAL" sem marcador
+          rgMatch = normalizedText.match(/GERAL\s+(\d{1,2}\.?\d{3}\.?\d{3}[\-\.]?\d{1,2})/i);
+        }
+        if (!rgMatch) {
+          // Fallback 2: Sequência de 7-10 dígitos com pontos/traços (evitar CPF)
+          const matches = normalizedText.match(/\b(\d{1,2}\.?\d{3}\.?\d{3}[\-\.]?\d{1,2})\b/g);
+          if (matches && matches.length > 0) {
+            // Pegar o primeiro que não seja CPF (11 dígitos)
+            for (const match of matches) {
+              const digitsOnly = match.replace(/\D/g, '');
+              if (digitsOnly.length >= 7 && digitsOnly.length <= 10) {
+                rgMatch = [match, match];
+                break;
+              }
+            }
+          }
         }
         if (rgMatch) {
           data.rg = rgMatch[1].replace(/\D/g, '');
@@ -261,9 +279,27 @@ function parseDocumentText(
         }
       }
       
-      // CPF
+      // CPF - Múltiplas tentativas
       if (expectedFields.includes('cpf')) {
-        const cpfMatch = normalizedText.match(/(?:CPF)[:\s]*(\d{3}\.?\d{3}\.?\d{3}[\-\.]?\d{2})/i);
+        let cpfMatch = normalizedText.match(/(?:CPF|REGISTRO\s+GERAL[\-\s]*CPF)[:\s]*(\d{3}\.?\d{3}\.?\d{3}[\-\.]?\d{2})/i);
+        if (!cpfMatch) {
+          // Fallback 1: Padrão XXX.XXX.XXX-XX isolado
+          cpfMatch = normalizedText.match(/\b(\d{3}\.\d{3}\.\d{3}[\-]\d{2})\b/);
+        }
+        if (!cpfMatch) {
+          // Fallback 2: Qualquer sequência de 11 dígitos com pontos e traço
+          const matches = normalizedText.match(/\b(\d{3}\.?\d{3}\.?\d{3}[\-\.]?\d{2})\b/g);
+          if (matches && matches.length > 0) {
+            // Pegar o que tem exatamente 11 dígitos
+            for (const match of matches) {
+              const digitsOnly = match.replace(/\D/g, '');
+              if (digitsOnly.length === 11) {
+                cpfMatch = [match, match];
+                break;
+              }
+            }
+          }
+        }
         if (cpfMatch) {
           data.cpf = cpfMatch[1].replace(/[^\d]/g, '');
           console.log(`[RG] ✓ CPF found: ${data.cpf}`);
@@ -272,12 +308,30 @@ function parseDocumentText(
         }
       }
       
-      // Data de nascimento
+      // Data de nascimento - Múltiplas tentativas
       if (expectedFields.includes('data_nascimento')) {
-        let dataMatch = normalizedText.match(/(?:NASCIMENTO|NASC|DATA\s+DE\s+NASCIMENTO)[:\s]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+        let dataMatch = normalizedText.match(/(?:DATA\s+DE\s+NASCIMENTO|NASCIMENTO|NASC)[:\s]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
         if (!dataMatch) {
-          // Fallback: procurar padrão de data isolado
-          dataMatch = normalizedText.match(/\b(\d{2}[\/\-]\d{2}[\/\-]\d{4})\b/);
+          // Fallback 1: Formato DD/MMM/AAAA
+          dataMatch = normalizedText.match(/\b(\d{2}\/(?:JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\/\d{4})\b/i);
+        }
+        if (!dataMatch) {
+          // Fallback 2: Após "BIRTH" ou "NASCIMENTO" sem dois pontos
+          dataMatch = normalizedText.match(/(?:BIRTH|NASCIMENTO)\s+(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+        }
+        if (!dataMatch) {
+          // Fallback 3: Procurar padrão de data isolado (evitar datas de emissão)
+          const matches = normalizedText.match(/\b(\d{2}[\/\-]\d{2}[\/\-]\d{4})\b/g);
+          if (matches && matches.length > 0) {
+            // Pegar a primeira data que parece ser de nascimento (1950-2010)
+            for (const match of matches) {
+              const year = parseInt(match.split(/[\/\-]/)[2]);
+              if (year >= 1950 && year <= 2010) {
+                dataMatch = [match, match];
+                break;
+              }
+            }
+          }
         }
         if (dataMatch) {
           data.data_nascimento = dataMatch[1];
@@ -287,13 +341,31 @@ function parseDocumentText(
         }
       }
       
-      // Órgão emissor
+      // Órgão emissor - Múltiplas tentativas
       if (expectedFields.includes('orgao_emissor')) {
-        let orgaoMatch = normalizedText.match(/(?:ORGAO\s+EMISSOR|ÓRGÃO\s+EMISSOR|EMISSOR)[:\s]*([A-Z]{2,10}[\/\-]?[A-Z]{2})/i);
+        let orgaoMatch = normalizedText.match(/(?:ORGAO\s+EMISSOR|ÓRGÃO\s+EMISSOR|EMISSOR)[:\s]*([A-Z]{2,10}[\/\-\s]?[A-Z]{2})\b/i);
         if (!orgaoMatch) {
-          // Fallback: SSP/UF pattern
-          orgaoMatch = normalizedText.match(/\b(SSP|PC|PM|DETRAN|IFP)[\s\/\-]*([A-Z]{2})\b/i);
+          // Fallback 1: SSP/UF ou SSP UF
+          orgaoMatch = normalizedText.match(/\b(SSP|PC|PM|DETRAN|IFP|IIRGD)[\s\/\-]*(SP|RJ|MG|BA|RS|PR|SC|PE|CE|PA|MA|GO|MT|MS|DF|ES|RN|PB|PI|AL|SE|RO|AC|AM|RR|AP|TO)\b/i);
           if (orgaoMatch) orgaoMatch[1] = `${orgaoMatch[1]}/${orgaoMatch[2]}`;
+        }
+        if (!orgaoMatch) {
+          // Fallback 2: Estado + "SECRETARIA" indica SSP do estado
+          const estadoMatch = normalizedText.match(/ESTADO\s+DE\s+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s*SECRETARIA)/i);
+          if (estadoMatch) {
+            const estadosMap: Record<string, string> = {
+              'SÃO PAULO': 'SSP/SP',
+              'RIO DE JANEIRO': 'SSP/RJ',
+              'MINAS GERAIS': 'SSP/MG',
+              'MATO GROSSO DO SUL': 'SSP/MS',
+              'BAHIA': 'SSP/BA',
+              'RIO GRANDE DO SUL': 'SSP/RS'
+            };
+            const nomeEstado = estadoMatch[1].trim().toUpperCase();
+            if (estadosMap[nomeEstado]) {
+              orgaoMatch = [estadosMap[nomeEstado], estadosMap[nomeEstado]];
+            }
+          }
         }
         if (orgaoMatch) {
           data.orgao_emissor = orgaoMatch[1].toUpperCase();
@@ -303,21 +375,46 @@ function parseDocumentText(
         }
       }
       
-      // Data de emissão
+      // Data de emissão - Múltiplas tentativas
       if (expectedFields.includes('data_emissao')) {
-        const dataEmissaoMatch = normalizedText.match(/(?:EMISSAO|EMISSÃO|EXPEDIÇÃO|EXPEDICAO)[:\s]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+        let dataEmissaoMatch = normalizedText.match(/(?:EMISSAO|EMISSÃO|EXPEDIÇÃO|EXPEDICAO|DATA\s+EXPEDIÇÃO)[:\s]*(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+        if (!dataEmissaoMatch) {
+          // Fallback 1: Formato DD/MMM/AAAA
+          dataEmissaoMatch = normalizedText.match(/(?:EMISSAO|DEPLOAD)\s+(\d{2}\/(?:JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\/\d{4})/i);
+        }
+        if (!dataEmissaoMatch) {
+          // Fallback 2: Procurar data mais recente (após 2000)
+          const matches = normalizedText.match(/\b(\d{2}[\/\-]\d{2}[\/\-]\d{4})\b/g);
+          if (matches && matches.length > 0) {
+            for (const match of matches) {
+              const year = parseInt(match.split(/[\/\-]/)[2]);
+              if (year >= 2000 && year <= new Date().getFullYear()) {
+                dataEmissaoMatch = [match, match];
+                break;
+              }
+            }
+          }
+        }
         if (dataEmissaoMatch) {
           data.data_emissao = dataEmissaoMatch[1];
           console.log(`[RG] ✓ Data emissão found: ${data.data_emissao}`);
+        } else {
+          console.log('[RG] ✗ Data emissão not found');
         }
       }
       
-      // Filiação (pai e mãe)
+      // Filiação (pai e mãe) - Múltiplas tentativas
       if (expectedFields.includes('filiacao')) {
-        const filiacaoMatch = normalizedText.match(/(?:FILIACAO|FILIAÇÃO|PAI|MAE|MÃE)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s,]+?)(?=\s*(?:RG|CPF|NASCIMENTO|NATURALIDADE))/i);
+        let filiacaoMatch = normalizedText.match(/(?:FILIACAO|FILIAÇÃO)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s,]+?)(?=\s*(?:NATURALIDADE|RG|CPF|NASCIMENTO|DOC\.))/i);
+        if (!filiacaoMatch) {
+          // Fallback 1: Capturar nomes após FILIAÇÃO até próximo campo
+          filiacaoMatch = normalizedText.match(/FILIAÇÃO\s+((?:[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+\s*){2,})(?=\s*(?:NATURALIDADE|DOC|CARTÓRIO))/i);
+        }
         if (filiacaoMatch) {
           data.filiacao = filiacaoMatch[1].trim();
-          console.log(`[RG] ✓ Filiação found`);
+          console.log(`[RG] ✓ Filiação found: ${data.filiacao}`);
+        } else {
+          console.log('[RG] ✗ Filiação not found');
         }
       }
       
