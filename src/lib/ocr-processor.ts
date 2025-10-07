@@ -423,9 +423,11 @@ export function getDefaultFieldsForDocumentType(documentType: string): OCRFieldM
     rg: [
       { ocrField: 'nome', required: true },
       { ocrField: 'rg', required: true },
-      { ocrField: 'cpf', required: false },
-      { ocrField: 'data_nascimento', required: false },
-      { ocrField: 'orgao_emissor', required: false }
+      { ocrField: 'cpf', required: true },
+      { ocrField: 'data_nascimento', required: true },
+      { ocrField: 'orgao_emissor', required: false },
+      { ocrField: 'data_emissao', required: false },
+      { ocrField: 'filiacao', required: false }
     ],
     cnh: [
       { ocrField: 'nome', required: true },
