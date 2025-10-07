@@ -553,9 +553,17 @@ function parseDocumentText(
     case 'cnpj':
       console.log('[CNPJ] Starting CNPJ field extraction...');
       
-      // CNPJ - formato XX.XXX.XXX/XXXX-XX
+      // CNPJ - formato XX.XXX.XXX/XXXX-XX com múltiplos fallbacks
       if (expectedFields.includes('cnpj')) {
-        const cnpjMatch = normalizedText.match(/(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}[\-\.]?\d{2})/);
+        let cnpjMatch = normalizedText.match(/(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}[\-\.]?\d{2})/);
+        if (!cnpjMatch) {
+          // Fallback 1: 14 dígitos sem formatação
+          cnpjMatch = normalizedText.match(/\b(\d{14})\b/);
+        }
+        if (!cnpjMatch) {
+          // Fallback 2: formato com espaços
+          cnpjMatch = normalizedText.match(/(\d{2}\s+\d{3}\s+\d{3}\s+\d{4}\s+\d{2})/);
+        }
         if (cnpjMatch) {
           data.cnpj = cnpjMatch[1].replace(/[^\d]/g, '');
           console.log(`[CNPJ] ✓ CNPJ found: ${data.cnpj}`);
@@ -564,9 +572,17 @@ function parseDocumentText(
         }
       }
       
-      // Razão Social
+      // Razão Social com fallbacks
       if (expectedFields.includes('razao_social')) {
-        let razaoMatch = normalizedText.match(/(?:RAZAO\s*SOCIAL|NOME\s*EMPRESARIAL)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ0-9\s&\-\.]+?)(?=\s*(?:NOME\s*FANTASIA|CNPJ|CNAE|SITUACAO|ENDERECO|\n\n))/i);
+        let razaoMatch = normalizedText.match(/(?:RAZAO\s*SOCIAL|NOME\s*EMPRESARIAL|FIRMA)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ0-9\s&\-\.]+?)(?=\s*(?:NOME\s*FANTASIA|CNPJ|CNAE|SITUACAO|ENDERECO|\n\n))/i);
+        if (!razaoMatch) {
+          // Fallback 1: texto maiúsculo longo no início
+          razaoMatch = normalizedText.match(/^([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s&\-\.]{10,80}?)(?=\s*(?:CNPJ|\d{2}\.\d{3}))/im);
+        }
+        if (!razaoMatch) {
+          // Fallback 2: linha antes de CNPJ
+          razaoMatch = normalizedText.match(/([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s&\-\.]{10,80}?)\s*(?=CNPJ|\d{2}\.\d{3}\.\d{3})/i);
+        }
         if (razaoMatch) {
           data.razao_social = razaoMatch[1].trim();
           console.log(`[CNPJ] ✓ Razão Social found: ${data.razao_social}`);
@@ -575,12 +591,19 @@ function parseDocumentText(
         }
       }
       
-      // Nome Fantasia
+      // Nome Fantasia com tratamento de ausência
       if (expectedFields.includes('nome_fantasia')) {
-        const fantasiaMatch = normalizedText.match(/(?:NOME\s*FANTASIA|FANTASIA)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ0-9\s&\-\.]+?)(?=\s*(?:CNPJ|CNAE|SITUACAO|ENDERECO|\n\n))/i);
+        let fantasiaMatch = normalizedText.match(/(?:NOME\s*FANTASIA|FANTASIA)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ0-9\s&\-\.]+?)(?=\s*(?:CNPJ|CNAE|SITUACAO|ENDERECO|\n\n))/i);
         if (fantasiaMatch) {
-          data.nome_fantasia = fantasiaMatch[1].trim();
-          console.log(`[CNPJ] ✓ Nome Fantasia found: ${data.nome_fantasia}`);
+          const fantasia = fantasiaMatch[1].trim();
+          // Verificar indicadores de ausência
+          if (/\*\*\*|NAO\s*INFORMAD|IDEM|SEM\s*NOME\s*FANTASIA/i.test(fantasia)) {
+            data.nome_fantasia = null;
+            console.log('[CNPJ] ℹ Nome Fantasia: não informado');
+          } else {
+            data.nome_fantasia = fantasia;
+            console.log(`[CNPJ] ✓ Nome Fantasia found: ${data.nome_fantasia}`);
+          }
         }
       }
       
@@ -593,21 +616,73 @@ function parseDocumentText(
         }
       }
       
-      // Situação Cadastral
+      // Situação Cadastral com fallback e normalização
       if (expectedFields.includes('situacao_cadastral')) {
-        const situacaoMatch = normalizedText.match(/(?:SITUACAO\s*CADASTRAL)[:\s]+(ATIVA|SUSPENSA|INAPTA|BAIXADA|NULA)/i);
+        let situacaoMatch = normalizedText.match(/(?:SITUACAO\s*CADASTRAL|STATUS)[:\s]+(ATIVA|ACTIVA|REGULAR|SUSPENSA|INAPTA|BAIXADA|NULA)/i);
+        if (!situacaoMatch) {
+          // Fallback: palavra isolada
+          situacaoMatch = normalizedText.match(/\b(ATIVA|ACTIVA|SUSPENSA|INAPTA|BAIXADA)\b/i);
+        }
         if (situacaoMatch) {
-          data.situacao_cadastral = situacaoMatch[1].toUpperCase();
+          let situacao = situacaoMatch[1].toUpperCase();
+          // Normalizar variações
+          if (situacao === 'ACTIVA' || situacao === 'REGULAR') situacao = 'ATIVA';
+          data.situacao_cadastral = situacao;
           console.log(`[CNPJ] ✓ Situação Cadastral found: ${data.situacao_cadastral}`);
         }
       }
       
-      // Data de Abertura
+      // Data de Abertura com fallback e validação
       if (expectedFields.includes('data_abertura')) {
-        const dataAberturaMatch = normalizedText.match(/(?:DATA\s*(?:DE\s*)?ABERTURA|INICIO\s*ATIVIDADE)[:\s]+(\d{2}\/\d{2}\/\d{4})/i);
+        let dataAberturaMatch = normalizedText.match(/(?:DATA\s*(?:DE\s*)?ABERTURA|INICIO\s*ATIVIDADE)[:\s]+(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+        if (!dataAberturaMatch) {
+          // Fallback: primeira data no texto
+          dataAberturaMatch = normalizedText.match(/\b(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})\b/);
+        }
         if (dataAberturaMatch) {
-          data.data_abertura = dataAberturaMatch[1];
-          console.log(`[CNPJ] ✓ Data Abertura found: ${data.data_abertura}`);
+          const dataParts = dataAberturaMatch[1].split(/[\/\-\.]/);
+          const year = parseInt(dataParts[2]);
+          // Validar se data é razoável (não futuro, não antes de 1900)
+          if (year >= 1900 && year <= new Date().getFullYear()) {
+            data.data_abertura = dataAberturaMatch[1].replace(/[\-\.]/g, '/');
+            console.log(`[CNPJ] ✓ Data Abertura found: ${data.data_abertura}`);
+          } else {
+            console.log(`[CNPJ] ✗ Data Abertura inválida: ${dataAberturaMatch[1]}`);
+          }
+        }
+      }
+      
+      // Data de Situação
+      if (expectedFields.includes('data_situacao')) {
+        const dataSitMatch = normalizedText.match(/(?:DATA\s*(?:DA\s*)?SITUACAO)[:\s]+(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+        if (dataSitMatch) {
+          data.data_situacao = dataSitMatch[1].replace(/[\-\.]/g, '/');
+          console.log(`[CNPJ] ✓ Data Situação found: ${data.data_situacao}`);
+        }
+      }
+      
+      // Motivo Situação
+      if (expectedFields.includes('motivo_situacao')) {
+        const motivoMatch = normalizedText.match(/(?:MOTIVO\s*(?:DA\s*)?SITUACAO)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][^\n]{5,100})/i);
+        if (motivoMatch) {
+          data.motivo_situacao = motivoMatch[1].trim();
+          console.log(`[CNPJ] ✓ Motivo Situação found: ${data.motivo_situacao}`);
+        }
+      }
+      
+      // Data de Emissão
+      if (expectedFields.includes('data_emissao')) {
+        let dataEmissaoMatch = normalizedText.match(/(?:EMISSAO|EMITIDO|DATA\s*EMISSAO)[:\s]+(\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4})/i);
+        if (!dataEmissaoMatch) {
+          // Fallback: última data do documento
+          const todasDatas = normalizedText.match(/\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4}/g);
+          if (todasDatas && todasDatas.length > 0) {
+            dataEmissaoMatch = [null, todasDatas[todasDatas.length - 1]];
+          }
+        }
+        if (dataEmissaoMatch) {
+          data.data_emissao = dataEmissaoMatch[1].replace(/[\-\.]/g, '/');
+          console.log(`[CNPJ] ✓ Data Emissão found: ${data.data_emissao}`);
         }
       }
       
@@ -685,36 +760,61 @@ function parseDocumentText(
         }
       }
       
-      // Complemento
+      // Complemento com fallback
       if (expectedFields.includes('complemento')) {
-        const complementoMatch = normalizedText.match(/(?:COMPLEMENTO)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ0-9\s]+?)(?=\s*(?:BAIRRO|CEP|MUNICIPIO))/i);
+        let complementoMatch = normalizedText.match(/(?:COMPLEMENTO)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ0-9\s]+?)(?=\s*(?:BAIRRO|CEP|MUNICIPIO))/i);
+        if (!complementoMatch) {
+          // Fallback: SALA, ANDAR, APTO após número
+          complementoMatch = normalizedText.match(/\b(SALA|ANDAR|APTO|CONJUNTO)\s+([A-Z0-9]+)/i);
+          if (complementoMatch) complementoMatch[1] = `${complementoMatch[1]} ${complementoMatch[2]}`;
+        }
         if (complementoMatch) {
           data.complemento = complementoMatch[1].trim();
           console.log(`[CNPJ] ✓ Complemento found: ${data.complemento}`);
         }
       }
       
-      // Bairro
+      // Bairro com fallback
       if (expectedFields.includes('bairro')) {
-        const bairroMatch = normalizedText.match(/(?:BAIRRO|DISTRITO)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s*(?:MUNICIPIO|CIDADE|CEP))/i);
+        let bairroMatch = normalizedText.match(/(?:BAIRRO|DISTRITO)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s*(?:MUNICIPIO|CIDADE|CEP|UF))/i);
+        if (!bairroMatch) {
+          // Fallback: texto após CEP ou antes de cidade
+          bairroMatch = normalizedText.match(/\d{5}[\-\.]?\d{3}\s+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{5,40}?)(?=\s*(?:SP|RJ|MG|[A-Z]{2}))/i);
+        }
         if (bairroMatch) {
           data.bairro = bairroMatch[1].trim();
           console.log(`[CNPJ] ✓ Bairro found: ${data.bairro}`);
         }
       }
       
-      // Município
+      // Município com fallback
       if (expectedFields.includes('municipio')) {
-        const municipioMatch = normalizedText.match(/(?:MUNICIPIO|CIDADE)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s*(?:UF|ESTADO|CEP))/i);
+        let municipioMatch = normalizedText.match(/(?:MUNICIPIO|CIDADE)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s*(?:UF|ESTADO|CEP|[A-Z]{2}\b))/i);
+        if (!municipioMatch) {
+          // Fallback: nome antes de UF
+          municipioMatch = normalizedText.match(/([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{5,40}?)\s+(?:SP|RJ|MG|BA|RS|PR|SC|PE|CE|PA|MA|GO|MT|MS|DF|ES|RN|PB|PI|AL|SE|RO|AC|AM|RR|AP|TO)\b/i);
+        }
         if (municipioMatch) {
           data.municipio = municipioMatch[1].trim();
           console.log(`[CNPJ] ✓ Município found: ${data.municipio}`);
         }
       }
       
-      // UF
+      // UF com múltiplos fallbacks
       if (expectedFields.includes('uf')) {
-        const ufMatch = normalizedText.match(/(?:UF|ESTADO)[:\s]+([A-Z]{2})\b/i);
+        let ufMatch = normalizedText.match(/(?:UF|ESTADO)[:\s]+([A-Z]{2})\b/i);
+        if (!ufMatch) {
+          // Fallback 1: 2 letras maiúsculas após cidade/CEP
+          ufMatch = normalizedText.match(/\d{5}[\-\.]?\d{3}\s+[A-Z\s]+?\s+([A-Z]{2})\b/i);
+        }
+        if (!ufMatch) {
+          // Fallback 2: UF isolada no final de endereço
+          ufMatch = normalizedText.match(/\b([A-Z]{2})\s*\d{5}/i);
+        }
+        if (!ufMatch) {
+          // Fallback 3: Lista completa de UFs do Brasil
+          ufMatch = normalizedText.match(/\b(SP|RJ|MG|BA|RS|PR|SC|PE|CE|PA|MA|GO|MT|MS|DF|ES|RN|PB|PI|AL|SE|RO|AC|AM|RR|AP|TO)\b/);
+        }
         if (ufMatch) {
           data.uf = ufMatch[1].toUpperCase();
           console.log(`[CNPJ] ✓ UF found: ${data.uf}`);
