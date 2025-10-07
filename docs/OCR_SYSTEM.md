@@ -4,29 +4,33 @@
 
 O sistema OCR (Optical Character Recognition) permite extrair dados automaticamente de documentos enviados pelos candidatos durante o processo de inscrição, validando campos obrigatórios e comparando com dados já fornecidos.
 
-## Configuração da Google Cloud Vision API
+## Configuração da OCR.space API
 
-### 1. Criar projeto no Google Cloud Console
+### 1. Obter chave API gratuita
 
-1. Acesse [Google Cloud Console](https://console.cloud.google.com/)
-2. Crie um novo projeto ou selecione um existente
-3. Ative a **Cloud Vision API** no projeto
-4. Vá em **APIs & Services** → **Credentials**
-5. Crie uma **API Key**
-6. Copie a chave gerada
+1. Acesse [OCR.space Free API Key](https://ocr.space/ocrapi/freekey)
+2. Preencha o formulário com seu email
+3. Você receberá a API Key por email
+4. Copie a chave fornecida
 
-### 2. Adicionar a chave no Supabase
+### 2. Adicionar a chave como Secret
 
-A chave já foi configurada como secret `GOOGLE_CLOUD_VISION_API_KEY` no Supabase.
+A chave já foi configurada como secret `OCRSPACE_API_KEY` no Lovable Cloud.
 
 Para atualizar:
 ```bash
-# Via Supabase CLI
-supabase secrets set GOOGLE_CLOUD_VISION_API_KEY=sua_chave_aqui
-
-# Ou via dashboard Lovable Cloud
-Settings → Secrets → Atualizar GOOGLE_CLOUD_VISION_API_KEY
+# Via Lovable Cloud Dashboard
+Settings → Secrets → Atualizar OCRSPACE_API_KEY
 ```
+
+### 3. Limites do Plano Gratuito
+
+- ✅ **25.000 requisições/mês** (gratuitas)
+- ✅ **500 requisições/hora**
+- ✅ **Tamanho máximo**: 1MB por arquivo
+- ✅ **Formatos suportados**: JPG, PNG, WEBP, PDF
+- ✅ **Idiomas**: Português incluído
+- ✅ **Sem billing obrigatório**
 
 ## Tipos de Documento Suportados
 
@@ -222,7 +226,7 @@ case 'novo_documento':
 graph TD
     A[Usuário faz upload] --> B[Arquivo salvo em ocr-temp-files]
     B --> C[Edge Function process-ocr invocada]
-    C --> D[Google Cloud Vision API]
+    C --> D[OCR.space API]
     D --> E[Texto extraído]
     E --> F[Regex aplicadas por tipo]
     F --> G[Dados estruturados]
@@ -294,7 +298,9 @@ Backend → Edge Functions → process-ocr → Logs
 ```
 [OCR_PROCESSOR] Uploading file to temp bucket...
 [OCR_PROCESSOR] Calling process-ocr edge function...
-[OCR_PROCESSOR] OCR processed: 85% confidence
+[OCR.space] Calling OCR.space API...
+[OCR.space] Extracted text length: 523
+[OCR.space] OCR processed: 85% confidence (estimated)
 [OCR_PROCESSOR] Field 'cpf' validated via API: valid
 [OCR_PROCESSOR] Field 'nome' matches form data
 ```
@@ -320,24 +326,39 @@ Backend → Edge Functions → process-ocr → Logs
 
 ### OCR não processa
 
-- ✅ Verificar se `GOOGLE_CLOUD_VISION_API_KEY` está configurado
+- ✅ Verificar se `OCRSPACE_API_KEY` está configurado
 - ✅ Verificar se bucket `ocr-temp-files` é público
 - ✅ Verificar logs da edge function
-- ✅ Confirmar que arquivo é imagem (JPG, PNG)
+- ✅ Confirmar que arquivo é imagem ou PDF (JPG, PNG, WEBP, PDF)
+- ✅ Verificar se arquivo tem menos de 1MB (limite free tier)
 
-### Confiança baixa (<50%)
+### Rate limit atingido (429 error)
+
+- ⏱️ Aguardar 1 hora (limite de 500 req/hora no free tier)
+- 📊 Considerar upgrade para plano PRO se necessário
+- 🔄 Implementar retry com backoff exponencial
+
+### Confiança baixa (<60%)
 
 - 📸 Garantir qualidade da imagem (boa resolução, sem borrão)
 - 📄 Confirmar que documento está legível
 - 🔄 Reenviar arquivo com melhor qualidade
+- 💡 OCR.space não retorna confiança por campo (valor estimado pelo sistema)
 
 ### Campos não extraídos
 
 - 🔍 Verificar se regex está correta em `process-ocr/index.ts`
 - 📋 Confirmar que tipo de documento está correto
 - 🧪 Testar regex manualmente com texto extraído
+- 📝 Verificar se texto foi detectado nos logs
+
+### Arquivo muito grande
+
+- 📏 Free tier tem limite de 1MB por arquivo
+- 🗜️ Comprimir imagem antes do upload
+- 📤 Considerar upgrade para plano PRO (5MB limit)
 
 ---
 
 **Última atualização:** 2025-01-07  
-**Versão:** 1.0.0
+**Versão:** 2.0.0 (OCR.space)

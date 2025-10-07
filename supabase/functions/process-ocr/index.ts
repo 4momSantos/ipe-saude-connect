@@ -31,14 +31,14 @@ serve(async (req) => {
       expectedFields: expectedFields.length
     });
 
-    // Get Google Cloud Vision API key
-    const apiKey = Deno.env.get('GOOGLE_CLOUD_VISION_API_KEY');
+    // Get OCR.space API key
+    const apiKey = Deno.env.get('OCRSPACE_API_KEY');
     if (!apiKey) {
-      console.error('Google Cloud Vision API key not configured');
+      console.error('OCR.space API key not configured');
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Serviço de OCR não configurado. Configure a chave API do Google Cloud Vision.'
+          error: 'Serviço de OCR não configurado. Configure a chave API do OCR.space.'
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -47,8 +47,8 @@ serve(async (req) => {
       );
     }
 
-    // Process OCR with Google Cloud Vision
-    const ocrResult = await processWithGoogleVision(fileUrl, documentType, expectedFields, apiKey);
+    // Process OCR with OCR.space
+    const ocrResult = await processWithOCRSpace(fileUrl, documentType, expectedFields, apiKey);
 
     console.log('OCR processing completed:', {
       success: ocrResult.success,
@@ -80,73 +80,59 @@ serve(async (req) => {
 });
 
 /**
- * Process document with Google Cloud Vision API
+ * Process document with OCR.space API
  */
-async function processWithGoogleVision(
+async function processWithOCRSpace(
   fileUrl: string,
   documentType: string,
   expectedFields: string[],
   apiKey: string
 ): Promise<{ success: boolean; data: Record<string, any>; confidence: number; message: string }> {
   try {
-    // Fetch the image from the URL
-    const imageResponse = await fetch(fileUrl);
-    if (!imageResponse.ok) {
-      throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
-    }
-    
-    const imageBuffer = await imageResponse.arrayBuffer();
-    
-    // Convert to base64 using chunks to avoid stack overflow
-    const bytes = new Uint8Array(imageBuffer);
-    let binary = '';
-    const chunkSize = 8192;
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-      const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
-      binary += String.fromCharCode.apply(null, Array.from(chunk));
-    }
-    const base64Image = btoa(binary);
+    console.log('Calling OCR.space API...');
+    console.log('File URL:', fileUrl);
 
-    console.log('Calling Google Cloud Vision API...');
+    // Call OCR.space API with URL (no need for base64 conversion)
+    const formData = new FormData();
+    formData.append('url', fileUrl);
+    formData.append('apikey', apiKey);
+    formData.append('language', 'por'); // Portuguese
+    formData.append('isOverlayRequired', 'false');
+    formData.append('detectOrientation', 'true');
+    formData.append('scale', 'true');
+    formData.append('OCREngine', '2'); // Latest engine
 
-    // Call Google Cloud Vision API
-    const visionResponse = await fetch(
-      `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          requests: [
-            {
-              image: {
-                content: base64Image,
-              },
-              features: [
-                {
-                  type: 'DOCUMENT_TEXT_DETECTION',
-                  maxResults: 1,
-                },
-              ],
-            },
-          ],
-        }),
-      }
-    );
+    const ocrResponse = await fetch('https://api.ocr.space/parse/image', {
+      method: 'POST',
+      body: formData,
+    });
 
-    if (!visionResponse.ok) {
-      const errorText = await visionResponse.text();
-      console.error('Google Cloud Vision API error:', errorText);
-      throw new Error(`Google Cloud Vision API error: ${visionResponse.statusText}`);
+    if (!ocrResponse.ok) {
+      const errorText = await ocrResponse.text();
+      console.error('OCR.space API error:', errorText);
+      throw new Error(`OCR.space API error: ${ocrResponse.statusText}`);
     }
 
-    const visionData = await visionResponse.json();
+    const ocrData = await ocrResponse.json();
     
+    console.log('OCR.space response:', JSON.stringify(ocrData, null, 2));
+
+    // Check for errors
+    if (ocrData.IsErroredOnProcessing) {
+      const errorMessage = ocrData.ErrorMessage?.[0] || 'Erro desconhecido no processamento';
+      console.error('OCR.space processing error:', errorMessage);
+      return {
+        success: false,
+        data: {},
+        confidence: 0,
+        message: errorMessage
+      };
+    }
+
     // Extract text from response
-    const textAnnotations = visionData.responses?.[0]?.textAnnotations;
-    if (!textAnnotations || textAnnotations.length === 0) {
-      console.warn('No text detected in document');
+    const parsedResults = ocrData.ParsedResults;
+    if (!parsedResults || parsedResults.length === 0) {
+      console.warn('No parsed results from OCR.space');
       return {
         success: false,
         data: {},
@@ -155,29 +141,56 @@ async function processWithGoogleVision(
       };
     }
 
-    // The first annotation contains all the text
-    const fullText = textAnnotations[0]?.description || '';
-    console.log('Extracted text length:', fullText.length);
+    const firstResult = parsedResults[0];
+    if (firstResult.IsErroredOnProcessing) {
+      console.error('OCR.space result error:', firstResult.ErrorMessage);
+      return {
+        success: false,
+        data: {},
+        confidence: 0,
+        message: firstResult.ErrorMessage || 'Erro ao processar documento'
+      };
+    }
 
-    // Calculate average confidence
-    const confidenceScores = textAnnotations
-      .slice(1) // Skip the first one (full text)
-      .map((annotation: any) => annotation.confidence || 0)
-      .filter((score: number) => score > 0);
-    
-    const avgConfidence = confidenceScores.length > 0
-      ? Math.round((confidenceScores.reduce((a: number, b: number) => a + b, 0) / confidenceScores.length) * 100)
-      : 75;
+    const fullText = firstResult.ParsedText || '';
+    console.log('Extracted text length:', fullText.length);
+    console.log('First 200 chars:', fullText.substring(0, 200));
+
+    if (!fullText || fullText.trim().length === 0) {
+      return {
+        success: false,
+        data: {},
+        confidence: 0,
+        message: 'Nenhum texto foi detectado no documento'
+      };
+    }
 
     // Parse the text based on document type
     const extractedData = parseDocumentText(fullText, documentType, expectedFields);
 
     console.log('Parsed fields:', Object.keys(extractedData));
 
+    // Calculate confidence based on text length and fields extracted
+    // OCR.space doesn't provide confidence scores, so we estimate:
+    // - Good text extraction (>100 chars) + fields found = 85%
+    // - Good text extraction + some fields = 75%
+    // - Minimal text or no fields = 60%
+    const textLength = fullText.length;
+    const fieldsExtracted = Object.keys(extractedData).length;
+    
+    let confidence = 60;
+    if (textLength > 100 && fieldsExtracted >= expectedFields.length * 0.8) {
+      confidence = 85;
+    } else if (textLength > 50 && fieldsExtracted > 0) {
+      confidence = 75;
+    } else if (fieldsExtracted > 0) {
+      confidence = 70;
+    }
+
     return {
       success: true,
       data: extractedData,
-      confidence: avgConfidence,
+      confidence,
       message: `OCR processado com sucesso. ${Object.keys(extractedData).length} campos extraídos.`
     };
 
@@ -377,43 +390,27 @@ function parseDocumentText(
 }
 
 /**
- * EXEMPLO DE INTEGRAÇÃO COM GOOGLE CLOUD VISION:
+ * EXEMPLO DE RESPOSTA OCR.space:
  * 
- * import { ImageAnnotatorClient } from '@google-cloud/vision';
- * 
- * async function processWithGoogleVision(fileUrl: string) {
- *   const client = new ImageAnnotatorClient({
- *     credentials: JSON.parse(Deno.env.get('GOOGLE_CREDENTIALS') || '{}')
- *   });
- *   
- *   const [result] = await client.textDetection(fileUrl);
- *   const detections = result.textAnnotations;
- *   const text = detections?.[0]?.description || '';
- *   
- *   // Parse text baseado no tipo de documento
- *   return parseDocumentText(text, documentType);
- * }
- * 
- * 
- * EXEMPLO DE INTEGRAÇÃO COM AWS TEXTRACT:
- * 
- * import { TextractClient, AnalyzeDocumentCommand } from '@aws-sdk/client-textract';
- * 
- * async function processWithAWSTextract(fileUrl: string) {
- *   const client = new TextractClient({
- *     region: Deno.env.get('AWS_REGION'),
- *     credentials: {
- *       accessKeyId: Deno.env.get('AWS_ACCESS_KEY_ID')!,
- *       secretAccessKey: Deno.env.get('AWS_SECRET_ACCESS_KEY')!
+ * {
+ *   "ParsedResults": [
+ *     {
+ *       "ParsedText": "NOME COMPLETO\nCPF 123.456.789-00\nRG 12.345.678-9",
+ *       "ErrorMessage": "",
+ *       "ErrorDetails": "",
+ *       "FileParseExitCode": 1,
+ *       "IsErroredOnProcessing": false
  *     }
- *   });
- *   
- *   const command = new AnalyzeDocumentCommand({
- *     Document: { S3Object: { Bucket: 'bucket', Name: 'key' } },
- *     FeatureTypes: ['FORMS', 'TABLES']
- *   });
- *   
- *   const response = await client.send(command);
- *   return parseTextractResponse(response);
+ *   ],
+ *   "OCRExitCode": 1,
+ *   "IsErroredOnProcessing": false,
+ *   "ProcessingTimeInMilliseconds": "3547"
  * }
+ * 
+ * DOCUMENTAÇÃO: https://ocr.space/ocrapi
+ * 
+ * RATE LIMITS (Free Tier):
+ * - 25,000 requests/month
+ * - 500 requests/hour
+ * - Max file size: 1MB (free), 5MB (paid)
  */
