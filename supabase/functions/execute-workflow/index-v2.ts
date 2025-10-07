@@ -57,11 +57,11 @@ Deno.serve(async (req) => {
 
     console.log(`[EXECUTE_WORKFLOW_V2] Workflow: ${workflow.name} (${nodes.length} nós, ${edges.length} arestas)`);
 
-    // Sprint 5: Buscar template de inscrição do edital (anexos vêm do template)
+    // Sprint 4: Buscar template de inscrição + documentos da inscrição
     if (inscricaoId) {
       const { data: inscricao } = await supabaseClient
         .from('inscricoes_edital')
-        .select('edital_id')
+        .select('edital_id, dados_inscricao')
         .eq('id', inscricaoId)
         .single();
 
@@ -90,6 +90,30 @@ Deno.serve(async (req) => {
           }
         } else {
           console.warn('[EXECUTE_WORKFLOW_V2] ⚠️ Edital sem template de inscrição vinculado');
+        }
+
+        // Sprint 4: Buscar documentos enviados na inscrição para OCR
+        const { data: documentos } = await supabaseClient
+          .from('inscricao_documentos')
+          .select('tipo_documento, arquivo_url, arquivo_nome, ocr_resultado, ocr_confidence')
+          .eq('inscricao_id', inscricaoId);
+
+        if (documentos && documentos.length > 0) {
+          console.log(`[EXECUTE_WORKFLOW_V2] 📎 ${documentos.length} documento(s) encontrado(s)`);
+          
+          // Mapear documentos para contexto do workflow
+          const documentosMap: Record<string, any> = {};
+          documentos.forEach(doc => {
+            documentosMap[doc.tipo_documento] = {
+              url: doc.arquivo_url,
+              nome: doc.arquivo_nome,
+              ocrResult: doc.ocr_resultado,
+              ocrConfidence: doc.ocr_confidence
+            };
+          });
+          
+          inputData.documentos = documentosMap;
+          inputData.dadosInscricao = inscricao.dados_inscricao || {};
         }
       }
     }

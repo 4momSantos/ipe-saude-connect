@@ -20,6 +20,8 @@ import { cn } from '@/lib/utils';
 import { useInscricaoDocumentos } from '@/hooks/useInscricaoDocumentos';
 import { processOCRWithValidation } from '@/lib/ocr-processor';
 import { toast } from 'sonner';
+import { OCRResultCard } from '@/components/workflow-editor/OCRResultCard';
+import type { OCRValidationResult } from '@/lib/ocr-processor';
 
 interface DocumentosStepProps {
   form: UseFormReturn<InscricaoCompletaForm>;
@@ -31,6 +33,7 @@ const statusIcons = {
   validado: CheckCircle2,
   rejeitado: XCircle,
   faltante: Upload,
+  enviado: FileText,
 };
 
 const statusColors = {
@@ -38,6 +41,7 @@ const statusColors = {
   validado: 'text-[hsl(var(--green-approved))]',
   rejeitado: 'text-[hsl(var(--red-rejected))]',
   faltante: 'text-muted-foreground',
+  enviado: 'text-blue-500',
 };
 
 const statusLabels = {
@@ -45,6 +49,7 @@ const statusLabels = {
   validado: 'Validado',
   rejeitado: 'Rejeitado',
   faltante: 'Não enviado',
+  enviado: 'Enviado',
 };
 
 export function DocumentosStep({ form, inscricaoId }: DocumentosStepProps) {
@@ -55,6 +60,7 @@ export function DocumentosStep({ form, inscricaoId }: DocumentosStepProps) {
 
   const { salvarDocumento } = useInscricaoDocumentos(inscricaoId);
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+  const [ocrResults, setOcrResults] = useState<Record<number, OCRValidationResult>>({});
 
   const handleFileChange = async (index: number, file: File | null) => {
     if (!file) return;
@@ -62,46 +68,85 @@ export function DocumentosStep({ form, inscricaoId }: DocumentosStepProps) {
     setUploadingIndex(index);
 
     try {
-      // Processar OCR
-      const documentoConfig = {
-        documentType: (fields[index].tipo || 'cpf') as 'cpf' | 'rg' | 'cnpj' | 'crm' | 'cnh' | 'certidao' | 'diploma' | 'comprovante_endereco',
+      toast.info('📤 Fazendo upload do arquivo...');
+      
+      // Buscar config OCR do documento
+      const doc = DOCUMENTOS_OBRIGATORIOS[index];
+      const documentoConfig = doc.ocrConfig || {
+        documentType: (fields[index].tipo || 'cpf') as any,
         expectedFields: [],
-        enabled: true,
-        minConfidence: 0.7,
-        autoValidate: true,
+        enabled: false,
+        minConfidence: 70,
+        autoValidate: false,
       };
 
-      toast.info('Processando OCR do documento...');
-      
-      const ocrResult = await processOCRWithValidation(
-        file,
-        documentoConfig,
-        form.getValues(),
-        []
-      );
+      let ocrResult: OCRValidationResult | undefined;
+
+      // Processar OCR se habilitado
+      if (documentoConfig.enabled) {
+        console.log(`[DocumentosStep] 🔍 Processando OCR para ${doc.label}...`);
+        toast.info('🔍 Processando OCR no documento...');
+        
+        try {
+          ocrResult = await processOCRWithValidation(
+            file,
+            documentoConfig,
+            form.getValues(),
+            []
+          );
+
+          console.log('[DocumentosStep] ✅ Resultado OCR:', ocrResult);
+          
+          // Armazenar resultado do OCR
+          setOcrResults(prev => ({ ...prev, [index]: ocrResult! }));
+
+          if (ocrResult.success) {
+            toast.success(`✅ OCR processado: ${ocrResult.overallConfidence}% confiança`);
+          } else if (ocrResult.warnings.length > 0) {
+            toast.warning(`⚠️ OCR processado com avisos`);
+          } else {
+            toast.error(`❌ Erro no OCR: verifique os campos obrigatórios`);
+          }
+        } catch (ocrError) {
+          console.error('[DocumentosStep] ❌ Erro ao processar OCR:', ocrError);
+          toast.error('Erro ao processar OCR. Arquivo enviado sem validação.');
+          ocrResult = {
+            success: false,
+            extractedData: {},
+            validations: [],
+            overallConfidence: 0,
+            overallStatus: 'error' as const,
+            errors: [ocrError instanceof Error ? ocrError.message : 'Erro desconhecido'],
+            warnings: [],
+            missingRequiredFields: [],
+            completenessScore: 0
+          };
+        }
+      }
 
       // Atualizar estado local
       update(index, {
         ...fields[index],
         arquivo: file,
-        status: ocrResult.overallStatus === 'success' ? 'validado' : 'pendente',
+        status: ocrResult?.success ? 'validado' : 'enviado',
+        ocrResult,
       });
 
       // Salvar no banco de dados se tiver inscricaoId
       if (inscricaoId) {
+        console.log('[DocumentosStep] 💾 Salvando documento no banco...');
         await salvarDocumento.mutateAsync({
           inscricaoId,
           tipoDocumento: fields[index].tipo,
           arquivo: file,
           ocrResultado: ocrResult,
-          tempFileName: (ocrResult as any).tempFileName,
         });
       }
 
-      toast.success('Documento processado com sucesso!');
+      toast.success(`✅ Arquivo "${file.name}" enviado com sucesso!`);
     } catch (error) {
-      console.error('Erro ao processar documento:', error);
-      toast.error('Erro ao processar documento');
+      console.error('❌ Erro ao processar arquivo:', error);
+      toast.error('Erro ao processar arquivo');
       
       // Atualizar com status de erro
       update(index, {
@@ -277,7 +322,40 @@ export function DocumentosStep({ form, inscricaoId }: DocumentosStepProps) {
                   </Alert>
                 )}
 
-                {documentoAtual?.status === 'validado' && (
+                {/* Exibir OCRResultCard se houver resultado */}
+                {ocrResults[index] && documentoAtual?.arquivo && (
+                  <div className="mt-3">
+                    <OCRResultCard
+                      ocrResult={ocrResults[index]}
+                      field={doc as any}
+                      uploadedFile={documentoAtual.arquivo}
+                      onAccept={() => {
+                        update(index, { ...documentoAtual, status: 'validado' });
+                        toast.success('✅ Dados do OCR aceitos');
+                      }}
+                      onReject={() => {
+                        handleRemoveFile(index);
+                        setOcrResults(prev => {
+                          const newResults = { ...prev };
+                          delete newResults[index];
+                          return newResults;
+                        });
+                        toast.info('Arquivo removido. Faça novo upload.');
+                      }}
+                      onReupload={() => {
+                        handleRemoveFile(index);
+                        setOcrResults(prev => {
+                          const newResults = { ...prev };
+                          delete newResults[index];
+                          return newResults;
+                        });
+                        toast.info('Faça novo upload do arquivo.');
+                      }}
+                    />
+                  </div>
+                )}
+
+                {documentoAtual?.status === 'validado' && !ocrResults[index] && (
                   <Alert className="mt-3 border-[hsl(var(--green-approved))] bg-[hsl(var(--green-approved)_/_0.1)]">
                     <CheckCircle2 className="h-4 w-4 text-[hsl(var(--green-approved))]" />
                     <AlertDescription className="text-xs text-[hsl(var(--green-approved))]">

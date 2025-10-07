@@ -114,9 +114,10 @@ export const consultorioHorariosSchema = z.object({
 export const documentoUpload = z.object({
   tipo: z.string(),
   arquivo: z.instanceof(File).optional(),
-  status: z.enum(['pendente', 'validado', 'rejeitado', 'faltante']).default('faltante'),
+  status: z.enum(['pendente', 'validado', 'rejeitado', 'faltante', 'enviado']).default('faltante'),
   url: z.string().optional(),
   observacoes: z.string().optional(),
+  ocrResult: z.any().optional(),
 });
 
 export const documentosSchema = z.object({
@@ -148,14 +149,67 @@ export type InscricaoCompletaForm = z.infer<typeof inscricaoCompletaSchema>;
 
 // Lista de documentos obrigatórios
 export const DOCUMENTOS_OBRIGATORIOS = [
-  { tipo: 'ficha_cadastral', label: 'Ficha cadastral preenchida, datada e assinada', obrigatorio: true },
+  { 
+    tipo: 'ficha_cadastral', 
+    label: 'Ficha cadastral preenchida, datada e assinada', 
+    obrigatorio: true,
+    ocrConfig: {
+      enabled: false,
+      documentType: 'certidao' as const,
+      expectedFields: [],
+      minConfidence: 70,
+      autoValidate: false
+    }
+  },
   { tipo: 'contrato_social', label: 'Contrato Social da Pessoa Jurídica (última alteração)', obrigatorio: false },
-  { tipo: 'identidade_medica', label: 'Carteira de identidade médica (frente e verso)', obrigatorio: true },
-  { tipo: 'rg_cpf', label: 'RG e CPF (se não constarem na identidade médica)', obrigatorio: false },
+  { 
+    tipo: 'identidade_medica', 
+    label: 'Carteira de identidade médica (frente e verso)', 
+    obrigatorio: true,
+    ocrConfig: {
+      enabled: true,
+      documentType: 'crm' as const,
+      expectedFields: [
+        { ocrField: 'nome', contextField: 'nome_completo', required: true, compareWithFormField: 'nome_completo' },
+        { ocrField: 'crm', contextField: 'crm', required: true, validateWithAPI: 'validate-crm' }
+      ],
+      minConfidence: 70,
+      autoValidate: true
+    }
+  },
+  { 
+    tipo: 'rg_cpf', 
+    label: 'RG e CPF (se não constarem na identidade médica)', 
+    obrigatorio: false,
+    ocrConfig: {
+      enabled: true,
+      documentType: 'rg' as const,
+      expectedFields: [
+        { ocrField: 'cpf', contextField: 'cpf', required: true, validateWithAPI: 'validate-cpf' },
+        { ocrField: 'nome', contextField: 'nome_completo', required: true }
+      ],
+      minConfidence: 70,
+      autoValidate: true
+    }
+  },
   { tipo: 'cert_regularidade_pj', label: 'Certificado de Regularidade PJ no CREMERS', obrigatorio: true },
   { tipo: 'registro_especialidade', label: 'Registro de Especialidade no CREMERS', obrigatorio: true },
   { tipo: 'alvara_sanitario', label: 'Alvará Sanitário e de Localização', obrigatorio: true },
-  { tipo: 'cnpj', label: 'Prova de inscrição no CNPJ', obrigatorio: true },
+  { 
+    tipo: 'cnpj', 
+    label: 'Prova de inscrição no CNPJ', 
+    obrigatorio: true,
+    ocrConfig: {
+      enabled: true,
+      documentType: 'cnpj' as const,
+      expectedFields: [
+        { ocrField: 'cnpj', contextField: 'cnpj', required: true, validateWithAPI: 'validate-cnpj' },
+        { ocrField: 'razao_social', contextField: 'denominacao_social', required: true }
+      ],
+      minConfidence: 70,
+      autoValidate: true
+    }
+  },
   { tipo: 'certidoes_negativas', label: 'Certidões Negativas (Federal, Estadual, Municipal)', obrigatorio: true },
   { tipo: 'cert_fgts', label: 'Certificado de Regularidade do FGTS', obrigatorio: true },
   { tipo: 'comp_bancario', label: 'Comprovante de conta bancária (Banrisul)', obrigatorio: true },
