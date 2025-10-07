@@ -24,6 +24,7 @@ import TemplatesFormularios from "./pages/TemplatesFormularios";
 import FormulariosEtapas from "./pages/FormulariosEtapas";
 import TemplateEditor from "./pages/TemplateEditor";
 import ProcessoEditor from "./pages/ProcessoEditor";
+import TesteOCR from "./pages/TesteOCR";
 import LoginPage from "./components/LoginPage";
 import UserManagement from "./pages/UserManagement";
 import { ProtectedRoute as RoleProtectedRoute } from "./components/ProtectedRoute";
@@ -105,6 +106,7 @@ const App = () => (
                           <Route path="/credenciados/:id" element={<CredenciadoDetail />} />
                           <Route path="/workflows" element={<Workflows />} />
                           <Route path="/workflow-editor" element={<WorkflowEditor />} />
+                          <Route path="/teste-ocr" element={<TesteOCR />} />
                           <Route path="/formularios" element={<FormulariosEtapas />} />
                           <Route path="/templates-formularios" element={<TemplatesFormularios />} />
                           <Route path="/formularios/templates/editor" element={<TemplateEditor />} />

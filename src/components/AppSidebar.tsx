@@ -9,7 +9,8 @@ import {
   Settings,
   Workflow,
   Shield,
-  FileCode2
+  FileCode2,
+  Sparkles
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
@@ -75,6 +76,12 @@ const menuItems = [
     title: "Análises & Relatórios", 
     url: "/relatorios", 
     icon: BarChart3,
+    roles: ['analista', 'gestor', 'admin'] as const
+  },
+  { 
+    title: "Teste OCR", 
+    url: "/teste-ocr", 
+    icon: Sparkles,
     roles: ['analista', 'gestor', 'admin'] as const
   },
   { 
