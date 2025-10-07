@@ -599,10 +599,10 @@ function parseDocumentText(
           // Verificar indicadores de ausência
           if (/\*\*\*|NAO\s*INFORMAD|IDEM|SEM\s*NOME\s*FANTASIA/i.test(fantasia)) {
             data.nome_fantasia = null;
-            console.log('[CNPJ] ℹ Nome Fantasia: não informado');
+            console.log('[CNPJ] Nome Fantasia: nao informado');
           } else {
             data.nome_fantasia = fantasia;
-            console.log(`[CNPJ] ✓ Nome Fantasia found: ${data.nome_fantasia}`);
+            console.log(`[CNPJ] Nome Fantasia found: ${data.nome_fantasia}`);
           }
         }
       }
@@ -677,10 +677,11 @@ function parseDocumentText(
           // Fallback: última data do documento
           const todasDatas = normalizedText.match(/\d{2}[\/\-\.]\d{2}[\/\-\.]\d{4}/g);
           if (todasDatas && todasDatas.length > 0) {
-            dataEmissaoMatch = [null, todasDatas[todasDatas.length - 1]];
+            const ultimaData = todasDatas[todasDatas.length - 1];
+            dataEmissaoMatch = ['', ultimaData] as RegExpMatchArray;
           }
         }
-        if (dataEmissaoMatch) {
+        if (dataEmissaoMatch && dataEmissaoMatch[1]) {
           data.data_emissao = dataEmissaoMatch[1].replace(/[\-\.]/g, '/');
           console.log(`[CNPJ] ✓ Data Emissão found: ${data.data_emissao}`);
         }
