@@ -5,10 +5,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Workflow, User, CheckCircle2, AlertCircle, Clock, ClipboardList, FormInput } from "lucide-react";
+import { Workflow, User, CheckCircle2, AlertCircle, Clock, ClipboardList, FormInput, FileCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { mapWorkflowToEdital, validateWorkflowForEdital } from "@/lib/workflow-edital-mapper";
 
 interface WorkflowStepProps {
   form: UseFormReturn<any>;
@@ -65,62 +66,70 @@ export function WorkflowStep({ form }: WorkflowStepProps) {
 
   async function handleWorkflowChange(workflow: WorkflowOption) {
     try {
-      // 1. Extrair nós do tipo "form"
-      const formNodes = workflow.nodes.filter((n: any) => n.type === 'form');
+      // 1. Validar workflow
+      const validation = validateWorkflowForEdital(workflow);
       
-      if (formNodes.length === 0) {
+      if (!validation.isValid) {
+        toast.error("Workflow inválido", {
+          description: validation.errors.join(", ")
+        });
         setFormulariosVinculados([]);
         form.setValue('formularios_vinculados', []);
-        toast.warning("⚠️ Este workflow não possui formulários. Adicione nós do tipo 'Formulário' no editor.");
-        return;
-      }
-      
-      // 2. Buscar dados reais dos formulários
-      const formIds = formNodes
-        .map((n: any) => n.data?.formConfig?.templateId)
-        .filter(Boolean);
-
-      if (formIds.length === 0) {
-        setFormulariosVinculados([]);
-        form.setValue('formularios_vinculados', []);
-        toast.warning("⚠️ Os nós de formulário não estão configurados. Configure os templates no editor.");
+        form.setValue('anexos_processo_esperados', []);
         return;
       }
 
-      const { data: templates, error } = await supabase
-        .from('form_templates')
-        .select('id, name, category')
-        .in('id', formIds);
-
-      if (error) {
-        console.error("Erro ao buscar templates:", error);
-        toast.error("Erro ao carregar formulários do workflow");
-        return;
+      if (validation.warnings.length > 0) {
+        validation.warnings.forEach(warning => {
+          toast.warning(warning);
+        });
       }
 
-      // 3. Montar lista com ordem dos nós
-      const formularios = formNodes.map((node: any, index: number) => {
-        const template = templates?.find(t => t.id === node.data?.formConfig?.templateId);
-        return {
-          id: template?.id || '',
-          nome: template?.name || node.data?.label || 'Formulário sem nome',
-          tipo: template?.category || 'Não definido',
-          ordem: index + 1,
-          node_id: node.id
-        };
-      }).filter(f => f.id); // Remover formulários sem template
+      // 2. Mapear workflow para edital
+      const mapping = mapWorkflowToEdital(workflow);
+      
+      // 3. Buscar detalhes completos dos formulários
+      const formulariosDetalhados = await Promise.all(
+        mapping.formularios_vinculados.map(async (form) => {
+          const { data, error } = await supabase
+            .from("form_templates")
+            .select("id, name, category")
+            .eq("id", form.id)
+            .maybeSingle();
 
-      setFormulariosVinculados(formularios);
+          if (error || !data) {
+            console.warn(`Formulário ${form.id} não encontrado no banco`);
+            return {
+              id: form.id,
+              nome: form.name,
+              tipo: form.tipo,
+              ordem: form.ordem,
+              node_id: form.nodeId
+            };
+          }
+
+          return {
+            id: data.id,
+            nome: data.name,
+            tipo: data.category || form.tipo,
+            ordem: form.ordem,
+            node_id: form.nodeId
+          };
+        })
+      );
+
+      // 4. Atualizar estado e form
+      setFormulariosVinculados(formulariosDetalhados);
       
-      // 4. Atualizar form com IDs dos formulários
-      form.setValue('formularios_vinculados', formularios.map(f => f.id));
+      form.setValue("formularios_vinculados", formulariosDetalhados.map(f => f.id));
+      form.setValue("anexos_processo_esperados", mapping.anexos_processo_esperados);
       
-      console.log(`[WorkflowStep] ✅ ${formularios.length} formulário(s) extraído(s) do workflow`);
-      toast.success(`${formularios.length} formulário(s) vinculado(s) automaticamente`);
+      console.log(`[WorkflowStep] ✅ ${formulariosDetalhados.length} formulário(s) e ${mapping.anexos_processo_esperados.length} anexo(s) extraído(s)`);
+      toast.success(`${formulariosDetalhados.length} formulário(s) e ${mapping.anexos_processo_esperados.length} anexo(s) de processo identificados`);
       
     } catch (error) {
       console.error("Erro ao processar workflow:", error);
-      toast.error("Erro ao processar formulários do workflow");
+      toast.error("Erro ao processar workflow");
     }
   }
 
@@ -316,6 +325,50 @@ export function WorkflowStep({ form }: WorkflowStepProps) {
               )}
             </CardContent>
           </Card>
+
+          {form.watch("anexos_processo_esperados") && form.watch("anexos_processo_esperados").length > 0 && (
+            <Card className="border-blue-500/20 bg-blue-50/50 dark:bg-blue-950/20">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <FileCheck className="h-5 w-5 text-blue-600" />
+                    Anexos de Processo Identificados
+                  </CardTitle>
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                    {form.watch("anexos_processo_esperados").length} anexo(s)
+                  </Badge>
+                </div>
+                <CardDescription>
+                  Documentos que o candidato deverá enviar durante o credenciamento
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {form.watch("anexos_processo_esperados").map((anexo: any) => (
+                    <div 
+                      key={anexo.id}
+                      className="flex items-center justify-between p-3 bg-background rounded-lg border border-blue-200 dark:border-blue-800"
+                    >
+                      <div className="flex items-center gap-2">
+                        <FileCheck className="h-4 w-4 text-blue-600" />
+                        <div>
+                          <p className="font-medium text-sm">{anexo.label}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {anexo.nodeName} • {anexo.required ? 'Obrigatório' : 'Opcional'}
+                          </p>
+                        </div>
+                      </div>
+                      {anexo.required && (
+                        <Badge variant="destructive" className="text-xs">
+                          Obrigatório
+                        </Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>

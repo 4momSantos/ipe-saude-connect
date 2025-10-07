@@ -24,6 +24,9 @@ const STEPS = [
   { id: 5, title: "Publicação", description: "Revisão final" },
 ];
 
+// Feature flag para anexos do workflow
+const USE_WORKFLOW_ATTACHMENTS = true;
+
 const editalSchema = z.object({
   numero_edital: z.string().min(1, "Campo obrigatório"),
   objeto: z.string().min(1, "Campo obrigatório"),
@@ -50,6 +53,9 @@ const editalSchema = z.object({
   formularios_vinculados: z.array(z.string().uuid()).min(1, "O workflow deve ter ao menos 1 formulário"),
   gestor_autorizador_id: z.string().uuid("Selecione um gestor autorizador"),
   observacoes_autorizacao: z.string().optional(),
+  // Novos campos para separar anexos (Sprint 4)
+  anexos_administrativos: z.record(z.any()).optional(),
+  anexos_processo_esperados: z.array(z.any()).optional(),
 });
 
 type EditalFormValues = z.infer<typeof editalSchema>;
@@ -83,6 +89,8 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
       participacao_permitida: [],
       documentos_habilitacao: [],
       anexos: {},
+      anexos_administrativos: {},
+      anexos_processo_esperados: [],
       ...initialData,
     },
   });
@@ -215,6 +223,9 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
         regras_me_epp: data.regras_me_epp,
         documentos_habilitacao: data.documentos_habilitacao,
         anexos: data.anexos,
+        // Novos campos separados (Sprint 4)
+        anexos_administrativos: USE_WORKFLOW_ATTACHMENTS ? data.anexos_administrativos : data.anexos,
+        anexos_processo_esperados: USE_WORKFLOW_ATTACHMENTS ? data.anexos_processo_esperados : [],
         status: data.status,
         created_by: user.id,
         // Campos de workflow (obrigatórios)

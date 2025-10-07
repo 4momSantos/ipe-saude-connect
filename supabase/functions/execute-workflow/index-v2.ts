@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
       if (inscricao?.edital_id) {
         const { data: edital } = await supabaseClient
           .from('editais')
-          .select('formularios_vinculados, workflow_id, workflow_version')
+          .select('formularios_vinculados, anexos_processo_esperados, workflow_id, workflow_version')
           .eq('id', inscricao.edital_id)
           .single();
 
@@ -78,6 +78,12 @@ Deno.serve(async (req) => {
           } else {
             console.log(`[EXECUTE_WORKFLOW_V2] ✅ Edital com ${edital.formularios_vinculados.length} formulário(s) vinculado(s)`);
             inputData.formulariosDisponiveis = edital.formularios_vinculados;
+          }
+          
+          // Adicionar anexos de processo esperados
+          if (edital.anexos_processo_esperados && edital.anexos_processo_esperados.length > 0) {
+            console.log(`[EXECUTE_WORKFLOW_V2] ✅ ${edital.anexos_processo_esperados.length} anexo(s) de processo identificado(s)`);
+            inputData.anexosProcessoEsperados = edital.anexos_processo_esperados;
           }
         }
       }

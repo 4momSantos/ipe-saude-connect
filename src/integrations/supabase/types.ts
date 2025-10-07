@@ -261,6 +261,8 @@ export type Database = {
       editais: {
         Row: {
           anexos: Json | null
+          anexos_administrativos: Json | null
+          anexos_processo_esperados: Json | null
           created_at: string | null
           created_by: string | null
           criterio_julgamento: string | null
@@ -297,6 +299,8 @@ export type Database = {
         }
         Insert: {
           anexos?: Json | null
+          anexos_administrativos?: Json | null
+          anexos_processo_esperados?: Json | null
           created_at?: string | null
           created_by?: string | null
           criterio_julgamento?: string | null
@@ -333,6 +337,8 @@ export type Database = {
         }
         Update: {
           anexos?: Json | null
+          anexos_administrativos?: Json | null
+          anexos_processo_esperados?: Json | null
           created_at?: string | null
           created_by?: string | null
           criterio_julgamento?: string | null
