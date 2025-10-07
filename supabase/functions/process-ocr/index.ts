@@ -726,17 +726,17 @@ function parseDocumentText(
         }
       }
       
-      // Logradouro - Múltiplas tentativas
+      // Logradouro - Múltiplas tentativas (parar antes de Município)
       if (expectedFields.includes('logradouro')) {
-        let logMatch = normalizedText.match(/(?:LOGRADOURO|ENDERECO|ENDEREÇO)[:\s]+((?:RUA|AVENIDA|AV|ALAMEDA|AL|TRAVESSA|TRAV|TV|PRACA|PCA|RODOVIA|ROD|ESTRADA|EST)[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s\.]+?)(?=\s*(?:NUMERO|N[UÚ]MERO|,\s*\d|\d+|BAIRRO))/i);
+        let logMatch = normalizedText.match(/(?:LOGRADOURO|ENDERECO|ENDEREÇO)[:\s]+((?:RUA|AVENIDA|AV|ALAMEDA|AL|TRAVESSA|TRAV|TV|PRACA|PCA|RODOVIA|ROD|ESTRADA|EST)[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s\.]+?)(?=\s*(?:MUNICIPIO|MUN[IÍ]CIPIO|NUMERO|N[UÚ]MERO|,\s*\d|\d+|BAIRRO))/i);
         if (!logMatch) {
-          // Fallback 1: Padrão de endereço sem marcador
-          logMatch = normalizedText.match(/\b(RUA|AVENIDA|AV|ALAMEDA|TRAVESSA|RODOVIA)\s+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{5,60}?)(?=\s*[,\d])/i);
+          // Fallback 1: Padrão de endereço sem marcador (parar antes de Município)
+          logMatch = normalizedText.match(/\b(RUA|AVENIDA|AV|ALAMEDA|TRAVESSA|RODOVIA)\s+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{5,60}?)(?=\s*(?:MUNICIPIO|MUN[IÍ]CIPIO|[,\d]))/i);
           if (logMatch) logMatch[1] = `${logMatch[1]} ${logMatch[2]}`;
         }
         if (!logMatch) {
-          // Fallback 2: Qualquer texto antes de número
-          logMatch = normalizedText.match(/(?:ENDERECO)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s,\.]{10,60}?)(?=\s*\d{1,5}\b)/i);
+          // Fallback 2: Qualquer texto antes de número ou município
+          logMatch = normalizedText.match(/(?:ENDERECO)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s,\.]{10,60}?)(?=\s*(?:\d{1,5}\b|MUNICIPIO|MUN[IÍ]CIPIO))/i);
         }
         if (logMatch) {
           data.logradouro = logMatch[1].trim();
@@ -788,16 +788,22 @@ function parseDocumentText(
         }
       }
       
-      // Município com fallback
+      // Município com múltiplos fallbacks
       if (expectedFields.includes('municipio')) {
-        let municipioMatch = normalizedText.match(/(?:MUNICIPIO|CIDADE)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s*(?:UF|ESTADO|CEP|[A-Z]{2}\b))/i);
+        let municipioMatch = normalizedText.match(/(?:MUNICIPIO|MUN[IÍ]CIPIO|CIDADE)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s*(?:UF|ESTADO|SITUACAO|CEP|[A-Z]{2}\b))/i);
         if (!municipioMatch) {
-          // Fallback: nome antes de UF
-          municipioMatch = normalizedText.match(/([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{5,40}?)\s+(?:SP|RJ|MG|BA|RS|PR|SC|PE|CE|PA|MA|GO|MT|MS|DF|ES|RN|PB|PI|AL|SE|RO|AC|AM|RR|AP|TO)\b/i);
+          // Fallback 1: Captura "Munícipio NOME"
+          municipioMatch = normalizedText.match(/MUN[IÍ]CIPIO\s+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s*(?:SITUACAO|UF|ESTADO))/i);
+        }
+        if (!municipioMatch) {
+          // Fallback 2: nome antes de UF (após bairro/CEP)
+          municipioMatch = normalizedText.match(/(?:BAIRRO|CEP)[:\s]+[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ0-9\s\-\.]+?\s+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{5,40}?)\s+(?:SP|RJ|MG|BA|RS|PR|SC|PE|CE|PA|MA|GO|MT|MS|DF|ES|RN|PB|PI|AL|SE|RO|AC|AM|RR|AP|TO)\b/i);
         }
         if (municipioMatch) {
           data.municipio = municipioMatch[1].trim();
           console.log(`[CNPJ] ✓ Município found: ${data.municipio}`);
+        } else {
+          console.log('[CNPJ] ✗ Município not found');
         }
       }
       
