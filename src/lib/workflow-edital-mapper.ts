@@ -39,7 +39,12 @@ export interface WorkflowEditalMapping {
  * Extrai formulários e anexos esperados dos nós do tipo 'form'
  */
 export function mapWorkflowToEdital(workflow: any): WorkflowEditalMapping {
+  console.log('[mapWorkflowToEdital] Workflow recebido:', workflow);
+  console.log('[mapWorkflowToEdital] Total de nós:', workflow.nodes?.length || 0);
+  
   const formNodes = workflow.nodes?.filter((n: any) => n.type === 'form') || [];
+  console.log('[mapWorkflowToEdital] Nós do tipo "form" encontrados:', formNodes.length);
+  console.log('[mapWorkflowToEdital] Nós form:', formNodes.map((n: any) => ({ id: n.id, type: n.type, data: n.data })));
   
   const formularios_vinculados: FormularioVinculado[] = formNodes
     .map((node: any, index: number) => ({
@@ -50,24 +55,30 @@ export function mapWorkflowToEdital(workflow: any): WorkflowEditalMapping {
       tipo: node.data?.formType || 'generico'
     }))
     .filter((f: FormularioVinculado) => f.id);
+  
+  console.log('[mapWorkflowToEdital] Formulários vinculados:', formularios_vinculados);
 
   const anexos_processo_esperados: AnexoProcessoEsperado[] = formNodes
     .flatMap((node: any) => {
       const formFields: FormField[] = node.data?.formFields || [];
+      console.log(`[mapWorkflowToEdital] Nó ${node.id}: ${formFields.length} campo(s) no formulário`);
       
-      return formFields
-        .filter((field: FormField) => field.type === 'file')
-        .map((field: FormField) => ({
-          id: field.id,
-          label: field.label,
-          nodeId: node.id,
-          nodeName: node.data?.label || 'Formulário',
-          required: field.validation?.required || false,
-          acceptedFiles: field.acceptedFiles,
-          maxFileSize: field.maxFileSize,
-          ocrConfig: field.ocrConfig
-        }));
+      const fileFields = formFields.filter((field: FormField) => field.type === 'file');
+      console.log(`[mapWorkflowToEdital] Nó ${node.id}: ${fileFields.length} campo(s) do tipo "file"`);
+      
+      return fileFields.map((field: FormField) => ({
+        id: field.id,
+        label: field.label,
+        nodeId: node.id,
+        nodeName: node.data?.label || 'Formulário',
+        required: field.validation?.required || false,
+        acceptedFiles: field.acceptedFiles,
+        maxFileSize: field.maxFileSize,
+        ocrConfig: field.ocrConfig
+      }));
     });
+  
+  console.log('[mapWorkflowToEdital] Anexos de processo esperados:', anexos_processo_esperados);
 
   return {
     workflow_id: workflow.id,
