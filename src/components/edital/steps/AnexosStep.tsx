@@ -24,8 +24,10 @@ const anexosTipos = [
 export function AnexosStep({ form }: AnexosStepProps) {
   const [uploading, setUploading] = useState<string | null>(null);
   
+  // Sprint 4: Anexos agora vêm do template, não do workflow
   const anexosProcesso = form.watch("anexos_processo_esperados") || [];
   const hasAnexosProcesso = anexosProcesso.length > 0;
+  const templateId = form.watch("inscription_template_id");
 
   const handleFileUpload = async (tipo: string, file: File) => {
     try {
@@ -88,19 +90,19 @@ export function AnexosStep({ form }: AnexosStepProps) {
         <div>
           <div className="mb-4">
             <h2 className="text-2xl font-semibold mb-2 flex items-center gap-2">
-              <FileCheck className="h-6 w-6 text-blue-600" />
-              Anexos do Processo de Credenciamento
+              <FileCheck className="h-6 w-6 text-green-600" />
+              Sprint 4: Anexos do Template de Inscrição
             </h2>
             <p className="text-muted-foreground">
-              Documentos que serão solicitados aos candidatos durante o processo (herdados do workflow)
+              Documentos que serão solicitados aos candidatos (definidos no template selecionado)
             </p>
           </div>
 
           <Alert className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Estes anexos foram automaticamente identificados a partir do workflow selecionado e não podem ser editados aqui.
-              Para alterar, modifique os formulários do workflow.
+              Estes anexos vêm do Template de Inscrição selecionado no passo anterior.
+              {!templateId && " Selecione um template no passo de Workflow para ver os anexos."}
             </AlertDescription>
           </Alert>
 

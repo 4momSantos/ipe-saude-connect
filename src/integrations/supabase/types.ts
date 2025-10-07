@@ -280,6 +280,7 @@ export type Database = {
           gestor_autorizador_id: string | null
           historico_alteracoes: Json | null
           id: string
+          inscription_template_id: string | null
           local_portal: string | null
           numero_edital: string | null
           objeto: string | null
@@ -318,6 +319,7 @@ export type Database = {
           gestor_autorizador_id?: string | null
           historico_alteracoes?: Json | null
           id?: string
+          inscription_template_id?: string | null
           local_portal?: string | null
           numero_edital?: string | null
           objeto?: string | null
@@ -356,6 +358,7 @@ export type Database = {
           gestor_autorizador_id?: string | null
           historico_alteracoes?: Json | null
           id?: string
+          inscription_template_id?: string | null
           local_portal?: string | null
           numero_edital?: string | null
           objeto?: string | null
@@ -374,6 +377,13 @@ export type Database = {
           workflow_version?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "editais_inscription_template_id_fkey"
+            columns: ["inscription_template_id"]
+            isOneToOne: false
+            referencedRelation: "inscription_templates"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "editais_processo_inscricao_id_fkey"
             columns: ["processo_inscricao_id"]
@@ -743,6 +753,42 @@ export type Database = {
           name?: string
           updated_at?: string
           usage_count?: number | null
+        }
+        Relationships: []
+      }
+      inscription_templates: {
+        Row: {
+          anexos_obrigatorios: Json
+          campos_formulario: Json
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          anexos_obrigatorios?: Json
+          campos_formulario?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          anexos_obrigatorios?: Json
+          campos_formulario?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }

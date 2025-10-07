@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
 
     console.log(`[EXECUTE_WORKFLOW_V2] Workflow: ${workflow.name} (${nodes.length} nós, ${edges.length} arestas)`);
 
-    // Sprint 5: Buscar edital e validar formulários vinculados (se inscricaoId fornecido)
+    // Sprint 5: Buscar template de inscrição do edital (anexos vêm do template)
     if (inscricaoId) {
       const { data: inscricao } = await supabaseClient
         .from('inscricoes_edital')
@@ -68,23 +68,28 @@ Deno.serve(async (req) => {
       if (inscricao?.edital_id) {
         const { data: edital } = await supabaseClient
           .from('editais')
-          .select('formularios_vinculados, anexos_processo_esperados, workflow_id, workflow_version')
+          .select('inscription_template_id, workflow_id, workflow_version')
           .eq('id', inscricao.edital_id)
           .single();
 
-        if (edital) {
-          if (!edital.formularios_vinculados || edital.formularios_vinculados.length === 0) {
-            console.warn('[EXECUTE_WORKFLOW_V2] ⚠️ Edital sem formulários vinculados');
+        if (edital?.inscription_template_id) {
+          // Buscar anexos do template de inscrição
+          const { data: template } = await supabaseClient
+            .from('inscription_templates')
+            .select('name, anexos_obrigatorios, campos_formulario')
+            .eq('id', edital.inscription_template_id)
+            .single();
+
+          if (template) {
+            console.log(`[EXECUTE_WORKFLOW_V2] ✅ Template "${template.name}" com ${template.anexos_obrigatorios.length} anexo(s)`);
+            inputData.anexosEsperados = template.anexos_obrigatorios;
+            inputData.camposFormulario = template.campos_formulario;
+            inputData.inscriptionTemplateName = template.name;
           } else {
-            console.log(`[EXECUTE_WORKFLOW_V2] ✅ Edital com ${edital.formularios_vinculados.length} formulário(s) vinculado(s)`);
-            inputData.formulariosDisponiveis = edital.formularios_vinculados;
+            console.warn('[EXECUTE_WORKFLOW_V2] ⚠️ Template de inscrição não encontrado');
           }
-          
-          // Adicionar anexos de processo esperados
-          if (edital.anexos_processo_esperados && edital.anexos_processo_esperados.length > 0) {
-            console.log(`[EXECUTE_WORKFLOW_V2] ✅ ${edital.anexos_processo_esperados.length} anexo(s) de processo identificado(s)`);
-            inputData.anexosProcessoEsperados = edital.anexos_processo_esperados;
-          }
+        } else {
+          console.warn('[EXECUTE_WORKFLOW_V2] ⚠️ Edital sem template de inscrição vinculado');
         }
       }
     }
