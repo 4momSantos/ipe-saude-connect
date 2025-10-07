@@ -344,24 +344,85 @@ function parseDocumentText(
       break;
 
     case 'crm':
+      console.log('[CRM] Starting CRM field extraction...');
+      
+      // Nome do médico - after NOME/MÉDICO marker
       if (expectedFields.includes('nome')) {
-        const nomeMatch = normalizedText.match(/(?:nome|médico|medico)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?:\s+(?:crm|espec))/i);
-        if (nomeMatch) data.nome = nomeMatch[1].trim();
-      }
-      if (expectedFields.includes('crm')) {
-        const crmMatch = normalizedText.match(/(?:crm)[:\s#]*([0-9]{4,8})/i);
-        if (crmMatch) data.crm = crmMatch[1];
-      }
-      if (expectedFields.includes('uf_crm')) {
-        const ufMatch = normalizedText.match(/(?:crm[:\s#]*[0-9]{4,8}[\s\-\/]*)([A-Z]{2})/i);
-        if (ufMatch) data.uf_crm = ufMatch[1];
-      }
-      if (expectedFields.includes('especialidades')) {
-        const especMatch = normalizedText.match(/(?:especialidade|espec)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s,]+)/i);
-        if (especMatch) {
-          data.especialidades = especMatch[1].split(',').map(e => e.trim());
+        let nomeMatch = normalizedText.match(/(?:NOME|MÉDICO|MEDICO|PROFISSIONAL)\s+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s+(?:CRM|CPF|RG|ESPECIALIDADE|CONSELHO|\d))/i);
+        if (!nomeMatch) {
+          // Fallback: try to capture full name at start
+          nomeMatch = normalizedText.match(/^([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{10,50}?)(?=\s+(?:CRM|CPF|RG))/i);
+        }
+        if (nomeMatch) {
+          data.nome = nomeMatch[1].trim();
+          console.log(`[CRM] ✓ Nome found: ${data.nome}`);
+        } else {
+          console.log('[CRM] ✗ Nome not found');
         }
       }
+      
+      // Número do CRM - 4 to 8 digits
+      if (expectedFields.includes('crm')) {
+        let crmMatch = normalizedText.match(/(?:CRM|REGISTRO|Nº|NUMERO)[:\s#\-\/]*(\d{4,8})/i);
+        if (!crmMatch) {
+          // Fallback: find sequence after CRM word
+          crmMatch = normalizedText.match(/CRM[:\s#\-\/]*([A-Z]{2})?[:\s#\-\/]*(\d{4,8})/i);
+          if (crmMatch) crmMatch[1] = crmMatch[2]; // Use second capture group
+        }
+        if (crmMatch) {
+          data.crm = crmMatch[1];
+          console.log(`[CRM] ✓ Número CRM found: ${data.crm}`);
+        } else {
+          console.log('[CRM] ✗ Número CRM not found');
+        }
+      }
+      
+      // UF do CRM - 2 uppercase letters
+      if (expectedFields.includes('uf_crm')) {
+        let ufMatch = normalizedText.match(/CRM[:\s#\-\/]*([A-Z]{2})[:\s#\-\/]*\d{4,8}/i);
+        if (!ufMatch) {
+          // Fallback: UF after CRM number
+          ufMatch = normalizedText.match(/CRM[:\s#\-\/]*\d{4,8}[:\s#\-\/]*([A-Z]{2})/i);
+        }
+        if (!ufMatch) {
+          // Fallback: isolated 2 uppercase letters near CRM
+          ufMatch = normalizedText.match(/\b([A-Z]{2})\b.*?CRM|CRM.*?\b([A-Z]{2})\b/i);
+          if (ufMatch) ufMatch[1] = ufMatch[1] || ufMatch[2];
+        }
+        if (ufMatch) {
+          data.uf_crm = ufMatch[1].toUpperCase();
+          console.log(`[CRM] ✓ UF found: ${data.uf_crm}`);
+        } else {
+          console.log('[CRM] ✗ UF not found');
+        }
+      }
+      
+      // Especialidades - multiple specialties
+      if (expectedFields.includes('especialidades')) {
+        let especMatch = normalizedText.match(/(?:ESPECIALIDADE|ESPECIALIDADES|ÁREA|TITULO|RQE)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s,\/\-]+?)(?=\s+(?:CRM|CPF|RG|RQE\s*\d|\d{4,}))/i);
+        if (especMatch) {
+          // Split by common separators
+          const especialidades = especMatch[1]
+            .split(/[,\/\n]/)
+            .map(e => e.trim())
+            .filter(e => e.length > 3); // Filter out short strings
+          data.especialidades = especialidades;
+          console.log(`[CRM] ✓ Especialidades found: ${especialidades.join(', ')}`);
+        } else {
+          console.log('[CRM] ✗ Especialidades not found');
+        }
+      }
+      
+      // CPF (opcional)
+      if (expectedFields.includes('cpf')) {
+        let cpfMatch = normalizedText.match(/(\d{3}\.?\d{3}\.?\d{3}[\-\.]?\d{2})/);
+        if (cpfMatch) {
+          data.cpf = cpfMatch[1].replace(/[^\d]/g, '');
+          console.log(`[CRM] ✓ CPF found: ${data.cpf}`);
+        }
+      }
+      
+      console.log(`[CRM] Extraction complete. Fields found: ${Object.keys(data).length}`);
       break;
 
     case 'cnpj':
