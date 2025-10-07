@@ -21,13 +21,59 @@ export class CNHExtractor extends BaseExtractor {
     {
       name: 'cnh',
       strategies: [
-        this.createRegexStrategy(1, /(?:CNH|REGISTRO|N[UÚ]MERO)[:\s]*(\d{11})/i),
-        this.createRegexStrategy(2, /PERMISS[AÃ]O[:\s]*(\d{11})/i),
+        // Prioridade 1: CNH explicitamente marcada
+        this.createRegexStrategy(1, /(?:CNH|REGISTRO|N[UÚ]MERO|DOC(?:UMENTO)?)[:\s]*(\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d)/i, 
+          (match) => match.replace(/[\s\.]/g, '')),
+        
+        // Prioridade 2: CNH próxima ao nome/condutor (contexto)
+        this.createFunctionStrategy(2, (text) => {
+          const nomeMatch = text.match(/(?:NOME|CONDUTOR)[:\s]*[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{10,60}/i);
+          if (nomeMatch) {
+            const afterName = text.slice(nomeMatch.index! + nomeMatch[0].length, nomeMatch.index! + nomeMatch[0].length + 200);
+            const cnhMatch = afterName.match(/(\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d)/);
+            return cnhMatch ? cnhMatch[1].replace(/[\s\.]/g, '') : null;
+          }
+          return null;
+        }),
+        
+        // Prioridade 3: CNH nos primeiros 300 caracteres (topo do documento)
         this.createFunctionStrategy(3, (text) => {
+          const topText = text.slice(0, 300);
+          const matches = topText.match(/\b(\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d)\b/g);
+          if (matches) {
+            const cleaned = matches.map(m => m.replace(/[\s\.]/g, ''));
+            // Filtrar números que não são CPF (diferente de 11 dígitos puros sem contexto)
+            for (const num of cleaned) {
+              if (num.length === 11 && !this.isCPFPattern(num)) {
+                return num;
+              }
+            }
+          }
+          return null;
+        }),
+        
+        // Prioridade 4: Sequência de 11 dígitos com tolerância a formatação
+        this.createFunctionStrategy(4, (text) => {
+          const matches = text.match(/\b(\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d[\s\.]?\d)\b/g);
+          if (matches) {
+            const cleaned = matches.map(m => m.replace(/[\s\.]/g, ''));
+            for (const num of cleaned) {
+              if (this.isValidCNH(num)) {
+                return num;
+              }
+            }
+          }
+          return null;
+        }),
+        
+        // Prioridade 5: Último recurso - qualquer 11 dígitos seguidos
+        this.createFunctionStrategy(5, (text) => {
           const matches = text.match(/\b\d{11}\b/g);
           return matches ? matches[0] : null;
         }),
       ],
+      validator: (cnh) => this.isValidCNH(cnh),
+      transform: (cnh) => cnh.replace(/[\s\.]/g, ''),
       required: true
     },
     {
@@ -85,4 +131,33 @@ export class CNHExtractor extends BaseExtractor {
       ]
     }
   ];
+  
+  /**
+   * Valida se número é uma CNH válida
+   */
+  private isValidCNH(cnh: string): boolean {
+    const cleaned = cnh.replace(/\D/g, '');
+    
+    // Deve ter 11 dígitos
+    if (cleaned.length !== 11) return false;
+    
+    // Não pode ser sequência repetida (00000000000, 11111111111, etc)
+    if (/^(\d)\1{10}$/.test(cleaned)) return false;
+    
+    // Não pode ser CPF conhecido (opcional - evita confusão)
+    if (this.isCPFPattern(cleaned)) return false;
+    
+    return true;
+  }
+  
+  /**
+   * Verifica se parece com padrão de CPF (para evitar confusão)
+   */
+  private isCPFPattern(num: string): boolean {
+    // CPFs geralmente têm dígitos verificadores no final
+    // CNHs geralmente começam com dígitos mais altos
+    // Esta é uma heurística simples
+    const firstDigit = parseInt(num[0]);
+    return firstDigit <= 3; // CPFs geralmente começam com 0-3
+  }
 }
