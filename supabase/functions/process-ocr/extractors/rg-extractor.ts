@@ -11,45 +11,89 @@ export class RGExtractor extends BaseExtractor {
     {
       name: 'nome',
       strategies: [
-        // Prioridade 1: Nome explicitamente marcado
-        this.createRegexStrategy(1, /(?:NOME|PORTADOR)[:\s]*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-Za-záàâãéèêíïóôõöúçñ\s]{9,60})/i),
+        // Prioridade 0: Nome após marcador explícito com stop words
+        this.createRegexStrategy(
+          0,
+          /(?:NOME|PORTADOR)[:\s]*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-Za-záàâãéèêíïóôõöúçñ\s]{9,60}?)(?=\s*(?:FILIA|RG|CPF|NASCIMENTO|DOC|IDENTIDADE|\d{2}\/\d{2}\/\d{4}))/i,
+          undefined,
+          'Nome após marcador NOME/PORTADOR (com stop words)'
+        ),
         
-        // Prioridade 2: Nome em MAIÚSCULAS isolado (comum em RG)
-        this.createFunctionStrategy(2, (text) => {
-          const match = text.match(/\b([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ]+(?:\s+[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ]+){1,5})\b/);
-          if (match && match[1].length >= 10 && match[1].length <= 60) {
-            const name = match[1].trim();
-            if (validateName(name)) return name;
-          }
-          return null;
-        }),
+        // Prioridade 1: Nome em maiúsculas completo (linha isolada)
+        this.createRegexStrategy(
+          1,
+          /^([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{14,60})$/m,
+          undefined,
+          'Nome em maiúsculas isolado'
+        ),
         
-        // Prioridade 3: Nome próximo ao RG (contexto)
-        this.createFunctionStrategy(3, (text) => {
-          const rgMatch = text.match(/(?:RG|IDENTIDADE|REGISTRO)[:\s]*\d/i);
-          if (rgMatch) {
-            const beforeRG = text.slice(Math.max(0, rgMatch.index! - 200), rgMatch.index!);
-            const nameMatch = beforeRG.match(/\b([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-Za-záàâãéèêíïóôõöúçñ\s]{9,60})\b/);
+        // Prioridade 2: Nome próximo ao RG (antes do número)
+        this.createFunctionStrategy(
+          2,
+          (text: string) => {
+            const rgMatch = text.match(/\b\d{1,2}[.\s]?\d{3}[.\s]?\d{3}[-\s]?[\dXx]\b/);
+            if (!rgMatch) return null;
+            const beforeRG = text.substring(Math.max(0, rgMatch.index! - 150), rgMatch.index);
+            // Buscar último nome em maiúsculas antes do RG
+            const nameMatch = beforeRG.match(/([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{14,50})(?=\s*(?:RG|IDENTIDADE|\d))/i);
             return nameMatch ? nameMatch[1].trim() : null;
-          }
-          return null;
-        }),
+          },
+          'Nome antes do número RG'
+        ),
         
-        // Prioridade 4: Nome antes de CPF/RG
-        this.createFunctionStrategy(4, (text) => {
-          const docMatch = text.match(/(?:CPF|RG)[:\s]*\d/i);
-          if (docMatch) {
-            const beforeDoc = text.slice(Math.max(0, docMatch.index! - 150), docMatch.index!);
-            return extractName(beforeDoc);
-          }
-          return null;
-        }),
+        // Prioridade 3: Nome antes de CPF ou data de nascimento
+        this.createRegexStrategy(
+          3,
+          /([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-Za-záàâãéèêíïóôõöúçñ\s]{10,50})[\s\n]+(?:CPF|NASCIMENTO|DATA)/i,
+          undefined,
+          'Nome antes de CPF/NASCIMENTO'
+        ),
         
-        // Prioridade 5: Extração genérica
-        this.createFunctionStrategy(5, (text) => extractName(text)),
+        // Prioridade 4: Primeiro bloco de texto em maiúsculas após cabeçalho
+        this.createFunctionStrategy(
+          4,
+          (text: string) => {
+            // Pular cabeçalho (primeiras 200 caracteres)
+            const afterHeader = text.substring(200);
+            const lines = afterHeader.split('\n');
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (/^[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{14,60}$/.test(trimmed)) {
+                // Verificar se não contém palavras proibidas
+                if (/FILIA|SECRETARIA|ESTADO|REPUBLICA/i.test(trimmed)) continue;
+                return trimmed;
+              }
+            }
+            return null;
+          },
+          'Primeiro nome longo em maiúsculas (após cabeçalho)'
+        ),
       ],
-      validator: validateName,
-      required: true
+      validator: (value: string) => {
+        // Validar comprimento
+        if (value.length < 10 || value.length > 60) return false;
+        
+        // Deve ter pelo menos duas palavras
+        const words = value.trim().split(/\s+/);
+        if (words.length < 2) return false;
+        
+        // Não pode conter números
+        if (/\d/.test(value)) return false;
+        
+        // Não pode conter palavras proibidas
+        if (/FILIA|RG[:\s]|CPF[:\s]|NASCIMENTO|DOCUMENTO|IDENTIDADE/i.test(value)) return false;
+        
+        return true;
+      },
+      transform: (value: string) => {
+        return value
+          .replace(/\s+/g, ' ')
+          .trim()
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ');
+      },
+      required: true,
     },
     {
       name: 'rg',
@@ -164,112 +208,229 @@ export class RGExtractor extends BaseExtractor {
     {
       name: 'data_nascimento',
       strategies: [
-        // Prioridade 1: Data explicitamente marcada
-        this.createRegexStrategy(1, /(?:NASCIMENTO|NASC|DATA\s+DE\s+NASC)[:\s]*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i),
+        // Prioridade 0: Data após marcador NASCIMENTO (tolerante)
+        this.createRegexStrategy(
+          0,
+          /NASCIMENTO[\s\S]{0,40}?(\d{1,2}[\s\/\-]?\d{1,2}[\s\/\-]?\d{2,4})/i,
+          undefined,
+          'Data após NASCIMENTO (até 40 caracteres)'
+        ),
         
-        // Prioridade 2: Data por extenso
-        this.createFunctionStrategy(2, (text) => {
-          const dateMatch = text.match(/(\d{1,2})\s+de\s+(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+(\d{4})/i);
-          if (dateMatch) {
-            return extractDate(dateMatch[0]);
-          }
-          return null;
-        }),
+        // Prioridade 1: Data sem separadores (DDMMYYYY ou DDMMYY)
+        this.createRegexStrategy(
+          1,
+          /\b(\d{2})(\d{2})(\d{4})\b/,
+          (match) => {
+            const parts = match.match(/(\d{2})(\d{2})(\d{4})/);
+            if (!parts) return match;
+            return `${parts[1]}/${parts[2]}/${parts[3]}`;
+          },
+          'Data sem separadores (DDMMYYYY)'
+        ),
         
-        // Prioridade 3: Data abreviada
-        this.createFunctionStrategy(3, (text) => {
-          const dateMatch = text.match(/(\d{1,2})[\/\-\s](jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)[a-z]*[\/\-\s](\d{4})/i);
-          if (dateMatch) {
-            return extractDate(dateMatch[0]);
-          }
-          return null;
-        }),
+        // Prioridade 2: Data por extenso ou abreviada
+        this.createRegexStrategy(
+          2,
+          /(\d{1,2})\s+(?:DE\s+)?(JANEIRO|FEVEREIRO|MAR[ÇC]O|ABRIL|MAIO|JUNHO|JULHO|AGOSTO|SETEMBRO|OUTUBRO|NOVEMBRO|DEZEMBRO|JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)(?:\s+DE\s+)?(\d{4})/i,
+          (match) => {
+            const monthMap: Record<string, string> = {
+              'JANEIRO': '01', 'JAN': '01',
+              'FEVEREIRO': '02', 'FEV': '02',
+              'MARÇO': '03', 'MARCO': '03', 'MAR': '03',
+              'ABRIL': '04', 'ABR': '04',
+              'MAIO': '05', 'MAI': '05',
+              'JUNHO': '06', 'JUN': '06',
+              'JULHO': '07', 'JUL': '07',
+              'AGOSTO': '08', 'AGO': '08',
+              'SETEMBRO': '09', 'SET': '09',
+              'OUTUBRO': '10', 'OUT': '10',
+              'NOVEMBRO': '11', 'NOV': '11',
+              'DEZEMBRO': '12', 'DEZ': '12',
+            };
+            const parts = match.match(/(\d{1,2})\s+(?:DE\s+)?([A-Z]+)(?:\s+DE\s+)?(\d{4})/i);
+            if (!parts) return match;
+            const day = parts[1].padStart(2, '0');
+            const month = monthMap[parts[2].toUpperCase()] || '01';
+            const year = parts[3];
+            return `${day}/${month}/${year}`;
+          },
+          'Data por extenso'
+        ),
         
-        // Prioridade 4: Primeira data no documento (geralmente é nascimento)
-        this.createFunctionStrategy(4, (text) => {
-          const dates = text.match(/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}/g);
-          if (dates) {
-            for (const date of dates) {
-              const extracted = extractDate(date);
-              if (extracted && this.isValidBirthDate(extracted)) {
-                return extracted;
-              }
-            }
-          }
-          return null;
-        }),
+        // Prioridade 3: Primeira data após o nome (nos próximos 200 caracteres)
+        this.createFunctionStrategy(
+          3,
+          (text: string) => {
+            // Buscar nome em maiúsculas
+            const nameMatch = text.match(/[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ]{3,}\s+[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{10,}/);
+            if (!nameMatch) return null;
+            
+            // Buscar data nos próximos 200 caracteres após o nome
+            const afterName = text.substring(nameMatch.index! + nameMatch[0].length, nameMatch.index! + nameMatch[0].length + 200);
+            const dateMatch = afterName.match(/\b(\d{1,2}[\s\/\-]?\d{1,2}[\s\/\-]?\d{2,4})\b/);
+            return dateMatch ? dateMatch[1] : null;
+          },
+          'Primeira data após o nome'
+        ),
+        
+        // Prioridade 4: Primeira data no documento (fallback)
+        this.createFunctionStrategy(
+          4,
+          (text: string) => {
+            const dateMatch = text.match(/\b(\d{1,2}[\s\/\-]\d{1,2}[\s\/\-]\d{2,4})\b/);
+            return dateMatch ? dateMatch[1] : null;
+          },
+          'Primeira data encontrada (fallback)'
+        ),
       ],
       validator: (date) => this.isValidBirthDate(date),
-      transform: (date) => extractDate(date) || date
+      transform: (date) => {
+        const normalized = date.replace(/[\s\-]/g, '/').replace(/(\d{2})(\d{2})(\d{4})/, '$1/$2/$3');
+        return extractDate(normalized) || normalized;
+      },
+      required: true,
     },
     {
       name: 'data_emissao',
       strategies: [
-        // Prioridade 1: Data explicitamente marcada
-        this.createRegexStrategy(1, /(?:EMISS[AÃ]O|EMITIDO\s+EM|EXPEDIDO\s+EM)[:\s]*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/i),
+        // Prioridade 0: Data após marcador EMISSÃO (tolerante)
+        this.createRegexStrategy(
+          0,
+          /EMISS[AÃ]O[\s\S]{0,40}?(\d{1,2}[\s\/\-]?\d{1,2}[\s\/\-]?\d{2,4})/i,
+          undefined,
+          'Data após EMISSÃO (até 40 caracteres)'
+        ),
         
-        // Prioridade 2: Segunda data no documento (geralmente é emissão)
-        this.createFunctionStrategy(2, (text) => {
-          const dates = text.match(/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}/g);
-          if (dates && dates.length > 1) {
-            for (let i = 1; i < dates.length; i++) {
-              const extracted = extractDate(dates[i]);
-              if (extracted && this.isValidIssueDate(extracted)) {
-                return extracted;
+        // Prioridade 1: Última data no documento (geralmente é emissão)
+        this.createFunctionStrategy(
+          1,
+          (text: string) => {
+            const dates = text.match(/\b\d{1,2}[\s\/\-]?\d{1,2}[\s\/\-]?\d{2,4}\b/g);
+            if (!dates || dates.length < 1) return null;
+            
+            // Pegar a última data que seja válida como data de emissão
+            for (let i = dates.length - 1; i >= 0; i--) {
+              const date = dates[i];
+              const normalized = date.replace(/[\s\-]/g, '/').replace(/(\d{2})(\d{2})(\d{4})/, '$1/$2/$3');
+              if (this.isValidIssueDate(normalized)) {
+                return date;
               }
             }
-          }
-          return null;
-        }),
+            return null;
+          },
+          'Última data válida no documento'
+        ),
         
-        // Prioridade 3: Data após menção a RG/Identidade
-        this.createFunctionStrategy(3, (text) => {
-          const rgMatch = text.match(/(?:RG|IDENTIDADE|EXPEDIDO)/i);
-          if (rgMatch) {
-            const afterRG = text.slice(rgMatch.index!, rgMatch.index! + 200);
-            const dateMatch = afterRG.match(/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}/);
-            if (dateMatch) {
-              const extracted = extractDate(dateMatch[0]);
-              if (extracted && this.isValidIssueDate(extracted)) {
-                return extracted;
-              }
-            }
-          }
-          return null;
-        }),
+        // Prioridade 2: Segunda data do documento (se houver)
+        this.createFunctionStrategy(
+          2,
+          (text: string) => {
+            const dates = text.match(/\b\d{1,2}[\s\/\-]\d{1,2}[\s\/\-]\d{2,4}\b/g);
+            return dates && dates.length >= 2 ? dates[1] : null;
+          },
+          'Segunda data encontrada'
+        ),
+        
+        // Prioridade 3: Data próxima ao órgão emissor (SSP)
+        this.createRegexStrategy(
+          3,
+          /(?:SSP|SECRETARIA)[\s\S]{0,80}?(\d{1,2}[\s\/\-]?\d{1,2}[\s\/\-]?\d{2,4})/i,
+          undefined,
+          'Data próxima ao órgão emissor'
+        ),
       ],
       validator: (date) => this.isValidIssueDate(date),
-      transform: (date) => extractDate(date) || date
+      transform: (date) => {
+        const normalized = date.replace(/[\s\-]/g, '/').replace(/(\d{2})(\d{2})(\d{4})/, '$1/$2/$3');
+        return extractDate(normalized) || normalized;
+      },
     },
     {
       name: 'orgao_emissor',
       strategies: [
-        // Prioridade 1: Órgão explicitamente marcado
-        this.createRegexStrategy(1, /(?:ORG[AÃ]O\s+EMISSOR|EXPEDIDO\s+POR)[:\s]*([A-Z\/\-\s]{2,20})/i,
-          (match) => match.trim().replace(/\s*[\/\-]\s*/g, '/')),
-        
-        // Prioridade 2: Padrão SSP/UF, SSP-UF, SSP UF
-        this.createRegexStrategy(2, /(SSP|DETRAN|PC|IFP)[\s\/\-]*([A-Z]{2})/i, 
-          (match) => match.replace(/\s+/g, '/').replace('-', '/')),
-        
-        // Prioridade 3: UF isolado após RG
-        this.createFunctionStrategy(3, (text) => {
-          const rgMatch = text.match(/(?:RG|IDENTIDADE)[:\s]*\d+/i);
-          if (rgMatch) {
-            const afterRG = text.slice(rgMatch.index! + rgMatch[0].length, rgMatch.index! + rgMatch[0].length + 100);
-            const ufMatch = afterRG.match(/\b([A-Z]{2})\b/);
+        // Prioridade 0: SECRETARIA ou SSP seguido de UF
+        this.createRegexStrategy(
+          0,
+          /(?:SECRETARIA|SSP)[\s\/\-]*(DA\s+)?(?:SEGURAN[ÇC]A\s+P[UÚ]BLICA)?[\s\/\-]*([A-Z]{2})\b/i,
+          (match) => {
+            const ufMatch = match.match(/\b([A-Z]{2})$/i);
             if (ufMatch && isValidUF(ufMatch[1])) {
-              return `SSP/${ufMatch[1]}`;
+              return `SSP/${ufMatch[1].toUpperCase()}`;
             }
-          }
-          return null;
-        }),
+            return match;
+          },
+          'SECRETARIA ou SSP seguido de UF'
+        ),
+        
+        // Prioridade 1: UF isolado após "IDENTIDADE" ou "RG"
+        this.createFunctionStrategy(
+          1,
+          (text: string) => {
+            const rgMatch = text.match(/(?:IDENTIDADE|CARTEIRA\s+DE\s+IDENTIDADE|RG)/i);
+            if (!rgMatch) return null;
+            
+            // Buscar UF nos próximos 150 caracteres
+            const afterRG = text.substring(rgMatch.index!, rgMatch.index! + 150);
+            const ufMatch = afterRG.match(/\b([A-Z]{2})\b/);
+            
+            if (ufMatch && isValidUF(ufMatch[1])) {
+              return `SSP/${ufMatch[1].toUpperCase()}`;
+            }
+            return null;
+          },
+          'UF isolado após IDENTIDADE/RG'
+        ),
+        
+        // Prioridade 2: Estado por extenso convertido para UF
+        this.createRegexStrategy(
+          2,
+          /(?:ESTADO|EST\.?)\s+(?:DE|DO)\s+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+)/i,
+          (match) => {
+            const stateMap: Record<string, string> = {
+              'SAO PAULO': 'SP', 'SÃO PAULO': 'SP',
+              'RIO DE JANEIRO': 'RJ',
+              'MINAS GERAIS': 'MG',
+              'BAHIA': 'BA',
+              'PARANA': 'PR', 'PARANÁ': 'PR',
+            };
+            const stateMatch = match.match(/(?:ESTADO|EST\.?)\s+(?:DE|DO)\s+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+)/i);
+            if (stateMatch) {
+              const stateName = stateMatch[1].trim().toUpperCase();
+              const uf = stateMap[stateName];
+              if (uf) return `SSP/${uf}`;
+            }
+            return match;
+          },
+          'Estado por extenso'
+        ),
+        
+        // Prioridade 3: Buscar no cabeçalho (primeiros 300 caracteres)
+        this.createFunctionStrategy(
+          3,
+          (text: string) => {
+            const header = text.substring(0, 300);
+            const ufMatch = header.match(/\b([A-Z]{2})\b/g);
+            if (!ufMatch) return null;
+            
+            // Testar cada UF encontrado
+            for (const uf of ufMatch) {
+              if (isValidUF(uf)) {
+                return `SSP/${uf.toUpperCase()}`;
+              }
+            }
+            return null;
+          },
+          'UF no cabeçalho do documento'
+        ),
       ],
-      validator: (orgao) => {
-        // Validar se contém UF válido
-        const ufMatch = orgao.match(/([A-Z]{2})\b/);
-        return ufMatch ? isValidUF(ufMatch[1]) : true;
-      }
+      validator: (value: string) => {
+        const ufMatch = value.match(/([A-Z]{2})$/);
+        return ufMatch ? isValidUF(ufMatch[1]) : false;
+      },
+      transform: (value: string) => {
+        // Normalizar para formato SSP/UF
+        return value.toUpperCase().replace(/\s+/g, '/').replace(/SSP[-\/\s]+/, 'SSP/');
+      },
     },
     {
       name: 'naturalidade',
@@ -284,32 +445,115 @@ export class RGExtractor extends BaseExtractor {
     {
       name: 'filiacao_mae',
       strategies: [
-        this.createRegexStrategy(1, /M[AÃ]E[:\s]*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-Za-záàâãéèêíïóôõöúçñ\s]{10,60})/i),
-        this.createFunctionStrategy(2, (text) => {
-          const filiacaoMatch = text.match(/FILIA[ÇC][AÃ]O[:\s]*([\s\S]{10,150}?)(?=PAI|DATA|CPF|RG|$)/i);
-          if (filiacaoMatch) {
-            const names = filiacaoMatch[1].match(/([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-Za-záàâãéèêíïóôõöúçñ\s]{10,60})/g);
-            return names && names.length > 0 ? names[0] : null;
-          }
-          return null;
-        }),
+        // Prioridade 0: Marcador explícito "MÃE:"
+        this.createRegexStrategy(
+          0,
+          /(?:M[ÃA]E|FILIA[ÇC][AÃ]O\s+MATERNA)[:\s]*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-Za-záàâãéèêíïóôõöúçñ\s]{10,60})/i,
+          undefined,
+          'Nome da mãe após marcador'
+        ),
+        
+        // Prioridade 1: Primeiro nome após "FILIAÇÃO" ou "FILIACAO"
+        this.createFunctionStrategy(
+          1,
+          (text: string) => {
+            const filiacaoMatch = text.match(/FILIA[ÇC][AÃ]O[\s:]*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{10,60}?)(?:\s+E\s+|\s{3,}|$)/i);
+            if (!filiacaoMatch) return null;
+            
+            // Primeiro nome após FILIAÇÃO geralmente é da mãe
+            const firstNameMatch = filiacaoMatch[1].match(/([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{10,60})/);
+            return firstNameMatch ? firstNameMatch[1].trim() : null;
+          },
+          'Primeiro nome após FILIAÇÃO'
+        ),
+        
+        // Prioridade 2: Nome em maiúsculas após região de datas/RG
+        this.createFunctionStrategy(
+          2,
+          (text: string) => {
+            // Buscar após palavras-chave que indicam região de filiação
+            const afterDatesMatch = text.match(/(?:NASCIMENTO|EMISS[AÃ]O|SSP)[\s\S]{50,}?([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{15,60})/i);
+            if (!afterDatesMatch) return null;
+            
+            const names = afterDatesMatch[1].match(/[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{15,60}/g);
+            return names && names.length > 0 ? names[0].trim() : null;
+          },
+          'Nome em maiúsculas na região de filiação'
+        ),
       ],
-      validator: validateName
+      validator: (value: string) => {
+        // Deve ter pelo menos 2 palavras
+        const words = value.trim().split(/\s+/);
+        if (words.length < 2) return false;
+        
+        // Não pode conter números
+        if (/\d/.test(value)) return false;
+        
+        return true;
+      },
+      transform: (value: string) => {
+        return value
+          .replace(/\s+/g, ' ')
+          .trim()
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ');
+      },
     },
     {
       name: 'filiacao_pai',
       strategies: [
-        this.createRegexStrategy(1, /PAI[:\s]*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-Za-záàâãéèêíïóôõöúçñ\s]{10,60})/i),
-        this.createFunctionStrategy(2, (text) => {
-          const filiacaoMatch = text.match(/FILIA[ÇC][AÃ]O[:\s]*([\s\S]{10,150}?)(?=DATA|CPF|RG|$)/i);
-          if (filiacaoMatch) {
-            const names = filiacaoMatch[1].match(/([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-Za-záàâãéèêíïóôõöúçñ\s]{10,60})/g);
-            return names && names.length > 1 ? names[1] : null;
-          }
-          return null;
-        }),
+        // Prioridade 0: Marcador explícito "PAI:"
+        this.createRegexStrategy(
+          0,
+          /(?:PAI|FILIA[ÇC][AÃ]O\s+PATERNA)[:\s]*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-Za-záàâãéèêíïóôõöúçñ\s]{10,60})/i,
+          undefined,
+          'Nome do pai após marcador'
+        ),
+        
+        // Prioridade 1: Segundo nome após "FILIAÇÃO" (após nome da mãe)
+        this.createFunctionStrategy(
+          1,
+          (text: string) => {
+            const filiacaoMatch = text.match(/FILIA[ÇC][AÃ]O[\s\S]{0,200}/i);
+            if (!filiacaoMatch) return null;
+            
+            // Buscar dois nomes em maiúsculas consecutivos
+            const names = filiacaoMatch[0].match(/[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{15,60}/g);
+            if (names && names.length >= 2) {
+              return names[1].trim();
+            }
+            return null;
+          },
+          'Segundo nome após FILIAÇÃO'
+        ),
+        
+        // Prioridade 2: Nome após "E" ou espaço grande (indicando separação)
+        this.createRegexStrategy(
+          2,
+          /FILIA[ÇC][AÃ]O[\s\S]{50,}?(?:\s+E\s+|\s{4,})([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{15,60})/i,
+          undefined,
+          'Nome do pai após separador'
+        ),
       ],
-      validator: validateName
+      validator: (value: string) => {
+        // Deve ter pelo menos 2 palavras
+        const words = value.trim().split(/\s+/);
+        if (words.length < 2) return false;
+        
+        // Não pode conter números
+        if (/\d/.test(value)) return false;
+        
+        return true;
+      },
+      transform: (value: string) => {
+        return value
+          .replace(/\s+/g, ' ')
+          .trim()
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ');
+      },
     }
   ];
   
