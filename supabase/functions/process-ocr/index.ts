@@ -214,9 +214,18 @@ function parseDocumentText(
   expectedFields: string[]
 ): Record<string, any> {
   const data: Record<string, any> = {};
-  const normalizedText = text.replace(/\n/g, ' ').replace(/\s+/g, ' ');
-
+  
   console.log('Parsing document type:', documentType);
+  console.log('Expected fields:', expectedFields);
+  console.log('Raw text (first 300 chars):', text.substring(0, 300));
+  
+  // Normalize text - remove special chars but keep structure
+  const normalizedText = text
+    .replace(/[•\[\]]/g, '') // Remove bullets and brackets
+    .replace(/\s+/g, ' ')     // Normalize multiple spaces
+    .trim();
+
+  console.log('Normalized text (first 300 chars):', normalizedText.substring(0, 300));
 
   switch (documentType) {
     case 'rg':
@@ -244,26 +253,79 @@ function parseDocumentText(
       break;
 
     case 'cnh':
+      console.log('[CNH] Starting CNH field extraction...');
+      
+      // Nome - after "NOME" marker with flexible spacing
       if (expectedFields.includes('nome')) {
-        const nomeMatch = normalizedText.match(/(?:nome|name)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?:\s+(?:cpf|nasc|cat|reg))/i);
-        if (nomeMatch) data.nome = nomeMatch[1].trim();
+        let nomeMatch = normalizedText.match(/(?:NOME|Nome)\s+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s+(?:DOC|IDENTIDADE|CPF|FILIAÇÃO|FILIACAO|DATA|RG|\d))/i);
+        if (nomeMatch) {
+          data.nome = nomeMatch[1].trim();
+          console.log(`[CNH] ✓ Nome found: ${data.nome}`);
+        } else {
+          console.log('[CNH] ✗ Nome not found');
+        }
       }
+      
+      // CPF - with or without formatting, may have bracket at start
       if (expectedFields.includes('cpf')) {
-        const cpfMatch = normalizedText.match(/(?:cpf)[:\s]*([0-9.]{11,14})/i);
-        if (cpfMatch) data.cpf = cpfMatch[1];
+        // First try to match formatted CPF
+        let cpfMatch = normalizedText.match(/(\d{3}\.?\d{3}\.?\d{3}[\-\.]?\d{2})/);
+        if (cpfMatch) {
+          data.cpf = cpfMatch[1].replace(/[^\d]/g, '');
+          console.log(`[CNH] ✓ CPF found: ${data.cpf}`);
+        } else {
+          console.log('[CNH] ✗ CPF not found');
+        }
       }
+      
+      // Número CNH - 11 digit sequence without formatting
       if (expectedFields.includes('numero_cnh')) {
-        const cnhMatch = normalizedText.match(/(?:registro|número|numero|cnh)[:\s]*([0-9]{11})/i);
-        if (cnhMatch) data.numero_cnh = cnhMatch[1];
+        // Try multiple patterns
+        let cnhMatch = normalizedText.match(/(?:REGISTRO|LAI|MAIS|EN REGISIRO)\s+(\d{11})/i) || 
+                       normalizedText.match(/\b(\d{11})\b/);
+        if (cnhMatch) {
+          data.numero_cnh = cnhMatch[1];
+          console.log(`[CNH] ✓ Número CNH found: ${data.numero_cnh}`);
+        } else {
+          console.log('[CNH] ✗ Número CNH not found');
+        }
       }
+      
+      // Data de nascimento - DD/MM/YYYY format
+      if (expectedFields.includes('data_nascimento')) {
+        let dataMatch = normalizedText.match(/(?:DATA NASCIMENTO|NASCIMENTO|NASC)[:\s\-~]*(\d{2}\/\d{2}\/\d{4})/i);
+        if (dataMatch) {
+          data.data_nascimento = dataMatch[1];
+          console.log(`[CNH] ✓ Data nascimento found: ${data.data_nascimento}`);
+        } else {
+          console.log('[CNH] ✗ Data nascimento not found');
+        }
+      }
+      
+      // Categoria - one or more letters A-E
       if (expectedFields.includes('categoria')) {
-        const catMatch = normalizedText.match(/(?:categoria|cat)[:\s]*([A-E]{1,5})/i);
-        if (catMatch) data.categoria = catMatch[1];
+        let catMatch = normalizedText.match(/(?:CATEGORIA|CAT)[:\s]+([A-E]+)/i) ||
+                       normalizedText.match(/\b([A-E]{1,3})\b/);
+        if (catMatch) {
+          data.categoria = catMatch[1];
+          console.log(`[CNH] ✓ Categoria found: ${data.categoria}`);
+        } else {
+          console.log('[CNH] ✗ Categoria not found');
+        }
       }
+      
+      // Validade
       if (expectedFields.includes('validade')) {
-        const validadeMatch = normalizedText.match(/(?:validade|val)[:\s]*([0-9]{2}[\/\-][0-9]{2}[\/\-][0-9]{4})/i);
-        if (validadeMatch) data.validade = validadeMatch[1];
+        let validadeMatch = normalizedText.match(/(?:VALIDADE|E VALDADE|VALDADE)[:\s]*(\d{2}\/\d{2}\/\d{4})/i);
+        if (validadeMatch) {
+          data.validade = validadeMatch[1];
+          console.log(`[CNH] ✓ Validade found: ${data.validade}`);
+        } else {
+          console.log('[CNH] ✗ Validade not found');
+        }
       }
+      
+      console.log(`[CNH] Extraction complete. Fields found: ${Object.keys(data).length}`);
       break;
 
     case 'cpf':
