@@ -12,6 +12,7 @@ import Inscricoes from "./pages/Inscricoes";
 import Editais from "./pages/Editais";
 import CriarEdital from "./pages/CriarEdital";
 import EditarEdital from "./pages/EditarEdital";
+import EditalDetail from "./pages/EditalDetail";
 import Analises from "./pages/Analises";
 import AnalisesRelatorios from "./pages/AnalisesRelatorios";
 import Credenciados from "./pages/Credenciados";
@@ -87,6 +88,7 @@ const App = () => (
                         <Routes>
                           <Route path="/" element={<Dashboard />} />
                           <Route path="/editais" element={<Editais />} />
+                          <Route path="/editais/:id" element={<EditalDetail />} />
                           <Route path="/editais/criar" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><CriarEdital /></RoleProtectedRoute>} />
                           <Route path="/editais/editar/:id" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><EditarEdital /></RoleProtectedRoute>} />
                           <Route path="/inscricoes" element={<Inscricoes />} />

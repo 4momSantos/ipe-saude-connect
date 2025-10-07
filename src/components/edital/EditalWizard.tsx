@@ -44,24 +44,13 @@ const editalSchema = z.object({
   documentos_habilitacao: z.array(z.string()).min(1, "Selecione ao menos um documento"),
   anexos: z.record(z.any()).optional(),
   status: z.enum(["rascunho", "publicado", "encerrado"]).default("rascunho"),
-  // Campos de workflow (opcionais)
-  workflow_id: z.string().nullable().optional(),
-  workflow_version: z.number().optional(),
-  gestor_autorizador_id: z.string().optional(),
+  // Campos de workflow (OBRIGATÓRIOS)
+  workflow_id: z.string().uuid("Selecione um workflow válido"),
+  workflow_version: z.number().min(1),
+  formularios_vinculados: z.array(z.string().uuid()).min(1, "O workflow deve ter ao menos 1 formulário"),
+  gestor_autorizador_id: z.string().uuid("Selecione um gestor autorizador"),
   observacoes_autorizacao: z.string().optional(),
-}).refine(
-  (data) => {
-    // Se workflow foi selecionada, gestor é obrigatório
-    if (data.workflow_id && !data.gestor_autorizador_id) {
-      return false;
-    }
-    return true;
-  },
-  {
-    message: "Selecione um gestor autorizador para a workflow escolhida",
-    path: ["gestor_autorizador_id"],
-  }
-);
+});
 
 type EditalFormValues = z.infer<typeof editalSchema>;
 
@@ -128,11 +117,21 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
         fieldsToValidate = ["participacao_permitida", "documentos_habilitacao"];
         break;
       case 3:
-        // Workflow é opcional, mas se selecionada, requer gestor autorizador
+        // Workflow e formulários são obrigatórios
         const workflowId = form.getValues("workflow_id");
-        if (workflowId) {
-          fieldsToValidate = ["gestor_autorizador_id"];
+        const formularios = form.getValues("formularios_vinculados");
+        
+        if (!workflowId) {
+          toast.error("⚠️ Selecione um modelo de workflow antes de continuar");
+          return;
         }
+        
+        if (!formularios || formularios.length === 0) {
+          toast.error("⚠️ O workflow selecionado não possui formulários válidos. Adicione formulários ao workflow no editor.");
+          return;
+        }
+        
+        fieldsToValidate = ["workflow_id", "gestor_autorizador_id", "formularios_vinculados"];
         break;
       case 4:
         // Anexos são opcionais
@@ -218,12 +217,13 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
         anexos: data.anexos,
         status: data.status,
         created_by: user.id,
-        // Campos de workflow
-        workflow_id: data.workflow_id || null,
-        workflow_version: data.workflow_version || null,
-        gestor_autorizador_id: data.gestor_autorizador_id || null,
+        // Campos de workflow (obrigatórios)
+        workflow_id: data.workflow_id,
+        workflow_version: data.workflow_version,
+        formularios_vinculados: data.formularios_vinculados,
+        gestor_autorizador_id: data.gestor_autorizador_id,
         observacoes_autorizacao: data.observacoes_autorizacao || null,
-        data_autorizacao: data.workflow_id ? new Date().toISOString() : null,
+        data_autorizacao: new Date().toISOString(),
       };
 
       if (editalId) {

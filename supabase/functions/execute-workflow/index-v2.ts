@@ -57,6 +57,32 @@ Deno.serve(async (req) => {
 
     console.log(`[EXECUTE_WORKFLOW_V2] Workflow: ${workflow.name} (${nodes.length} nós, ${edges.length} arestas)`);
 
+    // Sprint 5: Buscar edital e validar formulários vinculados (se inscricaoId fornecido)
+    if (inscricaoId) {
+      const { data: inscricao } = await supabaseClient
+        .from('inscricoes_edital')
+        .select('edital_id')
+        .eq('id', inscricaoId)
+        .single();
+
+      if (inscricao?.edital_id) {
+        const { data: edital } = await supabaseClient
+          .from('editais')
+          .select('formularios_vinculados, workflow_id, workflow_version')
+          .eq('id', inscricao.edital_id)
+          .single();
+
+        if (edital) {
+          if (!edital.formularios_vinculados || edital.formularios_vinculados.length === 0) {
+            console.warn('[EXECUTE_WORKFLOW_V2] ⚠️ Edital sem formulários vinculados');
+          } else {
+            console.log(`[EXECUTE_WORKFLOW_V2] ✅ Edital com ${edital.formularios_vinculados.length} formulário(s) vinculado(s)`);
+            inputData.formulariosDisponiveis = edital.formularios_vinculados;
+          }
+        }
+      }
+    }
+
     // Criar execução no banco
     const { data: execution, error: executionError } = await supabaseClient
       .from('workflow_executions')

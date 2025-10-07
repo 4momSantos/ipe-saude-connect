@@ -273,6 +273,7 @@ export type Database = {
           documentos_habilitacao: Json | null
           especialidade: string | null
           fonte_recursos: string | null
+          formularios_vinculados: Json | null
           garantia_execucao: number | null
           gestor_autorizador_id: string | null
           historico_alteracoes: Json | null
@@ -308,6 +309,7 @@ export type Database = {
           documentos_habilitacao?: Json | null
           especialidade?: string | null
           fonte_recursos?: string | null
+          formularios_vinculados?: Json | null
           garantia_execucao?: number | null
           gestor_autorizador_id?: string | null
           historico_alteracoes?: Json | null
@@ -343,6 +345,7 @@ export type Database = {
           documentos_habilitacao?: Json | null
           especialidade?: string | null
           fonte_recursos?: string | null
+          formularios_vinculados?: Json | null
           garantia_execucao?: number | null
           gestor_autorizador_id?: string | null
           historico_alteracoes?: Json | null
