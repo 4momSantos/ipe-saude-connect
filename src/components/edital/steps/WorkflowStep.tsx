@@ -41,9 +41,13 @@ interface FormularioVinculado {
 interface InscriptionTemplate {
   id: string;
   name: string;
-  description: string;
-  anexos_obrigatorios: any[];
-  campos_formulario: any[];
+  description: string | null;
+  anexos_obrigatorios: any; // JSONB from database
+  campos_formulario: any; // JSONB from database
+  is_active: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export function WorkflowStep({ form }: WorkflowStepProps) {
@@ -61,9 +65,10 @@ export function WorkflowStep({ form }: WorkflowStepProps) {
     loadInscriptionTemplates();
   }, []);
 
+  // Observar mudanças no workflow_id
+  const workflowId = form.watch("workflow_id");
   useEffect(() => {
-    const workflowId = form.watch("workflow_id");
-    if (workflowId) {
+    if (workflowId && workflows.length > 0) {
       const workflow = workflows.find(w => w.id === workflowId);
       if (workflow) {
         setSelectedWorkflow(workflow);
@@ -73,23 +78,27 @@ export function WorkflowStep({ form }: WorkflowStepProps) {
       setSelectedWorkflow(null);
       setFormulariosVinculados([]);
     }
-  }, [form.watch("workflow_id"), workflows]);
+  }, [workflowId, workflows]);
 
+  // Observar mudanças no template de inscrição
+  const templateId = form.watch("inscription_template_id");
   useEffect(() => {
-    const templateId = form.watch("inscription_template_id");
-    if (templateId) {
+    if (templateId && inscriptionTemplates.length > 0) {
       const template = inscriptionTemplates.find(t => t.id === templateId);
       if (template) {
         setSelectedTemplate(template);
-        // Passar anexos do template para o form
-        form.setValue("anexos_processo_esperados", template.anexos_obrigatorios);
-        console.log(`[WorkflowStep] ✅ Template selecionado: ${template.name} com ${template.anexos_obrigatorios.length} anexo(s)`);
+        // Garantir que anexos_obrigatorios é um array
+        const anexos = Array.isArray(template.anexos_obrigatorios) 
+          ? template.anexos_obrigatorios 
+          : [];
+        form.setValue("anexos_processo_esperados", anexos);
+        console.log(`[WorkflowStep] ✅ Template selecionado: ${template.name} com ${anexos.length} anexo(s)`);
       }
     } else {
       setSelectedTemplate(null);
       form.setValue("anexos_processo_esperados", []);
     }
-  }, [form.watch("inscription_template_id"), inscriptionTemplates]);
+  }, [templateId, inscriptionTemplates]);
 
   async function handleWorkflowChange(workflow: WorkflowOption) {
     try {
@@ -273,15 +282,15 @@ export function WorkflowStep({ form }: WorkflowStepProps) {
               <FileCheck className="h-5 w-5 text-green-600" />
               Template: {selectedTemplate.name}
             </CardTitle>
-            <CardDescription>{selectedTemplate.description}</CardDescription>
+            <CardDescription>{selectedTemplate.description || "Sem descrição"}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               <p className="text-sm font-medium">
-                📎 {selectedTemplate.anexos_obrigatorios.length} anexo(s) obrigatório(s)
+                📎 {Array.isArray(selectedTemplate.anexos_obrigatorios) ? selectedTemplate.anexos_obrigatorios.length : 0} anexo(s) obrigatório(s)
               </p>
               <p className="text-sm font-medium">
-                📝 {selectedTemplate.campos_formulario.length} campo(s) de formulário
+                📝 {Array.isArray(selectedTemplate.campos_formulario) ? selectedTemplate.campos_formulario.length : 0} campo(s) de formulário
               </p>
             </div>
           </CardContent>
