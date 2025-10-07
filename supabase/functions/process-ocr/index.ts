@@ -279,7 +279,7 @@ function parseDocumentText(
         }
       }
       
-      // CPF - Múltiplas tentativas
+      // CPF - Múltiplas tentativas com fallbacks refinados
       if (expectedFields.includes('cpf')) {
         let cpfMatch = normalizedText.match(/(?:CPF|REGISTRO\s+GERAL[\-\s]*CPF)[:\s]*(\d{3}\.?\d{3}\.?\d{3}[\-\.]?\d{2})/i);
         if (!cpfMatch) {
@@ -287,8 +287,25 @@ function parseDocumentText(
           cpfMatch = normalizedText.match(/\b(\d{3}\.\d{3}\.\d{3}[\-]\d{2})\b/);
         }
         if (!cpfMatch) {
-          // Fallback 2: Qualquer sequência de 11 dígitos com pontos e traço
-          const matches = normalizedText.match(/\b(\d{3}\.?\d{3}\.?\d{3}[\-\.]?\d{2})\b/g);
+          // Fallback 2: CPF próximo a "DATA DE NASCIMENTO" (comum no verso)
+          cpfMatch = normalizedText.match(/(?:DATA\s+DE\s+NASCIMENTO|NASCIMENTO|NASC)[\s\S]{0,100}?(\d{3}[\.\s]?\d{3}[\.\s]?\d{3}[\-\.\s]?\d{2})/i);
+        }
+        if (!cpfMatch) {
+          // Fallback 3: CPF após "NATURALIDADE" ou "FILIAÇÃO" (comum no verso)
+          cpfMatch = normalizedText.match(/(?:NATURALIDADE|FILIAÇÃO|FILIACAO|MÃE|PAI)[\s\S]{0,200}?(\d{3}[\.\s]?\d{3}[\.\s]?\d{3}[\-\.\s]?\d{2})/i);
+        }
+        if (!cpfMatch) {
+          // Fallback 4: CPF isolado em linha própria (com quebras de linha)
+          cpfMatch = text.match(/^\s*(\d{3}[\.\s]?\d{3}[\.\s]?\d{3}[\-\.\s]?\d{2})\s*$/m);
+        }
+        if (!cpfMatch) {
+          // Fallback 5: CPF no final do documento (últimas 300 caracteres - verso inferior direito)
+          const lastChars = normalizedText.slice(-300);
+          cpfMatch = lastChars.match(/\b(\d{3}[\.\s]?\d{3}[\.\s]?\d{3}[\-\.\s]?\d{2})\b/);
+        }
+        if (!cpfMatch) {
+          // Fallback 6: Qualquer sequência de 11 dígitos com pontos/traço/espaços
+          const matches = normalizedText.match(/\b(\d{3}[\.\s]?\d{3}[\.\s]?\d{3}[\-\.\s]?\d{2})\b/g);
           if (matches && matches.length > 0) {
             // Pegar o que tem exatamente 11 dígitos
             for (const match of matches) {
