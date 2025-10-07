@@ -42,6 +42,10 @@ export function mapWorkflowToEdital(workflow: any): WorkflowEditalMapping {
   console.log('[mapWorkflowToEdital] Workflow recebido:', workflow);
   console.log('[mapWorkflowToEdital] Total de nós:', workflow.nodes?.length || 0);
   
+  // Log todos os tipos de nós para debug
+  const nodeTypes = workflow.nodes?.map((n: any) => ({ id: n.id, type: n.type, data: n.data })) || [];
+  console.log('[mapWorkflowToEdital] TODOS os nós com seus tipos:', nodeTypes);
+  
   const formNodes = workflow.nodes?.filter((n: any) => n.type === 'form') || [];
   console.log('[mapWorkflowToEdital] Nós do tipo "form" encontrados:', formNodes.length);
   console.log('[mapWorkflowToEdital] Nós form:', formNodes.map((n: any) => ({ id: n.id, type: n.type, data: n.data })));
