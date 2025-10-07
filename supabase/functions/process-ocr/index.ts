@@ -426,18 +426,197 @@ function parseDocumentText(
       break;
 
     case 'cnpj':
-      if (expectedFields.includes('razao_social')) {
-        const razaoMatch = normalizedText.match(/(?:razão|razao|empresa)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?:\s+(?:cnpj|end))/i);
-        if (razaoMatch) data.razao_social = razaoMatch[1].trim();
-      }
+      console.log('[CNPJ] Starting CNPJ field extraction...');
+      
+      // CNPJ - formato XX.XXX.XXX/XXXX-XX
       if (expectedFields.includes('cnpj')) {
-        const cnpjMatch = normalizedText.match(/([0-9]{2}[.\-\/]?[0-9]{3}[.\-\/]?[0-9]{3}[.\-\/]?[0-9]{4}[.\-\/]?[0-9]{2})/);
-        if (cnpjMatch) data.cnpj = cnpjMatch[1];
+        const cnpjMatch = normalizedText.match(/(\d{2}\.?\d{3}\.?\d{3}\/?\d{4}[\-\.]?\d{2})/);
+        if (cnpjMatch) {
+          data.cnpj = cnpjMatch[1].replace(/[^\d]/g, '');
+          console.log(`[CNPJ] ✓ CNPJ found: ${data.cnpj}`);
+        } else {
+          console.log('[CNPJ] ✗ CNPJ not found');
+        }
       }
-      if (expectedFields.includes('endereco')) {
-        const endMatch = normalizedText.match(/(?:endereço|endereco|rua|av)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ0-9\s,.-]+?)(?:\s+(?:cep|cidade|estado))/i);
-        if (endMatch) data.endereco = endMatch[1].trim();
+      
+      // Razão Social
+      if (expectedFields.includes('razao_social')) {
+        let razaoMatch = normalizedText.match(/(?:RAZAO\s*SOCIAL|NOME\s*EMPRESARIAL)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ0-9\s&\-\.]+?)(?=\s*(?:NOME\s*FANTASIA|CNPJ|CNAE|SITUACAO|ENDERECO|\n\n))/i);
+        if (razaoMatch) {
+          data.razao_social = razaoMatch[1].trim();
+          console.log(`[CNPJ] ✓ Razão Social found: ${data.razao_social}`);
+        } else {
+          console.log('[CNPJ] ✗ Razão Social not found');
+        }
       }
+      
+      // Nome Fantasia
+      if (expectedFields.includes('nome_fantasia')) {
+        const fantasiaMatch = normalizedText.match(/(?:NOME\s*FANTASIA|FANTASIA)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ0-9\s&\-\.]+?)(?=\s*(?:CNPJ|CNAE|SITUACAO|ENDERECO|\n\n))/i);
+        if (fantasiaMatch) {
+          data.nome_fantasia = fantasiaMatch[1].trim();
+          console.log(`[CNPJ] ✓ Nome Fantasia found: ${data.nome_fantasia}`);
+        }
+      }
+      
+      // Tipo de Empresa (MEI, LTDA, SA, EIRELI)
+      if (expectedFields.includes('tipo_empresa')) {
+        const tipoMatch = normalizedText.match(/\b(MEI|LTDA|S\.?A\.?|EIRELI|EPP|ME)\b/i);
+        if (tipoMatch) {
+          data.tipo_empresa = tipoMatch[1].toUpperCase();
+          console.log(`[CNPJ] ✓ Tipo Empresa found: ${data.tipo_empresa}`);
+        }
+      }
+      
+      // Situação Cadastral
+      if (expectedFields.includes('situacao_cadastral')) {
+        const situacaoMatch = normalizedText.match(/(?:SITUACAO\s*CADASTRAL)[:\s]+(ATIVA|SUSPENSA|INAPTA|BAIXADA|NULA)/i);
+        if (situacaoMatch) {
+          data.situacao_cadastral = situacaoMatch[1].toUpperCase();
+          console.log(`[CNPJ] ✓ Situação Cadastral found: ${data.situacao_cadastral}`);
+        }
+      }
+      
+      // Data de Abertura
+      if (expectedFields.includes('data_abertura')) {
+        const dataAberturaMatch = normalizedText.match(/(?:DATA\s*(?:DE\s*)?ABERTURA|INICIO\s*ATIVIDADE)[:\s]+(\d{2}\/\d{2}\/\d{4})/i);
+        if (dataAberturaMatch) {
+          data.data_abertura = dataAberturaMatch[1];
+          console.log(`[CNPJ] ✓ Data Abertura found: ${data.data_abertura}`);
+        }
+      }
+      
+      // CNAE Principal
+      if (expectedFields.includes('cnae_principal')) {
+        const cnaeMatch = normalizedText.match(/(?:CNAE\s*PRINCIPAL|ATIVIDADE\s*PRINCIPAL)[:\s]+(\d{4}[\-\/]\d[\-\/]\d{2})\s*[\-\s]*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][^(\n]{10,100})/i);
+        if (cnaeMatch) {
+          data.cnae_principal = `${cnaeMatch[1]} - ${cnaeMatch[2].trim()}`;
+          console.log(`[CNPJ] ✓ CNAE Principal found: ${data.cnae_principal}`);
+        }
+      }
+      
+      // CNAEs Secundários
+      if (expectedFields.includes('cnaes_secundarios')) {
+        const cnaesSecMatch = normalizedText.match(/(?:CNAE\s*SECUNDAR[IÍ]|ATIVIDADE\s*SECUNDAR)[:\s]+(.+?)(?=\s*(?:ENDERECO|CAPITAL|PORTE|NATUREZA|\n\n))/is);
+        if (cnaesSecMatch) {
+          const cnaes = cnaesSecMatch[1]
+            .match(/\d{4}[\-\/]\d[\-\/]\d{2}\s*[\-\s]*[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][^\n]{10,100}/gi);
+          if (cnaes) {
+            data.cnaes_secundarios = cnaes.map(c => c.trim());
+            console.log(`[CNPJ] ✓ CNAEs Secundários found: ${data.cnaes_secundarios.length} items`);
+          }
+        }
+      }
+      
+      // Logradouro
+      if (expectedFields.includes('logradouro')) {
+        const logradouroMatch = normalizedText.match(/(?:LOGRADOURO|ENDERECO)[:\s]+((?:RUA|AVENIDA|AV|ALAMEDA|TRAVESSA|PRACA|ROD)[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s\.]+?)(?=\s*(?:NUMERO|N[UÚ]MERO|,\s*\d|\d+))/i);
+        if (logradouroMatch) {
+          data.logradouro = logradouroMatch[1].trim();
+          console.log(`[CNPJ] ✓ Logradouro found: ${data.logradouro}`);
+        }
+      }
+      
+      // Número
+      if (expectedFields.includes('numero')) {
+        const numeroMatch = normalizedText.match(/(?:NUMERO|N[UÚ]MERO)[:\s]+(\d+|S\/N)/i);
+        if (numeroMatch) {
+          data.numero = numeroMatch[1];
+          console.log(`[CNPJ] ✓ Número found: ${data.numero}`);
+        }
+      }
+      
+      // Complemento
+      if (expectedFields.includes('complemento')) {
+        const complementoMatch = normalizedText.match(/(?:COMPLEMENTO)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ0-9\s]+?)(?=\s*(?:BAIRRO|CEP|MUNICIPIO))/i);
+        if (complementoMatch) {
+          data.complemento = complementoMatch[1].trim();
+          console.log(`[CNPJ] ✓ Complemento found: ${data.complemento}`);
+        }
+      }
+      
+      // Bairro
+      if (expectedFields.includes('bairro')) {
+        const bairroMatch = normalizedText.match(/(?:BAIRRO|DISTRITO)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s*(?:MUNICIPIO|CIDADE|CEP))/i);
+        if (bairroMatch) {
+          data.bairro = bairroMatch[1].trim();
+          console.log(`[CNPJ] ✓ Bairro found: ${data.bairro}`);
+        }
+      }
+      
+      // Município
+      if (expectedFields.includes('municipio')) {
+        const municipioMatch = normalizedText.match(/(?:MUNICIPIO|CIDADE)[:\s]+([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]+?)(?=\s*(?:UF|ESTADO|CEP))/i);
+        if (municipioMatch) {
+          data.municipio = municipioMatch[1].trim();
+          console.log(`[CNPJ] ✓ Município found: ${data.municipio}`);
+        }
+      }
+      
+      // UF
+      if (expectedFields.includes('uf')) {
+        const ufMatch = normalizedText.match(/(?:UF|ESTADO)[:\s]+([A-Z]{2})\b/i);
+        if (ufMatch) {
+          data.uf = ufMatch[1].toUpperCase();
+          console.log(`[CNPJ] ✓ UF found: ${data.uf}`);
+        }
+      }
+      
+      // CEP
+      if (expectedFields.includes('cep')) {
+        const cepMatch = normalizedText.match(/(?:CEP)[:\s]+(\d{5}[\-\.]?\d{3})/i);
+        if (cepMatch) {
+          data.cep = cepMatch[1].replace(/[^\d]/g, '');
+          console.log(`[CNPJ] ✓ CEP found: ${data.cep}`);
+        }
+      }
+      
+      // Capital Social
+      if (expectedFields.includes('capital_social')) {
+        const capitalMatch = normalizedText.match(/(?:CAPITAL\s*SOCIAL)[:\s]+R?\$?\s*([\d\.,]+)/i);
+        if (capitalMatch) {
+          data.capital_social = capitalMatch[1].replace(/\./g, '').replace(',', '.');
+          console.log(`[CNPJ] ✓ Capital Social found: ${data.capital_social}`);
+        }
+      }
+      
+      // Porte
+      if (expectedFields.includes('porte')) {
+        const porteMatch = normalizedText.match(/(?:PORTE)[:\s]+(MEI|ME|EPP|DEMAIS)/i);
+        if (porteMatch) {
+          data.porte = porteMatch[1].toUpperCase();
+          console.log(`[CNPJ] ✓ Porte found: ${data.porte}`);
+        }
+      }
+      
+      // Natureza Jurídica
+      if (expectedFields.includes('natureza_juridica')) {
+        const naturezaMatch = normalizedText.match(/(?:NATUREZA\s*JUR[IÍ]DICA)[:\s]+(\d{3}[\-\/]\d)\s*[\-\s]*([A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ][^\n]{10,80})/i);
+        if (naturezaMatch) {
+          data.natureza_juridica = `${naturezaMatch[1]} - ${naturezaMatch[2].trim()}`;
+          console.log(`[CNPJ] ✓ Natureza Jurídica found: ${data.natureza_juridica}`);
+        }
+      }
+      
+      // Email
+      if (expectedFields.includes('email')) {
+        const emailMatch = normalizedText.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z]{2,})/i);
+        if (emailMatch) {
+          data.email = emailMatch[1].toLowerCase();
+          console.log(`[CNPJ] ✓ Email found: ${data.email}`);
+        }
+      }
+      
+      // Telefone
+      if (expectedFields.includes('telefone')) {
+        const telefoneMatch = normalizedText.match(/(?:TELEFONE|FONE|TEL)[:\s]*(\(?\d{2}\)?\s*\d{4,5}[\-\s]?\d{4})/i);
+        if (telefoneMatch) {
+          data.telefone = telefoneMatch[1].replace(/[^\d]/g, '');
+          console.log(`[CNPJ] ✓ Telefone found: ${data.telefone}`);
+        }
+      }
+      
+      console.log(`[CNPJ] Extraction complete. Fields found: ${Object.keys(data).length}`);
       break;
 
     case 'comprovante_endereco':
