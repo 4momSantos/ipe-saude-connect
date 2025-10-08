@@ -57,6 +57,17 @@ export interface LoopNodeConfig {
 }
 
 /**
+ * Métricas de performance por iteração
+ */
+export interface IterationMetrics {
+  index: number;
+  startTime: number;
+  endTime: number;
+  duration: number;
+  success: boolean;
+}
+
+/**
  * Output do Loop Node
  */
 export interface LoopNodeOutput {
@@ -68,10 +79,14 @@ export interface LoopNodeOutput {
     error: string;
     retryCount?: number;
   }>;
+  metrics?: IterationMetrics[];
   stats: {
     successCount: number;
     failureCount: number;
     totalTime: number;
     avgTime: number;
+    minTime?: number;
+    maxTime?: number;
+    p95Time?: number;
   };
 }

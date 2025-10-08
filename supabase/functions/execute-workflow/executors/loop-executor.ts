@@ -1,5 +1,6 @@
 /**
  * Loop Executor - Processa arrays de items sequencialmente ou em paralelo
+ * FASE 2: Event-driven concurrency, métricas detalhadas, checkpoints paralelos, timeout com cancelamento
  */
 
 import {
@@ -9,28 +10,59 @@ import {
   NodeExecutionResult,
   LoopNodeConfig,
   LoopNodeOutput,
+  IterationMetrics,
 } from './types.ts';
 
 /**
- * Classe auxiliar para limitar concorrência
+ * Helper class para controlar concorrência em execução paralela
+ * Event-driven (sem busy-waiting) para melhor performance de CPU
  */
 class ConcurrencyLimiter {
-  private queue: Array<() => Promise<any>> = [];
+  private queue: Array<{
+    fn: () => Promise<any>;
+    resolve: (value: any) => void;
+    reject: (error: any) => void;
+  }> = [];
   private running = 0;
+  private maxConcurrency: number;
 
-  constructor(private maxConcurrency: number) {}
+  constructor(maxConcurrency: number) {
+    this.maxConcurrency = maxConcurrency;
+  }
 
   async add<T>(fn: () => Promise<T>): Promise<T> {
-    while (this.running >= this.maxConcurrency) {
-      await new Promise((resolve) => setTimeout(resolve, 10));
+    return new Promise((resolve, reject) => {
+      this.queue.push({ fn, resolve, reject });
+      this.processQueue();
+    });
+  }
+
+  private async processQueue() {
+    if (this.running >= this.maxConcurrency || this.queue.length === 0) {
+      return;
     }
 
+    const task = this.queue.shift()!;
     this.running++;
+
     try {
-      return await fn();
+      const result = await task.fn();
+      task.resolve(result);
+    } catch (error) {
+      task.reject(error);
     } finally {
       this.running--;
+      this.processQueue();
     }
+  }
+
+  getQueueSize(): number {
+    return this.queue.length;
+  }
+
+  clear(): void {
+    this.queue = [];
+    this.running = 0;
   }
 }
 
@@ -62,7 +94,6 @@ export class LoopExecutor implements NodeExecutor {
     // Resolver items
     let items: any[];
     if (typeof config.items === 'string') {
-      // Expressão - será resolvido pelo ContextManager
       const resolved = this.resolveExpression(config.items, context);
       items = Array.isArray(resolved) ? resolved : [];
     } else {
@@ -94,30 +125,30 @@ export class LoopExecutor implements NodeExecutor {
     if (executionMode === 'parallel') {
       output = await this.executeParallel(
         items,
+        supabaseClient,
+        executionId,
+        stepExecutionId,
+        node,
+        context,
         itemVariable,
         indexVariable,
         continueOnError,
         maxConcurrency,
         iterationTimeout,
-        checkpointEvery,
-        context,
-        supabaseClient,
-        executionId,
-        stepExecutionId,
-        node
+        checkpointEvery
       );
     } else {
       output = await this.executeSequential(
         items,
-        itemVariable,
-        indexVariable,
-        continueOnError,
-        checkpointEvery,
-        context,
         supabaseClient,
         executionId,
         stepExecutionId,
-        node
+        node,
+        context,
+        itemVariable,
+        indexVariable,
+        continueOnError,
+        checkpointEvery
       );
     }
 
@@ -139,24 +170,25 @@ export class LoopExecutor implements NodeExecutor {
    */
   private async executeSequential(
     items: any[],
-    itemVariable: string,
-    indexVariable: string,
-    continueOnError: boolean,
-    checkpointEvery: number,
-    context: ExecutionContext,
     supabaseClient: any,
     executionId: string,
     stepExecutionId: string,
-    node: WorkflowNode
+    node: WorkflowNode,
+    context: ExecutionContext,
+    itemVariable: string,
+    indexVariable: string,
+    continueOnError: boolean,
+    checkpointEvery: number
   ): Promise<LoopNodeOutput> {
     const results: any[] = [];
     const successResults: any[] = [];
     const errors: LoopNodeOutput['errors'] = [];
-    let successCount = 0;
-    let failureCount = 0;
+    const metrics: IterationMetrics[] = [];
 
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
+      const startTime = Date.now();
+      let success = false;
 
       try {
         // Criar contexto isolado para esta iteração
@@ -179,7 +211,7 @@ export class LoopExecutor implements NodeExecutor {
 
         results.push(result);
         successResults.push(result);
-        successCount++;
+        success = true;
 
         // Checkpoint periódico
         if ((i + 1) % checkpointEvery === 0) {
@@ -190,11 +222,10 @@ export class LoopExecutor implements NodeExecutor {
             node.id,
             i + 1,
             items.length,
-            results
+            successResults
           );
         }
       } catch (error: any) {
-        failureCount++;
         const errorInfo = {
           index: i,
           item,
@@ -210,48 +241,73 @@ export class LoopExecutor implements NodeExecutor {
           console.log('[LoopExecutor] Interrompendo loop devido a erro');
           break;
         }
+      } finally {
+        const endTime = Date.now();
+        metrics.push({
+          index: i,
+          startTime,
+          endTime,
+          duration: endTime - startTime,
+          success,
+        });
       }
     }
+
+    // Calcular estatísticas
+    const durations = metrics.map(m => m.duration).sort((a, b) => a - b);
 
     return {
       results,
       successResults,
       errors,
+      metrics,
       stats: {
-        successCount,
-        failureCount,
+        successCount: successResults.length,
+        failureCount: errors.length,
         totalTime: 0, // Será preenchido no execute()
         avgTime: 0,
+        minTime: durations.length > 0 ? durations[0] : undefined,
+        maxTime: durations.length > 0 ? durations[durations.length - 1] : undefined,
+        p95Time: durations.length > 0 
+          ? durations[Math.floor(durations.length * 0.95)] 
+          : undefined,
       },
     };
   }
 
   /**
-   * Execução paralela (múltiplos items simultaneamente)
+   * Execução paralela dos items com métricas e checkpoints
    */
   private async executeParallel(
     items: any[],
+    supabaseClient: any,
+    executionId: string,
+    stepExecutionId: string,
+    node: WorkflowNode,
+    context: ExecutionContext,
     itemVariable: string,
     indexVariable: string,
     continueOnError: boolean,
     maxConcurrency: number,
     iterationTimeout: number,
-    checkpointEvery: number,
-    context: ExecutionContext,
-    supabaseClient: any,
-    executionId: string,
-    stepExecutionId: string,
-    node: WorkflowNode
+    checkpointEvery: number
   ): Promise<LoopNodeOutput> {
     const limiter = new ConcurrencyLimiter(maxConcurrency);
-    const results: any[] = new Array(items.length).fill(null);
+    const results: any[] = [];
     const successResults: any[] = [];
-    const errors: LoopNodeOutput['errors'] = [];
-    let successCount = 0;
-    let failureCount = 0;
+    const errors: any[] = [];
+    const metrics: IterationMetrics[] = [];
+    
+    let completedCount = 0;
+    const checkpointLock = { mutex: false };
+
+    console.log(`[LOOP] Executando ${items.length} items em paralelo (max concurrency: ${maxConcurrency})`);
 
     const promises = items.map((item, i) =>
       limiter.add(async () => {
+        const iterStartTime = Date.now();
+        let success = false;
+
         try {
           const iterationContext = this.createIterationContext(
             context,
@@ -262,51 +318,110 @@ export class LoopExecutor implements NodeExecutor {
           );
 
           const result = await this.executeWithTimeout(
-            () =>
-              this.executeLoopBody(
-                iterationContext,
-                supabaseClient,
-                executionId,
-                stepExecutionId,
-                node
-              ),
+            (signal) => this.executeLoopBody(
+              iterationContext,
+              supabaseClient,
+              executionId,
+              stepExecutionId,
+              node,
+              signal
+            ),
             iterationTimeout
           );
 
           results[i] = result;
           successResults.push(result);
-          successCount++;
+          success = true;
+
+          // Incrementar contador de forma thread-safe
+          completedCount++;
+
+          // Checkpoint periódico
+          if (completedCount % checkpointEvery === 0) {
+            // Adquirir lock simples
+            while (checkpointLock.mutex) {
+              await new Promise(r => setTimeout(r, 10));
+            }
+            checkpointLock.mutex = true;
+
+            try {
+              await this.saveIntermediateCheckpoint(
+                supabaseClient,
+                executionId,
+                stepExecutionId,
+                node.id,
+                completedCount,
+                items.length,
+                successResults
+              );
+              console.log(`[LOOP] Checkpoint salvo: ${completedCount}/${items.length} completados`);
+            } finally {
+              checkpointLock.mutex = false;
+            }
+          }
+
         } catch (error: any) {
-          failureCount++;
+          const errorMsg = error.message || String(error);
+          console.error(`[LOOP] Erro no item ${i}:`, errorMsg);
+
           errors.push({
             index: i,
             item,
-            error: error.message || String(error),
-            retryCount: 0,
+            error: errorMsg,
           });
 
-          console.error(`[LoopExecutor] Erro na iteração paralela ${i}:`, error.message);
-
           if (!continueOnError) {
-            throw error;
+            throw new Error(
+              `Loop falhou no item ${i}: ${errorMsg}`
+            );
           }
+        } finally {
+          const iterEndTime = Date.now();
+          metrics.push({
+            index: i,
+            startTime: iterStartTime,
+            endTime: iterEndTime,
+            duration: iterEndTime - iterStartTime,
+            success
+          });
         }
       })
     );
 
     await Promise.all(promises);
 
-    return {
+    // Calcular estatísticas detalhadas
+    const durations = metrics.map(m => m.duration).sort((a, b) => a - b);
+    const avgTime = durations.length > 0 
+      ? durations.reduce((a, b) => a + b, 0) / durations.length 
+      : 0;
+
+    const output: LoopNodeOutput = {
       results,
       successResults,
       errors,
+      metrics,
       stats: {
-        successCount,
-        failureCount,
-        totalTime: 0,
-        avgTime: 0,
+        successCount: successResults.length,
+        failureCount: errors.length,
+        totalTime: 0, // Será preenchido no execute()
+        avgTime,
+        minTime: durations.length > 0 ? durations[0] : undefined,
+        maxTime: durations.length > 0 ? durations[durations.length - 1] : undefined,
+        p95Time: durations.length > 0 
+          ? durations[Math.floor(durations.length * 0.95)] 
+          : undefined
       },
     };
+
+    console.log(`[LOOP] Paralelo concluído: ${output.stats.successCount} sucessos, ${output.stats.failureCount} falhas`);
+    console.log(`[LOOP] Performance: avg=${avgTime.toFixed(0)}ms, min=${output.stats.minTime}ms, max=${output.stats.maxTime}ms, p95=${output.stats.p95Time}ms`);
+
+    if (errors.length > 0 && !continueOnError) {
+      throw new Error(`Loop paralelo falhou com ${errors.length} erros`);
+    }
+
+    return output;
   }
 
   /**
@@ -330,34 +445,48 @@ export class LoopExecutor implements NodeExecutor {
 
   /**
    * Executar o corpo do loop (stub por enquanto)
-   * Na Fase 3, isso será integrado com o orchestrator para executar sub-workflows
+   * FASE 3: Será integrado com orchestrator para executar sub-workflows
    */
   private async executeLoopBody(
     iterationContext: ExecutionContext,
     supabaseClient: any,
     executionId: string,
     stepExecutionId: string,
-    node: WorkflowNode
+    node: WorkflowNode,
+    signal?: AbortSignal
   ): Promise<any> {
-    // STUB: Por enquanto, apenas retorna os dados da iteração
-    // Na Fase 3, isso executará o subworkflow definido em loopBody
-    console.log(
-      `[LoopExecutor] Executando loop body para item:`,
-      iterationContext.loop
-    );
+    // Checar se operação foi cancelada
+    if (signal?.aborted) {
+      throw new Error('Operation aborted by timeout');
+    }
 
-    // Simular processamento
-    await new Promise((resolve) => setTimeout(resolve, 10));
-
+    // STUB: Simula processamento
+    // Na Fase 3, aqui será executado o sub-workflow definido em loopBody
+    
+    console.log(`[LOOP] Executando iteração para item:`, iterationContext.loop);
+    
+    // Simular processamento async com suporte a cancelamento
+    await new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(resolve, Math.random() * 100);
+      
+      if (signal) {
+        signal.addEventListener('abort', () => {
+          clearTimeout(timeoutId);
+          reject(new Error('Operation aborted'));
+        });
+      }
+    });
+    
     return {
       processed: true,
       item: iterationContext.loop,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date().toISOString()
     };
   }
 
   /**
-   * Salvar checkpoint intermediário (stub)
+   * Salvar checkpoint intermediário
+   * FASE 3: Será integrado com workflow_checkpoints table
    */
   private async saveIntermediateCheckpoint(
     supabaseClient: any,
@@ -377,18 +506,29 @@ export class LoopExecutor implements NodeExecutor {
   }
 
   /**
-   * Executar com timeout
+   * Executar promise com timeout e cancelamento real via AbortController
    */
   private async executeWithTimeout<T>(
-    fn: () => Promise<T>,
+    fn: (signal?: AbortSignal) => Promise<T>,
     timeoutMs: number
   ): Promise<T> {
-    return Promise.race([
-      fn(),
-      new Promise<T>((_, reject) =>
-        setTimeout(() => reject(new Error(`Timeout após ${timeoutMs}ms`)), timeoutMs)
-      ),
-    ]);
+    const controller = new AbortController();
+    
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, timeoutMs);
+    
+    try {
+      const result = await fn(controller.signal);
+      clearTimeout(timeoutId);
+      return result;
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+        throw new Error(`Timeout após ${timeoutMs}ms`);
+      }
+      throw error;
+    }
   }
 
   /**
