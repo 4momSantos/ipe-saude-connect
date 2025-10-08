@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      analises: {
+        Row: {
+          analisado_em: string | null
+          analista_id: string | null
+          created_at: string | null
+          documentos_analisados: Json | null
+          id: string
+          inscricao_id: string
+          motivo_reprovacao: string | null
+          parecer: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          analisado_em?: string | null
+          analista_id?: string | null
+          created_at?: string | null
+          documentos_analisados?: Json | null
+          id?: string
+          inscricao_id: string
+          motivo_reprovacao?: string | null
+          parecer?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          analisado_em?: string | null
+          analista_id?: string | null
+          created_at?: string | null
+          documentos_analisados?: Json | null
+          id?: string
+          inscricao_id?: string
+          motivo_reprovacao?: string | null
+          parecer?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analises_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: true
+            referencedRelation: "inscricoes_edital"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_notifications: {
         Row: {
           created_at: string | null
@@ -100,6 +147,116 @@ export type Database = {
           user_role?: string | null
         }
         Relationships: []
+      }
+      certificados: {
+        Row: {
+          created_at: string | null
+          credenciado_id: string
+          dados_certificado: Json | null
+          documento_url: string | null
+          emitido_em: string | null
+          id: string
+          numero_certificado: string
+          status: string
+          tipo: string
+          updated_at: string | null
+          valido_ate: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credenciado_id: string
+          dados_certificado?: Json | null
+          documento_url?: string | null
+          emitido_em?: string | null
+          id?: string
+          numero_certificado: string
+          status?: string
+          tipo?: string
+          updated_at?: string | null
+          valido_ate?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credenciado_id?: string
+          dados_certificado?: Json | null
+          documento_url?: string | null
+          emitido_em?: string | null
+          id?: string
+          numero_certificado?: string
+          status?: string
+          tipo?: string
+          updated_at?: string | null
+          valido_ate?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificados_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contratos: {
+        Row: {
+          analise_id: string
+          assinado_em: string | null
+          created_at: string | null
+          dados_contrato: Json | null
+          documento_url: string | null
+          gerado_em: string | null
+          id: string
+          inscricao_id: string
+          numero_contrato: string | null
+          status: string
+          tipo: string
+          updated_at: string | null
+        }
+        Insert: {
+          analise_id: string
+          assinado_em?: string | null
+          created_at?: string | null
+          dados_contrato?: Json | null
+          documento_url?: string | null
+          gerado_em?: string | null
+          id?: string
+          inscricao_id: string
+          numero_contrato?: string | null
+          status?: string
+          tipo?: string
+          updated_at?: string | null
+        }
+        Update: {
+          analise_id?: string
+          assinado_em?: string | null
+          created_at?: string | null
+          dados_contrato?: Json | null
+          documento_url?: string | null
+          gerado_em?: string | null
+          id?: string
+          inscricao_id?: string
+          numero_contrato?: string | null
+          status?: string
+          tipo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contratos_analise_id_fkey"
+            columns: ["analise_id"]
+            isOneToOne: false
+            referencedRelation: "analises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: true
+            referencedRelation: "inscricoes_edital"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       credenciado_crms: {
         Row: {
