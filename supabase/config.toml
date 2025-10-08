@@ -42,3 +42,15 @@ verify_jwt = false
 [functions.process-workflow-queue]
 verify_jwt = false
 
+[functions.assinafy-webhook-finalizacao]
+verify_jwt = false
+
+[functions.enviar-inscricao]
+verify_jwt = true
+
+[functions.analisar-inscricao]
+verify_jwt = true
+
+[functions.gerar-contrato-assinatura]
+verify_jwt = true
+
