@@ -873,6 +873,7 @@ export type Database = {
           created_at: string | null
           document_url: string | null
           external_id: string | null
+          external_status: string | null
           id: string
           metadata: Json | null
           provider: string
@@ -887,6 +888,7 @@ export type Database = {
           created_at?: string | null
           document_url?: string | null
           external_id?: string | null
+          external_status?: string | null
           id?: string
           metadata?: Json | null
           provider?: string
@@ -901,6 +903,7 @@ export type Database = {
           created_at?: string | null
           document_url?: string | null
           external_id?: string | null
+          external_status?: string | null
           id?: string
           metadata?: Json | null
           provider?: string

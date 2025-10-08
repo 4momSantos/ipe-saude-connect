@@ -1,3 +1,15 @@
+/**
+ * Edge Function: send-signature-request
+ * Cria documento de assinatura na Assinafy e registra no sistema.
+ * 
+ * Features:
+ * - Retry com backoff exponencial (3 tentativas)
+ * - Logs estruturados em JSON
+ * - Modo DEV com auto-simulação
+ * - Validação robusta de resposta da API
+ * - Tratamento de erros detalhado
+ */
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
 
@@ -17,16 +29,16 @@ interface AssignafyCreateDocumentRequest {
   message?: string;
 }
 
-interface AssignafyResponse {
-  status: number;
-  message: string;
-  data: {
-    document_id?: string;
-    signature_url?: string;
-    [key: string]: any;
-  };
+interface AssignafyDocumentResponse {
+  id: string;
+  status: string;
+  signature_url?: string;
+  [key: string]: any;
 }
 
+/**
+ * Envia email usando Resend API
+ */
 async function sendEmail(to: string[], subject: string, html: string, apiKey: string) {
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -44,32 +56,104 @@ async function sendEmail(to: string[], subject: string, html: string, apiKey: st
 
   if (!response.ok) {
     const error = await response.text();
-    console.error("Resend API error:", error);
+    console.error(JSON.stringify({ level: "error", service: "resend", status: response.status, error }));
     throw new Error(`Failed to send email: ${response.status}`);
   }
 
   return await response.json();
 }
 
-async function createAssignafyDocument(
+/**
+ * Cria documento na Assinafy com retry e backoff exponencial
+ */
+async function createAssignafyDocumentWithRetry(
   apiKey: string,
-  documentData: AssignafyCreateDocumentRequest
-): Promise<AssignafyResponse> {
-  const response = await fetch("https://api.assinafy.com.br/v1/documents", {
-    method: "POST",
-    headers: {
-      "X-Api-Key": apiKey,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(documentData),
-  });
+  documentData: AssignafyCreateDocumentRequest,
+  maxAttempts: number = 3
+): Promise<AssignafyDocumentResponse> {
+  let lastError: Error | null = null;
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Assinafy API error: ${response.status} - ${errorText}`);
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      console.log(JSON.stringify({
+        level: "info",
+        service: "assinafy",
+        action: "create_document",
+        attempt,
+        maxAttempts,
+        payload: documentData
+      }));
+
+      const response = await fetch("https://api.assinafy.com.br/v1/documents", {
+        method: "POST",
+        headers: {
+          "X-Api-Key": apiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(documentData),
+      });
+
+      const responseText = await response.text();
+      
+      console.log(JSON.stringify({
+        level: response.ok ? "info" : "error",
+        service: "assinafy",
+        action: "create_document_response",
+        attempt,
+        status: response.status,
+        statusText: response.statusText,
+        response: responseText
+      }));
+
+      if (!response.ok) {
+        throw new Error(`Assinafy API error: ${response.status} - ${responseText}`);
+      }
+
+      const data = JSON.parse(responseText);
+      
+      // Validar resposta
+      if (!data || !data.id) {
+        throw new Error("Invalid Assinafy response: missing document ID");
+      }
+
+      console.log(JSON.stringify({
+        level: "info",
+        service: "assinafy",
+        action: "document_created",
+        documentId: data.id,
+        attempt
+      }));
+
+      return data;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      
+      console.error(JSON.stringify({
+        level: "error",
+        service: "assinafy",
+        action: "create_document_failed",
+        attempt,
+        maxAttempts,
+        error: lastError.message,
+        willRetry: attempt < maxAttempts
+      }));
+
+      if (attempt < maxAttempts) {
+        // Backoff exponencial: 1s, 2s, 4s
+        const delayMs = 1000 * Math.pow(2, attempt - 1);
+        console.log(JSON.stringify({
+          level: "info",
+          service: "assinafy",
+          action: "retry_delay",
+          delayMs,
+          nextAttempt: attempt + 1
+        }));
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
   }
 
-  return await response.json();
+  throw new Error(`Assinafy integration failed after ${maxAttempts} attempts: ${lastError?.message}`);
 }
 
 serve(async (req) => {
@@ -77,13 +161,33 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const requestId = crypto.randomUUID();
+  console.log(JSON.stringify({
+    level: "info",
+    requestId,
+    action: "request_start",
+    method: req.method
+  }));
+
   try {
+    // Configuração
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const resendApiKey = Deno.env.get("RESEND_API_KEY")!;
+    const assifafyApiKey = Deno.env.get("ASSINAFY_API_KEY");
+    const DEV_MODE = Deno.env.get("ENVIRONMENT") !== "production";
+    
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { signatureRequestId } = await req.json();
+
+    console.log(JSON.stringify({
+      level: "info",
+      requestId,
+      action: "processing_signature_request",
+      signatureRequestId,
+      devMode: DEV_MODE
+    }));
 
     // Buscar dados da signature request
     const { data: signatureRequest, error: requestError } = await supabase
@@ -92,19 +196,14 @@ serve(async (req) => {
         *,
         workflow_execution:workflow_executions (
           id,
-          started_by,
-          workflow:workflows (name)
-        ),
-        step_execution:workflow_step_executions (
-          id,
-          node_id
+          started_by
         )
       `)
       .eq("id", signatureRequestId)
       .single();
 
     if (requestError || !signatureRequest) {
-      throw new Error("Signature request not found");
+      throw new Error(`Signature request not found: ${requestError?.message || "unknown"}`);
     }
 
     // Buscar dados da inscrição relacionada
@@ -125,68 +224,185 @@ serve(async (req) => {
     const inscricaoData = execution?.inscricao as any;
     const candidato = inscricaoData?.candidato;
 
-    // Integração com Assinafy
+    // ====== MODO DESENVOLVIMENTO ======
+    if (DEV_MODE) {
+      console.log(JSON.stringify({
+        level: "info",
+        requestId,
+        action: "dev_mode_simulation",
+        message: "Simulando assinatura automática em 10 segundos"
+      }));
+
+      // Atualizar para enviado
+      await supabase
+        .from("signature_requests")
+        .update({
+          status: "sent",
+          external_status: "dev_mode_simulated",
+          metadata: {
+            ...signatureRequest.metadata,
+            dev_mode: true,
+            simulated_at: new Date().toISOString(),
+          }
+        })
+        .eq("id", signatureRequestId);
+
+      // Agendar callback simulado
+      setTimeout(async () => {
+        console.log(JSON.stringify({
+          level: "info",
+          requestId,
+          action: "dev_mode_auto_complete",
+          signatureRequestId
+        }));
+
+        await supabase
+          .from("signature_requests")
+          .update({
+            status: "signed",
+            external_status: "document.signed",
+            completed_at: new Date().toISOString(),
+            metadata: {
+              ...signatureRequest.metadata,
+              dev_mode: true,
+              auto_signed_at: new Date().toISOString(),
+            }
+          })
+          .eq("id", signatureRequestId);
+
+        // Atualizar step execution
+        if (signatureRequest.step_execution_id) {
+          await supabase
+            .from("workflow_step_executions")
+            .update({
+              status: "completed",
+              completed_at: new Date().toISOString(),
+              output_data: { signature_completed: true, dev_mode: true }
+            })
+            .eq("id", signatureRequest.step_execution_id);
+
+          // Continuar workflow
+          await supabase.functions.invoke("continue-workflow", {
+            body: {
+              stepExecutionId: signatureRequest.step_execution_id,
+              decision: "approved"
+            }
+          });
+        }
+      }, 10000);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          devMode: true,
+          message: "DEV MODE: Assinatura será simulada em 10 segundos"
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ====== MODO PRODUÇÃO ======
     if (signatureRequest.provider === "assinafy") {
-      const assifafyApiKey = Deno.env.get("ASSINAFY_API_KEY");
       if (!assifafyApiKey) {
         throw new Error("ASSINAFY_API_KEY not configured");
       }
 
       try {
-        const assifafyResponse = await createAssignafyDocument(assifafyApiKey, {
+        // Criar documento na Assinafy com retry
+        const assifafyResponse = await createAssignafyDocumentWithRetry(assifafyApiKey, {
           name: `Documento - ${inscricaoData?.edital?.titulo || "Credenciamento"}`,
           signers: signatureRequest.signers,
           document_url: signatureRequest.document_url,
           message: `Solicitação de assinatura para o edital ${inscricaoData?.edital?.numero || "N/A"}`,
         });
 
-        console.log("Assinafy document created:", assifafyResponse.data.document_id);
+        console.log(JSON.stringify({
+          level: "info",
+          requestId,
+          action: "assinafy_document_created",
+          documentId: assifafyResponse.id,
+          signatureRequestId
+        }));
 
         // Atualizar signature request com ID externo da Assinafy
         await supabase
           .from("signature_requests")
           .update({
-            external_id: assifafyResponse.data.document_id,
+            external_id: assifafyResponse.id,
+            status: "sent",
+            external_status: assifafyResponse.status || "created",
             metadata: {
               ...signatureRequest.metadata,
-              assinafy_data: assifafyResponse.data,
+              assinafy_data: assifafyResponse,
               sent_at: new Date().toISOString(),
             },
           })
           .eq("id", signatureRequestId);
+
+        console.log(JSON.stringify({
+          level: "info",
+          requestId,
+          action: "signature_request_updated",
+          signatureRequestId,
+          externalId: assifafyResponse.id
+        }));
       } catch (error) {
-        console.error("Assinafy integration error:", error);
+        console.error(JSON.stringify({
+          level: "error",
+          requestId,
+          action: "assinafy_integration_failed",
+          error: error instanceof Error ? error.message : "Unknown error"
+        }));
+
         await supabase
           .from("signature_requests")
           .update({
             status: "failed",
+            external_status: "api_error",
             metadata: {
               ...signatureRequest.metadata,
               error: error instanceof Error ? error.message : "Unknown error",
+              failed_at: new Date().toISOString(),
             },
           })
           .eq("id", signatureRequestId);
+
         throw error;
       }
     }
 
     // Enviar email para o candidato
     if (candidato?.email) {
-      await sendEmail(
-        [candidato.email],
-        "Documento para Assinatura",
-        `
-          <h2>Olá ${candidato.nome || "Candidato"},</h2>
-          <p>Um documento está aguardando sua assinatura.</p>
-          <p><strong>Edital:</strong> ${inscricaoData?.edital?.titulo || "N/A"}</p>
-          <p><strong>Provedor:</strong> ${signatureRequest.provider === "assinafy" ? "Assinafy" : signatureRequest.provider}</p>
-          <p>Por favor, acesse o sistema para assinar o documento.</p>
-          <p>Atenciosamente,<br/>Equipe de Credenciamento</p>
-        `,
-        resendApiKey
-      );
+      try {
+        await sendEmail(
+          [candidato.email],
+          "Documento para Assinatura",
+          `
+            <h2>Olá ${candidato.nome || "Candidato"},</h2>
+            <p>Um documento está aguardando sua assinatura.</p>
+            <p><strong>Edital:</strong> ${inscricaoData?.edital?.titulo || "N/A"}</p>
+            <p><strong>Provedor:</strong> ${signatureRequest.provider === "assinafy" ? "Assinafy" : signatureRequest.provider}</p>
+            <p>Por favor, acesse o sistema para assinar o documento.</p>
+            <p>Atenciosamente,<br/>Equipe de Credenciamento</p>
+          `,
+          resendApiKey
+        );
 
-      console.log(`Email enviado para candidato: ${candidato.email}`);
+        console.log(JSON.stringify({
+          level: "info",
+          requestId,
+          action: "email_sent_to_candidate",
+          email: candidato.email
+        }));
+      } catch (emailError) {
+        console.error(JSON.stringify({
+          level: "error",
+          requestId,
+          action: "email_failed",
+          recipient: "candidate",
+          error: emailError instanceof Error ? emailError.message : "Unknown"
+        }));
+      }
     }
 
     // Buscar analistas para notificar
@@ -207,57 +423,77 @@ serve(async (req) => {
       }));
 
       await supabase.from("app_notifications").insert(notifications);
-      console.log(`Notificações criadas para ${analistas.length} analistas`);
+      
+      console.log(JSON.stringify({
+        level: "info",
+        requestId,
+        action: "notifications_created",
+        count: analistas.length
+      }));
 
       // Enviar emails para analistas
       for (const analista of analistas) {
         const analistaProfile = analista.profiles as any;
         if (analistaProfile?.email) {
-          await sendEmail(
-            [analistaProfile.email],
-            "Nova Solicitação de Assinatura",
-            `
-              <h2>Olá ${analistaProfile.nome || "Analista"},</h2>
-              <p>Uma nova solicitação de assinatura foi criada.</p>
-              <p><strong>Candidato:</strong> ${candidato?.nome || "N/A"}</p>
-              <p><strong>Edital:</strong> ${inscricaoData?.edital?.titulo || "N/A"}</p>
-              <p><strong>Provedor:</strong> ${signatureRequest.provider === "assinafy" ? "Assinafy" : signatureRequest.provider}</p>
-              <p>Acesse o sistema para acompanhar o processo.</p>
-              <p>Atenciosamente,<br/>Sistema de Credenciamento</p>
-            `,
-            resendApiKey
-          );
+          try {
+            await sendEmail(
+              [analistaProfile.email],
+              "Nova Solicitação de Assinatura",
+              `
+                <h2>Olá ${analistaProfile.nome || "Analista"},</h2>
+                <p>Uma nova solicitação de assinatura foi criada.</p>
+                <p><strong>Candidato:</strong> ${candidato?.nome || "N/A"}</p>
+                <p><strong>Edital:</strong> ${inscricaoData?.edital?.titulo || "N/A"}</p>
+                <p><strong>Provedor:</strong> ${signatureRequest.provider === "assinafy" ? "Assinafy" : signatureRequest.provider}</p>
+                <p>Acesse o sistema para acompanhar o processo.</p>
+                <p>Atenciosamente,<br/>Sistema de Credenciamento</p>
+              `,
+              resendApiKey
+            );
+          } catch (emailError) {
+            console.error(JSON.stringify({
+              level: "error",
+              requestId,
+              action: "email_failed",
+              recipient: "analyst",
+              email: analistaProfile.email,
+              error: emailError instanceof Error ? emailError.message : "Unknown"
+            }));
+          }
         }
       }
     }
 
-    // Atualizar status para enviado
-    await supabase
-      .from("signature_requests")
-      .update({ 
-        status: "sent",
-        metadata: {
-          ...signatureRequest.metadata,
-          sent_at: new Date().toISOString(),
-        }
-      })
-      .eq("id", signatureRequestId);
+    console.log(JSON.stringify({
+      level: "info",
+      requestId,
+      action: "request_completed",
+      signatureRequestId
+    }));
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: "Emails e notificações enviados com sucesso",
+      JSON.stringify({
+        success: true,
+        message: "Signature request processed successfully",
         provider: signatureRequest.provider,
+        signatureRequestId,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in send-signature-request:", error);
+    console.error(JSON.stringify({
+      level: "error",
+      requestId,
+      action: "request_failed",
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined
+    }));
+
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
       }
     );
   }
