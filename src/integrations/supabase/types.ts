@@ -198,6 +198,42 @@ export type Database = {
           },
         ]
       }
+      contract_templates: {
+        Row: {
+          campos_mapeados: Json | null
+          conteudo_html: string
+          created_at: string | null
+          created_by: string | null
+          descricao: string | null
+          id: string
+          is_active: boolean | null
+          nome: string
+          updated_at: string | null
+        }
+        Insert: {
+          campos_mapeados?: Json | null
+          conteudo_html: string
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          is_active?: boolean | null
+          nome: string
+          updated_at?: string | null
+        }
+        Update: {
+          campos_mapeados?: Json | null
+          conteudo_html?: string
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          is_active?: boolean | null
+          nome?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       contratos: {
         Row: {
           analise_id: string
@@ -210,6 +246,7 @@ export type Database = {
           inscricao_id: string
           numero_contrato: string | null
           status: string
+          template_id: string | null
           tipo: string
           updated_at: string | null
         }
@@ -224,6 +261,7 @@ export type Database = {
           inscricao_id: string
           numero_contrato?: string | null
           status?: string
+          template_id?: string | null
           tipo?: string
           updated_at?: string | null
         }
@@ -238,6 +276,7 @@ export type Database = {
           inscricao_id?: string
           numero_contrato?: string | null
           status?: string
+          template_id?: string | null
           tipo?: string
           updated_at?: string | null
         }
@@ -254,6 +293,13 @@ export type Database = {
             columns: ["inscricao_id"]
             isOneToOne: true
             referencedRelation: "inscricoes_edital"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "contract_templates"
             referencedColumns: ["id"]
           },
         ]

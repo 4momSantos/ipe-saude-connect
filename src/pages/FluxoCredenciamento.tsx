@@ -1,38 +1,39 @@
-import { useState } from "react";
+import { useParams } from "react-router-dom";
 import { FluxoCredenciamento } from "@/components/credenciamento/FluxoCredenciamento";
-import { toast } from "sonner";
-
-type StatusType = 
-  | "em_analise" 
-  | "aprovado" 
-  | "aguardando_assinatura" 
-  | "assinado" 
-  | "ativo"
-  | "rejeitado";
+import { useContratos } from "@/hooks/useContratos";
+import { useCertificadoPorInscricao } from "@/hooks/useCertificados";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function FluxoCredenciamentoPage() {
-  // Simulação de status - em produção, isso viria do backend/Supabase
-  const [status, setStatus] = useState<StatusType>("aguardando_assinatura");
-  const [motivoRejeicao] = useState<string | undefined>(undefined);
+  const { inscricaoId } = useParams();
+  const { contrato, isLoading: loadingContrato } = useContratos(inscricaoId!);
+  const { certificado } = useCertificadoPorInscricao(inscricaoId);
+
+  const mapStatus = (contratoStatus?: string) => {
+    if (!contratoStatus) return "em_analise";
+    switch (contratoStatus) {
+      case "pendente_assinatura": return "aguardando_assinatura";
+      case "assinado": return certificado ? "ativo" : "assinado";
+      case "rejeitado": return "rejeitado";
+      default: return "em_analise";
+    }
+  };
 
   const handleAssinarContrato = async () => {
-    // Simulação de assinatura - em produção, chamaria API/Supabase
-    return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        setStatus("ativo");
-        toast.success("Contrato assinado com sucesso!", {
-          description: "Seu credenciamento está agora ativo."
-        });
-        resolve();
-      }, 2000);
-    });
+    if ((contrato?.dados_contrato as any)?.assinafy_url) {
+      window.open((contrato.dados_contrato as any).assinafy_url, "_blank");
+    }
   };
+
+  if (loadingContrato) {
+    return <div className="container mx-auto max-w-7xl p-6"><Skeleton className="h-96" /></div>;
+  }
 
   return (
     <div className="container mx-auto max-w-7xl">
       <FluxoCredenciamento 
-        status={status}
-        motivoRejeicao={motivoRejeicao}
+        status={mapStatus(contrato?.status)}
+        motivoRejeicao={undefined}
         onAssinarContrato={handleAssinarContrato}
       />
     </div>
