@@ -31,6 +31,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { WorkflowNode, WorkflowEdge, ExecutionContext } from './executors/types.ts';
 import { getExecutor, hasExecutor } from './executors/index.ts';
+import { WorkflowOrchestratorV2 } from './orchestrator/workflow-orchestrator-v2.ts';
 
 // FASE 5: Feature flag para migração gradual do Orchestrator V2
 const USE_ORCHESTRATOR_V2 = Deno.env.get('USE_ORCHESTRATOR_V2') === 'true';
@@ -161,32 +162,68 @@ serve(async (req) => {
       startNodeType: initialNode.data.type,
       continueFrom: continueFrom || 'início',
       totalNodes: nodes.length,
-      totalEdges: edges.length
+      totalEdges: edges.length,
+      orchestratorVersion: USE_ORCHESTRATOR_V2 ? 'V2' : 'V1'
     });
 
-    // Executar workflow em background
-    executeWorkflowSteps(
-      supabaseClient,
-      execution.id,
-      nodes,
-      edges,
-      initialNode,
-      inputData
-    ).catch((error) => {
-      console.error(`[WORKFLOW] ❌ ERRO na execução do workflow ${execution.id}:`, {
-        message: error.message,
-        stack: error.stack
+    // FASE 5: Decidir qual orquestrador usar baseado no feature flag
+    if (USE_ORCHESTRATOR_V2) {
+      // ✨ NOVO: Usar Orchestrator V2 (enterprise-grade)
+      console.log(`[WORKFLOW] 🎯 Usando Orchestrator V2 (enterprise-grade)`);
+      
+      const orchestratorV2 = new WorkflowOrchestratorV2(supabaseClient, {
+        maxRetries: 3,
+        enableCheckpoints: true,
+        enableMetrics: true
       });
-      supabaseClient
-        .from("workflow_executions")
-        .update({
-          status: "failed",
-          error_message: error.message,
-          completed_at: new Date().toISOString(),
-        })
-        .eq("id", execution.id)
-        .then(() => console.log(`[WORKFLOW] ⚠️ Execução ${execution.id} marcada como falhada`));
-    });
+
+      // Inicializar orquestrador
+      await orchestratorV2.initialize(nodes, edges, inputData || {}, execution.id);
+      
+      // Executar workflow em background
+      orchestratorV2.execute().catch((error) => {
+        console.error(`[WORKFLOW] ❌ ERRO na execução V2 do workflow ${execution.id}:`, {
+          message: error.message,
+          stack: error.stack
+        });
+        supabaseClient
+          .from("workflow_executions")
+          .update({
+            status: "failed",
+            error_message: error.message,
+            completed_at: new Date().toISOString(),
+          })
+          .eq("id", execution.id)
+          .then(() => console.log(`[WORKFLOW] ⚠️ Execução ${execution.id} marcada como falhada`));
+      });
+      
+    } else {
+      // 📦 LEGADO: Usar função executeWorkflowSteps (V1)
+      console.log(`[WORKFLOW] 📦 Usando Orchestrator V1 (legado)`);
+      
+      executeWorkflowSteps(
+        supabaseClient,
+        execution.id,
+        nodes,
+        edges,
+        initialNode,
+        inputData
+      ).catch((error) => {
+        console.error(`[WORKFLOW] ❌ ERRO na execução V1 do workflow ${execution.id}:`, {
+          message: error.message,
+          stack: error.stack
+        });
+        supabaseClient
+          .from("workflow_executions")
+          .update({
+            status: "failed",
+            error_message: error.message,
+            completed_at: new Date().toISOString(),
+          })
+          .eq("id", execution.id)
+          .then(() => console.log(`[WORKFLOW] ⚠️ Execução ${execution.id} marcada como falhada`));
+      });
+    }
 
     return new Response(
       JSON.stringify({
