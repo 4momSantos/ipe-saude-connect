@@ -10,7 +10,8 @@ import {
   Workflow,
   Shield,
   FileCode2,
-  Sparkles
+  Sparkles,
+  FileSignature
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
@@ -61,6 +62,12 @@ const menuItems = [
     roles: ['analista', 'gestor', 'admin'] as const
   },
   { 
+    title: "Contratos", 
+    url: "/contratos", 
+    icon: FileSignature,
+    roles: ['analista', 'gestor', 'admin'] as const
+  },
+  { 
     title: "Workflows", 
     url: "/workflows", 
     icon: Workflow,
@@ -70,6 +77,12 @@ const menuItems = [
     title: "Formulários & Etapas", 
     url: "/formularios", 
     icon: FileCode2,
+    roles: ['gestor', 'admin'] as const
+  },
+  { 
+    title: "Templates de Contratos", 
+    url: "/contratos/templates", 
+    icon: FileSignature,
     roles: ['gestor', 'admin'] as const
   },
   { 

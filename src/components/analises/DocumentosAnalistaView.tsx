@@ -3,9 +3,22 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useState } from 'react';
-import { FileText, CheckCircle2, XCircle, AlertCircle, Download, Eye } from 'lucide-react';
+import { FileText, CheckCircle2, XCircle, AlertCircle, Download, Eye, ThumbsUp, ThumbsDown, ClipboardCheck } from 'lucide-react';
 import { useInscricaoDocumentos, InscricaoDocumento } from '@/hooks/useInscricaoDocumentos';
+import { useAnalisarInscricao } from '@/hooks/useAnalisarInscricao';
+import { useGerarContrato } from '@/hooks/useGerarContrato';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Separator } from '@/components/ui/separator';
 
 interface DocumentosAnalistaViewProps {
   inscricaoId: string;
@@ -13,9 +26,17 @@ interface DocumentosAnalistaViewProps {
 
 export function DocumentosAnalistaView({ inscricaoId }: DocumentosAnalistaViewProps) {
   const { documentos, isLoading, atualizarStatus } = useInscricaoDocumentos(inscricaoId);
+  const { aprovar, rejeitar, isLoading: isAnalisando } = useAnalisarInscricao();
+  const { gerar: gerarContrato, isLoading: isGerandoContrato } = useGerarContrato();
+  
   const [documentoSelecionado, setDocumentoSelecionado] = useState<InscricaoDocumento | null>(null);
   const [observacoes, setObservacoes] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  
+  // Estados para aprovação/rejeição da inscrição
+  const [aprovarDialogOpen, setAprovarDialogOpen] = useState(false);
+  const [rejeitarDialogOpen, setRejeitarDialogOpen] = useState(false);
+  const [motivoRejeicao, setMotivoRejeicao] = useState('');
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -58,6 +79,34 @@ export function DocumentosAnalistaView({ inscricaoId }: DocumentosAnalistaViewPr
     setDialogOpen(true);
   };
 
+  const handleAprovarInscricao = async () => {
+    try {
+      await aprovar({ inscricaoId, observacoes });
+      await gerarContrato({ inscricaoId });
+      setAprovarDialogOpen(false);
+      setObservacoes('');
+    } catch (error) {
+      console.error('Erro ao aprovar inscrição:', error);
+    }
+  };
+
+  const handleRejeitarInscricao = async () => {
+    if (!motivoRejeicao.trim()) {
+      return;
+    }
+    try {
+      await rejeitar({ inscricaoId, motivo: motivoRejeicao });
+      setRejeitarDialogOpen(false);
+      setMotivoRejeicao('');
+    } catch (error) {
+      console.error('Erro ao rejeitar inscrição:', error);
+    }
+  };
+
+  const todosPendentes = documentos.filter(d => d.status === 'pendente').length;
+  const todosValidados = documentos.every(d => d.status === 'validado');
+  const algumRejeitado = documentos.some(d => d.status === 'rejeitado');
+
   if (isLoading) {
     return <div className="p-4">Carregando documentos...</div>;
   }
@@ -75,10 +124,73 @@ export function DocumentosAnalistaView({ inscricaoId }: DocumentosAnalistaViewPr
   return (
     <>
       <div className="space-y-4">
+        {/* Painel de Decisão da Inscrição */}
+        <Card className="border-2 border-primary/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ClipboardCheck className="h-5 w-5" />
+              Decisão da Inscrição
+            </CardTitle>
+            <CardDescription>
+              Após analisar todos os documentos, aprove ou rejeite a inscrição completa
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="flex-1 text-sm">
+                <div className="flex justify-between mb-1">
+                  <span className="text-muted-foreground">Documentos validados:</span>
+                  <span className="font-medium">
+                    {documentos.filter(d => d.status === 'validado').length} / {documentos.length}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Documentos pendentes:</span>
+                  <span className="font-medium">{todosPendentes}</span>
+                </div>
+              </div>
+            </div>
+
+            {algumRejeitado && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
+                ⚠️ Há documentos rejeitados. Rejeite a inscrição ou solicite correção.
+              </div>
+            )}
+
+            {todosValidados && (
+              <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-sm text-green-700 dark:text-green-400">
+                ✅ Todos os documentos foram validados! Você pode aprovar a inscrição.
+              </div>
+            )}
+
+            <Separator />
+
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setRejeitarDialogOpen(true)}
+                variant="destructive"
+                className="flex-1"
+                disabled={isAnalisando || isGerandoContrato}
+              >
+                <ThumbsDown className="h-4 w-4 mr-2" />
+                Rejeitar Inscrição
+              </Button>
+              <Button
+                onClick={() => setAprovarDialogOpen(true)}
+                className="flex-1"
+                disabled={!todosValidados || isAnalisando || isGerandoContrato}
+              >
+                <ThumbsUp className="h-4 w-4 mr-2" />
+                {isGerandoContrato ? 'Gerando Contrato...' : 'Aprovar Inscrição'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">Documentos para Análise</h3>
           <Badge variant="outline">
-            {documentos.filter(d => d.status === 'pendente').length} pendentes
+            {todosPendentes} pendentes
           </Badge>
         </div>
 
@@ -209,6 +321,69 @@ export function DocumentosAnalistaView({ inscricaoId }: DocumentosAnalistaViewPr
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Dialog de Aprovação */}
+      <AlertDialog open={aprovarDialogOpen} onOpenChange={setAprovarDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aprovar Inscrição</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ao aprovar, um contrato será gerado automaticamente e enviado para assinatura.
+              Deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="my-4">
+            <label className="text-sm font-medium mb-2 block">Observações (opcional)</label>
+            <Textarea
+              placeholder="Adicione observações sobre a aprovação..."
+              value={observacoes}
+              onChange={(e) => setObservacoes(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleAprovarInscricao}
+              disabled={isAnalisando || isGerandoContrato}
+            >
+              {isAnalisando || isGerandoContrato ? 'Processando...' : 'Confirmar Aprovação'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog de Rejeição */}
+      <AlertDialog open={rejeitarDialogOpen} onOpenChange={setRejeitarDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Rejeitar Inscrição</AlertDialogTitle>
+            <AlertDialogDescription>
+              Informe o motivo da rejeição. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="my-4">
+            <label className="text-sm font-medium mb-2 block">Motivo da Rejeição *</label>
+            <Textarea
+              placeholder="Descreva os motivos da rejeição..."
+              value={motivoRejeicao}
+              onChange={(e) => setMotivoRejeicao(e.target.value)}
+              rows={4}
+              required
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRejeitarInscricao}
+              disabled={!motivoRejeicao.trim() || isAnalisando}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isAnalisando ? 'Processando...' : 'Confirmar Rejeição'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

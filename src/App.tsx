@@ -30,6 +30,9 @@ import UserManagement from "./pages/UserManagement";
 import { ProtectedRoute as RoleProtectedRoute } from "./components/ProtectedRoute";
 import { UserProfileMenu } from "./components/UserProfileMenu";
 import PlaceholderPage from "./pages/PlaceholderPage";
+import ContractTemplates from "./pages/ContractTemplates";
+import ContractTemplateEditor from "./pages/ContractTemplateEditor";
+import Contratos from "./pages/Contratos";
 import { ClipboardCheck, Users, MapPin, BarChart3, Settings } from "lucide-react";
 import NotFound from "./pages/NotFound";
 import { supabase } from "@/integrations/supabase/client";
@@ -104,6 +107,10 @@ const App = () => (
                           />
                           <Route path="/credenciados" element={<Credenciados />} />
                           <Route path="/credenciados/:id" element={<CredenciadoDetail />} />
+                          <Route path="/contratos" element={<RoleProtectedRoute requiredRoles={['analista', 'gestor', 'admin']}><Contratos /></RoleProtectedRoute>} />
+                          <Route path="/contratos/templates" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><ContractTemplates /></RoleProtectedRoute>} />
+                          <Route path="/contratos/templates/editor" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><ContractTemplateEditor /></RoleProtectedRoute>} />
+                          <Route path="/contratos/templates/editor/:id" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><ContractTemplateEditor /></RoleProtectedRoute>} />
                           <Route path="/workflows" element={<Workflows />} />
                           <Route path="/workflow-editor" element={<WorkflowEditor />} />
                           <Route path="/teste-ocr" element={<TesteOCR />} />
@@ -115,7 +122,10 @@ const App = () => (
                           <Route path="/templates-formularios/editor/:id" element={<TemplateEditor />} />
                           <Route path="/formularios/processos/criar" element={<ProcessoEditor />} />
                           <Route path="/formularios/processos/editar/:id" element={<ProcessoEditor />} />
-                          <Route path="/fluxo-credenciamento" element={<FluxoCredenciamentoPage />} />
+                          <Route path="/fluxo-credenciamento/:inscricaoId" element={<FluxoCredenciamentoPage />} />
+                          <Route path="/contratos/templates" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><ContractTemplates /></RoleProtectedRoute>} />
+                          <Route path="/contratos/templates/editor" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><ContractTemplateEditor /></RoleProtectedRoute>} />
+                          <Route path="/contratos/templates/editor/:id" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><ContractTemplateEditor /></RoleProtectedRoute>} />
                           <Route path="/mapa" element={<AnalisesRelatorios />} />
                           <Route path="/relatorios" element={<AnalisesRelatorios />} />
                           <Route

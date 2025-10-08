@@ -8,6 +8,7 @@ const corsHeaders = {
 
 interface GerarContratoRequest {
   inscricao_id: string;
+  template_id?: string; // Opcional: ID do template customizado
 }
 
 interface ContratoData {
@@ -20,7 +21,59 @@ interface ContratoData {
   especialidades: string[];
 }
 
-// Função para gerar HTML do contrato
+// Função para resolver caminho em objeto (ex: "dados_inscricao.dadosPessoais.nome")
+function resolverCaminho(obj: any, caminho: string): string {
+  const partes = caminho.split('.');
+  let valor = obj;
+  
+  for (const parte of partes) {
+    if (valor && typeof valor === 'object' && parte in valor) {
+      valor = valor[parte];
+    } else {
+      return '';
+    }
+  }
+  
+  return String(valor || '');
+}
+
+// Função para gerar HTML do contrato a partir de template
+function gerarContratoFromTemplate(
+  templateHTML: string,
+  inscricaoData: any,
+  editalData: any,
+  contratoData: any
+): string {
+  let html = templateHTML;
+  
+  // Regex para encontrar placeholders {{campo}}
+  const regex = /\{\{([^}]+)\}\}/g;
+  
+  html = html.replace(regex, (match, campo) => {
+    const [origem, ...caminho] = campo.split('.');
+    const path = caminho.join('.');
+    
+    switch (origem) {
+      case 'candidato':
+        return resolverCaminho(inscricaoData.dados_inscricao?.dadosPessoais || {}, path);
+      case 'edital':
+        return resolverCaminho(editalData, path);
+      case 'contrato':
+        return resolverCaminho(contratoData, path);
+      case 'sistema':
+        if (campo === 'sistema.data_atual') {
+          return new Date().toLocaleDateString('pt-BR');
+        }
+        return '';
+      default:
+        return match; // Mantém placeholder se não encontrar
+    }
+  });
+  
+  return html;
+}
+
+// Função para gerar HTML do contrato (fallback se não houver template)
 function gerarContratoHTML(data: ContratoData): string {
   const dataAtual = new Date().toLocaleDateString('pt-BR');
   
@@ -117,7 +170,7 @@ serve(async (req) => {
 
   try {
     // Validar request
-    const { inscricao_id }: GerarContratoRequest = await req.json();
+    const { inscricao_id, template_id }: GerarContratoRequest = await req.json();
 
     if (!inscricao_id) {
       throw new Error('inscricao_id é obrigatório');
@@ -126,7 +179,8 @@ serve(async (req) => {
     console.log(JSON.stringify({
       timestamp: new Date().toISOString(),
       event: 'processing_request',
-      inscricao_id
+      inscricao_id,
+      template_id
     }));
 
     // Inicializar Supabase client
@@ -188,11 +242,68 @@ serve(async (req) => {
       candidato: contratoData.candidato_nome
     }));
 
-    // Gerar HTML do contrato
-    const contratoHTML = gerarContratoHTML(contratoData);
-
     // Gerar número único do contrato
     const numeroContrato = `CONT-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
+
+    // Buscar template se especificado, ou usar template ativo padrão
+    let contratoHTML: string;
+    let templateUsado: any = null;
+
+    if (template_id) {
+      // Buscar template específico
+      const { data: template, error: templateError } = await supabase
+        .from('contract_templates')
+        .select('*')
+        .eq('id', template_id)
+        .eq('is_active', true)
+        .single();
+
+      if (templateError) {
+        console.warn(`Template ${template_id} não encontrado, usando template padrão`);
+      } else {
+        templateUsado = template;
+      }
+    } else {
+      // Buscar template ativo padrão (o mais recente)
+      const { data: templates } = await supabase
+        .from('contract_templates')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (templates && templates.length > 0) {
+        templateUsado = templates[0];
+      }
+    }
+
+    // Gerar HTML
+    if (templateUsado) {
+      console.log(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        event: 'using_template',
+        template_id: templateUsado.id,
+        template_name: templateUsado.nome
+      }));
+
+      contratoHTML = gerarContratoFromTemplate(
+        templateUsado.conteudo_html,
+        inscricao,
+        inscricao.editais,
+        {
+          numero_contrato: numeroContrato,
+          created_at: new Date().toISOString()
+        }
+      );
+    } else {
+      console.log(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        event: 'using_default_template'
+      }));
+
+      // Fallback: usar função de template padrão
+      contratoHTML = gerarContratoHTML(contratoData);
+    }
 
     // Salvar contrato no banco
     const { data: contrato, error: contratoError } = await supabase
@@ -200,13 +311,15 @@ serve(async (req) => {
       .insert({
         inscricao_id,
         numero_contrato: numeroContrato,
+        template_id: templateUsado?.id,
         status: 'pendente_assinatura',
         tipo: 'credenciamento',
         dados_contrato: {
           html: contratoHTML,
           data_geracao: new Date().toISOString(),
           candidato: contratoData.candidato_nome,
-          edital: contratoData.edital_titulo
+          edital: contratoData.edital_titulo,
+          template_usado: templateUsado?.nome || 'Template Padrão'
         }
       })
       .select()
