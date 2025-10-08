@@ -108,7 +108,8 @@ export type NodeType =
   | "signature"
   | "email"
   | "database"
-  | "loop";
+  | "loop"
+  | "function";
 
 export interface WebhookConfig {
   url?: string;
@@ -224,6 +225,12 @@ export interface LoopConfig {
   };
 }
 
+export interface FunctionConfig {
+  code?: string;
+  timeout?: number;                 // Milissegundos (default: 5000)
+  allowedLibraries?: string[];
+}
+
 export type ComparisonOperator = '===' | '!==' | '>' | '<' | '>=' | '<=' | 'contains' | 'in';
 
 export interface VisualRule {
@@ -261,6 +268,7 @@ export interface WorkflowNodeData extends Record<string, unknown> {
   conditionalExpression?: ConditionalExpressionConfig;
   triggerConfig?: TriggerConfig;
   loopConfig?: LoopConfig;
+  functionConfig?: FunctionConfig;
   config?: Record<string, any>;
 }
 

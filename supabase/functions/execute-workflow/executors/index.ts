@@ -15,6 +15,7 @@ import { ApprovalExecutor } from './approval-executor.ts';
 import { ConditionExecutor } from './condition-executor.ts';
 import { EndExecutor } from './end-executor.ts';
 import { LoopExecutor } from './loop-executor.ts';
+import { FunctionExecutor } from './function-executor.ts';
 
 /**
  * Registry de executores por tipo de nó
@@ -32,6 +33,7 @@ const executorRegistry: Map<string, NodeExecutor> = new Map([
   ['condition', new ConditionExecutor()],
   ['end', new EndExecutor()],
   ['loop', new LoopExecutor()],
+  ['function', new FunctionExecutor()],
 ]);
 
 /**

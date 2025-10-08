@@ -17,6 +17,7 @@ import { ConditionConfigPanel, ConditionConfig } from "./ConditionConfig";
 import { ConditionalExpressionConfigPanel } from "./ConditionalExpressionConfig";
 import { TriggerConfigPanel } from "./TriggerConfig";
 import { LoopConfigPanel } from "./LoopConfig";
+import { FunctionConfigPanel } from "./FunctionConfig";
 import { TemplateSelector } from "@/components/templates/TemplateSelector";
 import { WorkflowNodeData, FormField, FormTemplate } from "@/types/workflow-editor";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -434,7 +435,14 @@ export function ConfigPanel({
                 />
               )}
 
-              {!["start", "form", "webhook", "http", "signature", "email", "database", "approval", "condition", "loop"].includes(nodeData.type) && (
+              {nodeData.type === "function" && (
+                <FunctionConfigPanel
+                  config={nodeData.functionConfig || { timeout: 5000 }}
+                  onChange={(config) => onUpdate({ functionConfig: config })}
+                />
+              )}
+
+              {!["start", "form", "webhook", "http", "signature", "email", "database", "approval", "condition", "loop", "function"].includes(nodeData.type) && (
                 <div className="text-center py-8 text-muted-foreground">
                   <p>Este tipo de etapa não possui configuração avançada.</p>
                 </div>
