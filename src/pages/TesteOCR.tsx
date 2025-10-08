@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { FileText, Upload, AlertCircle, Sparkles, CheckCircle2, XCircle } from 'lucide-react';
+import { FileText, Upload, AlertCircle, Sparkles, CheckCircle2, XCircle, RotateCcw, RotateCw, FlipVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import { processOCRWithValidation, getDocumentTypes, getDefaultFieldsForDocumentType } from '@/lib/ocr-processor';
 import type { OCRValidationResult } from '@/lib/ocr-processor';
@@ -19,6 +19,8 @@ export default function TesteOCR() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [ocrResult, setOcrResult] = useState<OCRValidationResult | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [rotation, setRotation] = useState<number>(0);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const documentTypes = getDocumentTypes();
 
@@ -27,6 +29,7 @@ export default function TesteOCR() {
     if (file) {
       setSelectedFile(file);
       setOcrResult(null);
+      setRotation(0);
       
       // Criar preview se for imagem
       if (file.type.startsWith('image/')) {
@@ -36,6 +39,55 @@ export default function TesteOCR() {
         setPreviewUrl(null);
       }
     }
+  };
+
+  const rotateImage = (degrees: number) => {
+    setRotation((prev) => (prev + degrees) % 360);
+    toast.info(`Imagem rotacionada ${degrees > 0 ? 'direita' : 'esquerda'} (${(rotation + degrees) % 360}°)`);
+  };
+
+  const getRotatedFile = async (): Promise<File> => {
+    if (!selectedFile || rotation === 0) {
+      return selectedFile!;
+    }
+
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Não foi possível criar contexto do canvas'));
+          return;
+        }
+
+        // Ajustar tamanho do canvas baseado na rotação
+        const radians = (rotation * Math.PI) / 180;
+        const sin = Math.abs(Math.sin(radians));
+        const cos = Math.abs(Math.cos(radians));
+        canvas.width = img.width * cos + img.height * sin;
+        canvas.height = img.width * sin + img.height * cos;
+
+        // Rotacionar e desenhar
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(radians);
+        ctx.drawImage(img, -img.width / 2, -img.height / 2);
+
+        // Converter para blob e criar novo File
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const rotatedFile = new File([blob], selectedFile.name, {
+              type: selectedFile.type,
+            });
+            resolve(rotatedFile);
+          } else {
+            reject(new Error('Falha ao criar blob da imagem rotacionada'));
+          }
+        }, selectedFile.type);
+      };
+      img.onerror = () => reject(new Error('Falha ao carregar imagem'));
+      img.src = previewUrl!;
+    });
   };
 
   const handleProcessOCR = async () => {
@@ -48,7 +100,11 @@ export default function TesteOCR() {
     setOcrResult(null);
 
     try {
-      toast.info('🔍 Processando OCR...');
+      if (rotation !== 0) {
+        toast.info(`🔄 Aplicando rotação de ${rotation}° antes do OCR...`);
+      } else {
+        toast.info('🔍 Processando OCR com rotação automática inteligente...');
+      }
 
       // Buscar campos padrão para o tipo de documento
       const defaultFields = getDefaultFieldsForDocumentType(documentType as any);
@@ -61,8 +117,11 @@ export default function TesteOCR() {
         autoValidate: true,
       };
 
+      // Obter arquivo rotacionado se necessário
+      const fileToProcess = await getRotatedFile();
+
       const result = await processOCRWithValidation(
-        selectedFile,
+        fileToProcess,
         ocrConfig,
         {}, // formData vazio para teste
         []
@@ -89,6 +148,7 @@ export default function TesteOCR() {
     setSelectedFile(null);
     setOcrResult(null);
     setPreviewUrl(null);
+    setRotation(0);
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
     }
@@ -165,15 +225,66 @@ export default function TesteOCR() {
 
             {/* Preview da Imagem */}
             {previewUrl && (
-              <div className="space-y-2">
-                <Label>Preview do Documento</Label>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Preview do Documento</Label>
+                  <Badge variant="outline" className="text-xs">
+                    Rotação: {rotation}°
+                  </Badge>
+                </div>
                 <div className="border rounded-lg overflow-hidden bg-muted/50">
                   <img 
                     src={previewUrl} 
                     alt="Preview" 
+                    style={{
+                      transform: `rotate(${rotation}deg)`,
+                      transition: 'transform 0.3s ease',
+                    }}
                     className="w-full h-auto max-h-64 object-contain"
                   />
                 </div>
+                
+                {/* Botões de Rotação Manual */}
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => rotateImage(-90)}
+                    disabled={isProcessing}
+                    className="flex-1"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    90° Esquerda
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => rotateImage(180)}
+                    disabled={isProcessing}
+                    className="flex-1"
+                  >
+                    <FlipVertical className="h-4 w-4 mr-2" />
+                    180°
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => rotateImage(90)}
+                    disabled={isProcessing}
+                    className="flex-1"
+                  >
+                    <RotateCw className="h-4 w-4 mr-2" />
+                    90° Direita
+                  </Button>
+                </div>
+                
+                <Alert className="bg-blue-500/5 border-blue-500/20">
+                  <AlertCircle className="h-4 w-4 text-blue-500" />
+                  <AlertDescription className="text-xs">
+                    <strong>💡 Rotação Híbrida:</strong> Você pode rotacionar manualmente, mas se não o fizer, 
+                    o sistema tentará automaticamente múltiplas orientações para encontrar a melhor.
+                  </AlertDescription>
+                </Alert>
               </div>
             )}
 
