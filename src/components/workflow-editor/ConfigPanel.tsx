@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Save, Copy, Trash2 } from "lucide-react";
+import { X, Save, Copy, Trash2, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,6 +52,7 @@ export function ConfigPanel({
   const [activeTab, setActiveTab] = useState("config");
   const [templateName, setTemplateName] = useState("");
   const [templateDescription, setTemplateDescription] = useState("");
+  const [httpTestResult, setHttpTestResult] = useState<any>(null);
 
   // Extrair todos os campos de todos os formulários do workflow
   const allWorkflowFields: Array<FormField & { nodeName?: string }> = allWorkflowNodes
@@ -203,6 +204,7 @@ export function ConfigPanel({
                 <HttpConfigPanel
                   config={nodeData.httpConfig || { method: "GET" }}
                   onChange={(config) => onUpdate({ httpConfig: config })}
+                  onTestResult={setHttpTestResult}
                 />
               )}
 
@@ -292,9 +294,52 @@ export function ConfigPanel({
                 <div className="text-center py-8 text-muted-foreground">
                   <p>Selecione um template para visualizar o preview</p>
                 </div>
+              ) : nodeData.type === "http" && httpTestResult ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    {httpTestResult.success ? (
+                      <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <XCircle className="h-5 w-5 text-destructive" />
+                    )}
+                    <h4 className="font-semibold">Resultado do Teste HTTP</h4>
+                  </div>
+
+                  {httpTestResult.status && (
+                    <div className="grid grid-cols-2 gap-4 text-sm p-4 bg-muted/50 rounded-lg">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Status</Label>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={httpTestResult.success ? "text-green-500" : "text-destructive"}>
+                            {httpTestResult.status} {httpTestResult.statusText}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Duração</Label>
+                        <div className="mt-1">{httpTestResult.duration}ms</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {httpTestResult.data && (
+                    <div className="p-4 rounded-lg border bg-background/50">
+                      <Label className="text-xs text-muted-foreground mb-2 block">Dados da Resposta</Label>
+                      <pre className="text-xs overflow-auto max-h-96 bg-muted p-3 rounded">
+                        {typeof httpTestResult.data === 'string' 
+                          ? httpTestResult.data 
+                          : JSON.stringify(httpTestResult.data, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  <p>Preview disponível apenas para formulários.</p>
+                  <p>
+                    {nodeData.type === "http" 
+                      ? "Execute um teste na aba Avançado para ver os resultados aqui." 
+                      : "Preview disponível apenas para formulários e requisições HTTP."}
+                  </p>
                 </div>
               )}
             </TabsContent>

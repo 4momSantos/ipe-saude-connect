@@ -18,9 +18,10 @@ import { toast } from "sonner";
 interface HttpConfigProps {
   config: HttpConfig;
   onChange: (config: HttpConfig) => void;
+  onTestResult?: (result: any) => void;
 }
 
-export function HttpConfigPanel({ config, onChange }: HttpConfigProps) {
+export function HttpConfigPanel({ config, onChange, onTestResult }: HttpConfigProps) {
   const [testResult, setTestResult] = useState<any>(null);
   const [isTesting, setIsTesting] = useState(false);
   const [previewMode, setPreviewMode] = useState<'json' | 'table' | 'text' | 'csv'>('json');
@@ -121,6 +122,17 @@ export function HttpConfigPanel({ config, onChange }: HttpConfigProps) {
         data,
         duration
       });
+
+      if (onTestResult) {
+        onTestResult({
+          success: response.ok,
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries()),
+          data,
+          duration
+        });
+      }
 
       if (response.ok) {
         toast.success(`Requisição bem-sucedida (${response.status})`);
