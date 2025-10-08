@@ -139,14 +139,13 @@ serve(async (req) => {
     if (decisao === 'aprovado') {
       console.log(`[ANALISAR_INSCRICAO] Inscrição aprovada - gerando contrato`);
       
-      // Chamar função para gerar contrato
+      // Chamar função para gerar contrato com assinatura
       try {
         const { data: contratoData, error: contratoError } = await supabase.functions.invoke(
-          "gerar-contrato",
+          "gerar-contrato-assinatura",
           {
             body: {
               inscricao_id,
-              analise_id: analise?.id,
             }
           }
         );

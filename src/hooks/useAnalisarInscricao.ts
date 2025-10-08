@@ -20,34 +20,20 @@ export function useAnalisarInscricao() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // 1. Criar análise aprovada
-      const { data: analise, error: analiseError } = await supabase
-        .from("analises")
-        .update({
-          status: "aprovado",
-          analisado_em: new Date().toISOString(),
+      // Chamar edge function analisar-inscricao
+      const { data, error } = await supabase.functions.invoke("analisar-inscricao", {
+        body: {
+          inscricao_id: inscricaoId,
           analista_id: user.id,
-          parecer: observacoes || "Aprovado"
-        })
-        .eq("inscricao_id", inscricaoId)
-        .select()
-        .single();
+          decisao: "aprovado",
+          comentarios: observacoes
+        }
+      });
 
-      if (analiseError) throw analiseError;
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Erro ao aprovar inscrição");
 
-      // 2. Atualizar status da inscrição
-      const { error: inscricaoError } = await supabase
-        .from("inscricoes_edital")
-        .update({
-          status: "aprovado",
-          analisado_por: user.id,
-          analisado_em: new Date().toISOString()
-        })
-        .eq("id", inscricaoId);
-
-      if (inscricaoError) throw inscricaoError;
-
-      return { analise, inscricaoId };
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inscricoes"] });
@@ -65,36 +51,20 @@ export function useAnalisarInscricao() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // 1. Criar análise rejeitada
-      const { data: analise, error: analiseError } = await supabase
-        .from("analises")
-        .update({
-          status: "reprovado",
-          analisado_em: new Date().toISOString(),
+      // Chamar edge function analisar-inscricao
+      const { data, error } = await supabase.functions.invoke("analisar-inscricao", {
+        body: {
+          inscricao_id: inscricaoId,
           analista_id: user.id,
-          motivo_reprovacao: motivo,
-          parecer: motivo
-        })
-        .eq("inscricao_id", inscricaoId)
-        .select()
-        .single();
+          decisao: "rejeitado",
+          comentarios: motivo
+        }
+      });
 
-      if (analiseError) throw analiseError;
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Erro ao rejeitar inscrição");
 
-      // 2. Atualizar status da inscrição
-      const { error: inscricaoError } = await supabase
-        .from("inscricoes_edital")
-        .update({
-          status: "inabilitado",
-          analisado_por: user.id,
-          analisado_em: new Date().toISOString(),
-          motivo_rejeicao: motivo
-        })
-        .eq("id", inscricaoId);
-
-      if (inscricaoError) throw inscricaoError;
-
-      return { analise, inscricaoId };
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["inscricoes"] });
