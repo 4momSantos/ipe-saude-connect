@@ -27,7 +27,8 @@ import {
   Database,
   Webhook,
   StopCircle,
-  Eye
+  Eye,
+  Repeat
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +53,7 @@ const nodeTypes = {
   condition: WorkflowNode,
   start: WorkflowNode,
   end: WorkflowNode,
+  loop: WorkflowNode,
 };
 
 const initialNodes: Node<WorkflowNodeData>[] = [
@@ -138,6 +140,14 @@ const nodeTemplates = [
     icon: "GitBranch",
     description: "Divide o fluxo baseado em condições.",
     category: "Decisão",
+  },
+  {
+    type: "loop",
+    label: "Loop",
+    color: "#fb923c",
+    icon: "Repeat",
+    description: "Executa ações repetidas em uma lista de itens.",
+    category: "Controle",
   },
   {
     type: "end",
