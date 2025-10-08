@@ -244,6 +244,19 @@ export function WorkflowStep({ form }: WorkflowStepProps) {
         </p>
       </div>
 
+      {inscriptionTemplates.length === 0 && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Nenhum template de inscrição encontrado</AlertTitle>
+          <AlertDescription>
+            Você precisa criar um template de inscrição antes de criar um edital.
+            Os templates definem quais documentos e informações o candidato deve enviar.
+            <br />
+            <strong>Acesse: Processos de Inscrição → Criar Template</strong>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <FormField
         control={form.control}
         name="inscription_template_id"
@@ -253,18 +266,33 @@ export function WorkflowStep({ form }: WorkflowStepProps) {
             <Select
               onValueChange={field.onChange}
               value={field.value || ""}
+              disabled={inscriptionTemplates.length === 0}
             >
               <FormControl>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o template de inscrição" />
+                  <SelectValue placeholder={
+                    inscriptionTemplates.length === 0 
+                      ? "Nenhum template disponível" 
+                      : "Selecione o template de inscrição"
+                  } />
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {inscriptionTemplates.map((template) => (
-                  <SelectItem key={template.id} value={template.id}>
-                    {template.name}
-                  </SelectItem>
-                ))}
+                {inscriptionTemplates.length === 0 ? (
+                  <div className="p-4 text-sm text-muted-foreground text-center">
+                    <ClipboardList className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="font-semibold">Nenhum template disponível</p>
+                    <p className="text-xs mt-1">
+                      Crie um template de inscrição primeiro
+                    </p>
+                  </div>
+                ) : (
+                  inscriptionTemplates.map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.name}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
             <FormDescription>
@@ -297,6 +325,19 @@ export function WorkflowStep({ form }: WorkflowStepProps) {
         </Card>
       )}
 
+      {workflows.length === 0 && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Nenhum workflow encontrado</AlertTitle>
+          <AlertDescription>
+            Você precisa criar um workflow de validação antes de criar um edital.
+            O workflow define como as inscrições serão processadas e aprovadas.
+            <br />
+            <strong>Acesse: Workflows → Criar Workflow</strong>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <FormField
         control={form.control}
         name="workflow_id"
@@ -312,18 +353,33 @@ export function WorkflowStep({ form }: WorkflowStepProps) {
                 }
               }}
               value={field.value || ""}
+              disabled={workflows.length === 0}
             >
               <FormControl>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o workflow de validação" />
+                  <SelectValue placeholder={
+                    workflows.length === 0 
+                      ? "Nenhum workflow disponível" 
+                      : "Selecione o workflow de validação"
+                  } />
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {workflows.map((workflow) => (
-                  <SelectItem key={workflow.id} value={workflow.id}>
-                    {workflow.name} (v{workflow.version})
-                  </SelectItem>
-                ))}
+                {workflows.length === 0 ? (
+                  <div className="p-4 text-sm text-muted-foreground text-center">
+                    <Workflow className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="font-semibold">Nenhum workflow disponível</p>
+                    <p className="text-xs mt-1">
+                      Crie um workflow de validação primeiro
+                    </p>
+                  </div>
+                ) : (
+                  workflows.map((workflow) => (
+                    <SelectItem key={workflow.id} value={workflow.id}>
+                      {workflow.name} (v{workflow.version})
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
             <FormDescription>
