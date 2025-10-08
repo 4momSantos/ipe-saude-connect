@@ -130,6 +130,16 @@ export interface HttpConfig {
     apiKey?: string;
     apiKeyHeader?: string;
   };
+  timeout?: number; // Milissegundos (default: 30000)
+  retry?: {
+    enabled: boolean;
+    maxAttempts: number; // Default: 3
+    statusCodes: number[]; // Códigos que devem fazer retry (ex: [429, 503])
+    backoffStrategy: 'fixed' | 'exponential'; // Default: exponential
+    initialDelayMs?: number; // Default: 1000
+  };
+  responseType?: 'json' | 'text' | 'blob'; // Default: json
+  validateStatus?: string; // Expressão JavaScript: "status >= 200 && status < 300"
 }
 
 export interface SignatureConfig {
