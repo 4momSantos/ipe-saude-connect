@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -6,7 +6,7 @@ import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ChevronLeft, ChevronRight, Save } from "lucide-react";
+import { ChevronLeft, ChevronRight, Save, FileText } from "lucide-react";
 import { InformacoesGeraisStep } from "./steps/InformacoesGeraisStep";
 import { ParticipacaoHabilitacaoStep } from "./steps/ParticipacaoHabilitacaoStep";
 import { WorkflowStep } from "./steps/WorkflowStep";
@@ -14,7 +14,17 @@ import { AnexosStep } from "./steps/AnexosStep";
 import { PublicacaoStep } from "./steps/PublicacaoStep";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useBlocker } from "react-router-dom";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const STEPS = [
   { id: 1, title: "Informações Gerais", description: "Dados básicos" },
@@ -68,6 +78,7 @@ interface EditalWizardProps {
 export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const navigate = useNavigate();
 
   const form = useForm<EditalFormValues>({
@@ -96,6 +107,34 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
   });
 
   const progress = (currentStep / STEPS.length) * 100;
+
+  // Detectar mudanças não salvas e bloquear navegação
+  const hasUnsavedChanges = form.formState.isDirty && !isSubmitting;
+  
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      hasUnsavedChanges && currentLocation.pathname !== nextLocation.pathname
+  );
+
+  // Mostrar dialog quando tentar navegar com mudanças não salvas
+  useEffect(() => {
+    if (blocker.state === "blocked") {
+      setShowUnsavedDialog(true);
+    }
+  }, [blocker.state]);
+
+  // Aviso ao fechar aba/janela
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   const handleNext = async () => {
     let fieldsToValidate: (keyof EditalFormValues)[] = [];
@@ -160,6 +199,96 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
 
   const handlePrevious = () => {
     setCurrentStep((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleSaveAsDraft = async () => {
+    try {
+      setIsSubmitting(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const formData = form.getValues();
+      
+      // Validar campos mínimos para rascunho
+      if (!formData.numero_edital || !formData.objeto) {
+        toast.error("Preencha ao menos o número e objeto do edital");
+        return;
+      }
+
+      // Calcular data_fim se tiver data_publicacao
+      let dataFim = null;
+      if (formData.data_publicacao) {
+        const dataInicio = new Date(formData.data_publicacao);
+        dataFim = new Date(dataInicio);
+        dataFim.setDate(dataFim.getDate() + (formData.prazo_inscricao_dias || 30));
+      }
+
+      const rascunhoData = {
+        numero_edital: formData.numero_edital,
+        titulo: formData.objeto,
+        objeto: formData.objeto,
+        descricao: formData.descricao || null,
+        data_publicacao: formData.data_publicacao ? formData.data_publicacao.toISOString().split('T')[0] : null,
+        data_licitacao: formData.data_licitacao ? formData.data_licitacao.toISOString() : null,
+        data_inicio: formData.data_publicacao ? formData.data_publicacao.toISOString().split('T')[0] : null,
+        data_fim: dataFim ? dataFim.toISOString().split('T')[0] : null,
+        local_portal: formData.local_portal || null,
+        prazo_validade_proposta: formData.prazo_validade_proposta || null,
+        criterio_julgamento: formData.criterio_julgamento || null,
+        garantia_execucao: formData.garantia_execucao || null,
+        fonte_recursos: formData.fonte_recursos || null,
+        possui_vagas: formData.possui_vagas || false,
+        vagas: formData.possui_vagas ? formData.vagas : null,
+        participacao_permitida: formData.participacao_permitida || [],
+        regras_me_epp: formData.regras_me_epp || null,
+        documentos_habilitacao: formData.documentos_habilitacao || [],
+        anexos: formData.anexos || {},
+        anexos_administrativos: formData.anexos_administrativos || {},
+        anexos_processo_esperados: formData.anexos_processo_esperados || [],
+        status: "rascunho",
+        created_by: user.id,
+        workflow_id: formData.workflow_id || null,
+        workflow_version: formData.workflow_version || null,
+        formularios_vinculados: formData.formularios_vinculados || [],
+        gestor_autorizador_id: formData.gestor_autorizador_id || null,
+        observacoes_autorizacao: formData.observacoes_autorizacao || null,
+        historico_alteracoes: [{
+          usuario: user.email,
+          data: new Date().toISOString(),
+          acao: "Salvo como rascunho",
+        }],
+      };
+
+      const { error } = await supabase
+        .from("editais")
+        .insert([rascunhoData]);
+
+      if (error) throw error;
+
+      toast.success("Rascunho salvo com sucesso!");
+      form.reset();
+      navigate("/editais");
+    } catch (error) {
+      console.error("Erro ao salvar rascunho:", error);
+      toast.error("Erro ao salvar rascunho");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDiscardChanges = () => {
+    setShowUnsavedDialog(false);
+    form.reset();
+    if (blocker.state === "blocked") {
+      blocker.proceed();
+    }
+  };
+
+  const handleCancelNavigation = () => {
+    setShowUnsavedDialog(false);
+    if (blocker.state === "blocked") {
+      blocker.reset();
+    }
   };
 
   const handleFinalSubmit = async () => {
@@ -346,8 +475,35 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <Card className="p-6 bg-gradient-to-br from-primary/10 via-transparent to-transparent">
+    <>
+      <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mudanças não salvas</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você tem alterações não salvas no formulário. O que deseja fazer?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelNavigation}>
+              Continuar editando
+            </AlertDialogCancel>
+            <Button
+              variant="outline"
+              onClick={handleDiscardChanges}
+            >
+              Descartar mudanças
+            </Button>
+            <AlertDialogAction onClick={handleSaveAsDraft}>
+              <FileText className="w-4 h-4 mr-2" />
+              Salvar como rascunho
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <div className="max-w-4xl mx-auto space-y-6">
+        <Card className="p-6 bg-gradient-to-br from-primary/10 via-transparent to-transparent">
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <div>
@@ -417,6 +573,7 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
           </form>
         </Form>
       </Card>
-    </div>
+      </div>
+    </>
   );
 }
