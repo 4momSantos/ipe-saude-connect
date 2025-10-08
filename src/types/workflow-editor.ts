@@ -166,15 +166,35 @@ export interface EmailConfig {
   attachments?: string[];
 }
 
+export type DatabaseOperator = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'like' | 'is' | 'isnot';
+
+export interface DatabaseFilter {
+  column: string;
+  operator: DatabaseOperator;
+  value: any;
+}
+
 export interface DatabaseConfig {
-  operation: "insert" | "update" | "select" | "delete";
   table?: string;
-  conditions?: Array<{
-    field: string;
-    operator: "equals" | "not_equals" | "greater_than" | "less_than" | "contains";
-    value: string;
-  }>;
-  fields?: Record<string, string>;
+  operation: "select" | "insert" | "update" | "delete";
+  
+  // SELECT
+  columns?: string[];
+  filters?: DatabaseFilter[];
+  orderBy?: { column: string; direction: 'asc' | 'desc' }[];
+  limit?: number;
+  offset?: number;
+  
+  // INSERT
+  values?: Record<string, any> | Record<string, any>[];
+  
+  // UPDATE
+  set?: Record<string, any>;
+  where?: DatabaseFilter[];
+  
+  // Legacy (backward compatibility)
+  fields?: Record<string, any>;
+  conditions?: Record<string, any>;
 }
 
 export interface ApprovalConfig {
