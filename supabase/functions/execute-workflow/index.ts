@@ -32,6 +32,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { WorkflowNode, WorkflowEdge, ExecutionContext } from './executors/types.ts';
 import { getExecutor, hasExecutor } from './executors/index.ts';
 
+// FASE 5: Feature flag para migração gradual do Orchestrator V2
+const USE_ORCHESTRATOR_V2 = Deno.env.get('USE_ORCHESTRATOR_V2') === 'true';
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",

@@ -1045,6 +1045,88 @@ export type Database = {
           },
         ]
       }
+      workflow_checkpoints: {
+        Row: {
+          context: Json
+          created_at: string
+          execution_id: string
+          id: string
+          metadata: Json | null
+          node_id: string
+          state: string
+          version: number
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          execution_id: string
+          id?: string
+          metadata?: Json | null
+          node_id: string
+          state: string
+          version?: number
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          execution_id?: string
+          id?: string
+          metadata?: Json | null
+          node_id?: string
+          state?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_checkpoints_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_executions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_events: {
+        Row: {
+          event_type: string
+          execution_id: string
+          from_state: string | null
+          id: string
+          node_id: string | null
+          payload: Json | null
+          timestamp: string
+          to_state: string | null
+        }
+        Insert: {
+          event_type: string
+          execution_id: string
+          from_state?: string | null
+          id?: string
+          node_id?: string | null
+          payload?: Json | null
+          timestamp?: string
+          to_state?: string | null
+        }
+        Update: {
+          event_type?: string
+          execution_id?: string
+          from_state?: string | null
+          id?: string
+          node_id?: string | null
+          payload?: Json | null
+          timestamp?: string
+          to_state?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_events_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_executions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflow_executions: {
         Row: {
           completed_at: string | null
@@ -1194,6 +1276,53 @@ export type Database = {
             columns: ["inscricao_id"]
             isOneToOne: false
             referencedRelation: "inscricoes_edital"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_metrics: {
+        Row: {
+          duration_ms: number
+          error_message: string | null
+          execution_id: string
+          id: string
+          metadata: Json | null
+          node_id: string
+          node_type: string
+          recorded_at: string
+          retry_count: number | null
+          status: string
+        }
+        Insert: {
+          duration_ms: number
+          error_message?: string | null
+          execution_id: string
+          id?: string
+          metadata?: Json | null
+          node_id: string
+          node_type: string
+          recorded_at?: string
+          retry_count?: number | null
+          status: string
+        }
+        Update: {
+          duration_ms?: number
+          error_message?: string | null
+          execution_id?: string
+          id?: string
+          metadata?: Json | null
+          node_id?: string
+          node_type?: string
+          recorded_at?: string
+          retry_count?: number | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_metrics_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_executions"
             referencedColumns: ["id"]
           },
         ]
