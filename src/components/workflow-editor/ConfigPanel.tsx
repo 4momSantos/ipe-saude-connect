@@ -121,7 +121,7 @@ export function ConfigPanel({
       {/* Content */}
       <div className="flex-1 overflow-hidden">
         <ScrollArea className="h-full">
-          <div className="p-6 space-y-4">
+          <div className="p-6 space-y-4 pr-4">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="config">Config</TabsTrigger>
