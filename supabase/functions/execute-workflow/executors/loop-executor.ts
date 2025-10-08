@@ -518,46 +518,184 @@ export class LoopExecutor implements NodeExecutor {
 
     const config = node.data as unknown as LoopNodeConfig;
 
-    // FASE 4: Se loopBody está configurado, executar sub-workflow
+    // FASE 4: Se loopBody está configurado, executar sub-workflow real
     if (config.loopBody && config.loopBody.startNodeId && config.loopBody.endNodeId) {
-      console.log(`[LOOP] Executando sub-workflow para item:`, iterationContext.loop);
+      console.log(`[LOOP] Executando sub-workflow do nó ${config.loopBody.startNodeId} ao ${config.loopBody.endNodeId}`);
 
-      // TODO: Aqui seria a integração completa com orchestrator
-      // Por enquanto, retorna stub que simula sub-workflow
-      // Na implementação final:
-      // 1. Criar sub-orchestrator com nodes entre startNodeId e endNodeId
-      // 2. Passar iterationContext como input
-      // 3. Executar sub-workflow
-      // 4. Retornar resultado
-      
-      // Simular processamento com suporte a cancelamento
-      await new Promise((resolve, reject) => {
-        const timeoutId = setTimeout(resolve, Math.random() * 100);
-        
-        if (signal) {
-          signal.addEventListener('abort', () => {
-            clearTimeout(timeoutId);
-            reject(new Error('Operation aborted'));
-          });
+      try {
+        // Buscar workflow completo do DB
+        const { data: workflowData, error: workflowError } = await supabaseClient
+          .from('workflow_executions')
+          .select(`
+            workflow_id,
+            workflows!inner(nodes, edges)
+          `)
+          .eq('id', executionId)
+          .single();
+
+        if (workflowError || !workflowData) {
+          console.warn('[LOOP] Workflow não encontrado, usando fallback');
+          return this.executeFallback(iterationContext, signal);
         }
-      });
 
-      return {
-        processed: true,
-        subWorkflowExecuted: true,
-        item: iterationContext.loop,
-        startNode: config.loopBody.startNodeId,
-        endNode: config.loopBody.endNodeId,
-        timestamp: new Date().toISOString()
-      };
+        const workflow = workflowData.workflows;
+        const allNodes = Array.isArray(workflow.nodes) ? workflow.nodes : [];
+        const allEdges = Array.isArray(workflow.edges) ? workflow.edges : [];
+
+        // Extrair nós do loop body (entre startNodeId e endNodeId)
+        const loopNodes = this.extractLoopBodyNodes(
+          allNodes,
+          allEdges,
+          config.loopBody.startNodeId,
+          config.loopBody.endNodeId
+        );
+
+        if (loopNodes.length === 0) {
+          console.warn('[LOOP] Nenhum nó encontrado no loop body');
+          return this.executeFallback(iterationContext, signal);
+        }
+
+        console.log(`[LOOP] Executando ${loopNodes.length} nós do loop body`);
+
+        // Executar cada nó sequencialmente com contexto da iteração
+        let currentContext = { ...iterationContext };
+        const executorRegistry = (await import('./index.ts')).executorRegistry;
+
+        for (const loopNode of loopNodes) {
+          if (signal?.aborted) {
+            throw new Error('Operation aborted');
+          }
+
+          const executor = executorRegistry.get(loopNode.data?.type || loopNode.type);
+          if (!executor) {
+            console.warn(`[LOOP] Executor não encontrado para tipo: ${loopNode.data?.type || loopNode.type}`);
+            continue;
+          }
+
+          // Criar step execution para este nó do loop
+          const { data: stepExec } = await supabaseClient
+            .from('workflow_step_executions')
+            .insert({
+              execution_id: executionId,
+              node_id: loopNode.id,
+              node_type: loopNode.data?.type || loopNode.type,
+              status: 'running',
+              input_data: currentContext,
+            })
+            .select()
+            .single();
+
+          try {
+            const result = await executor.execute(
+              supabaseClient,
+              executionId,
+              stepExec.id,
+              loopNode,
+              currentContext
+            );
+
+            // Atualizar contexto com output do nó
+            currentContext = {
+              ...currentContext,
+              ...result.outputData,
+              [`${loopNode.id}_output`]: result.outputData,
+            };
+
+            // Atualizar step execution
+            await supabaseClient
+              .from('workflow_step_executions')
+              .update({
+                status: 'completed',
+                output_data: result.outputData,
+                completed_at: new Date().toISOString(),
+              })
+              .eq('id', stepExec.id);
+
+          } catch (error: any) {
+            await supabaseClient
+              .from('workflow_step_executions')
+              .update({
+                status: 'failed',
+                error_message: error.message,
+                completed_at: new Date().toISOString(),
+              })
+              .eq('id', stepExec.id);
+
+            throw error;
+          }
+        }
+
+        return {
+          processed: true,
+          subWorkflowExecuted: true,
+          loopBodyNodesExecuted: loopNodes.length,
+          item: iterationContext.loop,
+          finalContext: currentContext,
+          timestamp: new Date().toISOString(),
+        };
+
+      } catch (error: any) {
+        console.error('[LOOP] Erro ao executar sub-workflow:', error.message);
+        throw error;
+      }
     }
 
     // Fallback: Processamento simples sem sub-workflow
-    console.log(`[LOOP] Executando iteração simples para item:`, iterationContext.loop);
+    return this.executeFallback(iterationContext, signal);
+  }
+
+  /**
+   * Extrair nós do loop body baseado em startNodeId e endNodeId
+   */
+  private extractLoopBodyNodes(
+    allNodes: any[],
+    allEdges: any[],
+    startNodeId: string,
+    endNodeId: string
+  ): any[] {
+    // Encontrar nós entre start e end usando BFS
+    const loopNodes: any[] = [];
+    const visited = new Set<string>();
+    const queue: string[] = [startNodeId];
+
+    while (queue.length > 0) {
+      const currentId = queue.shift()!;
+      
+      if (visited.has(currentId)) continue;
+      visited.add(currentId);
+
+      const currentNode = allNodes.find(n => n.id === currentId);
+      if (currentNode) {
+        loopNodes.push(currentNode);
+      }
+
+      // Se chegou no endNode, parar
+      if (currentId === endNodeId) break;
+
+      // Adicionar próximos nós
+      const nextEdges = allEdges.filter(e => e.source === currentId);
+      for (const edge of nextEdges) {
+        if (!visited.has(edge.target)) {
+          queue.push(edge.target);
+        }
+      }
+    }
+
+    return loopNodes;
+  }
+
+  /**
+   * Fallback para quando não há loopBody configurado
+   */
+  private async executeFallback(
+    iterationContext: ExecutionContext,
+    signal?: AbortSignal
+  ): Promise<any> {
+    console.log(`[LOOP] Executando iteração simples (fallback)`);
     
     // Simular processamento async com suporte a cancelamento
     await new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(resolve, Math.random() * 100);
+      const timeoutId = setTimeout(resolve, Math.random() * 100 + 50);
       
       if (signal) {
         signal.addEventListener('abort', () => {
@@ -569,6 +707,7 @@ export class LoopExecutor implements NodeExecutor {
     
     return {
       processed: true,
+      fallbackMode: true,
       item: iterationContext.loop,
       timestamp: new Date().toISOString()
     };

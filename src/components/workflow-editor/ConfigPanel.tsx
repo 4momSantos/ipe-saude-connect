@@ -15,6 +15,7 @@ import { DatabaseConfigPanel } from "./DatabaseConfig";
 import { ApprovalConfigPanel, ApprovalConfig } from "./ApprovalConfig";
 import { ConditionConfigPanel, ConditionConfig } from "./ConditionConfig";
 import { TriggerConfigPanel } from "./TriggerConfig";
+import { LoopConfigPanel } from "./LoopConfig";
 import { TemplateSelector } from "@/components/templates/TemplateSelector";
 import { WorkflowNodeData, FormField, FormTemplate } from "@/types/workflow-editor";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -239,7 +240,23 @@ export function ConfigPanel({
                 />
               )}
 
-              {!["start", "form", "webhook", "http", "signature", "email", "database", "approval", "condition"].includes(nodeData.type) && (
+              {nodeData.type === "loop" && (
+                <LoopConfigPanel
+                  config={nodeData.loopConfig || {
+                    items: '',
+                    executionMode: 'sequential',
+                    itemVariable: 'currentItem',
+                    indexVariable: 'index',
+                    continueOnError: true,
+                    iterationTimeout: 30000,
+                    checkpointEvery: 100
+                  }}
+                  onChange={(config) => onUpdate({ loopConfig: config })}
+                  allNodes={allWorkflowNodes}
+                />
+              )}
+
+              {!["start", "form", "webhook", "http", "signature", "email", "database", "approval", "condition", "loop"].includes(nodeData.type) && (
                 <div className="text-center py-8 text-muted-foreground">
                   <p>Este tipo de etapa não possui configuração avançada.</p>
                 </div>

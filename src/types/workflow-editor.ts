@@ -107,7 +107,8 @@ export type NodeType =
   | "http"
   | "signature"
   | "email"
-  | "database";
+  | "database"
+  | "loop";
 
 export interface WebhookConfig {
   url?: string;
@@ -178,6 +179,21 @@ export interface ConditionConfig {
   description?: string;
 }
 
+export interface LoopConfig {
+  items: string;                    // Expressão para array: "{{http_response.data}}"
+  executionMode: 'sequential' | 'parallel';
+  maxConcurrency?: number;          // Apenas para modo parallel (default: 5)
+  itemVariable: string;             // Nome da variável (default: "currentItem")
+  indexVariable?: string;           // Nome do índice (default: "index")
+  continueOnError: boolean;         // Continuar se uma iteração falhar
+  iterationTimeout?: number;        // Timeout em ms por iteração (default: 30000)
+  checkpointEvery?: number;         // Checkpoint a cada N iterações (default: 100)
+  loopBody?: {
+    startNodeId: string;            // ID do primeiro nó do corpo do loop
+    endNodeId: string;              // ID do último nó do corpo do loop
+  };
+}
+
 export interface WorkflowNodeData extends Record<string, unknown> {
   label: string;
   type: NodeType;
@@ -196,6 +212,7 @@ export interface WorkflowNodeData extends Record<string, unknown> {
   approvalConfig?: ApprovalConfig;
   conditionConfig?: ConditionConfig;
   triggerConfig?: TriggerConfig;
+  loopConfig?: LoopConfig;
   config?: Record<string, any>;
 }
 
