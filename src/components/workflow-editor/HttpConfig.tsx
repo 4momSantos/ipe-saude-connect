@@ -4,13 +4,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Trash2, Info, Shield, Clock, RefreshCw } from "lucide-react";
+import { Plus, Trash2, Info, Shield, Clock, RefreshCw, Play, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { HttpConfig } from "@/types/workflow-editor";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface HttpConfigProps {
   config: HttpConfig;
@@ -18,6 +20,9 @@ interface HttpConfigProps {
 }
 
 export function HttpConfigPanel({ config, onChange }: HttpConfigProps) {
+  const [testResult, setTestResult] = useState<any>(null);
+  const [isTesting, setIsTesting] = useState(false);
+
   const addHeader = () => {
     const headers = config.headers || {};
     headers[`header-${Date.now()}`] = "";
@@ -55,9 +60,176 @@ export function HttpConfigPanel({ config, onChange }: HttpConfigProps) {
     });
   };
 
+  const testHttpRequest = async () => {
+    if (!config.url) {
+      toast.error("URL é obrigatória para testar");
+      return;
+    }
+
+    setIsTesting(true);
+    setTestResult(null);
+
+    try {
+      const startTime = Date.now();
+      
+      // Preparar headers
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(config.headers || {})
+      };
+
+      // Adicionar autenticação
+      if (config.authentication?.type === 'bearer' && config.authentication.token) {
+        headers['Authorization'] = `Bearer ${config.authentication.token}`;
+      } else if (config.authentication?.type === 'basic' && config.authentication.username && config.authentication.password) {
+        const encoded = btoa(`${config.authentication.username}:${config.authentication.password}`);
+        headers['Authorization'] = `Basic ${encoded}`;
+      } else if (config.authentication?.type === 'apiKey' && config.authentication.apiKey && config.authentication.apiKeyHeader) {
+        headers[config.authentication.apiKeyHeader] = config.authentication.apiKey;
+      }
+
+      // Fazer requisição
+      const response = await fetch(config.url, {
+        method: config.method,
+        headers,
+        body: config.method !== 'GET' && config.body ? config.body : undefined,
+        signal: AbortSignal.timeout(config.timeout || 30000)
+      });
+
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+
+      // Processar resposta
+      let data;
+      const contentType = response.headers.get('content-type');
+      
+      if (config.responseType === 'json' || contentType?.includes('application/json')) {
+        data = await response.json();
+      } else if (config.responseType === 'text' || contentType?.includes('text/')) {
+        data = await response.text();
+      } else {
+        data = await response.blob();
+      }
+
+      setTestResult({
+        success: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        data,
+        duration
+      });
+
+      if (response.ok) {
+        toast.success(`Requisição bem-sucedida (${response.status})`);
+      } else {
+        toast.error(`Erro na requisição (${response.status})`);
+      }
+    } catch (error: any) {
+      setTestResult({
+        success: false,
+        error: error.message,
+        type: error.name
+      });
+      toast.error(`Erro: ${error.message}`);
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
   return (
     <ScrollArea className="h-[calc(100vh-16rem)] pr-4">
       <div className="space-y-4">
+      {/* Test Button */}
+      <Card className="p-4 space-y-4 bg-primary/5 border-primary/20">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Play className="h-4 w-4 text-primary" />
+            <h3 className="font-semibold">Testar Requisição</h3>
+          </div>
+          <Button 
+            onClick={testHttpRequest} 
+            disabled={isTesting || !config.url}
+            size="sm"
+          >
+            {isTesting ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Testando...
+              </>
+            ) : (
+              <>
+                <Play className="h-4 w-4 mr-2" />
+                Testar Agora
+              </>
+            )}
+          </Button>
+        </div>
+        
+        {testResult && (
+          <Card className="p-4 space-y-3 bg-background">
+            <div className="flex items-center gap-2">
+              {testResult.success ? (
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+              ) : (
+                <XCircle className="h-5 w-5 text-destructive" />
+              )}
+              <h4 className="font-semibold">Resultado do Teste</h4>
+            </div>
+
+            {testResult.status && (
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Status</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant={testResult.success ? "default" : "destructive"}>
+                      {testResult.status} {testResult.statusText}
+                    </Badge>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Duração</Label>
+                  <div className="mt-1">{testResult.duration}ms</div>
+                </div>
+              </div>
+            )}
+
+            {testResult.error && (
+              <div>
+                <Label className="text-xs text-muted-foreground">Erro</Label>
+                <div className="mt-1 text-sm text-destructive">
+                  {testResult.type}: {testResult.error}
+                </div>
+              </div>
+            )}
+
+            {testResult.data && (
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Resposta</Label>
+                <Textarea
+                  value={typeof testResult.data === 'string' ? testResult.data : JSON.stringify(testResult.data, null, 2)}
+                  readOnly
+                  rows={10}
+                  className="font-mono text-xs"
+                />
+              </div>
+            )}
+
+            {testResult.headers && (
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Headers da Resposta</Label>
+                <Textarea
+                  value={JSON.stringify(testResult.headers, null, 2)}
+                  readOnly
+                  rows={4}
+                  className="font-mono text-xs"
+                />
+              </div>
+            )}
+          </Card>
+        )}
+      </Card>
+
       {/* Basic Configuration */}
       <Card className="p-4 space-y-4">
         <div className="flex items-center gap-2">
