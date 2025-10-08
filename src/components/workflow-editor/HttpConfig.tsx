@@ -4,13 +4,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Trash2, Info, Shield, Clock, RefreshCw, Play, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, Trash2, Info, Shield, Clock, RefreshCw, Play, Loader2, CheckCircle2, XCircle, Download } from "lucide-react";
 import { HttpConfig } from "@/types/workflow-editor";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -22,6 +23,7 @@ interface HttpConfigProps {
 export function HttpConfigPanel({ config, onChange }: HttpConfigProps) {
   const [testResult, setTestResult] = useState<any>(null);
   const [isTesting, setIsTesting] = useState(false);
+  const [previewMode, setPreviewMode] = useState<'json' | 'table' | 'text' | 'csv'>('json');
 
   const addHeader = () => {
     const headers = config.headers || {};
@@ -137,6 +139,161 @@ export function HttpConfigPanel({ config, onChange }: HttpConfigProps) {
     }
   };
 
+  const downloadAsCSV = () => {
+    if (!testResult?.data) return;
+
+    try {
+      let csvContent = "";
+      const data = testResult.data;
+
+      if (Array.isArray(data) && data.length > 0) {
+        // Headers
+        const headers = Object.keys(data[0]);
+        csvContent += headers.join(",") + "\n";
+
+        // Rows
+        data.forEach((row: any) => {
+          const values = headers.map(header => {
+            const value = row[header];
+            return typeof value === 'string' && value.includes(',') 
+              ? `"${value}"` 
+              : value;
+          });
+          csvContent += values.join(",") + "\n";
+        });
+      } else if (typeof data === 'object') {
+        // Single object
+        csvContent = "key,value\n";
+        Object.entries(data).forEach(([key, value]) => {
+          csvContent += `${key},${value}\n`;
+        });
+      }
+
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'http-response.csv';
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast.success("CSV exportado com sucesso");
+    } catch (error) {
+      toast.error("Erro ao exportar CSV");
+    }
+  };
+
+  const renderDataPreview = () => {
+    if (!testResult?.data) return null;
+
+    const data = testResult.data;
+
+    switch (previewMode) {
+      case 'json':
+        return (
+          <Textarea
+            value={typeof data === 'string' ? data : JSON.stringify(data, null, 2)}
+            readOnly
+            rows={15}
+            className="font-mono text-xs"
+          />
+        );
+
+      case 'table':
+        if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object') {
+          const headers = Object.keys(data[0]);
+          return (
+            <div className="border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {headers.map(header => (
+                      <TableHead key={header}>{header}</TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.map((row: any, idx: number) => (
+                    <TableRow key={idx}>
+                      {headers.map(header => (
+                        <TableCell key={header} className="text-xs">
+                          {typeof row[header] === 'object' 
+                            ? JSON.stringify(row[header]) 
+                            : String(row[header])}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          );
+        } else if (typeof data === 'object' && !Array.isArray(data)) {
+          return (
+            <div className="border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Chave</TableHead>
+                    <TableHead>Valor</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Object.entries(data).map(([key, value]) => (
+                    <TableRow key={key}>
+                      <TableCell className="font-medium text-xs">{key}</TableCell>
+                      <TableCell className="text-xs">
+                        {typeof value === 'object' 
+                          ? JSON.stringify(value) 
+                          : String(value)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          );
+        }
+        return <div className="text-sm text-muted-foreground">Dados não podem ser exibidos em formato de tabela</div>;
+
+      case 'text':
+        return (
+          <Textarea
+            value={typeof data === 'string' ? data : JSON.stringify(data)}
+            readOnly
+            rows={15}
+            className="text-xs"
+          />
+        );
+
+      case 'csv':
+        let csvPreview = "";
+        if (Array.isArray(data) && data.length > 0) {
+          const headers = Object.keys(data[0]);
+          csvPreview = headers.join(",") + "\n";
+          data.forEach((row: any) => {
+            const values = headers.map(header => row[header]);
+            csvPreview += values.join(",") + "\n";
+          });
+        } else if (typeof data === 'object') {
+          csvPreview = "key,value\n";
+          Object.entries(data).forEach(([key, value]) => {
+            csvPreview += `${key},${value}\n`;
+          });
+        }
+        return (
+          <Textarea
+            value={csvPreview}
+            readOnly
+            rows={15}
+            className="font-mono text-xs"
+          />
+        );
+
+      default:
+        return null;
+    }
+  };
+
   return (
     <ScrollArea className="h-[calc(100vh-16rem)] pr-4">
       <div className="space-y-4">
@@ -204,14 +361,29 @@ export function HttpConfigPanel({ config, onChange }: HttpConfigProps) {
             )}
 
             {testResult.data && (
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Resposta</Label>
-                <Textarea
-                  value={typeof testResult.data === 'string' ? testResult.data : JSON.stringify(testResult.data, null, 2)}
-                  readOnly
-                  rows={10}
-                  className="font-mono text-xs"
-                />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-muted-foreground">Resposta</Label>
+                  <div className="flex gap-2">
+                    <Tabs value={previewMode} onValueChange={(v: any) => setPreviewMode(v)} className="w-auto">
+                      <TabsList className="h-8">
+                        <TabsTrigger value="json" className="text-xs">JSON</TabsTrigger>
+                        <TabsTrigger value="table" className="text-xs">Tabela</TabsTrigger>
+                        <TabsTrigger value="text" className="text-xs">Texto</TabsTrigger>
+                        <TabsTrigger value="csv" className="text-xs">CSV</TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                    {previewMode === 'csv' && (
+                      <Button size="sm" variant="outline" onClick={downloadAsCSV}>
+                        <Download className="h-3 w-3 mr-1" />
+                        Baixar
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <ScrollArea className="h-[400px]">
+                  {renderDataPreview()}
+                </ScrollArea>
               </div>
             )}
 
