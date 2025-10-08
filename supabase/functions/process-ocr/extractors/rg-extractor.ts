@@ -208,24 +208,45 @@ export class RGExtractor extends BaseExtractor {
     {
       name: 'data_nascimento',
       strategies: [
-        // Prioridade 0: Data após marcador NASCIMENTO (tolerante)
-        this.createRegexStrategy(
+        // Prioridade 0: Data próxima a FILIAÇÃO (novo padrão identificado)
+        this.createFunctionStrategy(
           0,
+          (text: string) => {
+            const filiacaoMatch = text.match(/FILIA[ÇC][AÃ]O/i);
+            if (!filiacaoMatch) return null;
+            
+            // Buscar data nas próximas 100 caracteres após FILIAÇÃO
+            const afterFiliacao = text.substring(filiacaoMatch.index!, filiacaoMatch.index! + 100);
+            const dateMatch = afterFiliacao.match(/\b(\d{1,2})[\s\/\-]?(\d{1,2})[\s\/\-]?(\d{2,4})\b/);
+            
+            if (dateMatch) {
+              const day = dateMatch[1].padStart(2, '0');
+              const month = dateMatch[2].padStart(2, '0');
+              let year = dateMatch[3];
+              
+              // Converter ano de 2 dígitos para 4
+              if (year.length === 2) {
+                const yearNum = parseInt(year);
+                year = yearNum > 30 ? `19${year}` : `20${year}`;
+              }
+              
+              // Validar se é uma data de nascimento plausível
+              const yearNum = parseInt(year);
+              if (yearNum >= 1900 && yearNum <= new Date().getFullYear()) {
+                return `${day}/${month}/${year}`;
+              }
+            }
+            return null;
+          },
+          'Data próxima a FILIAÇÃO'
+        ),
+        
+        // Prioridade 1: Data após marcador NASCIMENTO (tolerante)
+        this.createRegexStrategy(
+          1,
           /NASCIMENTO[\s\S]{0,40}?(\d{1,2}[\s\/\-]?\d{1,2}[\s\/\-]?\d{2,4})/i,
           undefined,
           'Data após NASCIMENTO (até 40 caracteres)'
-        ),
-        
-        // Prioridade 1: Data sem separadores (DDMMYYYY ou DDMMYY)
-        this.createRegexStrategy(
-          1,
-          /\b(\d{2})(\d{2})(\d{4})\b/,
-          (match) => {
-            const parts = match.match(/(\d{2})(\d{2})(\d{4})/);
-            if (!parts) return match;
-            return `${parts[1]}/${parts[2]}/${parts[3]}`;
-          },
-          'Data sem separadores (DDMMYYYY)'
         ),
         
         // Prioridade 2: Data por extenso ou abreviada
@@ -257,9 +278,32 @@ export class RGExtractor extends BaseExtractor {
           'Data por extenso'
         ),
         
-        // Prioridade 3: Primeira data após o nome (nos próximos 200 caracteres)
+        // Prioridade 3: Data algumas linhas abaixo de EMISSÃO (antes de FILIAÇÃO)
         this.createFunctionStrategy(
           3,
+          (text: string) => {
+            const emissaoMatch = text.match(/EMISS[AÃ]O/i);
+            const filiacaoMatch = text.match(/FILIA[ÇC][AÃ]O/i);
+            
+            if (!emissaoMatch || !filiacaoMatch) return null;
+            
+            // Pegar texto entre EMISSÃO e FILIAÇÃO
+            const betweenText = text.substring(emissaoMatch.index! + 10, filiacaoMatch.index!);
+            
+            // Buscar segunda data nesse trecho (primeira pode ser a data de emissão)
+            const dates = betweenText.match(/\b(\d{1,2}[\s\/\-]?\d{1,2}[\s\/\-]?\d{2,4})\b/g);
+            if (dates && dates.length >= 1) {
+              // Pegar a última data antes de FILIAÇÃO
+              return dates[dates.length - 1];
+            }
+            return null;
+          },
+          'Data entre EMISSÃO e FILIAÇÃO'
+        ),
+        
+        // Prioridade 4: Primeira data após o nome (nos próximos 200 caracteres)
+        this.createFunctionStrategy(
+          4,
           (text: string) => {
             // Buscar nome em maiúsculas
             const nameMatch = text.match(/[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ]{3,}\s+[A-ZÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ\s]{10,}/);
@@ -273,14 +317,16 @@ export class RGExtractor extends BaseExtractor {
           'Primeira data após o nome'
         ),
         
-        // Prioridade 4: Primeira data no documento (fallback)
-        this.createFunctionStrategy(
-          4,
-          (text: string) => {
-            const dateMatch = text.match(/\b(\d{1,2}[\s\/\-]\d{1,2}[\s\/\-]\d{2,4})\b/);
-            return dateMatch ? dateMatch[1] : null;
+        // Prioridade 5: Data sem separadores (DDMMYYYY)
+        this.createRegexStrategy(
+          5,
+          /\b(\d{2})(\d{2})(\d{4})\b/,
+          (match) => {
+            const parts = match.match(/(\d{2})(\d{2})(\d{4})/);
+            if (!parts) return match;
+            return `${parts[1]}/${parts[2]}/${parts[3]}`;
           },
-          'Primeira data encontrada (fallback)'
+          'Data sem separadores (DDMMYYYY)'
         ),
       ],
       validator: (date) => this.isValidBirthDate(date),
