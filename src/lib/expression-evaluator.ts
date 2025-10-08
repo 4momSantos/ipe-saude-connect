@@ -3,7 +3,81 @@
  * Suporta JSON Logic (seguro) e JavaScript restrito (validado)
  */
 
-import jsonLogic from 'json-logic-js';
+// Implementação inline do JSON Logic (evita dependências externas)
+const jsonLogic = {
+  apply: (rule: any, data: any): any => {
+    const operations: Record<string, (a: any, b?: any) => any> = {
+      '===': (a: any, b: any) => a === b,
+      '!==': (a: any, b: any) => a !== b,
+      '>': (a: any, b: any) => a > b,
+      '<': (a: any, b: any) => a < b,
+      '>=': (a: any, b: any) => a >= b,
+      '<=': (a: any, b: any) => a <= b,
+      'and': (values: any[]) => values.every(v => evaluate(v)),
+      'or': (values: any[]) => values.some(v => evaluate(v)),
+      '!': (value: any) => !evaluate(value),
+      'in': (a: any, b: any) => {
+        if (Array.isArray(b)) return b.includes(a);
+        if (typeof b === 'string') return b.includes(a);
+        return false;
+      },
+      'var': (path: string) => {
+        const parts = path.split('.');
+        let value = data;
+        for (const part of parts) {
+          if (value && typeof value === 'object' && part in value) {
+            value = value[part];
+          } else {
+            return undefined;
+          }
+        }
+        return value;
+      }
+    };
+
+    const evaluate = (node: any): any => {
+      if (typeof node !== 'object' || node === null) {
+        return node;
+      }
+
+      const entries = Object.entries(node);
+      if (entries.length === 0) return node;
+
+      const [operator, args] = entries[0];
+      if (!operator) return node;
+
+      const operation = operations[operator];
+      if (!operation) {
+        throw new Error(`Operador não suportado: ${operator}`);
+      }
+
+      if (operator === 'var') {
+        return operation(args as any);
+      }
+
+      if (operator === 'and' || operator === 'or') {
+        return operation(args as any[]);
+      }
+
+      if (operator === '!') {
+        return operation(args);
+      }
+
+      const evaluatedArgs = Array.isArray(args) 
+        ? args.map(arg => evaluate(arg))
+        : [evaluate(args)];
+
+      if (evaluatedArgs.length === 2) {
+        return operation(evaluatedArgs[0], evaluatedArgs[1]);
+      } else if (evaluatedArgs.length === 1) {
+        return operation(evaluatedArgs[0]);
+      }
+      return operation(evaluatedArgs[0], evaluatedArgs[1]);
+    };
+
+    return evaluate(rule);
+  }
+};
 
 export type EvaluationMode = 'json-logic' | 'javascript';
 

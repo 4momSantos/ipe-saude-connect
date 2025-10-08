@@ -14,28 +14,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Code, Wand2, CheckCircle, XCircle, AlertCircle } from "lucide-react";
-import { ExpressionEvaluator, JsonLogicHelpers } from "@/lib/expression-evaluator";
-
-export interface ConditionalExpressionConfig {
-  mode: 'visual' | 'expert';
-  visualRules?: VisualRule[];
-  expertExpression?: string;
-  jsonLogic?: object;
-}
-
-export interface VisualRule {
-  id: string;
-  field: string;
-  operator: ComparisonOperator;
-  value: string;
-  connector?: 'and' | 'or';
-}
-
-type ComparisonOperator = '===' | '!==' | '>' | '<' | '>=' | '<=' | 'contains' | 'in';
+import type { ConditionalExpressionConfig as ConfigType, VisualRule, ComparisonOperator } from "@/types/workflow-editor";
 
 interface ConditionalExpressionConfigPanelProps {
-  config: ConditionalExpressionConfig;
-  onChange: (config: ConditionalExpressionConfig) => void;
+  config: ConfigType;
+  onChange: (config: ConfigType) => void;
 }
 
 const OPERATORS: Array<{ value: ComparisonOperator; label: string }> = [
@@ -96,27 +79,26 @@ export function ConditionalExpressionConfigPanel({ config, onChange }: Condition
 
       switch (rule.operator) {
         case '===':
-          return JsonLogicHelpers.equals(rule.field, value);
+          return { "===": [{ "var": rule.field }, value] };
         case '!==':
-          return JsonLogicHelpers.not(JsonLogicHelpers.equals(rule.field, value));
+          return { "!": { "===": [{ "var": rule.field }, value] } };
         case '>':
-          return JsonLogicHelpers.greaterThan(rule.field, value as number);
+          return { ">": [{ "var": rule.field }, value] };
         case '<':
-          return JsonLogicHelpers.lessThan(rule.field, value as number);
+          return { "<": [{ "var": rule.field }, value] };
         case '>=':
           return { ">=": [{ "var": rule.field }, value] };
         case '<=':
           return { "<=": [{ "var": rule.field }, value] };
         case 'contains':
-          return JsonLogicHelpers.contains(rule.field, value as string);
+          return { "in": [value, { "var": rule.field }] };
         case 'in':
-          return JsonLogicHelpers.in(rule.field, JSON.parse(rule.value));
+          return { "in": [{ "var": rule.field }, JSON.parse(rule.value)] };
         default:
-          return JsonLogicHelpers.equals(rule.field, value);
+          return { "===": [{ "var": rule.field }, value] };
       }
     });
 
-    // Combinar com AND ou OR
     const firstConnector = config.visualRules[0]?.connector || 'and';
     
     if (conditions.length === 1) {
@@ -124,14 +106,30 @@ export function ConditionalExpressionConfigPanel({ config, onChange }: Condition
     }
 
     return firstConnector === 'and' 
-      ? JsonLogicHelpers.and(...conditions)
-      : JsonLogicHelpers.or(...conditions);
+      ? { "and": conditions }
+      : { "or": conditions };
   };
 
-  // Test expression
+  // Validação simplificada (inline)
+  const validateExpression = () => {
+    if (config.mode === 'visual') {
+      const logic = convertToJsonLogic();
+      if (!logic) return { valid: false, error: 'Adicione pelo menos uma regra' };
+      return { valid: true };
+    } else {
+      try {
+        JSON.parse(config.expertExpression || '{}');
+        return { valid: true };
+      } catch (error: any) {
+        return { valid: false, error: error.message };
+      }
+    }
+  };
+
+  // Test expression (inline)
   const handleTest = () => {
     try {
-      const context = JSON.parse(testContext);
+      JSON.parse(testContext);
       const logic = config.mode === 'visual' 
         ? convertToJsonLogic()
         : JSON.parse(config.expertExpression || '{}');
@@ -140,22 +138,10 @@ export function ConditionalExpressionConfigPanel({ config, onChange }: Condition
         throw new Error('Nenhuma regra definida');
       }
 
-      const result = ExpressionEvaluator.evaluate(logic, context, 'json-logic');
-      
-      setTestResult({ success: true, result });
+      // Preview apenas - avaliação real acontece no backend
+      setTestResult({ success: true, result: "Será avaliado no backend" });
     } catch (error: any) {
       setTestResult({ success: false, error: error.message });
-    }
-  };
-
-  // Validate expression
-  const validateExpression = () => {
-    if (config.mode === 'visual') {
-      const logic = convertToJsonLogic();
-      if (!logic) return { valid: false, error: 'Adicione pelo menos uma regra' };
-      return ExpressionEvaluator.validate(logic, 'json-logic');
-    } else {
-      return ExpressionEvaluator.validate(config.expertExpression || '', 'json-logic');
     }
   };
 
@@ -221,7 +207,7 @@ export function ConditionalExpressionConfigPanel({ config, onChange }: Condition
                 <div className="flex gap-2 items-start">
                   <div className="flex-1 grid grid-cols-3 gap-2">
                     <Input
-                      placeholder="Campo (ex: context.age)"
+                      placeholder="Campo (ex: age)"
                       value={rule.field}
                       onChange={(e) => updateRule(rule.id, { field: e.target.value })}
                     />
@@ -269,7 +255,7 @@ export function ConditionalExpressionConfigPanel({ config, onChange }: Condition
               <Code className="h-4 w-4" />
               <AlertDescription>
                 <div className="text-xs mt-2">
-                  <pre className="bg-muted/50 p-2 rounded overflow-auto">
+                  <pre className="bg-muted/50 p-2 rounded overflow-auto max-h-48">
                     {JSON.stringify(convertToJsonLogic(), null, 2)}
                   </pre>
                 </div>
@@ -299,7 +285,7 @@ export function ConditionalExpressionConfigPanel({ config, onChange }: Condition
           <Alert>
             <AlertDescription className="text-xs space-y-2">
               <div className="font-semibold">Exemplos:</div>
-              <div className="space-y-1 font-mono bg-muted/50 p-2 rounded">
+              <div className="space-y-1 font-mono bg-muted/50 p-2 rounded text-xs">
                 <div>{"{ \"===\": [{\"var\": \"status\"}, \"active\"] }"}</div>
                 <div>{"{ \">=\": [{\"var\": \"age\"}, 18] }"}</div>
                 <div>{"{ \"and\": [{...}, {...}] }"}</div>
@@ -324,7 +310,7 @@ export function ConditionalExpressionConfigPanel({ config, onChange }: Condition
             placeholder='{"age": 25, "role": "admin"}'
             value={testContext}
             onChange={(e) => setTestContext(e.target.value)}
-            className="font-mono text-xs"
+            className="font-mono text-xs h-20"
           />
         </div>
 
@@ -334,7 +320,7 @@ export function ConditionalExpressionConfigPanel({ config, onChange }: Condition
               {testResult.success ? (
                 <>
                   <CheckCircle className="h-4 w-4 inline mr-2" />
-                  Resultado: {JSON.stringify(testResult.result)}
+                  Configuração válida - será avaliado durante execução
                 </>
               ) : (
                 <>
@@ -350,11 +336,11 @@ export function ConditionalExpressionConfigPanel({ config, onChange }: Condition
       {/* Documentation */}
       <Alert>
         <AlertDescription className="text-xs">
-          <strong>Variáveis disponíveis no contexto:</strong>
+          <strong>Variáveis disponíveis:</strong>
           <div className="mt-1 space-y-1">
-            <div>• <code>context.*</code> - Dados do contexto de execução</div>
-            <div>• <code>node.*</code> - Dados de nós anteriores</div>
-            <div>• <code>inscricao.*</code> - Dados da inscrição</div>
+            <div>• Contexto de execução do workflow</div>
+            <div>• Dados de nós anteriores</div>
+            <div>• Dados da inscrição/processo</div>
           </div>
         </AlertDescription>
       </Alert>
