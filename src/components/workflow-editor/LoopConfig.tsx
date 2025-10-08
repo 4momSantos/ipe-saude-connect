@@ -11,6 +11,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Info, AlertCircle } from "lucide-react";
 import { LoopConfig } from "@/types/workflow-editor";
 import { Node } from "@xyflow/react";
@@ -33,7 +34,8 @@ export function LoopConfigPanel({ config, onChange, allNodes }: LoopConfigPanelP
   );
 
   return (
-    <div className="space-y-6">
+    <ScrollArea className="h-[calc(100vh-16rem)] pr-4">
+      <div className="space-y-6">
       {/* SEÇÃO 1: Input de Dados */}
       <Card>
         <CardHeader>
@@ -327,6 +329,7 @@ export function LoopConfigPanel({ config, onChange, allNodes }: LoopConfigPanelP
           </p>
         </AlertDescription>
       </Alert>
-    </div>
+      </div>
+    </ScrollArea>
   );
 }

@@ -1,8 +1,3 @@
-/**
- * Configuração de Expressões Condicionais
- * UI visual para criar condições lógicas (JSON Logic)
- */
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -13,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Trash2, Code, Wand2, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import type { ConditionalExpressionConfig as ConfigType, VisualRule, ComparisonOperator } from "@/types/workflow-editor";
 
@@ -148,7 +144,8 @@ export function ConditionalExpressionConfigPanel({ config, onChange }: Condition
   const validation = validateExpression();
 
   return (
-    <div className="space-y-4">
+    <ScrollArea className="h-[calc(100vh-16rem)] pr-4">
+      <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -344,6 +341,7 @@ export function ConditionalExpressionConfigPanel({ config, onChange }: Condition
           </div>
         </AlertDescription>
       </Alert>
-    </div>
+      </div>
+    </ScrollArea>
   );
 }

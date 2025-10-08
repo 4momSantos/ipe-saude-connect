@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { DraggableVariable } from "./DraggableVariable";
 import { useDroppableInput } from "@/hooks/useDroppableInput";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface EmailConfigProps {
   config: EmailConfig;
@@ -131,7 +132,8 @@ export function EmailConfigPanel({ config, onChange }: EmailConfigProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <ScrollArea className="h-[calc(100vh-16rem)] pr-4">
+      <div className="space-y-6">
       <div className="space-y-2">
         <Label>Destinatário</Label>
         <Select value={recipientType} onValueChange={handleRecipientTypeChange}>
@@ -297,6 +299,7 @@ export function EmailConfigPanel({ config, onChange }: EmailConfigProps) {
           )}
         </div>
       )}
-    </div>
+      </div>
+    </ScrollArea>
   );
 }

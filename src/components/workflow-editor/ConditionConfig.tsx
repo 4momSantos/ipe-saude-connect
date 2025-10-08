@@ -95,7 +95,8 @@ export function ConditionConfigPanel({ config, onChange }: ConditionConfigPanelP
   };
 
   return (
-    <div className="space-y-4">
+    <ScrollArea className="h-[calc(100vh-16rem)] pr-4">
+      <div className="space-y-4">
       {/* Pergunta/Critério da Decisão */}
       <div className="space-y-2">
         <Label htmlFor="condition-question" className="flex items-center gap-2">
@@ -225,6 +226,7 @@ export function ConditionConfigPanel({ config, onChange }: ConditionConfigPanelP
           )}
         </p>
       </div>
-    </div>
+      </div>
+    </ScrollArea>
   );
 }

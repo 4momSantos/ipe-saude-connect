@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { TriggerConfig } from "@/types/workflow-editor";
 
 interface TriggerConfigPanelProps {
@@ -21,7 +22,8 @@ export function TriggerConfigPanel({ config, onChange }: TriggerConfigPanelProps
   };
 
   return (
-    <div className="space-y-4">
+    <ScrollArea className="h-[calc(100vh-16rem)] pr-4">
+      <div className="space-y-4">
       <div>
         <Label>Tipo de Gatilho</Label>
         <Select
@@ -149,6 +151,7 @@ export function TriggerConfigPanel({ config, onChange }: TriggerConfigPanelProps
           💡 <strong>Dica:</strong> A configuração do gatilho define quando e como o workflow será iniciado automaticamente.
         </p>
       </div>
-    </div>
+      </div>
+    </ScrollArea>
   );
 }

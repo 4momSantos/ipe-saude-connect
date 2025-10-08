@@ -94,7 +94,8 @@ export function ApprovalConfigPanel({ config, onChange }: ApprovalConfigPanelPro
   };
 
   return (
-    <div className="space-y-4">
+    <ScrollArea className="h-[calc(100vh-16rem)] pr-4">
+      <div className="space-y-4">
       <div className="space-y-3">
         <Label>Atribuição de Responsabilidade</Label>
         <RadioGroup
@@ -194,6 +195,7 @@ export function ApprovalConfigPanel({ config, onChange }: ApprovalConfigPanelPro
           )}
         </p>
       </div>
-    </div>
+      </div>
+    </ScrollArea>
   );
 }

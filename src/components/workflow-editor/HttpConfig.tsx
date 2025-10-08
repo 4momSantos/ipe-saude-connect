@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface HttpConfigProps {
   config: HttpConfig;
@@ -55,7 +56,8 @@ export function HttpConfigPanel({ config, onChange }: HttpConfigProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <ScrollArea className="h-[calc(100vh-16rem)] pr-4">
+      <div className="space-y-4">
       {/* Basic Configuration */}
       <Card className="p-4 space-y-4">
         <div className="flex items-center gap-2">
@@ -420,6 +422,7 @@ export function HttpConfigPanel({ config, onChange }: HttpConfigProps) {
           </div>
         </AlertDescription>
       </Alert>
-    </div>
+      </div>
+    </ScrollArea>
   );
 }

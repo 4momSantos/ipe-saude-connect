@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from "lucide-react";
 import { DatabaseConfig } from "@/types/workflow-editor";
 import { Card } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface DatabaseConfigProps {
   config: DatabaseConfig;
@@ -53,7 +54,8 @@ export function DatabaseConfigPanel({ config, onChange }: DatabaseConfigProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <ScrollArea className="h-[calc(100vh-16rem)] pr-4">
+      <div className="space-y-4">
       <div className="space-y-2">
         <Label>Operação</Label>
         <Select
@@ -180,6 +182,7 @@ export function DatabaseConfigPanel({ config, onChange }: DatabaseConfigProps) {
           )}
         </div>
       )}
-    </div>
+      </div>
+    </ScrollArea>
   );
 }

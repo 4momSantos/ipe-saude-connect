@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from "lucide-react";
 import { WebhookConfig } from "@/types/workflow-editor";
 import { Card } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface WebhookConfigProps {
   config: WebhookConfig;
@@ -32,7 +33,8 @@ export function WebhookConfigPanel({ config, onChange }: WebhookConfigProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <ScrollArea className="h-[calc(100vh-16rem)] pr-4">
+      <div className="space-y-4">
       <div className="space-y-2">
         <Label>URL do Webhook</Label>
         <Input
@@ -96,6 +98,7 @@ export function WebhookConfigPanel({ config, onChange }: WebhookConfigProps) {
           </Card>
         ))}
       </div>
-    </div>
+      </div>
+    </ScrollArea>
   );
 }

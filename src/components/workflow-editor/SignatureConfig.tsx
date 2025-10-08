@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { DraggableVariable } from "./DraggableVariable";
 import { useDroppableInput } from "@/hooks/useDroppableInput";
 import { SignerInput } from "./SignerInput";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface SignatureConfigProps {
   config: SignatureConfig;
@@ -56,7 +57,8 @@ export function SignatureConfigPanel({ config, onChange }: SignatureConfigProps)
   };
 
   return (
-    <div className="space-y-6">
+    <ScrollArea className="h-[calc(100vh-16rem)] pr-4">
+      <div className="space-y-6">
       <div className="space-y-2">
         <Label>Provedor de Assinatura</Label>
         <Select
@@ -215,6 +217,7 @@ export function SignatureConfigPanel({ config, onChange }: SignatureConfigProps)
           />
         </div>
       </div>
-    </div>
+      </div>
+    </ScrollArea>
   );
 }
