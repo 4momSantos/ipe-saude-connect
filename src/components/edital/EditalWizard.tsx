@@ -14,7 +14,7 @@ import { AnexosStep } from "./steps/AnexosStep";
 import { PublicacaoStep } from "./steps/PublicacaoStep";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate, useBlocker } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -79,6 +79,7 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<(() => void) | null>(null);
   const navigate = useNavigate();
 
   const form = useForm<EditalFormValues>({
@@ -108,20 +109,8 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
 
   const progress = (currentStep / STEPS.length) * 100;
 
-  // Detectar mudanças não salvas e bloquear navegação
+  // Detectar mudanças não salvas
   const hasUnsavedChanges = form.formState.isDirty && !isSubmitting;
-  
-  const blocker = useBlocker(
-    ({ currentLocation, nextLocation }) =>
-      hasUnsavedChanges && currentLocation.pathname !== nextLocation.pathname
-  );
-
-  // Mostrar dialog quando tentar navegar com mudanças não salvas
-  useEffect(() => {
-    if (blocker.state === "blocked") {
-      setShowUnsavedDialog(true);
-    }
-  }, [blocker.state]);
 
   // Aviso ao fechar aba/janela
   useEffect(() => {
@@ -134,6 +123,27 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  // Interceptar navegação com popstate (botão voltar do navegador)
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        window.history.pushState(null, "", window.location.href);
+        setShowUnsavedDialog(true);
+        setPendingNavigation(() => () => window.history.back());
+      }
+    };
+
+    if (hasUnsavedChanges) {
+      window.history.pushState(null, "", window.location.href);
+      window.addEventListener("popstate", handlePopState);
+    }
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
   }, [hasUnsavedChanges]);
 
   const handleNext = async () => {
@@ -279,16 +289,17 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
   const handleDiscardChanges = () => {
     setShowUnsavedDialog(false);
     form.reset();
-    if (blocker.state === "blocked") {
-      blocker.proceed();
+    if (pendingNavigation) {
+      pendingNavigation();
+      setPendingNavigation(null);
+    } else {
+      navigate("/editais");
     }
   };
 
   const handleCancelNavigation = () => {
     setShowUnsavedDialog(false);
-    if (blocker.state === "blocked") {
-      blocker.reset();
-    }
+    setPendingNavigation(null);
   };
 
   const handleFinalSubmit = async () => {
@@ -490,7 +501,14 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
             </AlertDialogCancel>
             <Button
               variant="outline"
-              onClick={handleDiscardChanges}
+              onClick={() => {
+                if (hasUnsavedChanges) {
+                  setShowUnsavedDialog(true);
+                  setPendingNavigation(() => () => navigate("/editais"));
+                } else {
+                  handleDiscardChanges();
+                }
+              }}
             >
               Descartar mudanças
             </Button>
