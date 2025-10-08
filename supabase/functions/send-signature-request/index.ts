@@ -316,12 +316,18 @@ serve(async (req) => {
           message: `Solicitação de assinatura para o edital ${inscricaoData?.edital?.numero || "N/A"}`,
         });
 
+        // Extrair URL de assinatura
+        const signatureUrl = assifafyResponse.signature_url || 
+                            assifafyResponse.signers?.[0]?.signature_url ||
+                            null;
+
         console.log(JSON.stringify({
           level: "info",
           requestId,
           action: "assinafy_document_created",
           documentId: assifafyResponse.id,
-          signatureRequestId
+          signatureRequestId,
+          signatureUrl: signatureUrl ? "present" : "missing"
         }));
 
         // Atualizar signature request com ID externo da Assinafy
@@ -334,6 +340,7 @@ serve(async (req) => {
             metadata: {
               ...signatureRequest.metadata,
               assinafy_data: assifafyResponse,
+              signature_url: signatureUrl,
               sent_at: new Date().toISOString(),
             },
           })
@@ -373,17 +380,80 @@ serve(async (req) => {
 
     // Enviar email para o candidato
     if (candidato?.email) {
+      // Buscar signature_url do metadata atualizado
+      const { data: updatedSigRequest } = await supabase
+        .from("signature_requests")
+        .select("metadata")
+        .eq("id", signatureRequestId)
+        .single();
+      
+      const signatureUrl = updatedSigRequest?.metadata?.signature_url;
+
       try {
         await sendEmail(
           [candidato.email],
-          "Documento para Assinatura",
+          "🖊️ Contrato Pronto para Assinatura Digital",
           `
-            <h2>Olá ${candidato.nome || "Candidato"},</h2>
-            <p>Um documento está aguardando sua assinatura.</p>
-            <p><strong>Edital:</strong> ${inscricaoData?.edital?.titulo || "N/A"}</p>
-            <p><strong>Provedor:</strong> ${signatureRequest.provider === "assinafy" ? "Assinafy" : signatureRequest.provider}</p>
-            <p>Por favor, acesse o sistema para assinar o documento.</p>
-            <p>Atenciosamente,<br/>Equipe de Credenciamento</p>
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+                <h1 style="color: white; margin: 0;">🖊️ Contrato Pronto para Assinatura</h1>
+              </div>
+              
+              <div style="padding: 30px; background: #f9fafb;">
+                <h2 style="color: #1f2937;">Olá ${candidato.nome || "Candidato"},</h2>
+                
+                <p style="font-size: 16px; color: #4b5563; line-height: 1.6;">
+                  Seu contrato de credenciamento está pronto e aguardando sua assinatura digital.
+                </p>
+                
+                <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea;">
+                  <p style="margin: 5px 0;"><strong>Edital:</strong> ${inscricaoData?.edital?.titulo || "N/A"}</p>
+                  <p style="margin: 5px 0;"><strong>Número:</strong> ${inscricaoData?.edital?.numero || "N/A"}</p>
+                  <p style="margin: 5px 0;"><strong>Provedor:</strong> Assinafy (Assinatura Digital Segura)</p>
+                </div>
+                
+                ${signatureUrl ? `
+                  <div style="text-align: center; margin: 30px 0;">
+                    <a href="${signatureUrl}" 
+                       style="display: inline-block; 
+                              padding: 16px 40px; 
+                              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                              color: white; 
+                              text-decoration: none; 
+                              border-radius: 8px; 
+                              font-size: 18px;
+                              font-weight: bold;
+                              box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                      🖊️ Assinar Contrato Agora
+                    </a>
+                  </div>
+                  
+                  <p style="font-size: 14px; color: #6b7280; text-align: center;">
+                    Ou copie e cole este link no navegador:<br/>
+                    <code style="background: #e5e7eb; padding: 8px; border-radius: 4px; display: inline-block; margin-top: 8px; word-break: break-all; font-size: 12px;">
+                      ${signatureUrl}
+                    </code>
+                  </p>
+                ` : `
+                  <p style="color: #dc2626; background: #fef2f2; padding: 15px; border-radius: 8px; border-left: 4px solid #dc2626;">
+                    ⚠️ Link de assinatura temporariamente indisponível. Por favor, acesse o sistema para obter o link.
+                  </p>
+                `}
+                
+                <div style="background: #fffbeb; padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #f59e0b;">
+                  <p style="margin: 0; font-size: 14px; color: #92400e;">
+                    ⏰ <strong>Atenção:</strong> Este link é válido por 7 dias. Após esse período, será necessário solicitar um novo contrato.
+                  </p>
+                </div>
+              </div>
+              
+              <div style="background: #1f2937; padding: 20px; text-align: center;">
+                <p style="color: #9ca3af; margin: 0; font-size: 14px;">
+                  Sistema de Credenciamento Médico<br/>
+                  Em caso de dúvidas, entre em contato com nossa equipe.
+                </p>
+              </div>
+            </div>
           `,
           resendApiKey
         );
