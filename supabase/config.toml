@@ -3,6 +3,9 @@ project_id = "ncmofeencqpqhtguxmvy"
 [functions.save-workflow]
 verify_jwt = true
 
+[functions.schedule-trigger]
+verify_jwt = false
+
 [functions.execute-workflow]
 verify_jwt = false
 
