@@ -1,0 +1,339 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+interface GerarContratoRequest {
+  inscricao_id: string;
+}
+
+interface ContratoData {
+  inscricao_id: string;
+  candidato_nome: string;
+  candidato_cpf: string;
+  candidato_email: string;
+  edital_titulo: string;
+  edital_numero: string;
+  especialidades: string[];
+}
+
+// Função para gerar HTML do contrato
+function gerarContratoHTML(data: ContratoData): string {
+  const dataAtual = new Date().toLocaleDateString('pt-BR');
+  
+  return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Contrato de Credenciamento</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+    h1 { text-align: center; color: #333; }
+    h2 { color: #555; margin-top: 30px; }
+    .header { text-align: center; margin-bottom: 40px; }
+    .clausula { margin: 20px 0; }
+    .assinatura { margin-top: 60px; text-align: center; }
+    .linha-assinatura { border-top: 1px solid #000; width: 300px; margin: 40px auto 10px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>CONTRATO DE CREDENCIAMENTO</h1>
+    <p><strong>Edital: ${data.edital_numero} - ${data.edital_titulo}</strong></p>
+    <p>Data: ${dataAtual}</p>
+  </div>
+
+  <div class="clausula">
+    <h2>PARTES CONTRATANTES</h2>
+    <p><strong>CONTRATANTE:</strong> [Nome da Instituição]</p>
+    <p><strong>CONTRATADO:</strong> ${data.candidato_nome}</p>
+    <p><strong>CPF:</strong> ${data.candidato_cpf}</p>
+    <p><strong>E-mail:</strong> ${data.candidato_email}</p>
+  </div>
+
+  <div class="clausula">
+    <h2>CLÁUSULA PRIMEIRA - DO OBJETO</h2>
+    <p>O presente contrato tem por objeto o credenciamento do CONTRATADO para prestação de serviços de saúde nas seguintes especialidades:</p>
+    <ul>
+      ${data.especialidades.map(esp => `<li>${esp}</li>`).join('')}
+    </ul>
+  </div>
+
+  <div class="clausula">
+    <h2>CLÁUSULA SEGUNDA - DAS OBRIGAÇÕES DO CONTRATADO</h2>
+    <p>O CONTRATADO obriga-se a:</p>
+    <ul>
+      <li>Prestar os serviços com qualidade e dentro dos padrões técnicos;</li>
+      <li>Manter os documentos de habilitação válidos;</li>
+      <li>Cumprir as normas e regulamentos da instituição;</li>
+      <li>Informar qualquer alteração cadastral em até 30 dias.</li>
+    </ul>
+  </div>
+
+  <div class="clausula">
+    <h2>CLÁUSULA TERCEIRA - DA VIGÊNCIA</h2>
+    <p>O presente contrato tem vigência de 24 (vinte e quatro) meses, contados a partir da data de assinatura, podendo ser renovado mediante acordo entre as partes.</p>
+  </div>
+
+  <div class="clausula">
+    <h2>CLÁUSULA QUARTA - DO FORO</h2>
+    <p>As partes elegem o foro da comarca de [Cidade/UF] para dirimir quaisquer dúvidas ou controvérsias oriundas deste contrato.</p>
+  </div>
+
+  <div class="assinatura">
+    <p>E, por estarem assim justos e contratados, firmam o presente instrumento em duas vias de igual teor.</p>
+    <p>${dataAtual}</p>
+    
+    <div class="linha-assinatura"></div>
+    <p><strong>CONTRATANTE</strong></p>
+    <p>[Nome da Instituição]</p>
+
+    <div class="linha-assinatura"></div>
+    <p><strong>CONTRATADO</strong></p>
+    <p>${data.candidato_nome}</p>
+    <p>CPF: ${data.candidato_cpf}</p>
+  </div>
+</body>
+</html>
+  `.trim();
+}
+
+serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  const startTime = Date.now();
+  console.log(JSON.stringify({
+    timestamp: new Date().toISOString(),
+    event: 'function_start',
+    method: req.method
+  }));
+
+  try {
+    // Validar request
+    const { inscricao_id }: GerarContratoRequest = await req.json();
+
+    if (!inscricao_id) {
+      throw new Error('inscricao_id é obrigatório');
+    }
+
+    console.log(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      event: 'processing_request',
+      inscricao_id
+    }));
+
+    // Inicializar Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Buscar dados da inscrição e edital
+    const { data: inscricao, error: inscricaoError } = await supabase
+      .from('inscricoes_edital')
+      .select(`
+        id,
+        dados_inscricao,
+        candidato_id,
+        editais (
+          id,
+          titulo,
+          numero_edital
+        )
+      `)
+      .eq('id', inscricao_id)
+      .single();
+
+    if (inscricaoError || !inscricao) {
+      throw new Error(`Inscrição não encontrada: ${inscricaoError?.message}`);
+    }
+
+    // Buscar dados do candidato
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('nome, email')
+      .eq('id', inscricao.candidato_id)
+      .single();
+
+    if (profileError || !profile) {
+      throw new Error(`Perfil do candidato não encontrado: ${profileError?.message}`);
+    }
+
+    // Extrair dados para o contrato
+    const dadosInscricao = inscricao.dados_inscricao as any || {};
+    const dadosPessoais = dadosInscricao.dadosPessoais || {};
+    const consultorio = dadosInscricao.consultorio || {};
+    const crms = consultorio.crms || [];
+    const especialidades = crms.map((crm: any) => crm.especialidade || 'Não especificada');
+
+    const contratoData: ContratoData = {
+      inscricao_id,
+      candidato_nome: dadosPessoais.nome || profile.nome || 'Não informado',
+      candidato_cpf: dadosPessoais.cpf || 'Não informado',
+      candidato_email: dadosPessoais.email || profile.email || 'Não informado',
+      edital_titulo: (inscricao.editais as any)?.titulo || 'Não especificado',
+      edital_numero: (inscricao.editais as any)?.numero_edital || 'S/N',
+      especialidades: especialidades.length > 0 ? especialidades : ['Não especificada']
+    };
+
+    console.log(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      event: 'contract_data_prepared',
+      candidato: contratoData.candidato_nome
+    }));
+
+    // Gerar HTML do contrato
+    const contratoHTML = gerarContratoHTML(contratoData);
+
+    // Gerar número único do contrato
+    const numeroContrato = `CONT-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
+
+    // Salvar contrato no banco
+    const { data: contrato, error: contratoError } = await supabase
+      .from('contratos')
+      .insert({
+        inscricao_id,
+        numero_contrato: numeroContrato,
+        status: 'pendente_assinatura',
+        tipo: 'credenciamento',
+        dados_contrato: {
+          html: contratoHTML,
+          data_geracao: new Date().toISOString(),
+          candidato: contratoData.candidato_nome,
+          edital: contratoData.edital_titulo
+        }
+      })
+      .select()
+      .single();
+
+    if (contratoError || !contrato) {
+      throw new Error(`Erro ao criar contrato: ${contratoError?.message}`);
+    }
+
+    console.log(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      event: 'contract_created',
+      contrato_id: contrato.id,
+      numero_contrato: numeroContrato
+    }));
+
+    // Buscar análise para obter step_execution_id (se houver)
+    const { data: analise } = await supabase
+      .from('analises')
+      .select('id')
+      .eq('inscricao_id', inscricao_id)
+      .single();
+
+    // Criar registro de signature_request
+    const { data: signatureRequest, error: signatureError } = await supabase
+      .from('signature_requests')
+      .insert({
+        provider: 'assinafy',
+        status: 'pending',
+        signers: [
+          {
+            name: contratoData.candidato_nome,
+            email: contratoData.candidato_email,
+            cpf: contratoData.candidato_cpf
+          }
+        ],
+        metadata: {
+          contrato_id: contrato.id,
+          inscricao_id,
+          numero_contrato: numeroContrato,
+          document_html: contratoHTML
+        },
+        step_execution_id: null // Não temos workflow aqui
+      })
+      .select()
+      .single();
+
+    if (signatureError || !signatureRequest) {
+      throw new Error(`Erro ao criar signature request: ${signatureError?.message}`);
+    }
+
+    console.log(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      event: 'signature_request_created',
+      signature_request_id: signatureRequest.id
+    }));
+
+    // Chamar send-signature-request
+    const { data: assinafyResponse, error: assinafyError } = await supabase.functions.invoke(
+      'send-signature-request',
+      {
+        body: {
+          signature_request_id: signatureRequest.id
+        }
+      }
+    );
+
+    if (assinafyError) {
+      console.error(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        event: 'assinafy_error',
+        error: assinafyError.message
+      }));
+      
+      // Não falha a função, apenas registra o erro
+      await supabase
+        .from('signature_requests')
+        .update({ 
+          status: 'failed',
+          metadata: {
+            ...signatureRequest.metadata,
+            error: assinafyError.message
+          }
+        })
+        .eq('id', signatureRequest.id);
+    }
+
+    const elapsedTime = Date.now() - startTime;
+    console.log(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      event: 'function_complete',
+      elapsed_ms: elapsedTime,
+      contrato_id: contrato.id,
+      assinatura_status: signatureRequest.status
+    }));
+
+    return new Response(
+      JSON.stringify({
+        contrato_id: contrato.id,
+        numero_contrato: numeroContrato,
+        assinatura_status: signatureRequest.status,
+        signature_request_id: signatureRequest.id,
+        assinafy_response: assinafyResponse
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+
+  } catch (error: any) {
+    console.error(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      event: 'function_error',
+      error: error.message,
+      stack: error.stack
+    }));
+
+    return new Response(
+      JSON.stringify({
+        error: error.message,
+        message: 'Erro ao gerar contrato e solicitar assinatura'
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+});
