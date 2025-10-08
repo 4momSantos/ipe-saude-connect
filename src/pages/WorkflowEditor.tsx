@@ -28,12 +28,14 @@ import {
   Webhook,
   StopCircle,
   Eye,
-  Repeat
+  Repeat,
+  Code2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WorkflowNode } from "@/components/workflow-editor/WorkflowNode";
 import { ConfigPanel } from "@/components/workflow-editor/ConfigPanel";
+import { TriggerManagementDialog } from "@/components/workflow-editor/TriggerManagementDialog";
 import { WorkflowNodeData, FormTemplate, VisualWorkflow } from "@/types/workflow-editor";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -54,6 +56,7 @@ const nodeTypes = {
   start: WorkflowNode,
   end: WorkflowNode,
   loop: WorkflowNode,
+  function: WorkflowNode,
 };
 
 const initialNodes: Node<WorkflowNodeData>[] = [
@@ -124,6 +127,14 @@ const nodeTemplates = [
     icon: "Database",
     description: "Operações de banco de dados (CRUD).",
     category: "Dados",
+  },
+  {
+    type: "function",
+    label: "Código/Função",
+    color: "#f97316",
+    icon: "Code2",
+    description: "Execute código JavaScript customizado.",
+    category: "Lógica",
   },
   {
     type: "approval",
@@ -929,6 +940,7 @@ export default function WorkflowEditor() {
           >
             🚀 Criar Fluxo de Credenciamento
           </Button>
+          <TriggerManagementDialog workflowId={searchParams.get("id") || undefined} />
           <Button variant="outline" size="sm" onClick={testWorkflow}>
             <Play className="h-4 w-4 mr-2" />
             Testar
@@ -1009,7 +1021,9 @@ export default function WorkflowEditor() {
                       Database,
                       CheckCircle,
                       GitBranch,
-                      StopCircle
+                      StopCircle,
+                      Repeat,
+                      Code2
                     }[template.icon] || FileText;
 
                     return (

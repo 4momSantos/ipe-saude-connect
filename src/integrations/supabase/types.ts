@@ -1007,6 +1007,114 @@ export type Database = {
         }
         Relationships: []
       }
+      webhook_events: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          payload: Json
+          queue_id: string | null
+          source_ip: string | null
+          status: string
+          webhook_id: string
+          workflow_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          payload: Json
+          queue_id?: string | null
+          source_ip?: string | null
+          status?: string
+          webhook_id: string
+          workflow_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          payload?: Json
+          queue_id?: string | null
+          source_ip?: string | null
+          status?: string
+          webhook_id?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_events_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_queue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_events_webhook_id_fkey"
+            columns: ["webhook_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_webhooks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_events_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_api_keys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          workflow_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          workflow_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          workflow_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_api_keys_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflow_approvals: {
         Row: {
           approver_id: string
@@ -1387,6 +1495,56 @@ export type Database = {
           },
         ]
       }
+      workflow_schedules: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          cron_expression: string
+          id: string
+          input_data: Json | null
+          is_active: boolean
+          last_run_at: string | null
+          next_run_at: string | null
+          timezone: string
+          updated_at: string
+          workflow_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          cron_expression: string
+          id?: string
+          input_data?: Json | null
+          is_active?: boolean
+          last_run_at?: string | null
+          next_run_at?: string | null
+          timezone?: string
+          updated_at?: string
+          workflow_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          cron_expression?: string
+          id?: string
+          input_data?: Json | null
+          is_active?: boolean
+          last_run_at?: string | null
+          next_run_at?: string | null
+          timezone?: string
+          updated_at?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_schedules_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workflow_step_executions: {
         Row: {
           completed_at: string | null
@@ -1433,6 +1591,59 @@ export type Database = {
             columns: ["execution_id"]
             isOneToOne: false
             referencedRelation: "workflow_executions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_webhooks: {
+        Row: {
+          api_key_hash: string | null
+          auth_type: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          payload_schema: Json | null
+          rate_limit_per_minute: number | null
+          updated_at: string
+          webhook_id: string
+          webhook_secret: string | null
+          workflow_id: string
+        }
+        Insert: {
+          api_key_hash?: string | null
+          auth_type?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          payload_schema?: Json | null
+          rate_limit_per_minute?: number | null
+          updated_at?: string
+          webhook_id: string
+          webhook_secret?: string | null
+          workflow_id: string
+        }
+        Update: {
+          api_key_hash?: string | null
+          auth_type?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          payload_schema?: Json | null
+          rate_limit_per_minute?: number | null
+          updated_at?: string
+          webhook_id?: string
+          webhook_secret?: string | null
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_webhooks_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
             referencedColumns: ["id"]
           },
         ]
@@ -1496,6 +1707,18 @@ export type Database = {
           result_status: string
           result_workflow_id: string
         }[]
+      }
+      generate_api_key: {
+        Args: {
+          p_description?: string
+          p_name?: string
+          p_workflow_id?: string
+        }
+        Returns: string
+      }
+      generate_webhook_url: {
+        Args: { p_workflow_id: string }
+        Returns: string
       }
       get_gestores: {
         Args: Record<PropertyKey, never>
