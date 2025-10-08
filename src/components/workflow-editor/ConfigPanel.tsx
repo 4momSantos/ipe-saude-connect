@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Save, Copy, Trash2, CheckCircle2, XCircle } from "lucide-react";
+import { X, Save, Copy, Trash2, CheckCircle2, XCircle, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +29,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card } from "@/components/ui/card";
 
 interface ConfigPanelProps {
   nodeData: WorkflowNodeData;
@@ -53,6 +56,7 @@ export function ConfigPanel({
   const [templateName, setTemplateName] = useState("");
   const [templateDescription, setTemplateDescription] = useState("");
   const [httpTestResult, setHttpTestResult] = useState<any>(null);
+  const [previewMode, setPreviewMode] = useState<'json' | 'table' | 'text' | 'csv'>('json');
 
   // Extrair todos os campos de todos os formulários do workflow
   const allWorkflowFields: Array<FormField & { nodeName?: string }> = allWorkflowNodes
@@ -89,6 +93,158 @@ export function ConfigPanel({
         formTemplateId: templateId,
       });
       toast.success("Template carregado!");
+    }
+  };
+
+  const downloadAsCSV = () => {
+    if (!httpTestResult?.data) return;
+
+    try {
+      let csvContent = "";
+      const data = httpTestResult.data;
+
+      if (Array.isArray(data) && data.length > 0) {
+        const headers = Object.keys(data[0]);
+        csvContent += headers.join(",") + "\n";
+
+        data.forEach((row: any) => {
+          const values = headers.map(header => {
+            const value = row[header];
+            return typeof value === 'string' && value.includes(',') 
+              ? `"${value}"` 
+              : value;
+          });
+          csvContent += values.join(",") + "\n";
+        });
+      } else if (typeof data === 'object') {
+        csvContent = "key,value\n";
+        Object.entries(data).forEach(([key, value]) => {
+          csvContent += `${key},${value}\n`;
+        });
+      }
+
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'http-response.csv';
+      a.click();
+      window.URL.revokeObjectURL(url);
+      toast.success("CSV exportado com sucesso");
+    } catch (error) {
+      toast.error("Erro ao exportar CSV");
+    }
+  };
+
+  const renderDataPreview = () => {
+    if (!httpTestResult?.data) return null;
+
+    const data = httpTestResult.data;
+
+    switch (previewMode) {
+      case 'json':
+        return (
+          <Textarea
+            value={typeof data === 'string' ? data : JSON.stringify(data, null, 2)}
+            readOnly
+            rows={15}
+            className="font-mono text-xs"
+          />
+        );
+
+      case 'table':
+        if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object') {
+          const headers = Object.keys(data[0]);
+          return (
+            <div className="border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {headers.map(header => (
+                      <TableHead key={header}>{header}</TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.map((row: any, idx: number) => (
+                    <TableRow key={idx}>
+                      {headers.map(header => (
+                        <TableCell key={header} className="text-xs">
+                          {typeof row[header] === 'object' 
+                            ? JSON.stringify(row[header]) 
+                            : String(row[header])}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          );
+        } else if (typeof data === 'object' && !Array.isArray(data)) {
+          return (
+            <div className="border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Chave</TableHead>
+                    <TableHead>Valor</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Object.entries(data).map(([key, value]) => (
+                    <TableRow key={key}>
+                      <TableCell className="font-medium text-xs">{key}</TableCell>
+                      <TableCell className="text-xs">
+                        {typeof value === 'object' 
+                          ? JSON.stringify(value) 
+                          : String(value)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          );
+        }
+        return <div className="text-sm text-muted-foreground">Dados não podem ser exibidos em formato de tabela</div>;
+
+      case 'text':
+        return (
+          <Textarea
+            value={typeof data === 'string' ? data : JSON.stringify(data)}
+            readOnly
+            rows={15}
+            className="text-xs"
+          />
+        );
+
+      case 'csv':
+        let csvPreview = "";
+        if (Array.isArray(data) && data.length > 0) {
+          const headers = Object.keys(data[0]);
+          csvPreview = headers.join(",") + "\n";
+          data.forEach((row: any) => {
+            const values = headers.map(header => row[header]);
+            csvPreview += values.join(",") + "\n";
+          });
+        } else if (typeof data === 'object') {
+          csvPreview = "key,value\n";
+          Object.entries(data).forEach(([key, value]) => {
+            csvPreview += `${key},${value}\n`;
+          });
+        }
+        return (
+          <Textarea
+            value={csvPreview}
+            readOnly
+            rows={15}
+            className="font-mono text-xs"
+          />
+        );
+
+      default:
+        return null;
     }
   };
 
@@ -295,8 +451,8 @@ export function ConfigPanel({
                   <p>Selecione um template para visualizar o preview</p>
                 </div>
               ) : nodeData.type === "http" && httpTestResult ? (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 mb-4">
+                <Card className="p-4 space-y-4">
+                  <div className="flex items-center gap-2">
                     {httpTestResult.success ? (
                       <CheckCircle2 className="h-5 w-5 text-green-500" />
                     ) : (
@@ -306,13 +462,13 @@ export function ConfigPanel({
                   </div>
 
                   {httpTestResult.status && (
-                    <div className="grid grid-cols-2 gap-4 text-sm p-4 bg-muted/50 rounded-lg">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <Label className="text-xs text-muted-foreground">Status</Label>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className={httpTestResult.success ? "text-green-500" : "text-destructive"}>
+                          <Badge variant={httpTestResult.success ? "default" : "destructive"}>
                             {httpTestResult.status} {httpTestResult.statusText}
-                          </span>
+                          </Badge>
                         </div>
                       </div>
                       <div>
@@ -322,17 +478,54 @@ export function ConfigPanel({
                     </div>
                   )}
 
-                  {httpTestResult.data && (
-                    <div className="p-4 rounded-lg border bg-background/50">
-                      <Label className="text-xs text-muted-foreground mb-2 block">Dados da Resposta</Label>
-                      <pre className="text-xs overflow-auto max-h-96 bg-muted p-3 rounded">
-                        {typeof httpTestResult.data === 'string' 
-                          ? httpTestResult.data 
-                          : JSON.stringify(httpTestResult.data, null, 2)}
-                      </pre>
+                  {httpTestResult.error && (
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Erro</Label>
+                      <div className="mt-1 text-sm text-destructive">
+                        {httpTestResult.type}: {httpTestResult.error}
+                      </div>
                     </div>
                   )}
-                </div>
+
+                  {httpTestResult.data && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs text-muted-foreground">Resposta</Label>
+                        <div className="flex gap-2">
+                          <Tabs value={previewMode} onValueChange={(v: any) => setPreviewMode(v)} className="w-auto">
+                            <TabsList className="h-8">
+                              <TabsTrigger value="json" className="text-xs">JSON</TabsTrigger>
+                              <TabsTrigger value="table" className="text-xs">Tabela</TabsTrigger>
+                              <TabsTrigger value="text" className="text-xs">Texto</TabsTrigger>
+                              <TabsTrigger value="csv" className="text-xs">CSV</TabsTrigger>
+                            </TabsList>
+                          </Tabs>
+                          {previewMode === 'csv' && (
+                            <Button size="sm" variant="outline" onClick={downloadAsCSV}>
+                              <Download className="h-3 w-3 mr-1" />
+                              Baixar
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      <ScrollArea className="h-[400px]">
+                        {renderDataPreview()}
+                      </ScrollArea>
+                    </div>
+                  )}
+
+                  {httpTestResult.headers && (
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Headers da Resposta</Label>
+                      <Textarea
+                        value={JSON.stringify(httpTestResult.headers, null, 2)}
+                        readOnly
+                        rows={4}
+                        className="font-mono text-xs"
+                      />
+                    </div>
+                  )}
+                </Card>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   <p>

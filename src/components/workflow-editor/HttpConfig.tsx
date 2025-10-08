@@ -335,83 +335,12 @@ export function HttpConfigPanel({ config, onChange, onTestResult }: HttpConfigPr
           </Button>
         </div>
         
-        {testResult && (
-          <Card className="p-4 space-y-3 bg-background">
-            <div className="flex items-center gap-2">
-              {testResult.success ? (
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
-              ) : (
-                <XCircle className="h-5 w-5 text-destructive" />
-              )}
-              <h4 className="font-semibold">Resultado do Teste</h4>
-            </div>
-
-            {testResult.status && (
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Status</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant={testResult.success ? "default" : "destructive"}>
-                      {testResult.status} {testResult.statusText}
-                    </Badge>
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Duração</Label>
-                  <div className="mt-1">{testResult.duration}ms</div>
-                </div>
-              </div>
-            )}
-
-            {testResult.error && (
-              <div>
-                <Label className="text-xs text-muted-foreground">Erro</Label>
-                <div className="mt-1 text-sm text-destructive">
-                  {testResult.type}: {testResult.error}
-                </div>
-              </div>
-            )}
-
-            {testResult.data && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs text-muted-foreground">Resposta</Label>
-                  <div className="flex gap-2">
-                    <Tabs value={previewMode} onValueChange={(v: any) => setPreviewMode(v)} className="w-auto">
-                      <TabsList className="h-8">
-                        <TabsTrigger value="json" className="text-xs">JSON</TabsTrigger>
-                        <TabsTrigger value="table" className="text-xs">Tabela</TabsTrigger>
-                        <TabsTrigger value="text" className="text-xs">Texto</TabsTrigger>
-                        <TabsTrigger value="csv" className="text-xs">CSV</TabsTrigger>
-                      </TabsList>
-                    </Tabs>
-                    {previewMode === 'csv' && (
-                      <Button size="sm" variant="outline" onClick={downloadAsCSV}>
-                        <Download className="h-3 w-3 mr-1" />
-                        Baixar
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                <ScrollArea className="h-[400px]">
-                  {renderDataPreview()}
-                </ScrollArea>
-              </div>
-            )}
-
-            {testResult.headers && (
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Headers da Resposta</Label>
-                <Textarea
-                  value={JSON.stringify(testResult.headers, null, 2)}
-                  readOnly
-                  rows={4}
-                  className="font-mono text-xs"
-                />
-              </div>
-            )}
-          </Card>
-        )}
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription className="text-xs">
+            Os resultados do teste aparecerão na aba "Preview" do painel de configuração.
+          </AlertDescription>
+        </Alert>
       </Card>
 
       {/* Basic Configuration */}
