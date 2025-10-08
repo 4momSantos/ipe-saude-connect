@@ -28,7 +28,13 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { fileUrl, documentType, expectedFields }: OCRRequest = await req.json();
+    let { fileUrl, documentType, expectedFields }: OCRRequest = await req.json();
+
+    // Fase 1: Validar e padronizar expectedFields
+    if (!Array.isArray(expectedFields)) {
+      console.warn(`[OCR] expectedFields should be array, got: ${typeof expectedFields}`, expectedFields);
+      expectedFields = [];
+    }
 
     console.log('[OCR] Processing request:', {
       fileUrl,
@@ -84,6 +90,78 @@ serve(async (req) => {
     );
   }
 });
+
+/**
+ * Calculate OCR confidence score based on multiple factors
+ * 
+ * Algorithm:
+ * 1. Base Score: % of expected fields extracted (0-100%)
+ * 2. Text Quality Multiplier: Penalizes very short text (possible OCR failure)
+ *    - < 50 chars: 0.3x (likely OCR failed)
+ *    - < 150 chars: 0.6x (very short, low confidence)
+ *    - < 300 chars: 0.8x (reasonable text)
+ *    - >= 300 chars: 1.0x (no penalty)
+ * 3. Critical Fields Bonus: +5% for each critical field extracted (max +20%)
+ *    - Critical fields: nome, cpf, rg, cnpj, crm
+ * 4. Final confidence is capped between 0-100%
+ * 
+ * @param extractedData - Object with extracted field values
+ * @param expectedFields - Array of expected field names
+ * @param textLength - Length of OCR text in characters
+ * @returns Confidence score (0-100)
+ */
+function calculateConfidence(
+  extractedData: Record<string, any>,
+  expectedFields: string[],
+  textLength: number
+): number {
+  // Fase 4: Contar apenas campos com valores válidos (não vazios, não null)
+  const validFields = Object.entries(extractedData).filter(
+    ([key, value]) => value && String(value).trim().length > 0
+  );
+  const fieldsExtracted = validFields.length;
+  
+  // 1. Base Score: % de campos extraídos
+  const totalExpected = expectedFields.length > 0 ? expectedFields.length : 5;
+  const baseScore = (fieldsExtracted / totalExpected) * 100;
+  
+  // 2. Multiplicador de qualidade do texto (penaliza textos muito curtos)
+  let textQualityMultiplier = 1.0;
+  if (textLength < 50) {
+    textQualityMultiplier = 0.3;  // OCR provavelmente falhou
+  } else if (textLength < 150) {
+    textQualityMultiplier = 0.6;  // Texto muito curto, baixa confiança
+  } else if (textLength < 300) {
+    textQualityMultiplier = 0.8;  // Texto razoável
+  }
+  // textLength >= 300: multiplier = 1.0 (sem penalidade)
+  
+  // 3. Bônus por campos críticos extraídos
+  const criticalFields = ['nome', 'cpf', 'rg', 'cnpj', 'crm'];
+  const criticalFieldsExtracted = criticalFields.filter(
+    field => extractedData[field] && String(extractedData[field]).trim().length > 0
+  ).length;
+  const criticalBonus = Math.min(criticalFieldsExtracted * 5, 20); // Máximo +20%
+  
+  // 4. Cálculo final
+  let confidence = (baseScore * textQualityMultiplier) + criticalBonus;
+  confidence = Math.min(Math.max(confidence, 0), 100);
+  
+  // Fase 3: Logging detalhado para debug
+  console.log('[OCR] Confidence calculation:', {
+    fieldsExtracted,
+    validFieldNames: validFields.map(([key]) => key),
+    expectedFieldsCount: totalExpected,
+    textLength,
+    baseScore: baseScore.toFixed(2),
+    textQualityMultiplier,
+    criticalFieldsExtracted,
+    criticalBonus,
+    finalConfidence: Math.round(confidence)
+  });
+  
+  return Math.round(confidence);
+}
 
 /**
  * Process document with OCR.space API
@@ -190,22 +268,14 @@ async function processWithOCRSpace(
 
     console.log('[OCR] Parsed fields:', Object.keys(extractedData));
 
-    // Calculate confidence based on text length and fields extracted
-    const textLength = fullText.length;
-    const fieldsExtracted = Object.keys(extractedData).length;
-    const totalExpected = expectedFields?.length || 5;
-    
-    let confidence = (fieldsExtracted / totalExpected) * 100;
-    if (textLength < 50) confidence *= 0.5;
-    else if (textLength < 100) confidence *= 0.7;
-    
-    confidence = Math.min(Math.max(confidence, 0), 100);
+    // Fase 2-5: Calcular confiança com novo algoritmo
+    const confidence = calculateConfidence(extractedData, expectedFields, fullText.length);
 
     return {
       success: true,
       data: extractedData,
       confidence: Math.round(confidence),
-      message: `OCR processado com sucesso. ${fieldsExtracted} campos extraídos.`
+      message: `OCR processado com sucesso. ${Object.keys(extractedData).length} campos extraídos.`
     };
 
   } catch (error) {
