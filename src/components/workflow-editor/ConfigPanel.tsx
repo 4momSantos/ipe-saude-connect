@@ -14,6 +14,7 @@ import { EmailConfigPanel } from "./EmailConfig";
 import { DatabaseConfigPanel } from "./DatabaseConfig";
 import { ApprovalConfigPanel, ApprovalConfig } from "./ApprovalConfig";
 import { ConditionConfigPanel, ConditionConfig } from "./ConditionConfig";
+import { ConditionalExpressionConfigPanel } from "./ConditionalExpressionConfig";
 import { TriggerConfigPanel } from "./TriggerConfig";
 import { LoopConfigPanel } from "./LoopConfig";
 import { TemplateSelector } from "@/components/templates/TemplateSelector";
@@ -234,10 +235,29 @@ export function ConfigPanel({
               )}
 
               {nodeData.type === "condition" && (
-                <ConditionConfigPanel
-                  config={nodeData.conditionConfig || { assignmentType: "all" }}
-                  onChange={(config) => onUpdate({ conditionConfig: config })}
-                />
+                <Tabs defaultValue="expression" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="expression">Expressão Automática</TabsTrigger>
+                    <TabsTrigger value="approval">Aprovação Manual</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="expression" className="space-y-4">
+                    <ConditionalExpressionConfigPanel
+                      config={nodeData.conditionalExpression || {
+                        mode: 'visual',
+                        visualRules: []
+                      }}
+                      onChange={(config) => onUpdate({ conditionalExpression: config })}
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="approval" className="space-y-4">
+                    <ConditionConfigPanel
+                      config={nodeData.conditionConfig || { assignmentType: "all" }}
+                      onChange={(config) => onUpdate({ conditionConfig: config })}
+                    />
+                  </TabsContent>
+                </Tabs>
               )}
 
               {nodeData.type === "loop" && (

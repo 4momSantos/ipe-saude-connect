@@ -194,6 +194,23 @@ export interface LoopConfig {
   };
 }
 
+export type ComparisonOperator = '===' | '!==' | '>' | '<' | '>=' | '<=' | 'contains' | 'in';
+
+export interface VisualRule {
+  id: string;
+  field: string;
+  operator: ComparisonOperator;
+  value: string;
+  connector?: 'and' | 'or';
+}
+
+export interface ConditionalExpressionConfig {
+  mode: 'visual' | 'expert';
+  visualRules?: VisualRule[];
+  expertExpression?: string;
+  jsonLogic?: object;
+}
+
 export interface WorkflowNodeData extends Record<string, unknown> {
   label: string;
   type: NodeType;
@@ -211,6 +228,7 @@ export interface WorkflowNodeData extends Record<string, unknown> {
   databaseConfig?: DatabaseConfig;
   approvalConfig?: ApprovalConfig;
   conditionConfig?: ConditionConfig;
+  conditionalExpression?: ConditionalExpressionConfig;
   triggerConfig?: TriggerConfig;
   loopConfig?: LoopConfig;
   config?: Record<string, any>;

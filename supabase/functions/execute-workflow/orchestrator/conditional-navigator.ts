@@ -1,10 +1,12 @@
 /**
  * Conditional Navigator
  * Fase 5: Navegação condicional e avaliação de expressões
+ * ATUALIZADO: Agora usa JSON Logic para segurança máxima
  */
 
 import { ConditionalEdge, WorkflowEdge } from './types.ts';
 import { ContextManager } from './context-manager.ts';
+import { ExpressionEvaluator } from '../lib/expression-evaluator.ts';
 
 export class ConditionalNavigator {
   private contextManager: ContextManager;
@@ -60,19 +62,21 @@ export class ConditionalNavigator {
   }
 
   /**
-   * Avalia uma expressão condicional
+   * Avalia uma expressão condicional usando JSON Logic
    */
   evaluateExpression(expression: string): boolean {
     try {
-      // Resolver variáveis no contexto
-      const resolvedExpression = this.contextManager.resolve(expression);
-      
-      console.log(`[CONDITIONAL] Avaliando: "${expression}" -> "${resolvedExpression}"`);
-
-      // Avaliar expressão
-      const result = this.safeEval(resolvedExpression);
-      
-      return Boolean(result);
+      // Tentar parsear como JSON Logic primeiro
+      try {
+        const context = this.contextManager.getGlobal();
+        const result = ExpressionEvaluator.evaluate(expression, context);
+        console.log(`[CONDITIONAL] JSON Logic avaliado: ${result}`);
+        return Boolean(result);
+      } catch (jsonError) {
+        // Fallback: tentar como expressão simples legacy
+        console.log(`[CONDITIONAL] Fallback para avaliação legacy`);
+        return this.evaluateLegacy(expression);
+      }
     } catch (error: any) {
       console.error(`[CONDITIONAL] Erro ao avaliar "${expression}": ${error.message}`);
       return false;
@@ -80,27 +84,28 @@ export class ConditionalNavigator {
   }
 
   /**
-   * Avaliação segura de expressões (sandbox limitado)
+   * Avaliação legacy (DEPRECADO - manter apenas para compatibilidade)
    */
-  private safeEval(expression: string): any {
-    // Expressões permitidas: comparações, operadores lógicos, números, strings
+  private evaluateLegacy(expression: string): boolean {
+    const resolvedExpression = this.contextManager.resolve(expression);
+    console.log(`[CONDITIONAL] Legacy avaliando: "${expression}" -> "${resolvedExpression}"`);
+
     const allowedPattern = /^[a-zA-Z0-9\s._'"=!<>&|()+-/*%]+$/;
     
-    if (!allowedPattern.test(expression)) {
+    if (!allowedPattern.test(resolvedExpression)) {
       throw new Error('Expressão contém caracteres não permitidos');
     }
 
-    // Sanitizar: remover possíveis injeções
-    const sanitized = expression
+    const sanitized = resolvedExpression
       .replace(/\beval\b/gi, '')
       .replace(/\bFunction\b/gi, '')
       .replace(/\bimport\b/gi, '')
-      .replace(/\brequire\b/gi, '');
+      .replace(/\brequire\b/gi, '')
+      .replace(/\bfetch\b/gi, '');
 
-    // Avaliar usando Function constructor (mais seguro que eval direto)
     try {
       const fn = new Function(`return ${sanitized}`);
-      return fn();
+      return Boolean(fn());
     } catch (error: any) {
       throw new Error(`Erro na avaliação: ${error.message}`);
     }
@@ -150,13 +155,8 @@ export class ConditionalNavigator {
    */
   validateExpression(expression: string): { valid: boolean; error?: string } {
     try {
-      // Tentar resolver variáveis (sem avaliar)
-      const resolved = expression.replace(/\{[^}]+\}/g, 'true');
-      
-      // Tentar avaliar
-      this.safeEval(resolved);
-      
-      return { valid: true };
+      const validation = ExpressionEvaluator.validate(expression);
+      return validation;
     } catch (error: any) {
       return { valid: false, error: error.message };
     }
@@ -169,11 +169,9 @@ export class ConditionalNavigator {
     console.log('[CONDITIONAL] === DEBUG ===');
     console.log('[CONDITIONAL] Expressão original:', expression);
     
-    const resolved = this.contextManager.resolve(expression);
-    console.log('[CONDITIONAL] Expressão resolvida:', resolved);
-    
     try {
-      const result = this.safeEval(resolved);
+      const context = this.contextManager.getGlobal();
+      const result = ExpressionEvaluator.evaluate(expression, context);
       console.log('[CONDITIONAL] Resultado:', result, `(${typeof result})`);
     } catch (error: any) {
       console.log('[CONDITIONAL] Erro:', error.message);
