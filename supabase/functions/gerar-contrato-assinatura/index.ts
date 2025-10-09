@@ -1,3 +1,17 @@
+/**
+ * Edge Function: gerar-contrato-assinatura
+ * 
+ * Gera um contrato de credenciamento e envia para assinatura via Assinafy.
+ * 
+ * Dependências:
+ * - SUPABASE_URL (obrigatório)
+ * - SUPABASE_SERVICE_ROLE_KEY (obrigatório)
+ * - ASSINAFY_API_KEY (opcional - se não configurado, contrato é criado mas não enviado)
+ * - ASSINAFY_ACCOUNT_ID (opcional - se não configurado, contrato é criado mas não enviado)
+ * 
+ * Invoca:
+ * - send-signature-request (se credenciais Assinafy estiverem configuradas)
+ */
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -188,6 +202,26 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Validar credenciais da Assinafy (mesmo que não usemos diretamente aqui)
+    const assifafyApiKey = Deno.env.get('ASSINAFY_API_KEY');
+    const assifafyAccountId = Deno.env.get('ASSINAFY_ACCOUNT_ID');
+
+    if (!assifafyApiKey) {
+      console.warn(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        event: 'missing_assinafy_api_key',
+        message: 'ASSINAFY_API_KEY não configurada - assinatura via Assinafy não estará disponível'
+      }));
+    }
+
+    if (!assifafyAccountId) {
+      console.warn(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        event: 'missing_assinafy_account_id',
+        message: 'ASSINAFY_ACCOUNT_ID não configurado - assinatura via Assinafy não estará disponível'
+      }));
+    }
+
     // Buscar dados da inscrição e edital
     const { data: inscricao, error: inscricaoError } = await supabase
       .from('inscricoes_edital')
@@ -377,31 +411,75 @@ serve(async (req) => {
       signature_request_id: signatureRequest.id
     }));
 
-    // Chamar send-signature-request
-    const { data: assinafyResponse, error: assinafyError } = await supabase.functions.invoke(
-      'send-signature-request',
-      {
-        body: {
-          signature_request_id: signatureRequest.id
-        }
-      }
-    );
+    // Chamar send-signature-request apenas se as credenciais estiverem configuradas
+    let assinafyResponse: any = null;
+    
+    if (assifafyApiKey && assifafyAccountId) {
+      try {
+        const { data, error: assinafyError } = await supabase.functions.invoke(
+          'send-signature-request',
+          {
+            body: {
+              signature_request_id: signatureRequest.id
+            }
+          }
+        );
 
-    if (assinafyError) {
-      console.error(JSON.stringify({
+        if (assinafyError) {
+          console.error(JSON.stringify({
+            timestamp: new Date().toISOString(),
+            event: 'assinafy_error',
+            error: assinafyError.message
+          }));
+          
+          // Atualizar status mas não falhar a função
+          await supabase
+            .from('signature_requests')
+            .update({ 
+              status: 'failed',
+              metadata: {
+                ...signatureRequest.metadata,
+                error: assinafyError.message
+              }
+            })
+            .eq('id', signatureRequest.id);
+        } else {
+          assinafyResponse = data;
+        }
+      } catch (invokeError: any) {
+        console.error(JSON.stringify({
+          timestamp: new Date().toISOString(),
+          event: 'invoke_error',
+          error: invokeError.message
+        }));
+        
+        // Atualizar status de erro
+        await supabase
+          .from('signature_requests')
+          .update({ 
+            status: 'failed',
+            metadata: {
+              ...signatureRequest.metadata,
+              error: invokeError.message
+            }
+          })
+          .eq('id', signatureRequest.id);
+      }
+    } else {
+      console.warn(JSON.stringify({
         timestamp: new Date().toISOString(),
-        event: 'assinafy_error',
-        error: assinafyError.message
+        event: 'assinafy_credentials_missing',
+        message: 'Contrato criado mas assinatura não enviada - credenciais Assinafy não configuradas'
       }));
       
-      // Não falha a função, apenas registra o erro
+      // Atualizar signature_request como pendente de configuração
       await supabase
         .from('signature_requests')
         .update({ 
-          status: 'failed',
+          status: 'pending',
           metadata: {
             ...signatureRequest.metadata,
-            error: assinafyError.message
+            warning: 'Aguardando configuração das credenciais da Assinafy'
           }
         })
         .eq('id', signatureRequest.id);
