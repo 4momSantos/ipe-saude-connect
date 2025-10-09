@@ -344,12 +344,59 @@ serve(async (req) => {
                 }
               });
 
+              // Buscar ID do credenciado para gerar certificado
+              const { data: credenciado } = await supabase
+                .from('credenciados')
+                .select('id')
+                .eq('inscricao_id', inscricaoId)
+                .single();
+
+              if (credenciado) {
+                console.log(JSON.stringify({
+                  timestamp: new Date().toISOString(),
+                  event: 'generating_certificate',
+                  requestId,
+                  credenciadoId: credenciado.id
+                }));
+
+                // Gerar certificado automaticamente via edge function
+                try {
+                  const { error: certError } = await supabase.functions.invoke('gerar-certificado', {
+                    body: { credenciadoId: credenciado.id }
+                  });
+
+                  if (certError) {
+                    console.error(JSON.stringify({
+                      timestamp: new Date().toISOString(),
+                      event: 'certificate_generation_failed',
+                      requestId,
+                      credenciadoId: credenciado.id,
+                      error: certError.message
+                    }));
+                  } else {
+                    console.log(JSON.stringify({
+                      timestamp: new Date().toISOString(),
+                      event: 'certificate_generated',
+                      requestId,
+                      credenciadoId: credenciado.id
+                    }));
+                  }
+                } catch (certGenError: any) {
+                  console.error(JSON.stringify({
+                    timestamp: new Date().toISOString(),
+                    event: 'certificate_generation_error',
+                    requestId,
+                    credenciadoId: credenciado.id,
+                    error: certGenError.message
+                  }));
+                }
+              }
+
               console.log(JSON.stringify({
                 timestamp: new Date().toISOString(),
                 event: 'credenciado_activated',
                 requestId,
-                inscricaoId,
-                message: 'Trigger emit_certificado_on_ativacao criará certificado automaticamente'
+                inscricaoId
               }));
             }
           }

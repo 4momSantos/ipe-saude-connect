@@ -33,6 +33,7 @@ import PlaceholderPage from "./pages/PlaceholderPage";
 import ContractTemplates from "./pages/ContractTemplates";
 import ContractTemplateEditor from "./pages/ContractTemplateEditor";
 import Contratos from "./pages/Contratos";
+import VerificarCertificado from "./pages/VerificarCertificado";
 import { ClipboardCheck, Users, MapPin, BarChart3, Settings } from "lucide-react";
 import NotFound from "./pages/NotFound";
 import { supabase } from "@/integrations/supabase/client";
@@ -91,6 +92,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/verificar-certificado/:numeroCertificado" element={<VerificarCertificado />} />
             <Route
               path="/*"
               element={
