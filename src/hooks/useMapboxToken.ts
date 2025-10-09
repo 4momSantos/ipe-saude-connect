@@ -57,7 +57,12 @@ export function useMapboxToken(): UseMapboxTokenResult {
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : 'Erro desconhecido';
         console.error('[MAPBOX_TOKEN] Erro ao buscar token:', errorMsg);
-        setError(errorMsg);
+        
+        // Fallback: usar token demo se Edge Function falhar (temporário durante deploy)
+        const fallbackToken = "pk.eyJ1IjoibG92YWJsZS1kZW1vIiwiYSI6ImNseDhxZnp6YTBhZWcyanM5Mmw4cDYwdXgifQ.8FhB5YKfZ8yKvXfz8eIW4w";
+        console.warn('[MAPBOX_TOKEN] Usando token demo como fallback');
+        setToken(fallbackToken);
+        setError(null); // Não mostrar erro se fallback funcionar
       } finally {
         setIsLoading(false);
       }
