@@ -66,17 +66,34 @@ export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
 
   // Inicializar mapa
   useEffect(() => {
-    if (!mapContainer.current || map.current) return;
+    if (!mapContainer.current || map.current) {
+      console.log('[MAPA] Skip init - container:', !!mapContainer.current, 'map exists:', !!map.current);
+      return;
+    }
 
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: "mapbox://styles/mapbox/streets-v12",
-      center: [-51.9253, -14.235], // Brasil
-      zoom: 4,
-    });
+    console.log('[MAPA] Inicializando mapa com token:', MAPBOX_TOKEN.substring(0, 20) + '...');
+    
+    try {
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: "mapbox://styles/mapbox/streets-v12",
+        center: [-51.9253, -14.235], // Brasil
+        zoom: 4,
+      });
 
-    map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
-    map.current.addControl(new mapboxgl.FullscreenControl(), "top-right");
+      map.current.on('load', () => {
+        console.log('[MAPA] Mapa carregado com sucesso!');
+      });
+
+      map.current.on('error', (e) => {
+        console.error('[MAPA] Erro ao carregar mapa:', e);
+      });
+
+      map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
+      map.current.addControl(new mapboxgl.FullscreenControl(), "top-right");
+    } catch (error) {
+      console.error('[MAPA] Erro ao inicializar:', error);
+    }
 
     return () => {
       markersRef.current.forEach(marker => marker.remove());
@@ -260,20 +277,17 @@ export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
               </div>
             )}
 
-            {/* Mensagem discreta quando não há credenciados - NÃO cobre o mapa */}
+            {/* Mensagem flutuante quando não há credenciados (não cobre o mapa) */}
             {!isLoading && (!filteredCredenciados || filteredCredenciados.length === 0) && (
-              <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000]">
-                <div className="bg-background/95 backdrop-blur-sm border rounded-lg shadow-lg p-4 max-w-md">
-                  <div className="flex items-center gap-3">
-                    <MapIcon className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium">Nenhum credenciado no mapa</p>
-                      <p className="text-xs text-muted-foreground">
-                        {filters.search || filters.especialidades.length > 0 || filters.estados.length > 0 || filters.cidades.length > 0
-                          ? 'Tente ajustar os filtros'
-                          : 'Aguardando credenciados geocodificados'}
-                      </p>
-                    </div>
+              <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[400] pointer-events-none">
+                <div className="bg-background/95 backdrop-blur-sm border rounded-lg shadow-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <MapIcon className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-sm font-medium">
+                      {filters.search || filters.especialidades.length > 0 || filters.estados.length > 0 || filters.cidades.length > 0
+                        ? 'Nenhum resultado - ajuste os filtros'
+                        : 'Aguardando credenciados geocodificados'}
+                    </p>
                   </div>
                 </div>
               </div>
