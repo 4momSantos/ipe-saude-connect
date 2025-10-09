@@ -1372,6 +1372,45 @@ export type Database = {
           },
         ]
       }
+      user_consents: {
+        Row: {
+          accepted_at: string
+          consent_type: string
+          consent_version: string
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          revoked_at: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string
+          consent_type: string
+          consent_version: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          revoked_at?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string
+          consent_type?: string
+          consent_version?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          revoked_at?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null

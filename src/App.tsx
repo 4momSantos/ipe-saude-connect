@@ -37,6 +37,8 @@ import { ClipboardCheck, Users, MapPin, BarChart3, Settings } from "lucide-react
 import NotFound from "./pages/NotFound";
 import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
+import { ConsentModal } from "./components/lgpd/ConsentModal";
+import { useUserConsent } from "./hooks/useUserConsent";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +67,22 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return session ? <>{children}</> : <Navigate to="/login" replace />;
 };
 
+// Wrapper para verificar consentimento LGPD
+const ConsentGuard = ({ children }: { children: React.ReactNode }) => {
+  const { hasConsent, isLoading, giveConsent } = useUserConsent();
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Verificando consentimento...</div>;
+  }
+
+  return (
+    <>
+      {children}
+      <ConsentModal open={!hasConsent} onAccept={giveConsent} />
+    </>
+  );
+};
+
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
@@ -77,7 +95,8 @@ const App = () => (
               path="/*"
               element={
                 <ProtectedRoute>
-                  <SidebarProvider>
+                  <ConsentGuard>
+                    <SidebarProvider>
                   <div className="flex min-h-screen w-full">
                     <AppSidebar />
                     <div className="flex-1 flex flex-col">
@@ -152,7 +171,8 @@ const App = () => (
                     </div>
                   </div>
                 </SidebarProvider>
-              </ProtectedRoute>
+              </ConsentGuard>
+            </ProtectedRoute>
             }
           />
           </Routes>
