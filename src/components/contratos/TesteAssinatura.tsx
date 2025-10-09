@@ -8,14 +8,17 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
-import { TestTube, Send, CheckCircle2, AlertCircle } from "lucide-react";
+import { TestTube, Send, CheckCircle2, AlertCircle, PlayCircle } from "lucide-react";
+import { FluxoCredenciamentoMonitor } from "./FluxoCredenciamentoMonitor";
 
 export function TesteAssinatura() {
   const [selectedInscricao, setSelectedInscricao] = useState("");
   const [selectedEditalTeste, setSelectedEditalTeste] = useState("");
+  const [selectedEditalFluxoProg, setSelectedEditalFluxoProg] = useState("");
   const [emailSignatario, setEmailSignatario] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
+  const [inscricaoMonitorada, setInscricaoMonitorada] = useState<string | null>(null);
 
   // Buscar inscrições aprovadas para teste
   const { data: inscricoes } = useQuery({
@@ -180,6 +183,70 @@ export function TesteAssinatura() {
     }
   };
 
+  // Cenário 3: Fluxo Programático E2E
+  const handleTestarFluxoProgramatico = async () => {
+    if (!selectedEditalFluxoProg) {
+      toast.error("Selecione um edital para teste do fluxo programático");
+      return;
+    }
+
+    setIsLoading(true);
+    setTestResult(null);
+    setInscricaoMonitorada(null);
+
+    try {
+      // 1. Criar inscrição em rascunho
+      const { data: inscricaoTeste, error: inscricaoError } = await supabase
+        .from("inscricoes_edital")
+        .insert({
+          candidato_id: (await supabase.auth.getUser()).data.user?.id,
+          edital_id: selectedEditalFluxoProg,
+          status: "rascunho",
+          dados_inscricao: {
+            dadosPessoais: {
+              nome: "FLUXO PROG - Maria Silva",
+              cpf: "111.111.111-11",
+              email: "teste.fluxo@example.com",
+              telefone: "(11) 88888-8888"
+            }
+          },
+          is_rascunho: true
+        })
+        .select()
+        .single();
+
+      if (inscricaoError) throw inscricaoError;
+
+      // 2. Enviar inscrição via edge function
+      const { error: enviarError } = await supabase.functions.invoke("enviar-inscricao", {
+        body: { inscricao_id: inscricaoTeste.id }
+      });
+
+      if (enviarError) throw enviarError;
+
+      setInscricaoMonitorada(inscricaoTeste.id);
+
+      setTestResult({
+        success: true,
+        type: "fluxo_programatico",
+        inscricaoId: inscricaoTeste.id,
+        message: "Inscrição criada e enviada. Agora você pode aprovar manualmente via interface de Análises."
+      });
+
+      toast.success("✅ Fluxo programático iniciado! Monitore o progresso abaixo.");
+    } catch (error: any) {
+      console.error("Erro no fluxo programático:", error);
+      setTestResult({
+        success: false,
+        type: "fluxo_programatico",
+        error: error.message
+      });
+      toast.error("❌ Erro no fluxo: " + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -306,6 +373,49 @@ export function TesteAssinatura() {
           </Alert>
         )}
 
+        {/* Cenário 3: Fluxo Programático */}
+        <div className="space-y-3 border-t pt-6">
+          <h3 className="font-semibold flex items-center gap-2">
+            <PlayCircle className="h-5 w-5" />
+            🚀 Cenário 3: Fluxo Programático E2E
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Testa o fluxo programático completo (sem workflow engine): criar inscrição → enviar → aguardar análise manual → contrato → assinatura → certificado
+          </p>
+          <div className="space-y-3">
+            <div>
+              <Label>Edital para Teste (sem workflow)</Label>
+              <Select value={selectedEditalFluxoProg} onValueChange={setSelectedEditalFluxoProg}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um edital de teste" />
+                </SelectTrigger>
+                <SelectContent>
+                  {editais?.map((edital) => (
+                    <SelectItem key={edital.id} value={edital.id}>
+                      {edital.titulo} ({edital.numero_edital})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              onClick={handleTestarFluxoProgramatico}
+              disabled={isLoading || !selectedEditalFluxoProg}
+              className="w-full"
+              variant="outline"
+            >
+              <PlayCircle className="mr-2 h-4 w-4" />
+              {isLoading ? "Processando..." : "Iniciar Teste do Fluxo Programático"}
+            </Button>
+            
+            {inscricaoMonitorada && (
+              <div className="mt-4">
+                <FluxoCredenciamentoMonitor inscricaoId={inscricaoMonitorada} />
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Info */}
         <Alert>
           <AlertDescription className="text-xs">
@@ -316,6 +426,13 @@ export function TesteAssinatura() {
               <li>Criação do registro em signature_requests</li>
               <li>Invocação da send-signature-request</li>
               <li>Criação do documento na Assinafy</li>
+            </ul>
+            <p className="font-semibold mt-3 mb-1">🔄 Fluxo Programático:</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>Inscrição criada via API (sem workflow_execution_id)</li>
+              <li>Triggers de banco executam automaticamente</li>
+              <li>Edge functions diretas (sem orquestração)</li>
+              <li>Status rastreável em tempo real</li>
             </ul>
           </AlertDescription>
         </Alert>
