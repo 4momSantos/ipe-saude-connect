@@ -206,8 +206,8 @@ export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
           {/* Mapa - Sempre renderizado */}
           <div className="relative rounded-lg overflow-hidden border" style={{ height }}>
             <MapContainer
-              center={mapCenter}
-              zoom={filteredCredenciados && filteredCredenciados.length > 0 ? 5 : 4}
+              center={[-14.235, -51.9253]}
+              zoom={4}
               style={{ height: '100%', width: '100%' }}
               ref={mapRef}
             >
