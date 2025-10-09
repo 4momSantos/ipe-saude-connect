@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Search, Eye, Filter, Clock, CheckCircle } from "lucide-react";
+import { Search, Eye, Filter, Clock, CheckCircle, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useFixLegacyInscricoes } from "@/hooks/useFixLegacyInscricoes";
 import {
   Table,
   TableBody,
@@ -51,6 +52,7 @@ export default function Analises() {
   const [filtroEspecialidade, setFiltroEspecialidade] = useState<string>("todas");
   const [busca, setBusca] = useState("");
   const [processoSelecionado, setProcessoSelecionado] = useState<Processo | null>(null);
+  const { fixInscricoes, isLoading: fixingInscricoes } = useFixLegacyInscricoes();
 
   useEffect(() => {
     loadInscricoes();
@@ -196,11 +198,26 @@ export default function Analises() {
   return (
     <>
       <div className="space-y-6 animate-fade-in">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Análises</h1>
-          <p className="text-muted-foreground mt-2">
-            Gestão e análise de processos de credenciamento
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Análises</h1>
+            <p className="text-muted-foreground mt-2">
+              Gestão e análise de processos de credenciamento
+            </p>
+          </div>
+          {(roles.includes('gestor') || roles.includes('admin')) && (
+            <Button
+              onClick={async () => {
+                await fixInscricoes();
+                setTimeout(() => loadInscricoes(), 2000);
+              }}
+              disabled={fixingInscricoes}
+              variant="outline"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${fixingInscricoes ? 'animate-spin' : ''}`} />
+              Processar Inscrições Antigas
+            </Button>
+          )}
         </div>
 
         {/* Seção de Aprovações Pendentes */}
