@@ -10,7 +10,8 @@ import { Map as MapIcon, Phone, Mail, Navigation, Loader2, AlertCircle } from "l
 import { Link } from "react-router-dom";
 import "mapbox-gl/dist/mapbox-gl.css";
 
-const MAPBOX_TOKEN = "pk.eyJ1IjoibG92YWJsZS1kZW1vIiwiYSI6ImNseDhxZnp6YTBhZWcyanM5Mmw4cDYwdXgifQ.8FhB5YKfZ8yKvXfz8eIW4w";
+// Token Mapbox: use VITE_MAPBOX_TOKEN no .env ou o token demo como fallback
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || "pk.eyJ1IjoibG92YWJsZS1kZW1vIiwiYSI6ImNseDhxZnp6YTBhZWcyanM5Mmw4cDYwdXgifQ.8FhB5YKfZ8yKvXfz8eIW4w";
 
 mapboxgl.accessToken = MAPBOX_TOKEN;
 
