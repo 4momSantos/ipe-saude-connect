@@ -458,10 +458,9 @@ export function TesteAssinatura() {
             <Label htmlFor="candidato-teste">Candidato para Teste:</Label>
             <Select value={selectedCandidatoId} onValueChange={setSelectedCandidatoId}>
               <SelectTrigger id="candidato-teste">
-                <SelectValue placeholder="Usar usuário atual" />
+                <SelectValue placeholder="Usar usuário atual (logado)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Usuário Atual (logado)</SelectItem>
                 {candidatos
                   ?.filter(c => c.roles?.includes('candidato'))
                   .map((candidato) => (
@@ -471,6 +470,9 @@ export function TesteAssinatura() {
                   ))}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              Deixe vazio para usar o usuário atual ou selecione outro candidato
+            </p>
           </div>
 
           {/* Input de Email */}
@@ -542,14 +544,13 @@ export function TesteAssinatura() {
             Testa o fluxo programático completo (sem workflow engine): criar inscrição → enviar → aguardar análise manual → contrato → assinatura → certificado
           </p>
           <div className="space-y-3">
-            <div>
+            <div className="space-y-2">
               <Label>Candidato para Teste:</Label>
               <Select value={selectedCandidatoId} onValueChange={setSelectedCandidatoId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Usar usuário atual" />
+                  <SelectValue placeholder="Usar usuário atual (logado)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Usuário Atual (logado)</SelectItem>
                   {candidatos
                     ?.filter(c => c.roles?.includes('candidato'))
                     .map((candidato) => (
@@ -559,6 +560,9 @@ export function TesteAssinatura() {
                     ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Deixe vazio para usar o usuário atual ou selecione outro candidato
+              </p>
             </div>
             <div>
               <Label>Edital para Teste (sem workflow)</Label>
