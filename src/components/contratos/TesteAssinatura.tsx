@@ -122,41 +122,43 @@ export function TesteAssinatura() {
 
       if (editalError || !edital) throw new Error("Edital não encontrado");
 
-      // 2. Obter candidato_id válido (usar primeiro candidato disponível ou usuário atual)
+      // 2. Obter candidato_id válido (DEVE ser auth.uid() por causa da RLS)
       const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
+      if (!userData.user) {
+        throw new Error("Você precisa estar autenticado para realizar testes.");
+      }
       
-      // Tentar usar o perfil do usuário atual
-      let candidatoId = userId;
+      const userId = userData.user.id;
       
-      // Se não existir profile para o usuário atual, buscar qualquer profile válido
+      // Verificar se existe profile, criar se necessário
       const { data: profile } = await supabase
         .from("profiles")
         .select("id")
-        .eq("id", userId!)
+        .eq("id", userId)
         .maybeSingle();
       
       if (!profile) {
-        // Buscar primeiro profile disponível
-        const { data: firstProfile, error: profileError } = await supabase
+        // Criar profile automaticamente para o teste
+        const { error: createProfileError } = await supabase
           .from("profiles")
-          .select("id")
-          .limit(1)
-          .single();
+          .insert({
+            id: userId,
+            email: userData.user.email,
+            nome: userData.user.email?.split("@")[0] || "Usuário Teste"
+          });
         
-        if (profileError || !firstProfile) {
-          throw new Error("Nenhum perfil encontrado no sistema. Cadastre um usuário primeiro.");
+        if (createProfileError) {
+          throw new Error("Erro ao criar profile: " + createProfileError.message);
         }
         
-        candidatoId = firstProfile.id;
-        toast.info("Usando profile de teste: " + candidatoId.substring(0, 8) + "...");
+        toast.info("Profile criado automaticamente para o teste");
       }
 
       // 3. Criar inscrição de teste com dados completos
       const { data: inscricaoTeste, error: inscricaoError } = await supabase
         .from("inscricoes_edital")
         .insert({
-          candidato_id: candidatoId,
+          candidato_id: userId, // DEVE ser auth.uid() por causa da política RLS
           edital_id: selectedEditalTeste,
           status: "aprovado",
           dados_inscricao: {
@@ -225,39 +227,43 @@ export function TesteAssinatura() {
     setInscricaoMonitorada(null);
 
     try {
-      // 1. Obter candidato_id válido
+      // 1. Validar usuário autenticado e profile
       const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
+      if (!userData.user) {
+        throw new Error("Você precisa estar autenticado para realizar testes.");
+      }
       
-      let candidatoId = userId;
+      const userId = userData.user.id;
       
+      // Verificar se existe profile, criar se necessário
       const { data: profile } = await supabase
         .from("profiles")
         .select("id")
-        .eq("id", userId!)
+        .eq("id", userId)
         .maybeSingle();
       
       if (!profile) {
-        // Buscar primeiro profile disponível
-        const { data: firstProfile, error: profileError } = await supabase
+        // Criar profile automaticamente
+        const { error: createProfileError } = await supabase
           .from("profiles")
-          .select("id")
-          .limit(1)
-          .single();
+          .insert({
+            id: userId,
+            email: userData.user.email,
+            nome: userData.user.email?.split("@")[0] || "Usuário Teste"
+          });
         
-        if (profileError || !firstProfile) {
-          throw new Error("Nenhum perfil encontrado no sistema.");
+        if (createProfileError) {
+          throw new Error("Erro ao criar profile: " + createProfileError.message);
         }
         
-        candidatoId = firstProfile.id;
-        toast.info("Usando profile de teste: " + candidatoId.substring(0, 8) + "...");
+        toast.info("Profile criado automaticamente para o teste");
       }
 
       // 2. Criar inscrição em rascunho
       const { data: inscricaoTeste, error: inscricaoError } = await supabase
         .from("inscricoes_edital")
         .insert({
-          candidato_id: candidatoId,
+          candidato_id: userId, // DEVE ser auth.uid() por causa da política RLS
           edital_id: selectedEditalFluxoProg,
           status: "rascunho",
           dados_inscricao: {
