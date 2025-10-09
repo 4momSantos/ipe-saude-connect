@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +28,32 @@ const DefaultIcon = L.icon({
 });
 
 L.Marker.prototype.options.icon = DefaultIcon;
+
+// Componente auxiliar para controlar o mapa
+function MapController({ 
+  center, 
+  zoom, 
+  mapRef 
+}: { 
+  center: [number, number]; 
+  zoom: number; 
+  mapRef: React.MutableRefObject<L.Map | null>;
+}) {
+  const map = useMap();
+  
+  useEffect(() => {
+    mapRef.current = map;
+  }, [map, mapRef]);
+  
+  useEffect(() => {
+    if (map) {
+      map.setView(center, zoom);
+    }
+  }, [center, zoom, map]);
+  
+  return null;
+}
+
 
 interface MapaCredenciadosProps {
   height?: string;
@@ -88,13 +114,10 @@ export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
     return [avgLat, avgLng] as [number, number];
   }, [filteredCredenciados]);
 
-  // Atualizar centro do mapa quando credenciados mudarem
-  useEffect(() => {
-    if (mapRef.current) {
-      const zoom = filteredCredenciados && filteredCredenciados.length > 0 ? 5 : 4;
-      mapRef.current.setView(mapCenter, zoom);
-    }
-  }, [mapCenter, filteredCredenciados]);
+  // Calcular zoom baseado nos credenciados
+  const mapZoom = useMemo(() => {
+    return filteredCredenciados && filteredCredenciados.length > 0 ? 5 : 4;
+  }, [filteredCredenciados]);
 
   const centerMapOnLocation = (lat: number, lng: number) => {
     if (mapRef.current) {
@@ -209,8 +232,8 @@ export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
               center={[-14.235, -51.9253]}
               zoom={4}
               style={{ height: '100%', width: '100%' }}
-              ref={mapRef}
             >
+              <MapController center={mapCenter} zoom={mapZoom} mapRef={mapRef} />
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
               {filteredCredenciados && filteredCredenciados.length > 0 && clusteringEnabled ? (
