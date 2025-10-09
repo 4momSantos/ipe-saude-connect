@@ -212,7 +212,7 @@ export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
                   </p>
                 </div>
               </div>
-            ) : (
+            ) : credenciados && credenciados.length > 0 ? (
               <MapContainer
                 style={{ height: '100%', width: '100%' }}
               >
@@ -293,7 +293,7 @@ export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
                   </Marker>
                 ))}
               </MapContainer>
-            )}
+            ) : null}
           </div>
 
           {/* Legenda */}
