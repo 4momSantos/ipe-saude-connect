@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
@@ -33,11 +33,11 @@ L.Marker.prototype.options.icon = DefaultIcon;
 function MapCenterControl({ center, zoom }: { center: [number, number]; zoom?: number }) {
   const map = useMap();
   
-  const handleCenter = () => {
-    map.setView(center, zoom || map.getZoom(), { animate: true });
-  };
+  useEffect(() => {
+    map.setView(center, zoom || map.getZoom());
+  }, [center, zoom, map]);
 
-  return null; // Controle externo
+  return null;
 }
 
 interface MapaCredenciadosProps {
@@ -206,36 +206,17 @@ export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
             )}
           </div>
 
-          {/* Mapa */}
+          {/* Mapa - Sempre renderizado */}
           <div className="relative rounded-lg overflow-hidden border" style={{ height }}>
-            {isLoading ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-[1000]">
-                <div className="text-center">
-                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">Carregando mapa...</p>
-                </div>
-              </div>
-            ) : credenciados && credenciados.length === 0 ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-muted/30 z-[1000]">
-                <div className="text-center p-6">
-                  <MapIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-lg font-semibold mb-2">Nenhum credenciado encontrado</p>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {filters.search || filters.especialidades.length > 0 || filters.estados.length > 0 || filters.cidades.length > 0
-                      ? 'Tente ajustar os filtros para ver mais resultados'
-                      : 'Execute o backfill de geocodificação para visualizar os credenciados no mapa'}
-                  </p>
-                </div>
-              </div>
-            ) : filteredCredenciados && filteredCredenciados.length > 0 ? (
-              <MapContainer
-                style={{ height: '100%', width: '100%' }}
-              >
-                <TileLayer
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
+            <MapContainer
+              style={{ height: '100%', width: '100%' }}
+              ref={mapRef}
+            >
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              
+              <MapCenterControl center={mapCenter} zoom={filteredCredenciados && filteredCredenciados.length > 0 ? 5 : 4} />
 
-                {clusteringEnabled ? (
+              {filteredCredenciados && filteredCredenciados.length > 0 && clusteringEnabled ? (
                   <MarkerClusterGroup
                     chunkedLoading
                     maxClusterRadius={80}
@@ -324,7 +305,7 @@ export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
                       </Marker>
                     ))}
                   </MarkerClusterGroup>
-                ) : (
+                ) : filteredCredenciados && filteredCredenciados.length > 0 ? (
                   <>
                     {filteredCredenciados.map((credenciado) => (
                       <Marker
@@ -407,9 +388,32 @@ export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
                       </Marker>
                     ))}
                   </>
-                )}
-              </MapContainer>
-            ) : null}
+                ) : null}
+            </MapContainer>
+
+            {/* Overlay para estado vazio ou loading */}
+            {isLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-[1000] pointer-events-none">
+                <div className="text-center">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Carregando mapa...</p>
+                </div>
+              </div>
+            )}
+
+            {!isLoading && (!filteredCredenciados || filteredCredenciados.length === 0) && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-[1000] pointer-events-none">
+                <div className="text-center p-6">
+                  <MapIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-lg font-semibold mb-2">Nenhum credenciado no mapa</p>
+                  <p className="text-sm text-muted-foreground">
+                    {filters.search || filters.especialidades.length > 0 || filters.estados.length > 0 || filters.cidades.length > 0
+                      ? 'Tente ajustar os filtros para ver mais resultados'
+                      : 'Aguardando credenciados geocodificados'}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Legenda */}
