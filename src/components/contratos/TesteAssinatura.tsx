@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
-import { TestTube, Send, CheckCircle2, AlertCircle, PlayCircle } from "lucide-react";
+import { TestTube, Send, CheckCircle2, AlertCircle, PlayCircle, FileText } from "lucide-react";
 import { FluxoCredenciamentoMonitor } from "./FluxoCredenciamentoMonitor";
 import { useUsers } from "@/hooks/useUsers";
 
@@ -386,6 +386,38 @@ export function TesteAssinatura() {
     }
   };
 
+  const handleGerarContratoManual = async () => {
+    if (!selectedInscricao) {
+      toast.error("Selecione uma inscrição aprovada");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("gerar-contrato-assinatura", {
+        body: { inscricao_id: selectedInscricao }
+      });
+
+      if (error) throw error;
+
+      setTestResult({
+        success: true,
+        type: "manual_contract",
+        data
+      });
+      toast.success("📄 Contrato gerado e enviado para assinatura!");
+    } catch (error: any) {
+      setTestResult({
+        success: false,
+        type: "manual_contract",
+        error: error.message
+      });
+      toast.error("❌ Erro ao gerar contrato: " + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -424,6 +456,22 @@ export function TesteAssinatura() {
               <Send className="h-4 w-4" />
               Testar
             </Button>
+          </div>
+          
+          {/* Botão Manual para Gerar Contrato */}
+          <div className="flex gap-2 items-center pt-2 border-t">
+            <Button
+              onClick={handleGerarContratoManual}
+              disabled={isLoading || !selectedInscricao}
+              variant="outline"
+              className="gap-2"
+            >
+              <FileText className="h-4 w-4" />
+              Gerar Contrato Manualmente
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              (Útil para debug do trigger automático)
+            </span>
           </div>
         </div>
 
