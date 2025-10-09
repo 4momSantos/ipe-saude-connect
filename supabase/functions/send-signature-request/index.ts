@@ -68,6 +68,7 @@ async function sendEmail(to: string[], subject: string, html: string, apiKey: st
  */
 async function createAssignafyDocumentWithRetry(
   apiKey: string,
+  accountId: string,
   documentData: AssignafyCreateDocumentRequest,
   maxAttempts: number = 3
 ): Promise<AssignafyDocumentResponse> {
@@ -84,7 +85,7 @@ async function createAssignafyDocumentWithRetry(
         payload: documentData
       }));
 
-      const response = await fetch("https://api.assinafy.com.br/v1/documents", {
+      const response = await fetch(`https://api.assinafy.com.br/v1/accounts/${accountId}/documents`, {
         method: "POST",
         headers: {
           "X-Api-Key": apiKey,
@@ -175,6 +176,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const resendApiKey = Deno.env.get("RESEND_API_KEY")!;
     const assifafyApiKey = Deno.env.get("ASSINAFY_API_KEY");
+    const assifafyAccountId = Deno.env.get("ASSINAFY_ACCOUNT_ID");
     const DEV_MODE = Deno.env.get("ENVIRONMENT") !== "production";
     
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -306,15 +308,23 @@ serve(async (req) => {
       if (!assifafyApiKey) {
         throw new Error("ASSINAFY_API_KEY not configured");
       }
+      
+      if (!assifafyAccountId) {
+        throw new Error("ASSINAFY_ACCOUNT_ID not configured");
+      }
 
       try {
         // Criar documento na Assinafy com retry
-        const assifafyResponse = await createAssignafyDocumentWithRetry(assifafyApiKey, {
-          name: `Documento - ${inscricaoData?.edital?.titulo || "Credenciamento"}`,
-          signers: signatureRequest.signers,
-          document_url: signatureRequest.document_url,
-          message: `Solicitação de assinatura para o edital ${inscricaoData?.edital?.numero || "N/A"}`,
-        });
+        const assifafyResponse = await createAssignafyDocumentWithRetry(
+          assifafyApiKey,
+          assifafyAccountId,
+          {
+            name: `Documento - ${inscricaoData?.edital?.titulo || "Credenciamento"}`,
+            signers: signatureRequest.signers,
+            document_url: signatureRequest.document_url,
+            message: `Solicitação de assinatura para o edital ${inscricaoData?.edital?.numero || "N/A"}`,
+          }
+        );
 
         // Extrair URL de assinatura
         const signatureUrl = assifafyResponse.signature_url || 

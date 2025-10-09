@@ -12,11 +12,16 @@ serve(async (req) => {
 
   try {
     const ASSINAFY_API_KEY = Deno.env.get('ASSINAFY_API_KEY');
+    const ASSINAFY_ACCOUNT_ID = Deno.env.get('ASSINAFY_ACCOUNT_ID');
     const ASSINAFY_WEBHOOK_SECRET = Deno.env.get('ASSINAFY_WEBHOOK_SECRET');
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 
     if (!ASSINAFY_API_KEY) {
       throw new Error('ASSINAFY_API_KEY não configurada');
+    }
+
+    if (!ASSINAFY_ACCOUNT_ID) {
+      throw new Error('ASSINAFY_ACCOUNT_ID não configurado');
     }
 
     if (!ASSINAFY_WEBHOOK_SECRET) {
@@ -32,8 +37,8 @@ serve(async (req) => {
     console.log('[SETUP] Registrando webhook na Assinafy:', webhookUrl);
 
     // Registrar webhook na Assinafy
-    const response = await fetch('https://api.assinafy.com.br/v1/webhooks', {
-      method: 'POST',
+    const response = await fetch(`https://api.assinafy.com.br/v1/accounts/${ASSINAFY_ACCOUNT_ID}/webhooks/subscriptions`, {
+      method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         'X-Api-Key': ASSINAFY_API_KEY,
