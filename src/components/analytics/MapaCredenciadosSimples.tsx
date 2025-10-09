@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,17 +28,6 @@ const DefaultIcon = L.icon({
 });
 
 L.Marker.prototype.options.icon = DefaultIcon;
-
-// Componente para centralizar mapa em coordenadas
-function MapCenterControl({ center, zoom }: { center: [number, number]; zoom?: number }) {
-  const map = useMap();
-  
-  useEffect(() => {
-    map.setView(center, zoom || map.getZoom());
-  }, [center, zoom, map]);
-
-  return null;
-}
 
 interface MapaCredenciadosProps {
   height?: string;
@@ -98,6 +87,14 @@ export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
     
     return [avgLat, avgLng] as [number, number];
   }, [filteredCredenciados]);
+
+  // Atualizar centro do mapa quando credenciados mudarem
+  useEffect(() => {
+    if (mapRef.current) {
+      const zoom = filteredCredenciados && filteredCredenciados.length > 0 ? 5 : 4;
+      mapRef.current.setView(mapCenter, zoom);
+    }
+  }, [mapCenter, filteredCredenciados]);
 
   const centerMapOnLocation = (lat: number, lng: number) => {
     if (mapRef.current) {
@@ -209,12 +206,12 @@ export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
           {/* Mapa - Sempre renderizado */}
           <div className="relative rounded-lg overflow-hidden border" style={{ height }}>
             <MapContainer
+              center={mapCenter}
+              zoom={filteredCredenciados && filteredCredenciados.length > 0 ? 5 : 4}
               style={{ height: '100%', width: '100%' }}
               ref={mapRef}
             >
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              
-              <MapCenterControl center={mapCenter} zoom={filteredCredenciados && filteredCredenciados.length > 0 ? 5 : 4} />
 
               {filteredCredenciados && filteredCredenciados.length > 0 && clusteringEnabled ? (
                   <MarkerClusterGroup
