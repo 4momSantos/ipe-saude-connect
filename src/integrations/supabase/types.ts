@@ -2283,6 +2283,14 @@ export type Database = {
           workflow_id: string
         }[]
       }
+      process_orphan_inscricoes_programaticas: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          result_action: string
+          result_edital_id: string
+          result_inscricao_id: string
+        }[]
+      }
       process_workflow_queue: {
         Args: Record<PropertyKey, never>
         Returns: {

@@ -3,9 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Clock, XCircle, Loader2 } from "lucide-react";
+import { CheckCircle2, Clock, XCircle, Loader2, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { FluxoProgramaticoMonitor } from "./FluxoProgramaticoMonitor";
 
 interface StepStatus {
   name: string;
@@ -19,6 +20,42 @@ interface FluxoCredenciamentoMonitorProps {
 }
 
 export function FluxoCredenciamentoMonitor({ inscricaoId }: FluxoCredenciamentoMonitorProps) {
+  // Verificar se usa fluxo programático
+  const { data: inscricao, isLoading: loadingInscricao } = useQuery({
+    queryKey: ["inscricao-tipo", inscricaoId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("inscricoes_edital")
+        .select("id, workflow_execution_id, editais(use_programmatic_flow)")
+        .eq("id", inscricaoId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Se usa fluxo programático, renderizar componente específico
+  if (inscricao?.editais?.use_programmatic_flow === true) {
+    return <FluxoProgramaticoMonitor inscricaoId={inscricaoId} />;
+  }
+
+  // Se não tem workflow_execution_id, mostrar aguardando
+  if (inscricao && !inscricao.workflow_execution_id) {
+    return (
+      <Card>
+        <CardContent className="p-6 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-warning mt-0.5" />
+          <div>
+            <p className="font-medium">Aguardando processamento</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Sua inscrição está na fila e será processada em breve.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const [steps, setSteps] = useState<StepStatus[]>([
     { name: 'Inscrição Enviada', status: 'pending' },
     { name: 'Análise Pendente', status: 'pending' },

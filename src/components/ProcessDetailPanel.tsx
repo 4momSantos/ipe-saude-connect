@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { DocumentsTab } from "./process-tabs/DocumentsTab";
 import { MessagesTab } from "./process-tabs/MessagesTab";
 import { HistoryTab } from "./process-tabs/HistoryTab";
+import { DadosInscricaoView } from "./analises/DadosInscricaoView";
 import { WorkflowTimeline } from "./workflow/WorkflowTimeline";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,7 +33,7 @@ interface ProcessDetailPanelProps {
 }
 
 export function ProcessDetailPanel({ processo, onClose, onStatusChange }: ProcessDetailPanelProps) {
-  const [activeTab, setActiveTab] = useState("workflow");
+  const [activeTab, setActiveTab] = useState("dados");
   const [workflowData, setWorkflowData] = useState<any>(null);
   const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>([]);
   const [workflowActions, setWorkflowActions] = useState<WorkflowAction[]>([]);
@@ -262,6 +263,13 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
           <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0 h-auto">
             <TabsTrigger
+              value="dados"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3 gap-2"
+            >
+              <FileText className="h-4 w-4" />
+              Dados
+            </TabsTrigger>
+            <TabsTrigger
               value="workflow"
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3 gap-2"
             >
@@ -292,6 +300,12 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
           </TabsList>
 
           <ScrollArea className="flex-1">
+            <TabsContent value="dados" className="m-0 p-6">
+              <div className="max-w-3xl mx-auto">
+                <DadosInscricaoView dadosInscricao={workflowData?.input_data?.dadosInscricao} />
+              </div>
+            </TabsContent>
+
             <TabsContent value="workflow" className="m-0 p-6">
               <div className="max-w-3xl mx-auto">
                 {loading ? (

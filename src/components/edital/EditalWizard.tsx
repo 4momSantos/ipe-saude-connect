@@ -194,17 +194,17 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
         fieldsToValidate = ["participacao_permitida", "documentos_habilitacao"];
         break;
       case 3:
-        // Workflow e formulários são obrigatórios
+        // Workflow obrigatório (não é possível criar edital sem workflow)
         const workflowId = form.getValues("workflow_id");
         const formularios = form.getValues("formularios_vinculados");
         
         if (!workflowId) {
-          toast.error("⚠️ Selecione um modelo de workflow antes de continuar");
+          toast.error("⚠️ OBRIGATÓRIO: Todo edital deve ter um workflow configurado");
           return;
         }
         
         if (!formularios || formularios.length === 0) {
-          toast.error("⚠️ O workflow selecionado não possui formulários válidos. Adicione formulários ao workflow no editor.");
+          toast.error("⚠️ O workflow deve ter ao menos 1 formulário vinculado");
           return;
         }
         
