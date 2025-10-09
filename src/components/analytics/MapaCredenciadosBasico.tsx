@@ -260,16 +260,21 @@ export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
               </div>
             )}
 
+            {/* Mensagem discreta quando não há credenciados - NÃO cobre o mapa */}
             {!isLoading && (!filteredCredenciados || filteredCredenciados.length === 0) && (
-              <div className="absolute inset-0 flex items-center justify-center bg-background/80 z-[1000]">
-                <div className="text-center p-6">
-                  <MapIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-lg font-semibold mb-2">Nenhum credenciado no mapa</p>
-                  <p className="text-sm text-muted-foreground">
-                    {filters.search || filters.especialidades.length > 0 || filters.estados.length > 0 || filters.cidades.length > 0
-                      ? 'Tente ajustar os filtros para ver mais resultados'
-                      : 'Aguardando credenciados geocodificados'}
-                  </p>
+              <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[1000]">
+                <div className="bg-background/95 backdrop-blur-sm border rounded-lg shadow-lg p-4 max-w-md">
+                  <div className="flex items-center gap-3">
+                    <MapIcon className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium">Nenhum credenciado no mapa</p>
+                      <p className="text-xs text-muted-foreground">
+                        {filters.search || filters.especialidades.length > 0 || filters.estados.length > 0 || filters.cidades.length > 0
+                          ? 'Tente ajustar os filtros'
+                          : 'Aguardando credenciados geocodificados'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
