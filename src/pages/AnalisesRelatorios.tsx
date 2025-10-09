@@ -5,6 +5,8 @@ import { MapaRedeInterativo } from "@/components/analytics/MapaRedeInterativo";
 import { DashboardRelatorios } from "@/components/analytics/DashboardRelatorios";
 import { DimensionamentoRede } from "@/components/analytics/DimensionamentoRede";
 import { RelatoriosCustomizaveis } from "@/components/analytics/RelatoriosCustomizaveis";
+import { BatchGeocoding } from "@/components/analytics/BatchGeocoding";
+import { BackfillGeocoding } from "@/components/analytics/BackfillGeocoding";
 
 export default function AnalisesRelatorios() {
   const [activeTab, setActiveTab] = useState("mapa");
@@ -42,7 +44,11 @@ export default function AnalisesRelatorios() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="mapa" className="mt-6">
+        <TabsContent value="mapa" className="mt-6 space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            <BatchGeocoding />
+            <BackfillGeocoding />
+          </div>
           <MapaRedeInterativo />
         </TabsContent>
 

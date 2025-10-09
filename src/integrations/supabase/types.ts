@@ -399,9 +399,11 @@ export type Database = {
           email: string | null
           endereco: string | null
           estado: string | null
+          geocode_attempts: number | null
           geocoded_at: string | null
           id: string
           inscricao_id: string | null
+          last_geocode_attempt: string | null
           latitude: number | null
           longitude: number | null
           nome: string
@@ -423,9 +425,11 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           estado?: string | null
+          geocode_attempts?: number | null
           geocoded_at?: string | null
           id?: string
           inscricao_id?: string | null
+          last_geocode_attempt?: string | null
           latitude?: number | null
           longitude?: number | null
           nome: string
@@ -447,9 +451,11 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           estado?: string | null
+          geocode_attempts?: number | null
           geocoded_at?: string | null
           id?: string
           inscricao_id?: string | null
+          last_geocode_attempt?: string | null
           latitude?: number | null
           longitude?: number | null
           nome?: string
