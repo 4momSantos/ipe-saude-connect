@@ -154,7 +154,21 @@ export function TesteAssinatura() {
         toast.info("Profile criado automaticamente para o teste");
       }
 
-      // 3. Criar inscrição de teste com dados completos
+      // 3. Limpar inscrições de teste antigas do mesmo candidato/edital
+      const { error: deleteError } = await supabase
+        .from("inscricoes_edital")
+        .delete()
+        .eq("candidato_id", userId)
+        .eq("edital_id", selectedEditalTeste)
+        .in("status", ["rascunho", "aguardando_analise", "aprovado"]);
+
+      if (deleteError) {
+        console.warn("Aviso ao limpar inscrições antigas:", deleteError);
+      } else {
+        toast.info("🧹 Inscrições de teste antigas limpas");
+      }
+
+      // 4. Criar inscrição de teste com dados completos
       const { data: inscricaoTeste, error: inscricaoError } = await supabase
         .from("inscricoes_edital")
         .insert({
@@ -259,7 +273,22 @@ export function TesteAssinatura() {
         toast.info("Profile criado automaticamente para o teste");
       }
 
-      // 2. Criar inscrição em rascunho
+      // 2. Limpar inscrições de teste antigas do mesmo candidato/edital
+      const { error: deleteError } = await supabase
+        .from("inscricoes_edital")
+        .delete()
+        .eq("candidato_id", userId)
+        .eq("edital_id", selectedEditalFluxoProg)
+        .in("status", ["rascunho", "aguardando_analise"]);
+
+      if (deleteError) {
+        console.warn("Aviso ao limpar inscrições antigas:", deleteError);
+        // Não falhar se não houver inscrições antigas
+      } else {
+        toast.info("🧹 Inscrições de teste antigas limpas");
+      }
+
+      // 3. Criar inscrição em rascunho
       const { data: inscricaoTeste, error: inscricaoError } = await supabase
         .from("inscricoes_edital")
         .insert({
