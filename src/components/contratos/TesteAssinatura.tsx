@@ -122,26 +122,41 @@ export function TesteAssinatura() {
 
       if (editalError || !edital) throw new Error("Edital não encontrado");
 
-      // 2. Obter candidato_id válido (buscar um profile existente)
+      // 2. Obter candidato_id válido (usar primeiro candidato disponível ou usuário atual)
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
       
-      // Verificar se existe profile para o usuário atual
+      // Tentar usar o perfil do usuário atual
+      let candidatoId = userId;
+      
+      // Se não existir profile para o usuário atual, buscar qualquer profile válido
       const { data: profile } = await supabase
         .from("profiles")
         .select("id")
-        .eq("id", userId)
-        .single();
+        .eq("id", userId!)
+        .maybeSingle();
       
       if (!profile) {
-        throw new Error("Perfil de usuário não encontrado. Faça login primeiro.");
+        // Buscar primeiro profile disponível
+        const { data: firstProfile, error: profileError } = await supabase
+          .from("profiles")
+          .select("id")
+          .limit(1)
+          .single();
+        
+        if (profileError || !firstProfile) {
+          throw new Error("Nenhum perfil encontrado no sistema. Cadastre um usuário primeiro.");
+        }
+        
+        candidatoId = firstProfile.id;
+        toast.info("Usando profile de teste: " + candidatoId.substring(0, 8) + "...");
       }
 
       // 3. Criar inscrição de teste com dados completos
       const { data: inscricaoTeste, error: inscricaoError } = await supabase
         .from("inscricoes_edital")
         .insert({
-          candidato_id: profile.id,
+          candidato_id: candidatoId,
           edital_id: selectedEditalTeste,
           status: "aprovado",
           dados_inscricao: {
@@ -214,21 +229,35 @@ export function TesteAssinatura() {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
       
+      let candidatoId = userId;
+      
       const { data: profile } = await supabase
         .from("profiles")
         .select("id")
-        .eq("id", userId)
-        .single();
+        .eq("id", userId!)
+        .maybeSingle();
       
       if (!profile) {
-        throw new Error("Perfil de usuário não encontrado. Faça login primeiro.");
+        // Buscar primeiro profile disponível
+        const { data: firstProfile, error: profileError } = await supabase
+          .from("profiles")
+          .select("id")
+          .limit(1)
+          .single();
+        
+        if (profileError || !firstProfile) {
+          throw new Error("Nenhum perfil encontrado no sistema.");
+        }
+        
+        candidatoId = firstProfile.id;
+        toast.info("Usando profile de teste: " + candidatoId.substring(0, 8) + "...");
       }
 
       // 2. Criar inscrição em rascunho
       const { data: inscricaoTeste, error: inscricaoError } = await supabase
         .from("inscricoes_edital")
         .insert({
-          candidato_id: profile.id,
+          candidato_id: candidatoId,
           edital_id: selectedEditalFluxoProg,
           status: "rascunho",
           dados_inscricao: {
