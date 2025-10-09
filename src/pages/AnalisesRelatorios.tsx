@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, BarChart3, FileDown, Map, Activity } from "lucide-react";
 import { MapaRedeInterativo } from "@/components/analytics/MapaRedeInterativo";
-import { MapaCredenciados } from "@/components/analytics/MapaCredenciadosSimples";
+import { MapaCredenciados } from "@/components/analytics/MapaCredenciadosBasico";
 import { DashboardRelatorios } from "@/components/analytics/DashboardRelatorios";
 import { DimensionamentoRede } from "@/components/analytics/DimensionamentoRede";
 import { RelatoriosCustomizaveis } from "@/components/analytics/RelatoriosCustomizaveis";
