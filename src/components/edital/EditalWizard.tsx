@@ -64,7 +64,7 @@ const editalSchema = z.object({
   // Campos de workflow (OBRIGATÓRIOS)
   workflow_id: z.string().uuid("Selecione um workflow válido"),
   workflow_version: z.number().min(1),
-  formularios_vinculados: z.array(z.string().uuid()).min(1, "O workflow deve ter ao menos 1 formulário"),
+  formularios_vinculados: z.array(z.string().uuid()).optional(), // Formulários são opcionais
   gestor_autorizador_id: z.string().uuid("Selecione um gestor autorizador"),
   observacoes_autorizacao: z.string().optional(),
   // Novos campos para separar anexos (Sprint 4)
@@ -196,19 +196,13 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
       case 3:
         // Workflow obrigatório (não é possível criar edital sem workflow)
         const workflowId = form.getValues("workflow_id");
-        const formularios = form.getValues("formularios_vinculados");
         
         if (!workflowId) {
           toast.error("⚠️ OBRIGATÓRIO: Todo edital deve ter um workflow configurado");
           return;
         }
         
-        if (!formularios || formularios.length === 0) {
-          toast.error("⚠️ O workflow deve ter ao menos 1 formulário vinculado");
-          return;
-        }
-        
-        fieldsToValidate = ["workflow_id", "gestor_autorizador_id", "formularios_vinculados"];
+        fieldsToValidate = ["workflow_id", "gestor_autorizador_id"];
         break;
       case 4:
         // Anexos são opcionais
