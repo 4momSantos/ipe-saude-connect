@@ -1,6 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,7 +60,6 @@ interface MapaCredenciadosProps {
 
 export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
   const mapRef = useRef<L.Map | null>(null);
-  const [clusteringEnabled, setClusteringEnabled] = useState(true);
   const [filters, setFilters] = useState({
     search: "",
     especialidades: [] as string[],
@@ -188,20 +186,6 @@ export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
         <CardContent>
           <div className="flex items-center justify-between gap-4 mb-4">
             <MapFiltersDrawer onFiltersChange={setFilters} />
-            
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="clustering"
-                  checked={clusteringEnabled}
-                  onCheckedChange={setClusteringEnabled}
-                  aria-label="Ativar/desativar agrupamento de marcadores"
-                />
-                <Label htmlFor="clustering" className="text-sm cursor-pointer">
-                  Agrupamento
-                </Label>
-              </div>
-            </div>
           </div>
 
           {/* Informações */}
@@ -212,17 +196,10 @@ export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
                 <span>Carregando...</span>
               </div>
             ) : (
-              <>
-                <span>
-                  <strong>{filteredCredenciados?.length || 0}</strong> credenciados encontrados
-                  {filters.search && ` para "${filters.search}"`}
-                </span>
-                {filteredCredenciados && filteredCredenciados.length > 0 && (
-                  <Badge variant="secondary">
-                    {clusteringEnabled ? 'Agrupamento ativo' : 'Agrupamento desativado'}
-                  </Badge>
-                )}
-              </>
+              <span>
+                <strong>{filteredCredenciados?.length || 0}</strong> credenciados encontrados
+                {filters.search && ` para "${filters.search}"`}
+              </span>
             )}
           </div>
 
@@ -236,179 +213,87 @@ export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
               <MapController center={mapCenter} zoom={mapZoom} mapRef={mapRef} />
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-              {filteredCredenciados && filteredCredenciados.length > 0 && clusteringEnabled ? (
-                  <MarkerClusterGroup
-                    chunkedLoading
-                    maxClusterRadius={80}
-                    spiderfyOnMaxZoom
-                    showCoverageOnHover
-                    zoomToBoundsOnClick
+              {filteredCredenciados && filteredCredenciados.length > 0 && (
+                filteredCredenciados.map((credenciado) => (
+                  <Marker
+                    key={credenciado.id}
+                    position={[credenciado.latitude, credenciado.longitude]}
                   >
-                    {filteredCredenciados.map((credenciado) => (
-                      <Marker
-                        key={credenciado.id}
-                        position={[credenciado.latitude, credenciado.longitude]}
-                      >
-                        <Popup>
-                          <div className="space-y-3 p-1">
-                            <div>
-                              <h3 className="font-semibold text-lg mb-2">
-                                {credenciado.nome}
-                              </h3>
-                              <div className="flex flex-wrap gap-1 mb-3">
-                                {credenciado.especialidades.map((esp, idx) => (
-                                  <Badge key={idx} variant="secondary" className="text-xs">
-                                    {esp}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-
-                            <div className="text-sm space-y-2">
-                              {credenciado.endereco && (
-                                <p className="text-xs text-muted-foreground">{credenciado.endereco}</p>
-                              )}
-                              {credenciado.cidade && credenciado.estado && (
-                                <p className="text-xs font-medium">
-                                  {credenciado.cidade} - {credenciado.estado}
-                                </p>
-                              )}
-                              {credenciado.telefone && (
-                                <div className="flex items-center gap-2">
-                                  <Phone className="h-4 w-4 text-muted-foreground" />
-                                  <span className="text-xs">{credenciado.telefone}</span>
-                                </div>
-                              )}
-                              {credenciado.email && (
-                                <div className="flex items-center gap-2">
-                                  <Mail className="h-4 w-4 text-muted-foreground" />
-                                  <span className="text-xs">{credenciado.email}</span>
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="flex flex-col gap-2 pt-2 border-t">
-                              <div className="grid grid-cols-2 gap-2">
-                                <Button size="sm" variant="outline" asChild>
-                                  <Link to={`/credenciados/${credenciado.id}`}>
-                                    Ver Perfil
-                                  </Link>
-                                </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="secondary"
-                                  onClick={() => centerMapOnLocation(credenciado.latitude, credenciado.longitude)}
-                                >
-                                  <Crosshair className="h-3 w-3 mr-1" />
-                                  Centralizar
-                                </Button>
-                              </div>
-                              
-                              <Button 
-                                size="sm" 
-                                variant="default"
-                                className="w-full"
-                                asChild
-                              >
-                                <a
-                                  href={getGoogleMapsUrl(credenciado.latitude, credenciado.longitude)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  <Navigation className="h-3 w-3 mr-1" />
-                                  Como Chegar
-                                </a>
-                              </Button>
-                            </div>
+                    <Popup>
+                      <div className="space-y-3 p-1">
+                        <div>
+                          <h3 className="font-semibold text-lg mb-2">
+                            {credenciado.nome}
+                          </h3>
+                          <div className="flex flex-wrap gap-1 mb-3">
+                            {credenciado.especialidades.map((esp, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-xs">
+                                {esp}
+                              </Badge>
+                            ))}
                           </div>
-                        </Popup>
-                      </Marker>
-                    ))}
-                  </MarkerClusterGroup>
-                ) : filteredCredenciados && filteredCredenciados.length > 0 ? (
-                  <>
-                    {filteredCredenciados.map((credenciado) => (
-                      <Marker
-                        key={credenciado.id}
-                        position={[credenciado.latitude, credenciado.longitude]}
-                      >
-                        <Popup>
-                          <div className="space-y-3 p-1">
-                            <div>
-                              <h3 className="font-semibold text-lg mb-2">
-                                {credenciado.nome}
-                              </h3>
-                              <div className="flex flex-wrap gap-1 mb-3">
-                                {credenciado.especialidades.map((esp, idx) => (
-                                  <Badge key={idx} variant="secondary" className="text-xs">
-                                    {esp}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
+                        </div>
 
-                            <div className="text-sm space-y-2">
-                              {credenciado.endereco && (
-                                <p className="text-xs text-muted-foreground">{credenciado.endereco}</p>
-                              )}
-                              {credenciado.cidade && credenciado.estado && (
-                                <p className="text-xs font-medium">
-                                  {credenciado.cidade} - {credenciado.estado}
-                                </p>
-                              )}
-                              {credenciado.telefone && (
-                                <div className="flex items-center gap-2">
-                                  <Phone className="h-4 w-4 text-muted-foreground" />
-                                  <span className="text-xs">{credenciado.telefone}</span>
-                                </div>
-                              )}
-                              {credenciado.email && (
-                                <div className="flex items-center gap-2">
-                                  <Mail className="h-4 w-4 text-muted-foreground" />
-                                  <span className="text-xs">{credenciado.email}</span>
-                                </div>
-                              )}
+                        <div className="text-sm space-y-2">
+                          {credenciado.endereco && (
+                            <p className="text-xs text-muted-foreground">{credenciado.endereco}</p>
+                          )}
+                          {credenciado.cidade && credenciado.estado && (
+                            <p className="text-xs font-medium">
+                              {credenciado.cidade} - {credenciado.estado}
+                            </p>
+                          )}
+                          {credenciado.telefone && (
+                            <div className="flex items-center gap-2">
+                              <Phone className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-xs">{credenciado.telefone}</span>
                             </div>
+                          )}
+                          {credenciado.email && (
+                            <div className="flex items-center gap-2">
+                              <Mail className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-xs">{credenciado.email}</span>
+                            </div>
+                          )}
+                        </div>
 
-                            <div className="flex flex-col gap-2 pt-2 border-t">
-                              <div className="grid grid-cols-2 gap-2">
-                                <Button size="sm" variant="outline" asChild>
-                                  <Link to={`/credenciados/${credenciado.id}`}>
-                                    Ver Perfil
-                                  </Link>
-                                </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="secondary"
-                                  onClick={() => centerMapOnLocation(credenciado.latitude, credenciado.longitude)}
-                                >
-                                  <Crosshair className="h-3 w-3 mr-1" />
-                                  Centralizar
-                                </Button>
-                              </div>
-                              
-                              <Button 
-                                size="sm" 
-                                variant="default"
-                                className="w-full"
-                                asChild
-                              >
-                                <a
-                                  href={getGoogleMapsUrl(credenciado.latitude, credenciado.longitude)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  <Navigation className="h-3 w-3 mr-1" />
-                                  Como Chegar
-                                </a>
-                              </Button>
-                            </div>
+                        <div className="flex flex-col gap-2 pt-2 border-t">
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button size="sm" variant="outline" asChild>
+                              <Link to={`/credenciados/${credenciado.id}`}>
+                                Ver Perfil
+                              </Link>
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="secondary"
+                              onClick={() => centerMapOnLocation(credenciado.latitude, credenciado.longitude)}
+                            >
+                              <Crosshair className="h-3 w-3 mr-1" />
+                              Centralizar
+                            </Button>
                           </div>
-                        </Popup>
-                      </Marker>
-                    ))}
-                  </>
-                ) : null}
+                          
+                          <Button 
+                            size="sm" 
+                            variant="default"
+                            className="w-full"
+                            asChild>
+                            <a
+                              href={getGoogleMapsUrl(credenciado.latitude, credenciado.longitude)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <Navigation className="h-3 w-3 mr-1" />
+                              Como Chegar
+                            </a>
+                          </Button>
+                        </div>
+                      </div>
+                    </Popup>
+                  </Marker>
+                ))
+              )}
             </MapContainer>
 
             {/* Overlay para estado vazio ou loading */}
