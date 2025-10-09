@@ -6,8 +6,7 @@ import { MapaCredenciados } from "@/components/analytics/MapaCredenciadosSimples
 import { DashboardRelatorios } from "@/components/analytics/DashboardRelatorios";
 import { DimensionamentoRede } from "@/components/analytics/DimensionamentoRede";
 import { RelatoriosCustomizaveis } from "@/components/analytics/RelatoriosCustomizaveis";
-import { BatchGeocoding } from "@/components/analytics/BatchGeocoding";
-import { BackfillGeocoding } from "@/components/analytics/BackfillGeocoding";
+import { GeocodingManager } from "@/components/analytics/GeocodingManager";
 
 export default function AnalisesRelatorios() {
   const [activeTab, setActiveTab] = useState("mapa");
@@ -46,10 +45,7 @@ export default function AnalisesRelatorios() {
         </TabsList>
 
         <TabsContent value="mapa" className="mt-6 space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <BatchGeocoding />
-            <BackfillGeocoding />
-          </div>
+          <GeocodingManager />
           <MapaCredenciados height="700px" />
         </TabsContent>
 

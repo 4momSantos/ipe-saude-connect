@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { BatchGeocoding } from "./BatchGeocoding";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 interface CredenciadoMapData {
@@ -274,10 +273,7 @@ export function MapaRedeInterativo() {
   }
 
   return (
-    <div className="space-y-4">
-      <BatchGeocoding />
-      
-      <Card className="card-glow">
+    <Card className="card-glow">
         <CardHeader>
           <CardTitle className="text-2xl font-bold">Mapa Interativo da Rede</CardTitle>
           <CardDescription>
@@ -369,8 +365,7 @@ export function MapaRedeInterativo() {
             </CardContent>
           </Card>
         </div>
-      </CardContent>
+        </CardContent>
     </Card>
-    </div>
   );
 }
