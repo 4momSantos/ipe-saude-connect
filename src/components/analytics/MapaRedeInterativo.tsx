@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { BatchGeocoding } from "./BatchGeocoding";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 interface CredenciadoMapData {
@@ -69,7 +70,7 @@ export function MapaRedeInterativo() {
 
       const { data: credenciadosData, error: credError } = await supabase
         .from("credenciados")
-        .select("id, nome, cidade, estado")
+        .select("id, nome, cidade, estado, latitude, longitude, geocoded_at")
         .eq("status", "Ativo");
 
       if (credError) throw credError;
@@ -85,7 +86,18 @@ export function MapaRedeInterativo() {
           ?.filter((esp) => esp.credenciado_id === cred.id)
           .map((esp) => esp.especialidade) || [];
 
-        const coords = getCoordinatesByState(cred.estado || "DF");
+        // Usar coordenadas reais se disponíveis, senão fallback
+        let lat: number;
+        let lng: number;
+
+        if (cred.latitude && cred.longitude) {
+          lat = cred.latitude;
+          lng = cred.longitude;
+        } else {
+          const coords = getCoordinatesByState(cred.estado || "DF");
+          lat = coords[0] + (Math.random() - 0.5) * 0.5;
+          lng = coords[1] + (Math.random() - 0.5) * 0.5;
+        }
 
         return {
           id: cred.id,
@@ -93,13 +105,17 @@ export function MapaRedeInterativo() {
           cidade: cred.cidade || "N/A",
           estado: cred.estado || "N/A",
           especialidades,
-          lat: coords[0] + (Math.random() - 0.5) * 0.5,
-          lng: coords[1] + (Math.random() - 0.5) * 0.5,
+          lat,
+          lng,
         };
       });
 
       setCredenciados(mapData);
       setFilteredCredenciados(mapData);
+
+      // Log de geocoding
+      const geocoded = credenciadosData?.filter(c => c.latitude && c.longitude).length || 0;
+      console.log(`[MAPA] ${geocoded}/${credenciadosData?.length || 0} credenciados geocodificados`);
     } catch (error) {
       console.error("Erro ao carregar dados do mapa:", error);
       toast.error("Erro ao carregar dados do mapa");
@@ -258,15 +274,18 @@ export function MapaRedeInterativo() {
   }
 
   return (
-    <Card className="card-glow">
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold">Mapa Interativo da Rede</CardTitle>
-        <CardDescription>
-          Visualização geográfica de {filteredCredenciados.length} de {credenciados.length}{" "}
-          credenciados ativos
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className="space-y-4">
+      <BatchGeocoding />
+      
+      <Card className="card-glow">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold">Mapa Interativo da Rede</CardTitle>
+          <CardDescription>
+            Visualização geográfica de {filteredCredenciados.length} de {credenciados.length}{" "}
+            credenciados ativos
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
         {/* Filtros */}
         <div className="grid gap-4 md:grid-cols-3">
           <div className="relative">
@@ -352,5 +371,6 @@ export function MapaRedeInterativo() {
         </div>
       </CardContent>
     </Card>
+    </div>
   );
 }

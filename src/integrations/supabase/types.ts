@@ -399,8 +399,11 @@ export type Database = {
           email: string | null
           endereco: string | null
           estado: string | null
+          geocoded_at: string | null
           id: string
           inscricao_id: string | null
+          latitude: number | null
+          longitude: number | null
           nome: string
           observacoes: string | null
           porte: string | null
@@ -420,8 +423,11 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           estado?: string | null
+          geocoded_at?: string | null
           id?: string
           inscricao_id?: string | null
+          latitude?: number | null
+          longitude?: number | null
           nome: string
           observacoes?: string | null
           porte?: string | null
@@ -441,8 +447,11 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           estado?: string | null
+          geocoded_at?: string | null
           id?: string
           inscricao_id?: string | null
+          latitude?: number | null
+          longitude?: number | null
           nome?: string
           observacoes?: string | null
           porte?: string | null
@@ -747,6 +756,45 @@ export type Database = {
           tags?: string[] | null
           updated_at?: string
           usage_count?: number | null
+        }
+        Relationships: []
+      }
+      geocode_cache: {
+        Row: {
+          address_hash: string
+          address_text: string
+          created_at: string
+          hit_count: number | null
+          id: string
+          last_used_at: string | null
+          latitude: number
+          longitude: number
+          metadata: Json | null
+          provider: string
+        }
+        Insert: {
+          address_hash: string
+          address_text: string
+          created_at?: string
+          hit_count?: number | null
+          id?: string
+          last_used_at?: string | null
+          latitude: number
+          longitude: number
+          metadata?: Json | null
+          provider?: string
+        }
+        Update: {
+          address_hash?: string
+          address_text?: string
+          created_at?: string
+          hit_count?: number | null
+          id?: string
+          last_used_at?: string | null
+          latitude?: number
+          longitude?: number
+          metadata?: Json | null
+          provider?: string
         }
         Relationships: []
       }
@@ -1914,6 +1962,15 @@ export type Database = {
           result_workflow_id: string
         }[]
       }
+      generate_address_hash: {
+        Args: {
+          p_cep: string
+          p_cidade: string
+          p_endereco: string
+          p_estado: string
+        }
+        Returns: string
+      }
       generate_api_key: {
         Args: {
           p_description?: string
@@ -1956,6 +2013,10 @@ export type Database = {
           p_resource_id?: string
           p_resource_type: string
         }
+        Returns: string
+      }
+      normalize_address: {
+        Args: { addr: string }
         Returns: string
       }
       process_orphan_inscricoes: {
