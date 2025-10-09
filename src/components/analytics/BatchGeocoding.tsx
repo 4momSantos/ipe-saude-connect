@@ -57,13 +57,9 @@ export const BatchGeocoding = () => {
         try {
           console.log(`[BATCH] Geocodificando ${i + 1}/${credenciados.length}: ${credenciado.nome}`);
 
-          const { data, error: geocodeError } = await supabase.functions.invoke('geocode-address', {
+          const { data, error: geocodeError } = await supabase.functions.invoke('geocodificar-credenciado', {
             body: {
-              credenciado_id: credenciado.id,
-              endereco: credenciado.endereco,
-              cidade: credenciado.cidade,
-              estado: credenciado.estado,
-              cep: credenciado.cep
+              credenciado_id: credenciado.id
             }
           });
 
