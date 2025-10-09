@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertCircle, Activity, TrendingUp, Database, RefreshCw, MapPin, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { EnriquecimentoManager } from "./EnriquecimentoManager";
 
 interface GeoStats {
   total_credenciados: number;
@@ -178,10 +179,11 @@ export function GeocodingObservability() {
       </Card>
 
       <Tabs defaultValue="metrics">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="metrics">Métricas</TabsTrigger>
           <TabsTrigger value="cache">Cache</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="enriquecimento">Enriquecimento</TabsTrigger>
         </TabsList>
 
         <TabsContent value="metrics" className="space-y-4">
@@ -347,6 +349,40 @@ export function GeocodingObservability() {
                     {stats?.geocoded_last_24h || 0}
                   </p>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="enriquecimento" className="space-y-4">
+          <EnriquecimentoManager />
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Sobre o Enriquecimento</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-muted-foreground">
+              <p>
+                O enriquecimento usa <strong>OpenStreetMap Nominatim</strong> para obter dados 
+                adicionais de endereço como bairro, CEP completo e nome completo da cidade.
+              </p>
+              <div className="space-y-2">
+                <p className="font-medium text-foreground">✅ Dados enriquecidos:</p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>Bairro (suburb/neighbourhood)</li>
+                  <li>Cidade completa</li>
+                  <li>Estado</li>
+                  <li>CEP (quando disponível)</li>
+                  <li>País</li>
+                </ul>
+              </div>
+              <div className="pt-2 border-t">
+                <p className="text-xs">
+                  <strong>Rate Limit:</strong> 1 requisição/segundo (respeitado automaticamente)
+                </p>
+                <p className="text-xs">
+                  <strong>Cache:</strong> Resultados são cacheados para evitar requisições duplicadas
+                </p>
               </div>
             </CardContent>
           </Card>
