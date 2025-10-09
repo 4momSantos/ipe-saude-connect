@@ -7,6 +7,7 @@ import { DashboardRelatorios } from "@/components/analytics/DashboardRelatorios"
 import { DimensionamentoRede } from "@/components/analytics/DimensionamentoRede";
 import { RelatoriosCustomizaveis } from "@/components/analytics/RelatoriosCustomizaveis";
 import { GeocodingManager } from "@/components/analytics/GeocodingManager";
+import { GeocodingObservability } from "@/components/analytics/GeocodingObservability";
 
 export default function AnalisesRelatorios() {
   const [activeTab, setActiveTab] = useState("mapa");
@@ -34,6 +35,10 @@ export default function AnalisesRelatorios() {
             <Activity className="h-4 w-4" />
             <span className="hidden sm:inline">Dimensionamento</span>
           </TabsTrigger>
+          <TabsTrigger value="monitoramento" className="gap-2">
+            <Activity className="h-4 w-4" />
+            <span className="hidden sm:inline">Monitoramento</span>
+          </TabsTrigger>
           <TabsTrigger value="dashboards" className="gap-2">
             <BarChart3 className="h-4 w-4" />
             <span className="hidden sm:inline">Dashboards</span>
@@ -51,6 +56,10 @@ export default function AnalisesRelatorios() {
 
         <TabsContent value="dimensionamento" className="mt-6">
           <DimensionamentoRede />
+        </TabsContent>
+
+        <TabsContent value="monitoramento" className="mt-6">
+          <GeocodingObservability />
         </TabsContent>
 
         <TabsContent value="dashboards" className="mt-6">

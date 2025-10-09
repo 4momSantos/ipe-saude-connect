@@ -196,6 +196,13 @@ export type Database = {
             referencedRelation: "credenciados"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "certificados_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
         ]
       }
       contract_templates: {
@@ -341,6 +348,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "credenciado_crms_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "credenciado_crms_especialidade_id_fkey"
             columns: ["especialidade_id"]
             isOneToOne: false
@@ -383,6 +397,13 @@ export type Database = {
             columns: ["credenciado_id"]
             isOneToOne: false
             referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credenciado_historico_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
             referencedColumns: ["id"]
           },
         ]
@@ -1241,6 +1262,13 @@ export type Database = {
             referencedRelation: "credenciados"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "solicitacoes_alteracao_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_roles: {
@@ -1949,9 +1977,95 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      view_credenciados_geo_stats: {
+        Row: {
+          avg_hours_to_geocode: number | null
+          created_last_24h: number | null
+          first_geocoded_at: string | null
+          geocoded_last_24h: number | null
+          last_geocoded_at: string | null
+          success_rate_percent: number | null
+          total_credenciados: number | null
+          total_geocoded: number | null
+          total_max_attempts_reached: number | null
+          total_missing_geo: number | null
+        }
+        Relationships: []
+      }
+      view_geocode_cache_stats: {
+        Row: {
+          avg_hits_per_entry: number | null
+          cache_reuse_rate_percent: number | null
+          entries_last_week: number | null
+          max_hits: number | null
+          reused_entries: number | null
+          total_cache_entries: number | null
+          total_hits: number | null
+          used_last_24h: number | null
+        }
+        Relationships: []
+      }
+      view_geocode_distribution: {
+        Row: {
+          estado: string | null
+          geocoded: number | null
+          missing: number | null
+          success_rate: number | null
+          total: number | null
+        }
+        Relationships: []
+      }
+      view_geocode_failures_last_24h: {
+        Row: {
+          cep: string | null
+          cidade: string | null
+          created_at: string | null
+          endereco: string | null
+          estado: string | null
+          geocode_attempts: number | null
+          hours_since_creation: number | null
+          id: string | null
+          last_geocode_attempt: string | null
+          nome: string | null
+        }
+        Insert: {
+          cep?: string | null
+          cidade?: string | null
+          created_at?: string | null
+          endereco?: string | null
+          estado?: string | null
+          geocode_attempts?: number | null
+          hours_since_creation?: never
+          id?: string | null
+          last_geocode_attempt?: string | null
+          nome?: string | null
+        }
+        Update: {
+          cep?: string | null
+          cidade?: string | null
+          created_at?: string | null
+          endereco?: string | null
+          estado?: string | null
+          geocode_attempts?: number | null
+          hours_since_creation?: never
+          id?: string | null
+          last_geocode_attempt?: string | null
+          nome?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      check_geocoding_alerts: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          alert_type: string
+          count: number
+          details: Json
+          message: string
+          severity: string
+        }[]
+      }
       cleanup_orphan_workflows: {
         Args: Record<PropertyKey, never>
         Returns: {
