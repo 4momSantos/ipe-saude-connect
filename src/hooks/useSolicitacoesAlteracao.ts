@@ -88,3 +88,37 @@ export function useRejeitarSolicitacao() {
     },
   });
 }
+
+export function useCriarSolicitacao() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (params: {
+      credenciado_id: string;
+      tipo_alteracao: string;
+      justificativa: string;
+      dados_atuais: any;
+      dados_propostos: any;
+    }) => {
+      const { error } = await supabase
+        .from("solicitacoes_alteracao")
+        .insert({
+          ...params,
+          status: "Pendente",
+        });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["solicitacoes-alteracao"] });
+      toast.success("Solicitação enviada com sucesso", {
+        description: "Aguarde análise do gestor",
+      });
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao enviar solicitação", {
+        description: error.message,
+      });
+    },
+  });
+}

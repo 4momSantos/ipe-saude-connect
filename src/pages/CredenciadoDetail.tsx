@@ -107,7 +107,15 @@ export default function CredenciadoDetail() {
         </TabsContent>
 
         <TabsContent value="solicitacoes" className="space-y-6">
-          <SolicitacoesAlteracao credenciadoId={id || ""} />
+          <SolicitacoesAlteracao 
+            credenciadoId={id || ""} 
+            dadosAtuais={{
+              endereco: credenciado.endereco || "",
+              telefone: credenciado.telefone || "",
+              email: credenciado.email || "",
+              especialidades: credenciado.crms?.map((c: any) => c.especialidade).join(", ") || "",
+            }}
+          />
         </TabsContent>
       </Tabs>
     </div>

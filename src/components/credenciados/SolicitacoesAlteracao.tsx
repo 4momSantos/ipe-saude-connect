@@ -1,12 +1,20 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
-import { FileEdit, Calendar, User, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { FileEdit, Calendar, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { useSolicitacoesAlteracao, useAprovarSolicitacao, useRejeitarSolicitacao } from "@/hooks/useSolicitacoesAlteracao";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { SolicitarAlteracaoDialog } from "./SolicitarAlteracaoDialog";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface SolicitacoesAlteracaoProps {
   credenciadoId: string;
+  dadosAtuais?: {
+    endereco?: string;
+    telefone?: string;
+    email?: string;
+    especialidades?: string;
+  };
 }
 
 const formatarDados = (dados: any): string => {
@@ -24,8 +32,9 @@ const mapearStatus = (status: string): "pendente" | "aprovado" | "rejeitado" => 
   return "pendente";
 };
 
-export function SolicitacoesAlteracao({ credenciadoId }: SolicitacoesAlteracaoProps) {
+export function SolicitacoesAlteracao({ credenciadoId, dadosAtuais }: SolicitacoesAlteracaoProps) {
   const { data: solicitacoes, isLoading } = useSolicitacoesAlteracao(credenciadoId);
+  const { isCandidato } = useUserRole();
   const aprovarMutation = useAprovarSolicitacao();
   const rejeitarMutation = useRejeitarSolicitacao();
 
@@ -41,13 +50,23 @@ export function SolicitacoesAlteracao({ credenciadoId }: SolicitacoesAlteracaoPr
     <div className="space-y-6">
       <Card className="card-glow">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileEdit className="h-5 w-5 text-primary" />
-            Solicitações de Alteração
-          </CardTitle>
-          <CardDescription>
-            Pedidos de atualização de dados com fluxo de aprovação
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <FileEdit className="h-5 w-5 text-primary" />
+                Solicitações de Alteração
+              </CardTitle>
+              <CardDescription>
+                Pedidos de atualização de dados com fluxo de aprovação
+              </CardDescription>
+            </div>
+            {isCandidato && dadosAtuais && (
+              <SolicitarAlteracaoDialog 
+                credenciadoId={credenciadoId}
+                dadosAtuais={dadosAtuais}
+              />
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
