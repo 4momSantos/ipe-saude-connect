@@ -533,6 +533,7 @@ export type Database = {
           titulo: string
           updated_at: string | null
           use_orchestrator_v2: boolean | null
+          use_programmatic_flow: boolean | null
           vagas: number | null
           workflow_id: string | null
           workflow_version: number | null
@@ -572,6 +573,7 @@ export type Database = {
           titulo: string
           updated_at?: string | null
           use_orchestrator_v2?: boolean | null
+          use_programmatic_flow?: boolean | null
           vagas?: number | null
           workflow_id?: string | null
           workflow_version?: number | null
@@ -611,6 +613,7 @@ export type Database = {
           titulo?: string
           updated_at?: string | null
           use_orchestrator_v2?: boolean | null
+          use_programmatic_flow?: boolean | null
           vagas?: number | null
           workflow_id?: string | null
           workflow_version?: number | null
@@ -664,6 +667,13 @@ export type Database = {
             columns: ["edital_id"]
             isOneToOne: false
             referencedRelation: "editais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "edital_especialidades_edital_id_fkey"
+            columns: ["edital_id"]
+            isOneToOne: false
+            referencedRelation: "view_rollout_status"
             referencedColumns: ["id"]
           },
           {
@@ -990,6 +1000,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "inscricoes_edital_edital_id_fkey"
+            columns: ["edital_id"]
+            isOneToOne: false
+            referencedRelation: "view_rollout_status"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "inscricoes_edital_workflow_execution_id_fkey"
             columns: ["workflow_execution_id"]
             isOneToOne: false
@@ -1142,6 +1159,90 @@ export type Database = {
           nome?: string | null
           telefone?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      rollout_audit: {
+        Row: {
+          action: string
+          authorized_by: string | null
+          created_at: string | null
+          edital_id: string | null
+          environment: string | null
+          id: string
+          metadata: Json | null
+          new_value: boolean | null
+          previous_value: boolean | null
+          reason: string | null
+        }
+        Insert: {
+          action: string
+          authorized_by?: string | null
+          created_at?: string | null
+          edital_id?: string | null
+          environment?: string | null
+          id?: string
+          metadata?: Json | null
+          new_value?: boolean | null
+          previous_value?: boolean | null
+          reason?: string | null
+        }
+        Update: {
+          action?: string
+          authorized_by?: string | null
+          created_at?: string | null
+          edital_id?: string | null
+          environment?: string | null
+          id?: string
+          metadata?: Json | null
+          new_value?: boolean | null
+          previous_value?: boolean | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rollout_audit_edital_id_fkey"
+            columns: ["edital_id"]
+            isOneToOne: false
+            referencedRelation: "editais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rollout_audit_edital_id_fkey"
+            columns: ["edital_id"]
+            isOneToOne: false
+            referencedRelation: "view_rollout_status"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rollout_snapshots: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          data: Json
+          environment: string
+          id: string
+          notes: string | null
+          snapshot_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          data: Json
+          environment: string
+          id?: string
+          notes?: string | null
+          snapshot_type: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          data?: Json
+          environment?: string
+          id?: string
+          notes?: string | null
+          snapshot_type?: string
         }
         Relationships: []
       }
@@ -2054,6 +2155,24 @@ export type Database = {
         }
         Relationships: []
       }
+      view_rollout_status: {
+        Row: {
+          contratos_assinados: number | null
+          credenciados_ativos: number | null
+          edital_status: string | null
+          id: string | null
+          inscricoes_aguardando: number | null
+          inscricoes_aprovadas: number | null
+          inscricoes_em_analise: number | null
+          inscricoes_reprovadas: number | null
+          numero_edital: string | null
+          titulo: string | null
+          ultima_acao_toggle: string | null
+          ultima_alteracao_toggle: string | null
+          use_programmatic_flow: boolean | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_geocoding_alerts: {
@@ -2072,6 +2191,22 @@ export type Database = {
           cleaned_executions: number
           reset_queue_items: number
         }[]
+      }
+      create_rollout_snapshot: {
+        Args: {
+          p_environment?: string
+          p_notes?: string
+          p_snapshot_type: string
+        }
+        Returns: string
+      }
+      disable_programmatic_flow: {
+        Args: { p_edital_id: string; p_reason?: string }
+        Returns: Json
+      }
+      enable_programmatic_flow: {
+        Args: { p_edital_id: string; p_reason?: string }
+        Returns: Json
       }
       enqueue_orphan_inscricoes: {
         Args: Record<PropertyKey, never>
