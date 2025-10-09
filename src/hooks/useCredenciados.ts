@@ -28,6 +28,27 @@ export interface Credenciado {
   crms: CredenciadoCRM[];
 }
 
+export interface CredenciadoMap {
+  id: string;
+  nome: string;
+  latitude: number;
+  longitude: number;
+  cidade: string | null;
+  estado: string | null;
+  endereco: string | null;
+  telefone: string | null;
+  email: string | null;
+  status: string;
+  especialidades: string[];
+}
+
+interface UseCredenciadosMapOptions {
+  especialidade?: string;
+  cidade?: string;
+  estado?: string;
+  enabled?: boolean;
+}
+
 export function useCredenciados() {
   return useQuery({
     queryKey: ["credenciados"],
@@ -100,5 +121,127 @@ export function useCredenciado(id: string) {
       };
     },
     enabled: !!id,
+  });
+}
+
+// Hook para buscar credenciados no mapa (apenas com coordenadas)
+export function useCredenciadosMap(options: UseCredenciadosMapOptions = {}) {
+  const { especialidade, cidade, estado, enabled = true } = options;
+
+  return useQuery({
+    queryKey: ['credenciados-map', { especialidade, cidade, estado }],
+    queryFn: async () => {
+      // Query base - busca apenas credenciados com coordenadas
+      let query = supabase
+        .from('credenciados')
+        .select(`
+          id,
+          nome,
+          latitude,
+          longitude,
+          cidade,
+          estado,
+          endereco,
+          telefone,
+          email,
+          status,
+          credenciado_crms (
+            especialidade
+          )
+        `)
+        .not('latitude', 'is', null)
+        .not('longitude', 'is', null)
+        .eq('status', 'Ativo');
+
+      // Aplicar filtros opcionais
+      if (cidade) {
+        query = query.ilike('cidade', `%${cidade}%`);
+      }
+
+      if (estado) {
+        query = query.eq('estado', estado);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Erro ao buscar credenciados:', error);
+        throw error;
+      }
+
+      // Processar dados e aplicar filtro de especialidade se necessário
+      const processedData: CredenciadoMap[] = (data || []).map((credenciado: any) => {
+        const especialidades = (credenciado.credenciado_crms || []).map(
+          (crm: any) => crm.especialidade
+        );
+
+        return {
+          id: credenciado.id,
+          nome: credenciado.nome,
+          latitude: credenciado.latitude,
+          longitude: credenciado.longitude,
+          cidade: credenciado.cidade,
+          estado: credenciado.estado,
+          endereco: credenciado.endereco,
+          telefone: credenciado.telefone,
+          email: credenciado.email,
+          status: credenciado.status,
+          especialidades,
+        };
+      });
+
+      // Filtrar por especialidade no frontend (já que é relação many-to-many)
+      if (especialidade) {
+        return processedData.filter((c) =>
+          c.especialidades.some((esp) =>
+            esp.toLowerCase().includes(especialidade.toLowerCase())
+          )
+        );
+      }
+
+      return processedData;
+    },
+    enabled,
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+  });
+}
+
+// Hook para buscar estatísticas de geocoding
+export function useGeocodingStats() {
+  return useQuery({
+    queryKey: ['geocoding-stats'],
+    queryFn: async () => {
+      const [totalResult, geocodedResult, pendingResult] = await Promise.all([
+        supabase
+          .from('credenciados')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'Ativo'),
+        supabase
+          .from('credenciados')
+          .select('*', { count: 'exact', head: true })
+          .not('latitude', 'is', null)
+          .eq('status', 'Ativo'),
+        supabase
+          .from('credenciados')
+          .select('*', { count: 'exact', head: true })
+          .is('latitude', null)
+          .not('endereco', 'is', null)
+          .eq('status', 'Ativo')
+          .lt('geocode_attempts', 5),
+      ]);
+
+      return {
+        total: totalResult.count || 0,
+        geocoded: geocodedResult.count || 0,
+        pending: pendingResult.count || 0,
+        percentageGeocoded:
+          totalResult.count && totalResult.count > 0
+            ? ((geocodedResult.count || 0) / totalResult.count) * 100
+            : 0,
+      };
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutos
   });
 }
