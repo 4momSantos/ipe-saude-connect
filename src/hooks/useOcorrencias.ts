@@ -28,12 +28,12 @@ export function useOcorrencias(credenciadoId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('ocorrencias_prestadores')
-        .select('*, relator:profiles!relator_id(nome)')
+        .select('*')
         .eq('credenciado_id', credenciadoId)
         .order('data_ocorrencia', { ascending: false });
 
       if (error) throw error;
-      return data as Ocorrencia[];
+      return data || [];
     }
   });
 
@@ -45,10 +45,16 @@ export function useOcorrencias(credenciadoId: string) {
       const { error } = await supabase
         .from('ocorrencias_prestadores')
         .insert({
-          ...ocorrencia,
           credenciado_id: credenciadoId,
-          relator_id: user.user?.id,
-          protocolo
+          tipo: ocorrencia.tipo || 'observacao',
+          gravidade: ocorrencia.gravidade || 'baixa',
+          descricao: ocorrencia.descricao || '',
+          data_ocorrencia: ocorrencia.data_ocorrencia || new Date().toISOString().split('T')[0],
+          relator_id: user.user?.id || null,
+          protocolo,
+          providencias: ocorrencia.providencias || null,
+          anexos: ocorrencia.anexos || null,
+          status: ocorrencia.status || 'aberta'
         });
 
       if (error) throw error;

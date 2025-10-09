@@ -68,9 +68,16 @@ export function useAvaliacoes(credenciadoId: string) {
       const { error } = await supabase
         .from('avaliacoes_prestadores')
         .insert({
-          ...avaliacao,
           credenciado_id: credenciadoId,
-          avaliador_id: user.user?.id
+          periodo_referencia: avaliacao.periodo_referencia || new Date().toISOString().split('T')[0],
+          pontuacao_geral: avaliacao.pontuacao_geral || null,
+          criterios: avaliacao.criterios || [],
+          pontos_positivos: avaliacao.pontos_positivos || null,
+          pontos_melhoria: avaliacao.pontos_melhoria || null,
+          recomendacoes: avaliacao.recomendacoes || null,
+          status: avaliacao.status || 'rascunho',
+          finalizada_em: avaliacao.finalizada_em || null,
+          avaliador_id: user.user?.id || null
         });
 
       if (error) throw error;

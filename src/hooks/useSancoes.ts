@@ -32,12 +32,12 @@ export function useSancoes(credenciadoId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('sancoes_prestadores')
-        .select('*, aplicada_por_user:profiles!aplicada_por(nome)')
+        .select('*')
         .eq('credenciado_id', credenciadoId)
         .order('data_inicio', { ascending: false });
 
       if (error) throw error;
-      return data as Sancao[];
+      return data || [];
     }
   });
 
@@ -48,9 +48,16 @@ export function useSancoes(credenciadoId: string) {
       const { error } = await supabase
         .from('sancoes_prestadores')
         .insert({
-          ...sancao,
           credenciado_id: credenciadoId,
-          aplicada_por: user.user?.id
+          tipo_sancao: sancao.tipo_sancao || 'advertencia',
+          motivo: sancao.motivo || '',
+          data_inicio: sancao.data_inicio || new Date().toISOString().split('T')[0],
+          data_fim: sancao.data_fim || null,
+          duracao_dias: sancao.duracao_dias || null,
+          valor_multa: sancao.valor_multa || null,
+          aplicada_por: user.user?.id || null,
+          ocorrencia_id: sancao.ocorrencia_id || null,
+          observacoes: sancao.observacoes || null
         });
 
       if (error) throw error;

@@ -43,8 +43,17 @@ export function useRegrasSuspensao() {
       const { error } = await supabase
         .from('regras_suspensao_automatica')
         .insert({
-          ...regra,
-          criada_por: user.user?.id
+          nome: regra.nome || '',
+          tipo_gatilho: regra.tipo_gatilho || 'ocorrencias',
+          condicao: regra.condicao || {},
+          acao: regra.acao || 'suspensao',
+          descricao: regra.descricao || null,
+          duracao_dias: regra.duracao_dias || null,
+          notificar_gestores: regra.notificar_gestores ?? true,
+          notificar_credenciado: regra.notificar_credenciado ?? true,
+          ativo: regra.ativo ?? true,
+          prioridade: regra.prioridade || 1,
+          criada_por: user.user?.id || null
         });
 
       if (error) throw error;
