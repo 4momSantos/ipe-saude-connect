@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { FileText, Search, Filter, Download, ExternalLink } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TesteAssinatura } from "./TesteAssinatura";
 
 export function DashboardContratos() {
   const { contratos, filtrar, isLoading } = useTodosContratos();
@@ -64,6 +65,8 @@ export function DashboardContratos() {
 
   return (
     <div className="space-y-4">
+      <TesteAssinatura />
+      
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
