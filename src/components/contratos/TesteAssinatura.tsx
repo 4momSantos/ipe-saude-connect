@@ -155,17 +155,37 @@ export function TesteAssinatura() {
       }
 
       // 3. Limpar inscrições de teste antigas do mesmo candidato/edital
-      const { error: deleteError } = await supabase
+      console.log(`[LIMPEZA] Tentando limpar inscrições antigas - candidato: ${userId}, edital: ${selectedEditalTeste}`);
+      
+      // Primeiro, buscar inscrições existentes
+      const { data: existingInscricoes, error: searchError } = await supabase
+        .from("inscricoes_edital")
+        .select("id, status")
+        .eq("candidato_id", userId)
+        .eq("edital_id", selectedEditalTeste);
+      
+      if (searchError) {
+        console.error("[LIMPEZA] Erro ao buscar inscrições:", searchError);
+      } else {
+        console.log(`[LIMPEZA] Encontradas ${existingInscricoes?.length || 0} inscrição(ões) existente(s):`, existingInscricoes);
+      }
+      
+      // Tentar deletar
+      const { data: deletedData, error: deleteError } = await supabase
         .from("inscricoes_edital")
         .delete()
         .eq("candidato_id", userId)
         .eq("edital_id", selectedEditalTeste)
-        .in("status", ["rascunho", "aguardando_analise", "aprovado"]);
+        .select();
 
       if (deleteError) {
-        console.warn("Aviso ao limpar inscrições antigas:", deleteError);
+        console.error("[LIMPEZA] ❌ ERRO ao deletar:", deleteError);
+        toast.error("Erro ao limpar inscrições antigas. Pode haver duplicação.");
       } else {
-        toast.info("🧹 Inscrições de teste antigas limpas");
+        console.log(`[LIMPEZA] ✅ ${deletedData?.length || 0} inscrição(ões) deletada(s)`, deletedData);
+        if (deletedData && deletedData.length > 0) {
+          toast.info(`🧹 ${deletedData.length} inscrição(ões) removida(s)`);
+        }
       }
 
       // 4. Criar inscrição de teste com dados completos
@@ -274,18 +294,37 @@ export function TesteAssinatura() {
       }
 
       // 2. Limpar inscrições de teste antigas do mesmo candidato/edital
-      const { error: deleteError } = await supabase
+      console.log(`[LIMPEZA] Tentando limpar inscrições antigas - candidato: ${userId}, edital: ${selectedEditalFluxoProg}`);
+      
+      // Primeiro, buscar inscrições existentes
+      const { data: existingInscricoes, error: searchError } = await supabase
+        .from("inscricoes_edital")
+        .select("id, status")
+        .eq("candidato_id", userId)
+        .eq("edital_id", selectedEditalFluxoProg);
+      
+      if (searchError) {
+        console.error("[LIMPEZA] Erro ao buscar inscrições:", searchError);
+      } else {
+        console.log(`[LIMPEZA] Encontradas ${existingInscricoes?.length || 0} inscrição(ões) existente(s):`, existingInscricoes);
+      }
+      
+      // Tentar deletar
+      const { data: deletedData, error: deleteError } = await supabase
         .from("inscricoes_edital")
         .delete()
         .eq("candidato_id", userId)
         .eq("edital_id", selectedEditalFluxoProg)
-        .in("status", ["rascunho", "aguardando_analise"]);
+        .select();
 
       if (deleteError) {
-        console.warn("Aviso ao limpar inscrições antigas:", deleteError);
-        // Não falhar se não houver inscrições antigas
+        console.error("[LIMPEZA] ❌ ERRO ao deletar:", deleteError);
+        toast.error("Erro ao limpar inscrições antigas. Pode haver duplicação.");
       } else {
-        toast.info("🧹 Inscrições de teste antigas limpas");
+        console.log(`[LIMPEZA] ✅ ${deletedData?.length || 0} inscrição(ões) deletada(s)`, deletedData);
+        if (deletedData && deletedData.length > 0) {
+          toast.info(`🧹 ${deletedData.length} inscrição(ões) removida(s)`);
+        }
       }
 
       // 3. Criar inscrição em rascunho
