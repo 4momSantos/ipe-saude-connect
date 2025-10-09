@@ -11,7 +11,9 @@ import {
   Shield,
   FileCode2,
   Sparkles,
-  FileSignature
+  FileSignature,
+  Activity,
+  GitBranch
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
@@ -66,6 +68,18 @@ const menuItems = [
     url: "/contratos", 
     icon: FileSignature,
     roles: ['analista', 'gestor', 'admin'] as const
+  },
+  { 
+    title: "Fluxo de Credenciamento", 
+    url: "/fluxo-credenciamento", 
+    icon: GitBranch,
+    roles: ['gestor', 'admin'] as const
+  },
+  { 
+    title: "Monitor do Fluxo", 
+    url: "/monitor-fluxo", 
+    icon: Activity,
+    roles: ['gestor', 'admin'] as const
   },
   { 
     title: "Workflows", 

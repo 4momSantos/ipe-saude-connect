@@ -32,8 +32,11 @@ import { UserProfileMenu } from "./components/UserProfileMenu";
 import PlaceholderPage from "./pages/PlaceholderPage";
 import ContractTemplates from "./pages/ContractTemplates";
 import ContractTemplateEditor from "./pages/ContractTemplateEditor";
+import WorkflowExecutions from "./pages/WorkflowExecutions";
+import WorkflowMonitoring from "./pages/WorkflowMonitoring";
 import Contratos from "./pages/Contratos";
 import VerificarCertificado from "./pages/VerificarCertificado";
+import MonitorFluxo from "./pages/MonitorFluxo";
 import { ClipboardCheck, Users, MapPin, BarChart3, Settings } from "lucide-react";
 import NotFound from "./pages/NotFound";
 import { supabase } from "@/integrations/supabase/client";
@@ -129,6 +132,8 @@ const App = () => (
                           <Route path="/credenciados" element={<Credenciados />} />
                           <Route path="/credenciados/:id" element={<CredenciadoDetail />} />
                           <Route path="/contratos" element={<RoleProtectedRoute requiredRoles={['analista', 'gestor', 'admin']}><Contratos /></RoleProtectedRoute>} />
+                          <Route path="/fluxo-credenciamento" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><FluxoCredenciamentoPage /></RoleProtectedRoute>} />
+                          <Route path="/monitor-fluxo" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><MonitorFluxo /></RoleProtectedRoute>} />
                           <Route path="/contratos/templates" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><ContractTemplates /></RoleProtectedRoute>} />
                           <Route path="/contratos/templates/editor" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><ContractTemplateEditor /></RoleProtectedRoute>} />
                           <Route path="/contratos/templates/editor/:id" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><ContractTemplateEditor /></RoleProtectedRoute>} />
