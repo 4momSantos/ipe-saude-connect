@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useMapboxToken } from "@/hooks/useMapboxToken";
+import { Loader2 } from "lucide-react";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 interface CredenciadoMapData {
@@ -18,10 +20,6 @@ interface CredenciadoMapData {
   lat: number;
   lng: number;
 }
-
-const MAPBOX_TOKEN = "pk.eyJ1IjoibG92YWJsZS1kZW1vIiwiYSI6ImNseDhxZnp6YTBhZWcyanM5Mmw4cDYwdXgifQ.8FhB5YKfZ8yKvXfz8eIW4w";
-
-mapboxgl.accessToken = MAPBOX_TOKEN;
 
 const especialidadeColors: Record<string, string> = {
   "Cardiologia": "#3B82F6",
@@ -35,6 +33,7 @@ const especialidadeColors: Record<string, string> = {
 export function MapaRedeInterativo() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
+  const { token: mapboxToken, isLoading: isTokenLoading, error: tokenError } = useMapboxToken();
   const [credenciados, setCredenciados] = useState<CredenciadoMapData[]>([]);
   const [filteredCredenciados, setFilteredCredenciados] = useState<CredenciadoMapData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,14 +43,21 @@ export function MapaRedeInterativo() {
   const markersRef = useRef<mapboxgl.Marker[]>([]);
 
   useEffect(() => {
+    if (mapboxToken) {
+      mapboxgl.accessToken = mapboxToken;
+      console.log('[MAPA_INTERATIVO] Token configurado');
+    }
+  }, [mapboxToken]);
+
+  useEffect(() => {
     loadMapData();
   }, []);
 
   useEffect(() => {
-    if (map.current && !loading) {
+    if (mapboxToken && map.current && !loading) {
       initializeMap();
     }
-  }, [loading]);
+  }, [mapboxToken, loading]);
 
   useEffect(() => {
     filterCredenciados();
@@ -124,7 +130,9 @@ export function MapaRedeInterativo() {
   }
 
   function initializeMap() {
-    if (!mapContainer.current || map.current) return;
+    if (!mapboxToken || !mapContainer.current || map.current) return;
+
+    console.log('[MAPA_INTERATIVO] Inicializando com token seguro');
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
@@ -259,13 +267,28 @@ export function MapaRedeInterativo() {
     };
   }, []);
 
-  if (loading) {
+  if (isTokenLoading || loading) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center h-[700px]">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Carregando mapa interativo...</p>
+            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-muted-foreground">
+              {isTokenLoading ? 'Carregando configuração...' : 'Carregando mapa interativo...'}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (tokenError) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center h-[700px]">
+          <div className="text-center text-destructive">
+            <p className="font-semibold mb-2">Erro ao carregar configuração do mapa</p>
+            <p className="text-sm">{tokenError}</p>
           </div>
         </CardContent>
       </Card>

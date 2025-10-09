@@ -5,15 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useCredenciadosMap, useGeocodingStats } from "@/hooks/useCredenciados";
+import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { MapFiltersDrawer } from "./MapFiltersDrawer";
 import { Map as MapIcon, Phone, Mail, Navigation, Loader2, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import "mapbox-gl/dist/mapbox-gl.css";
-
-// Token Mapbox: use VITE_MAPBOX_TOKEN no .env ou o token demo como fallback
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || "pk.eyJ1IjoibG92YWJsZS1kZW1vIiwiYSI6ImNseDhxZnp6YTBhZWcyanM5Mmw4cDYwdXgifQ.8FhB5YKfZ8yKvXfz8eIW4w";
-
-mapboxgl.accessToken = MAPBOX_TOKEN;
 
 interface MapaCredenciadosProps {
   height?: string;
@@ -23,6 +19,8 @@ export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
+  
+  const { token: mapboxToken, isLoading: isTokenLoading, error: tokenError } = useMapboxToken();
   
   const [filters, setFilters] = useState({
     search: "",
@@ -64,20 +62,27 @@ export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
     });
   }, [credenciados, filters]);
 
+  // Configurar token quando disponível
+  useEffect(() => {
+    if (mapboxToken) {
+      mapboxgl.accessToken = mapboxToken;
+      console.log('[MAPA] Token Mapbox configurado com sucesso');
+    }
+  }, [mapboxToken]);
+
   // Inicializar mapa
   useEffect(() => {
-    if (!mapContainer.current || map.current) {
-      console.log('[MAPA] Skip init - container:', !!mapContainer.current, 'map exists:', !!map.current);
+    if (!mapboxToken || !mapContainer.current || map.current) {
       return;
     }
 
-    console.log('[MAPA] Inicializando mapa com token:', MAPBOX_TOKEN.substring(0, 20) + '...');
+    console.log('[MAPA] Inicializando mapa com token seguro');
     
     try {
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: "mapbox://styles/mapbox/streets-v12",
-        center: [-51.9253, -14.235], // Brasil
+        center: [-51.9253, -14.235],
         zoom: 4,
       });
 
@@ -102,7 +107,7 @@ export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
         map.current = null;
       }
     };
-  }, []);
+  }, [mapboxToken]);
 
   // Atualizar marcadores quando credenciados filtrados mudam
   useEffect(() => {
@@ -187,6 +192,29 @@ export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
     }
   }, [filteredCredenciados, isLoading]);
 
+  // Mostrar erro do token
+  if (tokenError) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Erro ao carregar configuração do mapa: {tokenError}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // Mostrar loading do token
+  if (isTokenLoading) {
+    return (
+      <div className="flex items-center justify-center" style={{ height }}>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-2 text-muted-foreground">Carregando mapa...</p>
+      </div>
+    );
+  }
+
+  // Mostrar erro de dados
   if (error) {
     return (
       <Alert variant="destructive">
