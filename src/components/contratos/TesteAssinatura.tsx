@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { TestTube, Send, CheckCircle2, AlertCircle, PlayCircle } from "lucide-react";
 import { FluxoCredenciamentoMonitor } from "./FluxoCredenciamentoMonitor";
+import { useUsers } from "@/hooks/useUsers";
 
 export function TesteAssinatura() {
   const [selectedInscricao, setSelectedInscricao] = useState("");
@@ -19,6 +20,10 @@ export function TesteAssinatura() {
   const [isLoading, setIsLoading] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
   const [inscricaoMonitorada, setInscricaoMonitorada] = useState<string | null>(null);
+  const [selectedCandidatoId, setSelectedCandidatoId] = useState("");
+
+  // Buscar candidatos para testes
+  const { users: candidatos } = useUsers();
 
   // Buscar inscrições aprovadas para teste
   const { data: inscricoes } = useQuery({
@@ -122,13 +127,14 @@ export function TesteAssinatura() {
 
       if (editalError || !edital) throw new Error("Edital não encontrado");
 
-      // 2. Obter candidato_id válido (DEVE ser auth.uid() por causa da RLS)
+      // 2. Obter candidato_id válido
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) {
         throw new Error("Você precisa estar autenticado para realizar testes.");
       }
       
-      const userId = userData.user.id;
+      // Usar candidato selecionado ou usuário atual
+      const userId = selectedCandidatoId || userData.user.id;
       
       // Verificar se existe profile, criar se necessário
       const { data: profile } = await supabase
@@ -267,7 +273,8 @@ export function TesteAssinatura() {
         throw new Error("Você precisa estar autenticado para realizar testes.");
       }
       
-      const userId = userData.user.id;
+      // Usar candidato selecionado ou usuário atual
+      const userId = selectedCandidatoId || userData.user.id;
       
       // Verificar se existe profile, criar se necessário
       const { data: profile } = await supabase
@@ -446,6 +453,26 @@ export function TesteAssinatura() {
             </Select>
           </div>
 
+          {/* Seletor de Candidato */}
+          <div className="space-y-2">
+            <Label htmlFor="candidato-teste">Candidato para Teste:</Label>
+            <Select value={selectedCandidatoId} onValueChange={setSelectedCandidatoId}>
+              <SelectTrigger id="candidato-teste">
+                <SelectValue placeholder="Usar usuário atual" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Usuário Atual (logado)</SelectItem>
+                {candidatos
+                  ?.filter(c => c.roles?.includes('candidato'))
+                  .map((candidato) => (
+                    <SelectItem key={candidato.id} value={candidato.id}>
+                      {candidato.nome || candidato.email}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Input de Email */}
           <div className="space-y-2">
             <Label htmlFor="email-signatario">Email do Signatário:</Label>
@@ -515,6 +542,24 @@ export function TesteAssinatura() {
             Testa o fluxo programático completo (sem workflow engine): criar inscrição → enviar → aguardar análise manual → contrato → assinatura → certificado
           </p>
           <div className="space-y-3">
+            <div>
+              <Label>Candidato para Teste:</Label>
+              <Select value={selectedCandidatoId} onValueChange={setSelectedCandidatoId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Usar usuário atual" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Usuário Atual (logado)</SelectItem>
+                  {candidatos
+                    ?.filter(c => c.roles?.includes('candidato'))
+                    .map((candidato) => (
+                      <SelectItem key={candidato.id} value={candidato.id}>
+                        {candidato.nome || candidato.email}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label>Edital para Teste (sem workflow)</Label>
               <Select value={selectedEditalFluxoProg} onValueChange={setSelectedEditalFluxoProg}>
