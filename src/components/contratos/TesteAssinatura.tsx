@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -10,6 +12,8 @@ import { TestTube, Send, CheckCircle2, AlertCircle } from "lucide-react";
 
 export function TesteAssinatura() {
   const [selectedInscricao, setSelectedInscricao] = useState("");
+  const [selectedEditalTeste, setSelectedEditalTeste] = useState("");
+  const [emailSignatario, setEmailSignatario] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
 
@@ -29,6 +33,22 @@ export function TesteAssinatura() {
         .order("created_at", { ascending: false })
         .limit(10);
 
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  // Buscar editais disponíveis para teste
+  const { data: editais } = useQuery({
+    queryKey: ["editais-para-teste"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("editais")
+        .select("id, titulo, numero_edital")
+        .in("status", ["aberto", "publicado"])
+        .order("created_at", { ascending: false })
+        .limit(10);
+      
       if (error) throw error;
       return data;
     }
@@ -75,23 +95,52 @@ export function TesteAssinatura() {
 
   // Cenário 2: Testar Edge Function diretamente com dados mockados
   const handleTestarEdgeFunctionDireta = async () => {
+    // Validações
+    if (!selectedEditalTeste) {
+      toast.error("Selecione um edital");
+      return;
+    }
+    
+    if (!emailSignatario || !emailSignatario.includes("@")) {
+      toast.error("Digite um email válido para o signatário");
+      return;
+    }
+
     setIsLoading(true);
     setTestResult(null);
 
     try {
-      // Criar inscrição de teste temporária
+      // 1. Buscar edital ANTES de criar inscrição
+      const { data: edital, error: editalError } = await supabase
+        .from("editais")
+        .select("*")
+        .eq("id", selectedEditalTeste)
+        .single();
+
+      if (editalError || !edital) throw new Error("Edital não encontrado");
+
+      // 2. Criar inscrição de teste com dados completos
       const { data: inscricaoTeste, error: inscricaoError } = await supabase
         .from("inscricoes_edital")
         .insert({
           candidato_id: (await supabase.auth.getUser()).data.user?.id,
-          edital_id: (await supabase.from("editais").select("id").limit(1).single()).data?.id,
+          edital_id: selectedEditalTeste,
           status: "aprovado",
           dados_inscricao: {
             dadosPessoais: {
               nome: "TESTE - João da Silva",
               cpf: "000.000.000-00",
-              email: "teste@exemplo.com",
-              telefone: "(11) 99999-9999"
+              email: emailSignatario,
+              telefone: "(11) 99999-9999",
+              dataNascimento: "1990-01-01",
+              rg: "00.000.000-0"
+            },
+            endereco: {
+              logradouro: "Rua Teste",
+              numero: "123",
+              cidade: "São Paulo",
+              estado: "SP",
+              cep: "00000-000"
             }
           },
           is_rascunho: false
@@ -101,7 +150,7 @@ export function TesteAssinatura() {
 
       if (inscricaoError) throw inscricaoError;
 
-      // Chamar a edge function
+      // 3. Chamar a edge function diretamente
       const { data, error } = await supabase.functions.invoke("gerar-contrato-assinatura", {
         body: {
           inscricao_id: inscricaoTeste.id
@@ -180,11 +229,41 @@ export function TesteAssinatura() {
           <p className="text-sm text-muted-foreground">
             Cria uma inscrição de teste e chama a Edge Function diretamente com dados mockados
           </p>
+          
+          {/* Seletor de Edital */}
+          <div className="space-y-2">
+            <Label htmlFor="edital-teste">Selecione o Edital:</Label>
+            <Select value={selectedEditalTeste} onValueChange={setSelectedEditalTeste}>
+              <SelectTrigger id="edital-teste">
+                <SelectValue placeholder="Escolha um edital" />
+              </SelectTrigger>
+              <SelectContent>
+                {editais?.map((edital) => (
+                  <SelectItem key={edital.id} value={edital.id}>
+                    {edital.numero_edital || "Sem número"} - {edital.titulo}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Input de Email */}
+          <div className="space-y-2">
+            <Label htmlFor="email-signatario">Email do Signatário:</Label>
+            <Input
+              id="email-signatario"
+              type="email"
+              placeholder="email@exemplo.com"
+              value={emailSignatario}
+              onChange={(e) => setEmailSignatario(e.target.value)}
+            />
+          </div>
+
           <Button
             onClick={handleTestarEdgeFunctionDireta}
-            disabled={isLoading}
+            disabled={isLoading || !selectedEditalTeste || !emailSignatario}
             variant="outline"
-            className="gap-2"
+            className="gap-2 w-full"
           >
             <TestTube className="h-4 w-4" />
             Testar com Dados Mock
