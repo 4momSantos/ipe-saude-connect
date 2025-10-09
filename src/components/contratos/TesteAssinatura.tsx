@@ -122,11 +122,26 @@ export function TesteAssinatura() {
 
       if (editalError || !edital) throw new Error("Edital não encontrado");
 
-      // 2. Criar inscrição de teste com dados completos
+      // 2. Obter candidato_id válido (buscar um profile existente)
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      
+      // Verificar se existe profile para o usuário atual
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", userId)
+        .single();
+      
+      if (!profile) {
+        throw new Error("Perfil de usuário não encontrado. Faça login primeiro.");
+      }
+
+      // 3. Criar inscrição de teste com dados completos
       const { data: inscricaoTeste, error: inscricaoError } = await supabase
         .from("inscricoes_edital")
         .insert({
-          candidato_id: (await supabase.auth.getUser()).data.user?.id,
+          candidato_id: profile.id,
           edital_id: selectedEditalTeste,
           status: "aprovado",
           dados_inscricao: {
@@ -153,7 +168,7 @@ export function TesteAssinatura() {
 
       if (inscricaoError) throw inscricaoError;
 
-      // 3. Chamar a edge function diretamente
+      // 4. Chamar a edge function diretamente
       const { data, error } = await supabase.functions.invoke("gerar-contrato-assinatura", {
         body: {
           inscricao_id: inscricaoTeste.id
@@ -195,11 +210,25 @@ export function TesteAssinatura() {
     setInscricaoMonitorada(null);
 
     try {
-      // 1. Criar inscrição em rascunho
+      // 1. Obter candidato_id válido
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", userId)
+        .single();
+      
+      if (!profile) {
+        throw new Error("Perfil de usuário não encontrado. Faça login primeiro.");
+      }
+
+      // 2. Criar inscrição em rascunho
       const { data: inscricaoTeste, error: inscricaoError } = await supabase
         .from("inscricoes_edital")
         .insert({
-          candidato_id: (await supabase.auth.getUser()).data.user?.id,
+          candidato_id: profile.id,
           edital_id: selectedEditalFluxoProg,
           status: "rascunho",
           dados_inscricao: {
@@ -217,7 +246,7 @@ export function TesteAssinatura() {
 
       if (inscricaoError) throw inscricaoError;
 
-      // 2. Enviar inscrição via edge function
+      // 3. Enviar inscrição via edge function
       const { error: enviarError } = await supabase.functions.invoke("enviar-inscricao", {
         body: { inscricao_id: inscricaoTeste.id }
       });
