@@ -24,12 +24,6 @@ interface WorkflowOption {
   is_active: boolean;
 }
 
-interface GestorOption {
-  id: string;
-  nome: string;
-  email: string;
-}
-
 interface FormularioVinculado {
   id: string;
   nome: string;
@@ -52,7 +46,6 @@ interface InscriptionTemplate {
 
 export function WorkflowStep({ form }: WorkflowStepProps) {
   const [workflows, setWorkflows] = useState<WorkflowOption[]>([]);
-  const [gestores, setGestores] = useState<GestorOption[]>([]);
   const [inscriptionTemplates, setInscriptionTemplates] = useState<InscriptionTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowOption | null>(null);
@@ -61,7 +54,6 @@ export function WorkflowStep({ form }: WorkflowStepProps) {
 
   useEffect(() => {
     loadWorkflows();
-    loadGestores();
     loadInscriptionTemplates();
   }, []);
 
@@ -143,6 +135,8 @@ export function WorkflowStep({ form }: WorkflowStepProps) {
     } catch (error) {
       console.error("Erro ao carregar templates:", error);
       toast.error("Erro ao carregar templates de inscrição");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -168,34 +162,6 @@ export function WorkflowStep({ form }: WorkflowStepProps) {
     }
   }
 
-  async function loadGestores() {
-    try {
-      console.log('[WorkflowStep] Carregando gestores via RPC...');
-      
-      // Usar função RPC ao invés de query direta
-      const { data, error } = await supabase.rpc('get_gestores');
-
-      if (error) {
-        console.error('[WorkflowStep] Erro ao carregar gestores:', error);
-        toast.error("Erro ao carregar lista de gestores");
-        setGestores([]);
-        return;
-      }
-      
-      console.log(`[WorkflowStep] ✅ ${data?.length || 0} gestor(es) carregado(s)`);
-      setGestores(data || []);
-      
-      if (!data || data.length === 0) {
-        toast.warning("Nenhum gestor disponível no sistema");
-      }
-    } catch (error) {
-      console.error('[WorkflowStep] Exceção ao carregar gestores:', error);
-      toast.error("Erro inesperado ao carregar gestores");
-      setGestores([]);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   function getNodeTypeLabel(type: string): string {
     const labels: Record<string, string> = {
@@ -414,74 +380,6 @@ export function WorkflowStep({ form }: WorkflowStepProps) {
                     </Badge>
                   ))}
                 </div>
-              </div>
-
-            <div className="border-t pt-4">
-              <FormField
-                control={form.control}
-                name="gestor_autorizador_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Gestor Autorizador *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o gestor responsável" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {gestores.length === 0 ? (
-                          <div className="p-4 text-sm text-muted-foreground text-center">
-                            <User className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                            <p className="font-semibold">Nenhum gestor disponível</p>
-                            <p className="text-xs mt-1">
-                              Contate o administrador para criar perfis de gestores
-                            </p>
-                          </div>
-                        ) : (
-                          gestores.map((gestor) => (
-                            <SelectItem key={gestor.id} value={gestor.id}>
-                              <div className="flex items-center gap-2">
-                                <User className="h-4 w-4" />
-                                <span>{gestor.nome}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  ({gestor.email})
-                                </span>
-                              </div>
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Gestor responsável por autorizar a vinculação desta workflow ao edital.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="observacoes_autorizacao"
-                render={({ field }) => (
-                  <FormItem className="mt-4">
-                    <FormLabel>Observações da Autorização</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Justificativa ou observações sobre a escolha desta workflow..."
-                        className="resize-none"
-                        rows={3}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Documente o motivo da escolha desta workflow e eventuais considerações.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               </div>
             </CardContent>
           </Card>

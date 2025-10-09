@@ -28,8 +28,6 @@ interface Edital {
   workflow_id: string;
   workflow_version: number;
   formularios_vinculados: string[];
-  gestor_autorizador_id: string;
-  observacoes_autorizacao: string;
 }
 
 interface Workflow {
@@ -46,19 +44,12 @@ interface Formulario {
   category: string;
 }
 
-interface Gestor {
-  id: string;
-  nome: string;
-  email: string;
-}
-
 export default function EditalDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [edital, setEdital] = useState<Edital | null>(null);
   const [workflow, setWorkflow] = useState<Workflow | null>(null);
   const [formularios, setFormularios] = useState<Formulario[]>([]);
-  const [gestor, setGestor] = useState<Gestor | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -123,19 +114,6 @@ export default function EditalDetail() {
 
         if (formulariosError) throw formulariosError;
         setFormularios(formulariosData || []);
-      }
-
-      // Buscar gestor
-      if (editalData.gestor_autorizador_id) {
-        const { data: gestorData, error: gestorError } = await supabase
-          .from("profiles")
-          .select("id, nome, email")
-          .eq("id", editalData.gestor_autorizador_id)
-          .single();
-
-        if (!gestorError && gestorData) {
-          setGestor(gestorData);
-        }
       }
 
     } catch (error) {
@@ -245,26 +223,6 @@ export default function EditalDetail() {
                 Ver Workflow
               </Button>
             </div>
-
-            {gestor && (
-              <div className="p-4 border rounded-lg">
-                <p className="text-sm font-medium text-muted-foreground flex items-center gap-2 mb-2">
-                  <User className="h-4 w-4" />
-                  Gestor Autorizador
-                </p>
-                <p className="font-medium">{gestor.nome}</p>
-                <p className="text-sm text-muted-foreground">{gestor.email}</p>
-              </div>
-            )}
-
-            {edital.observacoes_autorizacao && (
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-2">
-                  Observações da Autorização
-                </p>
-                <p className="text-sm">{edital.observacoes_autorizacao}</p>
-              </div>
-            )}
 
             <Separator className="my-4" />
 

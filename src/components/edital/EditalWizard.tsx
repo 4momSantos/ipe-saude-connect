@@ -65,7 +65,7 @@ const editalSchema = z.object({
   workflow_id: z.string().uuid("Selecione um workflow válido"),
   workflow_version: z.number().min(1),
   formularios_vinculados: z.array(z.string().uuid()).optional(), // Formulários são opcionais
-  gestor_autorizador_id: z.string().uuid("Selecione um gestor autorizador"),
+  gestor_autorizador_id: z.string().uuid().optional(), // Campo opcional
   observacoes_autorizacao: z.string().optional(),
   // Novos campos para separar anexos (Sprint 4)
   anexos_administrativos: z.record(z.any()).optional(),
@@ -202,7 +202,7 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
           return;
         }
         
-        fieldsToValidate = ["workflow_id", "gestor_autorizador_id"];
+        fieldsToValidate = ["workflow_id"];
         break;
       case 4:
         // Anexos são opcionais

@@ -79,8 +79,6 @@ export default function EditarEdital() {
         status: data.status || "rascunho",
         workflow_id: data.workflow_id || null,
         workflow_version: data.workflow_version || undefined,
-        gestor_autorizador_id: data.gestor_autorizador_id || undefined,
-        observacoes_autorizacao: data.observacoes_autorizacao || undefined,
       };
 
       setEditalData(formData);
