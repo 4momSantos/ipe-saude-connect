@@ -148,6 +148,72 @@ export type Database = {
         }
         Relationships: []
       }
+      avaliacoes_prestadores: {
+        Row: {
+          avaliador_id: string | null
+          created_at: string | null
+          credenciado_id: string
+          criterios: Json
+          finalizada_em: string | null
+          id: string
+          metadata: Json | null
+          periodo_referencia: string
+          pontos_melhoria: string | null
+          pontos_positivos: string | null
+          pontuacao_geral: number | null
+          recomendacoes: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avaliador_id?: string | null
+          created_at?: string | null
+          credenciado_id: string
+          criterios?: Json
+          finalizada_em?: string | null
+          id?: string
+          metadata?: Json | null
+          periodo_referencia: string
+          pontos_melhoria?: string | null
+          pontos_positivos?: string | null
+          pontuacao_geral?: number | null
+          recomendacoes?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avaliador_id?: string | null
+          created_at?: string | null
+          credenciado_id?: string
+          criterios?: Json
+          finalizada_em?: string | null
+          id?: string
+          metadata?: Json | null
+          periodo_referencia?: string
+          pontos_melhoria?: string | null
+          pontos_positivos?: string | null
+          pontuacao_geral?: number | null
+          recomendacoes?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avaliacoes_prestadores_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_prestadores_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       certificados: {
         Row: {
           created_at: string | null
@@ -416,6 +482,7 @@ export type Database = {
           cnpj: string | null
           cpf: string | null
           created_at: string | null
+          data_descredenciamento_programado: string | null
           data_nascimento: string | null
           email: string | null
           endereco: string | null
@@ -427,11 +494,16 @@ export type Database = {
           last_geocode_attempt: string | null
           latitude: number | null
           longitude: number | null
+          motivo_descredenciamento: string | null
+          motivo_suspensao: string | null
           nome: string
           observacoes: string | null
           porte: string | null
           rg: string | null
           status: string
+          suspensao_automatica: boolean | null
+          suspensao_fim: string | null
+          suspensao_inicio: string | null
           telefone: string | null
           updated_at: string | null
         }
@@ -442,6 +514,7 @@ export type Database = {
           cnpj?: string | null
           cpf?: string | null
           created_at?: string | null
+          data_descredenciamento_programado?: string | null
           data_nascimento?: string | null
           email?: string | null
           endereco?: string | null
@@ -453,11 +526,16 @@ export type Database = {
           last_geocode_attempt?: string | null
           latitude?: number | null
           longitude?: number | null
+          motivo_descredenciamento?: string | null
+          motivo_suspensao?: string | null
           nome: string
           observacoes?: string | null
           porte?: string | null
           rg?: string | null
           status?: string
+          suspensao_automatica?: boolean | null
+          suspensao_fim?: string | null
+          suspensao_inicio?: string | null
           telefone?: string | null
           updated_at?: string | null
         }
@@ -468,6 +546,7 @@ export type Database = {
           cnpj?: string | null
           cpf?: string | null
           created_at?: string | null
+          data_descredenciamento_programado?: string | null
           data_nascimento?: string | null
           email?: string | null
           endereco?: string | null
@@ -479,11 +558,16 @@ export type Database = {
           last_geocode_attempt?: string | null
           latitude?: number | null
           longitude?: number | null
+          motivo_descredenciamento?: string | null
+          motivo_suspensao?: string | null
           nome?: string
           observacoes?: string | null
           porte?: string | null
           rg?: string | null
           status?: string
+          suspensao_automatica?: boolean | null
+          suspensao_fim?: string | null
+          suspensao_inicio?: string | null
           telefone?: string | null
           updated_at?: string | null
         }
@@ -496,6 +580,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      criterios_avaliacao: {
+        Row: {
+          ativo: boolean | null
+          categoria: string | null
+          created_at: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          ordem: number | null
+          peso: number | null
+          tipo_pontuacao: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          categoria?: string | null
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          ordem?: number | null
+          peso?: number | null
+          tipo_pontuacao?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          categoria?: string | null
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          ordem?: number | null
+          peso?: number | null
+          tipo_pontuacao?: string | null
+        }
+        Relationships: []
       }
       editais: {
         Row: {
@@ -880,10 +1000,14 @@ export type Database = {
           created_at: string | null
           id: string
           inscricao_id: string
+          is_current: boolean | null
           observacoes: string | null
           ocr_confidence: number | null
           ocr_processado: boolean | null
           ocr_resultado: Json | null
+          parent_document_id: string | null
+          replaced_at: string | null
+          replaced_by: string | null
           status: string | null
           tipo_documento: string
           updated_at: string | null
@@ -899,10 +1023,14 @@ export type Database = {
           created_at?: string | null
           id?: string
           inscricao_id: string
+          is_current?: boolean | null
           observacoes?: string | null
           ocr_confidence?: number | null
           ocr_processado?: boolean | null
           ocr_resultado?: Json | null
+          parent_document_id?: string | null
+          replaced_at?: string | null
+          replaced_by?: string | null
           status?: string | null
           tipo_documento: string
           updated_at?: string | null
@@ -918,10 +1046,14 @@ export type Database = {
           created_at?: string | null
           id?: string
           inscricao_id?: string
+          is_current?: boolean | null
           observacoes?: string | null
           ocr_confidence?: number | null
           ocr_processado?: boolean | null
           ocr_resultado?: Json | null
+          parent_document_id?: string | null
+          replaced_at?: string | null
+          replaced_by?: string | null
           status?: string | null
           tipo_documento?: string
           updated_at?: string | null
@@ -934,6 +1066,13 @@ export type Database = {
             columns: ["inscricao_id"]
             isOneToOne: false
             referencedRelation: "inscricoes_edital"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inscricao_documentos_parent_document_id_fkey"
+            columns: ["parent_document_id"]
+            isOneToOne: false
+            referencedRelation: "inscricao_documentos"
             referencedColumns: ["id"]
           },
         ]
@@ -1087,6 +1226,127 @@ export type Database = {
         }
         Relationships: []
       }
+      logs_regras_suspensao: {
+        Row: {
+          acao_aplicada: string
+          aplicado_em: string | null
+          aplicado_por: string | null
+          credenciado_id: string
+          dados_gatilho: Json | null
+          id: string
+          motivo: string
+          regra_id: string | null
+        }
+        Insert: {
+          acao_aplicada: string
+          aplicado_em?: string | null
+          aplicado_por?: string | null
+          credenciado_id: string
+          dados_gatilho?: Json | null
+          id?: string
+          motivo: string
+          regra_id?: string | null
+        }
+        Update: {
+          acao_aplicada?: string
+          aplicado_em?: string | null
+          aplicado_por?: string | null
+          credenciado_id?: string
+          dados_gatilho?: Json | null
+          id?: string
+          motivo?: string
+          regra_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "logs_regras_suspensao_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "logs_regras_suspensao_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "logs_regras_suspensao_regra_id_fkey"
+            columns: ["regra_id"]
+            isOneToOne: false
+            referencedRelation: "regras_suspensao_automatica"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocorrencias_prestadores: {
+        Row: {
+          anexos: Json | null
+          created_at: string | null
+          credenciado_id: string
+          data_ocorrencia: string
+          descricao: string
+          gravidade: string
+          id: string
+          metadata: Json | null
+          protocolo: string | null
+          providencias: string | null
+          relator_id: string | null
+          status: string | null
+          tipo: string
+          updated_at: string | null
+        }
+        Insert: {
+          anexos?: Json | null
+          created_at?: string | null
+          credenciado_id: string
+          data_ocorrencia: string
+          descricao: string
+          gravidade?: string
+          id?: string
+          metadata?: Json | null
+          protocolo?: string | null
+          providencias?: string | null
+          relator_id?: string | null
+          status?: string | null
+          tipo: string
+          updated_at?: string | null
+        }
+        Update: {
+          anexos?: Json | null
+          created_at?: string | null
+          credenciado_id?: string
+          data_ocorrencia?: string
+          descricao?: string
+          gravidade?: string
+          id?: string
+          metadata?: Json | null
+          protocolo?: string | null
+          providencias?: string | null
+          relator_id?: string | null
+          status?: string | null
+          tipo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocorrencias_prestadores_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ocorrencias_prestadores_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       process_steps: {
         Row: {
           conditional_rules: Json | null
@@ -1158,6 +1418,60 @@ export type Database = {
           id?: string
           nome?: string | null
           telefone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      regras_suspensao_automatica: {
+        Row: {
+          acao: string
+          ativo: boolean | null
+          condicao: Json
+          created_at: string | null
+          criada_por: string | null
+          descricao: string | null
+          duracao_dias: number | null
+          id: string
+          metadata: Json | null
+          nome: string
+          notificar_credenciado: boolean | null
+          notificar_gestores: boolean | null
+          prioridade: number | null
+          tipo_gatilho: string
+          updated_at: string | null
+        }
+        Insert: {
+          acao?: string
+          ativo?: boolean | null
+          condicao: Json
+          created_at?: string | null
+          criada_por?: string | null
+          descricao?: string | null
+          duracao_dias?: number | null
+          id?: string
+          metadata?: Json | null
+          nome: string
+          notificar_credenciado?: boolean | null
+          notificar_gestores?: boolean | null
+          prioridade?: number | null
+          tipo_gatilho: string
+          updated_at?: string | null
+        }
+        Update: {
+          acao?: string
+          ativo?: boolean | null
+          condicao?: Json
+          created_at?: string | null
+          criada_por?: string | null
+          descricao?: string | null
+          duracao_dias?: number | null
+          id?: string
+          metadata?: Json | null
+          nome?: string
+          notificar_credenciado?: boolean | null
+          notificar_gestores?: boolean | null
+          prioridade?: number | null
+          tipo_gatilho?: string
           updated_at?: string | null
         }
         Relationships: []
@@ -1245,6 +1559,91 @@ export type Database = {
           snapshot_type?: string
         }
         Relationships: []
+      }
+      sancoes_prestadores: {
+        Row: {
+          aplicada_por: string | null
+          created_at: string | null
+          credenciado_id: string
+          data_fim: string | null
+          data_inicio: string
+          duracao_dias: number | null
+          id: string
+          metadata: Json | null
+          motivo: string
+          observacoes: string | null
+          ocorrencia_id: string | null
+          processo_administrativo: string | null
+          recurso_apresentado: boolean | null
+          recurso_deferido: boolean | null
+          status: string | null
+          tipo_sancao: string
+          updated_at: string | null
+          valor_multa: number | null
+        }
+        Insert: {
+          aplicada_por?: string | null
+          created_at?: string | null
+          credenciado_id: string
+          data_fim?: string | null
+          data_inicio: string
+          duracao_dias?: number | null
+          id?: string
+          metadata?: Json | null
+          motivo: string
+          observacoes?: string | null
+          ocorrencia_id?: string | null
+          processo_administrativo?: string | null
+          recurso_apresentado?: boolean | null
+          recurso_deferido?: boolean | null
+          status?: string | null
+          tipo_sancao: string
+          updated_at?: string | null
+          valor_multa?: number | null
+        }
+        Update: {
+          aplicada_por?: string | null
+          created_at?: string | null
+          credenciado_id?: string
+          data_fim?: string | null
+          data_inicio?: string
+          duracao_dias?: number | null
+          id?: string
+          metadata?: Json | null
+          motivo?: string
+          observacoes?: string | null
+          ocorrencia_id?: string | null
+          processo_administrativo?: string | null
+          recurso_apresentado?: boolean | null
+          recurso_deferido?: boolean | null
+          status?: string | null
+          tipo_sancao?: string
+          updated_at?: string | null
+          valor_multa?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sancoes_prestadores_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sancoes_prestadores_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sancoes_prestadores_ocorrencia_id_fkey"
+            columns: ["ocorrencia_id"]
+            isOneToOne: false
+            referencedRelation: "ocorrencias_prestadores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       signature_requests: {
         Row: {
@@ -2214,6 +2613,16 @@ export type Database = {
       }
     }
     Functions: {
+      calcular_estatisticas_avaliacoes: {
+        Args: { p_periodo_fim?: string; p_periodo_inicio?: string }
+        Returns: {
+          credenciados_avaliados: number
+          media_geral: number
+          melhor_nota: number
+          pior_nota: number
+          total_avaliacoes: number
+        }[]
+      }
       check_geocoding_alerts: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -2348,6 +2757,18 @@ export type Database = {
           inscricao_id: string
           status: string
           workflow_id: string
+        }[]
+      }
+      verificar_regras_suspensao_automatica: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          acao: string
+          credenciado_id: string
+          credenciado_nome: string
+          dados_gatilho: Json
+          motivo: string
+          regra_id: string
+          regra_nome: string
         }[]
       }
     }
