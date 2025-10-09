@@ -42,12 +42,12 @@ interface MapaCredenciadosProps {
 export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
   const [especialidadeFilter, setEspecialidadeFilter] = useState<string>("");
   const [cidadeFilter, setCidadeFilter] = useState<string>("");
-  const [estadoFilter, setEstadoFilter] = useState<string>("");
+  const [estadoFilter, setEstadoFilter] = useState<string>("todos");
   
   const { data: credenciados, isLoading, error } = useCredenciadosMap({
     especialidade: especialidadeFilter,
     cidade: cidadeFilter,
-    estado: estadoFilter,
+    estado: estadoFilter === "todos" ? undefined : estadoFilter,
   });
 
   const { data: stats } = useGeocodingStats();
@@ -67,7 +67,7 @@ export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
   const handleClearFilters = () => {
     setEspecialidadeFilter("");
     setCidadeFilter("");
-    setEstadoFilter("");
+    setEstadoFilter("todos");
   };
 
   const getGoogleMapsUrl = (lat: number, lng: number) => {
@@ -157,7 +157,7 @@ export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="todos">Todos</SelectItem>
                   {ESTADOS.map((estado) => (
                     <SelectItem key={estado} value={estado}>
                       {estado}
@@ -206,7 +206,7 @@ export function MapaCredenciados({ height = "600px" }: MapaCredenciadosProps) {
                   <MapIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                   <p className="text-lg font-semibold mb-2">Nenhum credenciado encontrado</p>
                   <p className="text-sm text-muted-foreground mb-4">
-                    {estadoFilter || cidadeFilter || especialidadeFilter
+                    {estadoFilter !== "todos" || cidadeFilter || especialidadeFilter
                       ? 'Tente ajustar os filtros para ver mais resultados'
                       : 'Execute o backfill de geocodificação para visualizar os credenciados no mapa'}
                   </p>
