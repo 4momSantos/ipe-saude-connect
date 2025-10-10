@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { User, MapPin, Building2, FileText, Phone, Mail, Calendar } from "lucide-react";
+import { normalizeDadosInscricao } from "@/utils/normalizeDadosInscricao";
 
 interface DadosInscricaoViewProps {
   dadosInscricao: any;
@@ -18,10 +19,16 @@ export function DadosInscricaoView({ dadosInscricao }: DadosInscricaoViewProps) 
     );
   }
 
-  const dadosPessoais = dadosInscricao.dadosPessoais || {};
-  const endereco = dadosInscricao.endereco || {};
-  const consultorio = dadosInscricao.consultorio || {};
-  const pessoaJuridica = dadosInscricao.pessoaJuridica || {};
+  console.log('[DADOS_INSCRICAO_VIEW] Dados recebidos:', dadosInscricao);
+
+  // ✅ Normalizar dados para snake_case consistente
+  const dadosNorm = normalizeDadosInscricao(dadosInscricao);
+  console.log('[DADOS_INSCRICAO_VIEW] Dados normalizados:', dadosNorm);
+  
+  const dadosPessoais = dadosNorm?.dados_pessoais || {};
+  const endereco = dadosNorm?.endereco || {};
+  const consultorio = dadosNorm?.consultorio || {};
+  const pessoaJuridica = dadosNorm?.pessoa_juridica || {};
 
   return (
     <div className="space-y-4">
@@ -35,10 +42,10 @@ export function DadosInscricaoView({ dadosInscricao }: DadosInscricaoViewProps) 
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {dadosPessoais.nome && (
+            {dadosPessoais.nome_completo && (
               <div>
                 <span className="text-sm font-medium text-muted-foreground">Nome Completo</span>
-                <p className="text-base">{dadosPessoais.nome}</p>
+                <p className="text-base">{dadosPessoais.nome_completo}</p>
               </div>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -55,12 +62,12 @@ export function DadosInscricaoView({ dadosInscricao }: DadosInscricaoViewProps) 
                 </div>
               )}
             </div>
-            {dadosPessoais.dataNascimento && (
+            {dadosPessoais.data_nascimento && (
               <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-muted-foreground" />
                 <div>
                   <span className="text-sm font-medium text-muted-foreground">Data de Nascimento</span>
-                  <p className="text-base">{new Date(dadosPessoais.dataNascimento).toLocaleDateString('pt-BR')}</p>
+                  <p className="text-base">{new Date(dadosPessoais.data_nascimento).toLocaleDateString('pt-BR')}</p>
                 </div>
               </div>
             )}
@@ -198,16 +205,16 @@ export function DadosInscricaoView({ dadosInscricao }: DadosInscricaoViewProps) 
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {pessoaJuridica.razaoSocial && (
+            {pessoaJuridica.denominacao_social && (
               <div>
                 <span className="text-sm font-medium text-muted-foreground">Razão Social</span>
-                <p className="text-base">{pessoaJuridica.razaoSocial}</p>
+                <p className="text-base">{pessoaJuridica.denominacao_social}</p>
               </div>
             )}
-            {pessoaJuridica.nomeFantasia && (
+            {pessoaJuridica.nome_fantasia && (
               <div>
                 <span className="text-sm font-medium text-muted-foreground">Nome Fantasia</span>
-                <p className="text-base">{pessoaJuridica.nomeFantasia}</p>
+                <p className="text-base">{pessoaJuridica.nome_fantasia}</p>
               </div>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -217,10 +224,10 @@ export function DadosInscricaoView({ dadosInscricao }: DadosInscricaoViewProps) 
                   <p className="text-base">{pessoaJuridica.cnpj}</p>
                 </div>
               )}
-              {pessoaJuridica.inscricaoEstadual && (
+              {pessoaJuridica.inscricao_estadual && (
                 <div>
                   <span className="text-sm font-medium text-muted-foreground">Inscrição Estadual</span>
-                  <p className="text-base">{pessoaJuridica.inscricaoEstadual}</p>
+                  <p className="text-base">{pessoaJuridica.inscricao_estadual}</p>
                 </div>
               )}
             </div>
@@ -235,8 +242,8 @@ export function DadosInscricaoView({ dadosInscricao }: DadosInscricaoViewProps) 
       )}
 
       {/* Outros dados (catch-all para campos não mapeados) */}
-      {Object.keys(dadosInscricao).filter(
-        key => !['dadosPessoais', 'endereco', 'consultorio', 'pessoaJuridica'].includes(key)
+      {dadosNorm && Object.keys(dadosNorm).filter(
+        key => !['dados_pessoais', 'endereco', 'consultorio', 'pessoa_juridica', 'documentos', 'endereco_correspondencia'].includes(key)
       ).length > 0 && (
         <Card>
           <CardHeader>
@@ -246,8 +253,8 @@ export function DadosInscricaoView({ dadosInscricao }: DadosInscricaoViewProps) 
             <pre className="text-xs bg-muted p-3 rounded-lg overflow-auto max-h-60">
               {JSON.stringify(
                 Object.fromEntries(
-                  Object.entries(dadosInscricao).filter(
-                    ([key]) => !['dadosPessoais', 'endereco', 'consultorio', 'pessoaJuridica'].includes(key)
+                  Object.entries(dadosNorm).filter(
+                    ([key]) => !['dados_pessoais', 'endereco', 'consultorio', 'pessoa_juridica', 'documentos', 'endereco_correspondencia'].includes(key)
                   )
                 ),
                 null,

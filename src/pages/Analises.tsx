@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useFixLegacyInscricoes } from "@/hooks/useFixLegacyInscricoes";
+import { normalizeDadosInscricao, extrairNomeCompleto, extrairEspecialidadesIds } from "@/utils/normalizeDadosInscricao";
 import {
   Table,
   TableBody,
@@ -69,6 +70,7 @@ export default function Analises() {
       }
 
       // Construir query baseada no role - incluindo dados de workflow
+      // ✅ Query simplificada sem profiles (buscar nome do JSONB)
       let query = supabase
         .from('inscricoes_edital')
         .select(`
@@ -86,10 +88,6 @@ export default function Analises() {
             especialidade,
             workflow_id
           ),
-          profiles!inscricoes_edital_candidato_profile_fkey (
-            nome,
-            email
-          ),
           workflow_executions (
             id,
             status,
@@ -102,6 +100,7 @@ export default function Analises() {
             )
           )
         `)
+        .eq('is_rascunho', false)
         .order('created_at', { ascending: false });
 
       // Se for candidato, filtrar apenas suas inscrições
@@ -118,21 +117,45 @@ export default function Analises() {
 
       if (error) throw error;
 
-      // Transformar dados para o formato esperado incluindo workflow
-      const processosFormatados: Processo[] = (data || []).map((inscricao: any) => ({
-        id: inscricao.id,
-        protocolo: inscricao.editais?.numero_edital || `INS-${inscricao.id.substring(0, 8)}`,
-        nome: inscricao.profiles?.nome || inscricao.profiles?.email || "Sem nome",
-        especialidade: inscricao.editais?.especialidade || "Não informada",
-        dataSubmissao: inscricao.created_at,
-        status: inscricao.status as StatusType,
-        analista: inscricao.analisado_por ? "Analista atribuído" : undefined,
-        edital_titulo: inscricao.editais?.titulo,
-        workflow_execution_id: inscricao.workflow_execution_id,
-        workflow_status: inscricao.workflow_executions?.status,
-        workflow_current_step: inscricao.workflow_executions?.current_node_id,
-        workflow_name: inscricao.workflow_executions?.workflows?.name,
-      }));
+      console.log('[ANALISES] Total de inscrições carregadas:', data?.length);
+      console.log('[ANALISES] Amostra de dados_inscricao:', data?.[0]?.dados_inscricao);
+
+      // ✅ Transformar dados com normalização e resolução de especialidades
+      const processosFormatados: Processo[] = await Promise.all(
+        (data || []).map(async (inscricao: any) => {
+          const nome = extrairNomeCompleto(inscricao.dados_inscricao);
+          const especialidadesIds = extrairEspecialidadesIds(inscricao.dados_inscricao);
+          
+          // Resolver especialidades
+          let especialidadesNomes: string[] = [];
+          if (especialidadesIds.length > 0) {
+            const { data: especialidades } = await supabase
+              .from('especialidades_medicas')
+              .select('nome')
+              .in('id', especialidadesIds);
+            
+            especialidadesNomes = especialidades?.map(e => e.nome) || [];
+          }
+          
+          return {
+            id: inscricao.id,
+            protocolo: inscricao.editais?.numero_edital || `INS-${inscricao.id.substring(0, 8)}`,
+            nome,
+            especialidade: especialidadesNomes.join(', ') || inscricao.editais?.especialidade || "Não informada",
+            dataSubmissao: inscricao.created_at,
+            status: inscricao.status as StatusType,
+            analista: inscricao.analisado_por ? "Analista atribuído" : undefined,
+            edital_titulo: inscricao.editais?.titulo,
+            workflow_execution_id: inscricao.workflow_execution_id,
+            workflow_status: inscricao.workflow_executions?.status,
+            workflow_current_step: inscricao.workflow_executions?.current_node_id,
+            workflow_name: inscricao.workflow_executions?.workflows?.name,
+          };
+        })
+      );
+
+      console.log('[ANALISES] Processos formatados:', processosFormatados.length);
+      console.log('[ANALISES] Nomes extraídos:', processosFormatados.map(p => p.nome));
 
       setProcessos(processosFormatados);
     } catch (error) {
