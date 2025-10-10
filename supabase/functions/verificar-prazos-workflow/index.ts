@@ -60,9 +60,14 @@ serve(async (req) => {
 
       const diasRestantes = Math.ceil((SLA_MS - tempoDecorrido) / (1000 * 60 * 60 * 24));
 
+      // Verificar se tem inscrição vinculada
+      const inscricao = Array.isArray(exec.inscricao) ? exec.inscricao[0] : exec.inscricao;
+      const edital = inscricao?.edital ? (Array.isArray(inscricao.edital) ? inscricao.edital[0] : inscricao.edital) : null;
+      const editalTitulo = edital?.titulo || 'edital não identificado';
+
       if (percentualDecorrido >= 100) {
         // Estourou o prazo
-        mensagem = `O processo de análise da sua inscrição no edital "${exec.inscricao?.[0]?.edital?.titulo}" ULTRAPASSOU o prazo de ${SLA_DIAS} dias.`;
+        mensagem = `O processo de análise da sua inscrição no edital "${editalTitulo}" ULTRAPASSOU o prazo de ${SLA_DIAS} dias.`;
         tipo = "error";
         deveNotificar = true;
         estourados++;
@@ -80,12 +85,12 @@ serve(async (req) => {
         alertas80++;
       }
 
-      if (deveNotificar && exec.inscricao?.[0]?.candidato_id) {
+      if (deveNotificar && inscricao?.candidato_id) {
         // Criar notificação para candidato
         await supabase
           .from("app_notifications")
           .insert({
-            user_id: exec.inscricao[0].candidato_id,
+            user_id: inscricao.candidato_id,
             type: tipo,
             title: "Atualização do Processo",
             message: mensagem,
@@ -108,7 +113,7 @@ serve(async (req) => {
               user_id: gestor.id,
               type: "error",
               title: "Prazo de Workflow Estourado",
-              message: `O workflow da inscrição no edital "${exec.inscricao?.[0]?.edital?.titulo}" ultrapassou o SLA de ${SLA_DIAS} dias.`,
+              message: `O workflow da inscrição no edital "${editalTitulo}" ultrapassou o SLA de ${SLA_DIAS} dias.`,
               related_type: "workflow",
               related_id: exec.id
             });
@@ -132,10 +137,10 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("[PRAZOS_WORKFLOW] Erro:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Erro desconhecido' }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

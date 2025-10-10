@@ -35,23 +35,13 @@ serve(async (req) => {
       .select(`
         id,
         tipo_documento,
-        data_validade,
-        prazo_alerta_dias,
-        alerta_enviado,
-        vencimento_notificado,
+        ocr_resultado,
         is_current,
-        inscricao:inscricao_id (
-          id,
-          candidato_id,
-          edital:edital_id (
-            titulo
-          )
-        )
+        inscricao_id
       `)
       .eq("is_current", true)
       .eq("status", "aprovado")
-      .not("data_validade", "is", null)
-      .lte("data_validade", dataLimite30.toISOString().split('T')[0]);
+      .not("ocr_resultado", "is", null);
 
     if (error) throw error;
 
@@ -61,64 +51,66 @@ serve(async (req) => {
     let vencidos = 0;
 
     for (const doc of documentos || []) {
-      const dataValidade = new Date(doc.data_validade);
+      // Extrair data de validade do OCR
+      const dataValidadeStr = doc.ocr_resultado?.dataValidade;
+      if (!dataValidadeStr) continue;
+
+      const dataValidade = new Date(dataValidadeStr);
+      if (isNaN(dataValidade.getTime())) continue;
+
       const diasRestantes = Math.ceil((dataValidade.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+
+      // Buscar candidato da inscrição
+      const { data: inscricao } = await supabase
+        .from('inscricoes_edital')
+        .select('candidato_id, edital_id')
+        .eq('id', doc.inscricao_id)
+        .single();
+
+      if (!inscricao?.candidato_id) continue;
 
       let deveNotificar = false;
       let mensagem = "";
       let tipo = "info";
 
-      if (diasRestantes < 0 && !doc.vencimento_notificado) {
+      if (diasRestantes < 0) {
         // Vencido
         mensagem = `O documento ${doc.tipo_documento} está VENCIDO desde ${dataValidade.toLocaleDateString('pt-BR')}.`;
         tipo = "error";
         deveNotificar = true;
         vencidos++;
 
-        await supabase
-          .from("inscricao_documentos")
-          .update({ vencimento_notificado: true })
-          .eq("id", doc.id);
-
-      } else if (diasRestantes <= 7 && !doc.alerta_enviado) {
+      } else if (diasRestantes <= 7) {
         mensagem = `O documento ${doc.tipo_documento} vence em ${diasRestantes} dias (${dataValidade.toLocaleDateString('pt-BR')}). Por favor, providencie a renovação com urgência.`;
         tipo = "error";
         deveNotificar = true;
         alertas7++;
 
-      } else if (diasRestantes <= 15 && !doc.alerta_enviado) {
+      } else if (diasRestantes <= 15) {
         mensagem = `O documento ${doc.tipo_documento} vence em ${diasRestantes} dias (${dataValidade.toLocaleDateString('pt-BR')}). Atente-se ao prazo.`;
         tipo = "warning";
         deveNotificar = true;
         alertas15++;
 
-      } else if (diasRestantes <= 30 && !doc.alerta_enviado) {
+      } else if (diasRestantes <= 30) {
         mensagem = `O documento ${doc.tipo_documento} vence em ${diasRestantes} dias (${dataValidade.toLocaleDateString('pt-BR')}).`;
         tipo = "info";
         deveNotificar = true;
         alertas30++;
       }
 
-      if (deveNotificar && doc.inscricao?.candidato_id) {
+      if (deveNotificar) {
         // Criar notificação
         await supabase
           .from("app_notifications")
           .insert({
-            user_id: doc.inscricao.candidato_id,
+            user_id: inscricao.candidato_id,
             type: tipo,
             title: "Documento Próximo do Vencimento",
             message: mensagem,
             related_type: "documento",
             related_id: doc.id
           });
-
-        // Marcar alerta como enviado
-        if (diasRestantes >= 0) {
-          await supabase
-            .from("inscricao_documentos")
-            .update({ alerta_enviado: true })
-            .eq("id", doc.id);
-        }
 
         console.log(`[DOCS_VENCIDOS] Notificação enviada para documento ${doc.id}`);
       }

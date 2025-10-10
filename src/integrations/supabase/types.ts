@@ -61,6 +61,51 @@ export type Database = {
           },
         ]
       }
+      api_keys_externas: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          criada_por: string | null
+          id: string
+          key_hash: string
+          key_prefix: string
+          metadata: Json | null
+          nome: string
+          quota_diaria: number | null
+          quota_utilizada: number | null
+          ultima_utilizacao: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          criada_por?: string | null
+          id?: string
+          key_hash: string
+          key_prefix: string
+          metadata?: Json | null
+          nome: string
+          quota_diaria?: number | null
+          quota_utilizada?: number | null
+          ultima_utilizacao?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          criada_por?: string | null
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          metadata?: Json | null
+          nome?: string
+          quota_diaria?: number | null
+          quota_utilizada?: number | null
+          ultima_utilizacao?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       app_notifications: {
         Row: {
           created_at: string | null
@@ -213,6 +258,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      categorias_prestadores: {
+        Row: {
+          ativo: boolean | null
+          cor: string | null
+          created_at: string | null
+          criada_por: string | null
+          descricao: string | null
+          icone: string | null
+          id: string
+          nome: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          cor?: string | null
+          created_at?: string | null
+          criada_por?: string | null
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          cor?: string | null
+          created_at?: string | null
+          criada_por?: string | null
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       certificados: {
         Row: {
@@ -476,6 +557,7 @@ export type Database = {
       }
       credenciados: {
         Row: {
+          categoria_id: string | null
           celular: string | null
           cep: string | null
           cidade: string | null
@@ -508,6 +590,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          categoria_id?: string | null
           celular?: string | null
           cep?: string | null
           cidade?: string | null
@@ -540,6 +623,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          categoria_id?: string | null
           celular?: string | null
           cep?: string | null
           cidade?: string | null
@@ -572,6 +656,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "credenciados_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_prestadores"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "credenciados_inscricao_id_fkey"
             columns: ["inscricao_id"]
@@ -955,6 +1046,65 @@ export type Database = {
         }
         Relationships: []
       }
+      historico_categorizacao: {
+        Row: {
+          alterado_por: string | null
+          categoria_anterior_id: string | null
+          categoria_nova_id: string | null
+          created_at: string | null
+          credenciado_id: string
+          id: string
+          motivo: string | null
+        }
+        Insert: {
+          alterado_por?: string | null
+          categoria_anterior_id?: string | null
+          categoria_nova_id?: string | null
+          created_at?: string | null
+          credenciado_id: string
+          id?: string
+          motivo?: string | null
+        }
+        Update: {
+          alterado_por?: string | null
+          categoria_anterior_id?: string | null
+          categoria_nova_id?: string | null
+          created_at?: string | null
+          credenciado_id?: string
+          id?: string
+          motivo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_categorizacao_categoria_anterior_id_fkey"
+            columns: ["categoria_anterior_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_prestadores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_categorizacao_categoria_nova_id_fkey"
+            columns: ["categoria_nova_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_prestadores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_categorizacao_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_categorizacao_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       horarios_atendimento: {
         Row: {
           created_at: string | null
@@ -1280,6 +1430,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      modelos_justificativa: {
+        Row: {
+          ativo: boolean | null
+          categoria: string
+          created_at: string | null
+          criado_por: string | null
+          id: string
+          nome: string
+          texto_padrao: string
+          updated_at: string | null
+          variaveis: Json | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          categoria: string
+          created_at?: string | null
+          criado_por?: string | null
+          id?: string
+          nome: string
+          texto_padrao: string
+          updated_at?: string | null
+          variaveis?: Json | null
+        }
+        Update: {
+          ativo?: boolean | null
+          categoria?: string
+          created_at?: string | null
+          criado_por?: string | null
+          id?: string
+          nome?: string
+          texto_padrao?: string
+          updated_at?: string | null
+          variaveis?: Json | null
+        }
+        Relationships: []
       }
       ocorrencias_prestadores: {
         Row: {
@@ -1834,6 +2020,56 @@ export type Database = {
         }
         Relationships: []
       }
+      webhook_deliveries: {
+        Row: {
+          created_at: string | null
+          delivered_at: string | null
+          erro: string | null
+          evento: string
+          id: string
+          payload: Json
+          resposta_body: string | null
+          resposta_status: number | null
+          status: string
+          subscription_id: string
+          tentativas: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          delivered_at?: string | null
+          erro?: string | null
+          evento: string
+          id?: string
+          payload: Json
+          resposta_body?: string | null
+          resposta_status?: number | null
+          status: string
+          subscription_id: string
+          tentativas?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          delivered_at?: string | null
+          erro?: string | null
+          evento?: string
+          id?: string
+          payload?: Json
+          resposta_body?: string | null
+          resposta_status?: number | null
+          status?: string
+          subscription_id?: string
+          tentativas?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_deliveries_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "webhook_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       webhook_events: {
         Row: {
           created_at: string
@@ -1891,6 +2127,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      webhook_subscriptions: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          criado_por: string | null
+          eventos: string[]
+          id: string
+          metadata: Json | null
+          nome: string
+          retry_policy: Json | null
+          secret: string
+          updated_at: string | null
+          url: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          criado_por?: string | null
+          eventos: string[]
+          id?: string
+          metadata?: Json | null
+          nome: string
+          retry_policy?: Json | null
+          secret: string
+          updated_at?: string | null
+          url: string
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          criado_por?: string | null
+          eventos?: string[]
+          id?: string
+          metadata?: Json | null
+          nome?: string
+          retry_policy?: Json | null
+          secret?: string
+          updated_at?: string | null
+          url?: string
+        }
+        Relationships: []
       }
       workflow_api_keys: {
         Row: {
@@ -2516,6 +2794,54 @@ export type Database = {
       }
     }
     Views: {
+      view_audit_trail: {
+        Row: {
+          dados_antes: Json | null
+          dados_depois: Json | null
+          id: string | null
+          ip_address: string | null
+          metadata: Json | null
+          operacao: string | null
+          registro_id: string | null
+          tabela: string | null
+          timestamp: string | null
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+          user_role: string | null
+        }
+        Insert: {
+          dados_antes?: Json | null
+          dados_depois?: Json | null
+          id?: string | null
+          ip_address?: string | null
+          metadata?: Json | null
+          operacao?: string | null
+          registro_id?: string | null
+          tabela?: string | null
+          timestamp?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          user_role?: string | null
+        }
+        Update: {
+          dados_antes?: Json | null
+          dados_depois?: Json | null
+          id?: string | null
+          ip_address?: string | null
+          metadata?: Json | null
+          operacao?: string | null
+          registro_id?: string | null
+          tabela?: string | null
+          timestamp?: string | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          user_role?: string | null
+        }
+        Relationships: []
+      }
       view_credenciados_geo_stats: {
         Row: {
           avg_hours_to_geocode: number | null
@@ -2684,6 +3010,10 @@ export type Database = {
       }
       generate_webhook_url: {
         Args: { p_workflow_id: string }
+        Returns: string
+      }
+      gerar_api_key_externa: {
+        Args: { p_nome: string; p_quota_diaria?: number }
         Returns: string
       }
       get_gestores: {
