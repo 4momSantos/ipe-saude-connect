@@ -46,39 +46,44 @@ export default function FluxoCredenciamentoPage() {
   const { contrato, isLoading: loadingContrato } = useContratos(inscricaoId);
   const { certificado } = useCertificadoPorInscricao(inscricaoId);
   const [workflowExecutionId, setWorkflowExecutionId] = useState<string | null>(null);
+  const [inscricaoData, setInscricaoData] = useState<any>(null);
   const { data: signatureRequest } = useSignatureRequestByWorkflow(workflowExecutionId || "");
   const [assignafyUrl, setAssignafyUrl] = useState<string | null>(null);
 
-  // Buscar workflow_execution_id da inscrição
+  // Buscar workflow_execution_id e dados da inscrição
   useEffect(() => {
-    const fetchWorkflowExecutionId = async () => {
+    const fetchInscricaoData = async () => {
       if (!inscricaoId) return;
       
       try {
-        console.log('[DEBUG FluxoCredenciamento] Iniciando busca de workflow_execution_id');
+        console.log('[DEBUG FluxoCredenciamento] Iniciando busca de dados da inscrição');
         const { data, error } = await supabase
           .from("inscricoes_edital")
-          .select("workflow_execution_id")
+          .select("workflow_execution_id, dados_inscricao")
           .eq("id", inscricaoId)
-          .maybeSingle(); // ✅ Usar maybeSingle em vez de single
+          .maybeSingle();
 
         if (error) {
-          console.error('[FluxoCredenciamento] Erro ao buscar workflow_execution_id:', error);
+          console.error('[FluxoCredenciamento] Erro ao buscar dados da inscrição:', error);
           return;
         }
         
-        if (data?.workflow_execution_id) {
-          console.log('[FluxoCredenciamento] workflow_execution_id encontrado:', data.workflow_execution_id);
-          setWorkflowExecutionId(data.workflow_execution_id);
+        if (data) {
+          console.log('[FluxoCredenciamento] Dados da inscrição carregados');
+          setInscricaoData(data);
+          if (data.workflow_execution_id) {
+            console.log('[FluxoCredenciamento] workflow_execution_id encontrado:', data.workflow_execution_id);
+            setWorkflowExecutionId(data.workflow_execution_id);
+          }
         } else {
-          console.log('[FluxoCredenciamento] Nenhum workflow_execution_id encontrado para esta inscrição');
+          console.log('[FluxoCredenciamento] Nenhum dado encontrado para esta inscrição');
         }
       } catch (err) {
-        console.error('[FluxoCredenciamento] Erro inesperado ao buscar workflow:', err);
+        console.error('[FluxoCredenciamento] Erro inesperado ao buscar dados:', err);
       }
     };
 
-    fetchWorkflowExecutionId();
+    fetchInscricaoData();
   }, [inscricaoId]);
 
   // Extrair URL de assinatura
@@ -164,9 +169,12 @@ export default function FluxoCredenciamentoPage() {
       <div className="container mx-auto max-w-7xl">
         <FluxoCredenciamento 
           status={mapStatus(contrato?.status)}
-          motivoRejeicao={undefined}
+          motivoRejeicao={contrato?.status === 'rejeitado' ? 'Contrato rejeitado' : undefined}
           onAssinarContrato={handleAssinarContrato}
           inscricaoId={inscricaoId}
+          dadosInscricao={inscricaoData?.dados_inscricao}
+          candidatoNome={inscricaoData?.dados_inscricao?.dadosPessoais?.nome}
+          workflowExecutionId={workflowExecutionId || undefined}
         />
       </div>
     </ErrorBoundary>
