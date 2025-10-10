@@ -25,6 +25,50 @@ serve(async (req) => {
       );
     }
 
+    // Validar formato da data (YYYY-MM-DD)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(birthdate)) {
+      console.error('Invalid date format:', birthdate);
+      return new Response(
+        JSON.stringify({ 
+          valid: false, 
+          message: 'Formato de data inválido. Use YYYY-MM-DD' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    // Validar que a data é do passado
+    const birthdateDate = new Date(birthdate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (birthdateDate >= today) {
+      console.error('Future birthdate provided:', birthdate);
+      return new Response(
+        JSON.stringify({ 
+          valid: false, 
+          message: 'Data de nascimento deve ser uma data passada' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    // Validar idade mínima (18 anos)
+    const minAge = 18;
+    const minBirthdate = new Date();
+    minBirthdate.setFullYear(minBirthdate.getFullYear() - minAge);
+    
+    if (birthdateDate > minBirthdate) {
+      console.error('Age below minimum:', birthdate);
+      return new Response(
+        JSON.stringify({ 
+          valid: false, 
+          message: `É necessário ter pelo menos ${minAge} anos` 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
     const apiToken = Deno.env.get('INFOSIMPLES_API_TOKEN');
     if (!apiToken) {
       console.error('INFOSIMPLES_API_TOKEN not configured');

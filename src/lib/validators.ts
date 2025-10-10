@@ -246,6 +246,29 @@ export const validateCPFData = async (
     return { valid: false, message: "CPF e data de nascimento são obrigatórios" };
   }
 
+  // Validar formato da data (YYYY-MM-DD)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(birthdate)) {
+    return { valid: false, message: "Formato de data inválido. Use YYYY-MM-DD" };
+  }
+
+  // Validar que a data é do passado
+  const birthdateDate = new Date(birthdate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  if (birthdateDate >= today) {
+    return { valid: false, message: "Data de nascimento deve ser uma data passada" };
+  }
+
+  // Validar idade mínima (18 anos)
+  const minAge = 18;
+  const minBirthdate = new Date();
+  minBirthdate.setFullYear(minBirthdate.getFullYear() - minAge);
+  
+  if (birthdateDate > minBirthdate) {
+    return { valid: false, message: `É necessário ter pelo menos ${minAge} anos` };
+  }
+
   try {
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-cpf`,
