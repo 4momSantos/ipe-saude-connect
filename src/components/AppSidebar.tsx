@@ -88,15 +88,7 @@ const mainMenuItems: MenuItem[] = [
       { title: "Monitor do Fluxo", url: "/monitor-fluxo", icon: Activity, roles: ['gestor', 'admin'] as const }
     ]
   },
-  { 
-    title: "Workflows", 
-    url: "/workflows", 
-    icon: Workflow, 
-    roles: ['gestor', 'admin'] as const,
-    children: [
-      { title: "Categorias", url: "/gestao/categorias", icon: Package, roles: ['gestor', 'admin'] as const }
-    ]
-  },
+  { title: "Workflows", url: "/workflows", icon: Workflow, roles: ['gestor', 'admin'] as const },
   { title: "Formulários & Etapas", url: "/formularios", icon: FileCode2, roles: ['gestor', 'admin'] as const },
   { 
     title: "Análises & Relatórios", 
@@ -113,6 +105,7 @@ const mainMenuItems: MenuItem[] = [
     icon: Settings2,
     roles: ['candidato', 'analista', 'gestor', 'admin'] as const,
     children: [
+      { title: "Categorias de Prestadores", url: "/gestao/categorias", icon: Package, roles: ['gestor', 'admin'] as const },
       { title: "API Keys", url: "/integracao/api-keys", icon: Key, roles: ['admin'] as const },
       { title: "Webhooks", url: "/integracao/webhooks", icon: Webhook, roles: ['admin'] as const },
       { title: "Modelos de Justificativa", url: "/gestao/modelos-justificativa", icon: FileText, roles: ['gestor', 'admin'] as const },
@@ -216,29 +209,64 @@ export function AppSidebar() {
                       onOpenChange={() => toggleMenu(item.title)}
                     >
                       <SidebarMenuItem>
-                        <CollapsibleTrigger asChild>
-                           <SidebarMenuButton
-                             className={cn(
-                               "group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors",
-                               isActive
-                                 ? "bg-primary/10 text-primary font-medium"
-                                 : "text-white hover:text-white hover:bg-muted"
-                             )}
-                           >
-                            <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
-                            {!isCollapsed && (
-                              <>
+                        <div className="flex items-center gap-1">
+                          {/* Link clicável para a página principal */}
+                          {item.url !== "#" ? (
+                            <SidebarMenuButton asChild className="flex-1">
+                              <NavLink
+                                to={item.url}
+                                end={item.url === "/"}
+                                className={({ isActive }) =>
+                                  cn(
+                                    "group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors flex-1",
+                                    isActive
+                                      ? "bg-primary text-primary-foreground shadow-sm"
+                                      : "text-white hover:text-white hover:bg-muted"
+                                  )
+                                }
+                              >
+                                <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+                                {!isCollapsed && (
+                                  <span className="text-sm font-medium">{item.title}</span>
+                                )}
+                              </NavLink>
+                            </SidebarMenuButton>
+                          ) : (
+                            <SidebarMenuButton
+                              className={cn(
+                                "group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors flex-1",
+                                isActive
+                                  ? "bg-primary/10 text-primary font-medium"
+                                  : "text-white hover:text-white hover:bg-muted"
+                              )}
+                            >
+                              <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+                              {!isCollapsed && (
                                 <span className="text-sm font-medium">{item.title}</span>
+                              )}
+                            </SidebarMenuButton>
+                          )}
+                          
+                          {/* Botão de expansão separado */}
+                          {!isCollapsed && (
+                            <CollapsibleTrigger asChild>
+                              <button
+                                className={cn(
+                                  "flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
+                                  "hover:bg-muted/50"
+                                )}
+                              >
                                 <ChevronRight
                                   className={cn(
-                                    "ml-auto h-4 w-4 transition-transform duration-200",
+                                    "h-4 w-4 transition-transform duration-200 text-muted-foreground",
                                     isExpanded && "rotate-90"
                                   )}
                                 />
-                              </>
-                            )}
-                          </SidebarMenuButton>
-                        </CollapsibleTrigger>
+                              </button>
+                            </CollapsibleTrigger>
+                          )}
+                        </div>
+                        
                         {!isCollapsed && (
                           <CollapsibleContent className="transition-all data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
                             <SidebarMenuSub className="ml-4 border-l border-border/50 pl-4 mt-1">
