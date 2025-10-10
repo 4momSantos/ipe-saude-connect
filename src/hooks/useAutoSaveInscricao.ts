@@ -20,11 +20,13 @@ export function useAutoSaveInscricao({
   const [inscricaoId, setInscricaoId] = useState<string | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
   const hasLoadedRef = useRef(false);
+  const saveLockRef = useRef(false); // ✅ Lock para prevenir saves simultâneos
 
   // Salvar rascunho
   const saveRascunho = useCallback(async (silent = false) => {
-    if (!enabled || !editalId) return;
+    if (!enabled || !editalId || saveLockRef.current) return; // ✅ Verificar lock
 
+    saveLockRef.current = true; // ✅ Adquirir lock
     setIsSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -95,6 +97,7 @@ export function useAutoSaveInscricao({
         });
       }
     } finally {
+      saveLockRef.current = false; // ✅ Liberar lock
       setIsSaving(false);
     }
   }, [enabled, editalId, formData, inscricaoId, onSaveSuccess]);
@@ -152,7 +155,19 @@ export function useAutoSaveInscricao({
     }
   }, [inscricaoId]);
 
-  // Auto-save com debounce de 30s
+  // Carregar inscricaoId no mount
+  useEffect(() => {
+    if (enabled && editalId && !hasLoadedRef.current) {
+      loadRascunho().then((rascunho) => {
+        if (rascunho) {
+          // inscricaoId já foi setado dentro de loadRascunho
+          console.log('✅ Rascunho carregado no mount:', rascunho);
+        }
+      });
+    }
+  }, [enabled, editalId, loadRascunho]);
+
+  // Auto-save com debounce de 45s
   useEffect(() => {
     if (!enabled || !formData) return;
 
@@ -164,7 +179,7 @@ export function useAutoSaveInscricao({
     // Agendar novo save
     timeoutRef.current = setTimeout(() => {
       saveRascunho(true); // silent = true para não mostrar toast repetidamente
-    }, 30000); // 30 segundos
+    }, 45000); // ⏱️ 45 segundos (antes era 30s)
 
     return () => {
       if (timeoutRef.current) {
