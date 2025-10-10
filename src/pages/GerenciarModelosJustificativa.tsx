@@ -20,8 +20,8 @@ const VARIAVEIS_DISPONIVEIS = [
 ];
 
 export default function GerenciarModelosJustificativa() {
-  const [categoria, setCategoria] = useState<string>('');
-  const { modelos, isLoading, createModelo, updateModelo, deleteModelo } = useModelosJustificativa(categoria);
+  const [categoria, setCategoria] = useState<string>('all');
+  const { modelos, isLoading, createModelo, updateModelo, deleteModelo } = useModelosJustificativa(categoria === 'all' ? undefined : categoria);
   const [showDialog, setShowDialog] = useState(false);
   const [editingModelo, setEditingModelo] = useState<any>(null);
   const [previewModelo, setPreviewModelo] = useState<any>(null);
@@ -98,7 +98,7 @@ export default function GerenciarModelosJustificativa() {
               <SelectValue placeholder="Todas as categorias" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas</SelectItem>
+              <SelectItem value="all">Todas</SelectItem>
               {CATEGORIAS.map((cat) => (
                 <SelectItem key={cat} value={cat}>
                   {cat.charAt(0).toUpperCase() + cat.slice(1)}
