@@ -45,6 +45,14 @@ interface StepExecution {
 }
 
 export function WorkflowStatusCard({ inscricaoId }: WorkflowStatusCardProps) {
+  console.log('[DEBUG WorkflowStatusCard] Iniciando com inscricaoId:', inscricaoId);
+  
+  // ✅ Validação robusta no início do componente
+  if (!inscricaoId || typeof inscricaoId !== 'string' || inscricaoId.trim() === '') {
+    console.warn('[WorkflowStatusCard] inscricaoId inválido, não renderizando');
+    return null;
+  }
+
   const [execution, setExecution] = useState<WorkflowExecution | null>(null);
   const [steps, setSteps] = useState<StepExecution[]>([]);
   const [loading, setLoading] = useState(true);

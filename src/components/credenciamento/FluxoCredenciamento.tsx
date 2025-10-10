@@ -98,7 +98,18 @@ export function FluxoCredenciamento({
   onAssinarContrato,
   inscricaoId 
 }: FluxoCredenciamentoProps) {
+  console.log('[DEBUG FluxoCredenciamento Component] Renderizando com:', { 
+    status, 
+    inscricaoId, 
+    hasOnAssinar: !!onAssinarContrato 
+  });
+
   const [isAssigning, setIsAssigning] = useState(false);
+  
+  // ✅ Validação adicional de segurança
+  const shouldRenderWorkflowCard = inscricaoId && 
+                                   typeof inscricaoId === 'string' && 
+                                   inscricaoId.trim() !== '';
 
   const handleAssinar = async () => {
     setIsAssigning(true);
@@ -391,8 +402,8 @@ export function FluxoCredenciamento({
       )}
 
       {/* Workflow Status Card */}
-      {inscricaoId && inscricaoId.trim() !== '' && (
-        <WorkflowStatusCard inscricaoId={inscricaoId} />
+      {shouldRenderWorkflowCard && (
+        <WorkflowStatusCard inscricaoId={inscricaoId!} />
       )}
     </div>
   );
