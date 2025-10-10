@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CheckCircle2, Circle, Clock, XCircle, AlertCircle, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -18,18 +19,27 @@ interface StepStatus {
 }
 
 export function FluxoProgramaticoMonitor({ inscricaoId }: FluxoProgramaticoMonitorProps) {
-  const { data: inscricao, isLoading: loadingInscricao } = useQuery({
+  const { data: inscricao, isLoading: loadingInscricao, error: inscricaoError } = useQuery({
     queryKey: ["inscricao-programatica", inscricaoId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("inscricoes_edital")
         .select("*, editais(use_programmatic_flow)")
         .eq("id", inscricaoId)
-        .single();
+        .maybeSingle();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao buscar inscrição:', error);
+        throw error;
+      }
+      
+      if (!data) {
+        throw new Error('Inscrição não encontrada');
+      }
+      
       return data;
     },
+    retry: 1,
   });
 
   const { data: analise } = useQuery({
@@ -99,6 +109,22 @@ export function FluxoProgramaticoMonitor({ inscricaoId }: FluxoProgramaticoMonit
       <Card>
         <CardContent className="p-6 flex items-center justify-center">
           <Loader2 className="w-6 h-6 animate-spin" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (inscricaoError) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Erro ao carregar dados</AlertTitle>
+            <AlertDescription>
+              Não foi possível carregar as informações da inscrição. Por favor, tente novamente.
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
     );

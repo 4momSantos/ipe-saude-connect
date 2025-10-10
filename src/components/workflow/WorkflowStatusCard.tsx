@@ -77,11 +77,17 @@ export function WorkflowStatusCard({ inscricaoId }: WorkflowStatusCardProps) {
   async function loadWorkflowStatus() {
     try {
       // Buscar execução da workflow para esta inscrição
-      const { data: inscricao } = await supabase
+      const { data: inscricao, error: inscricaoError } = await supabase
         .from("inscricoes_edital")
         .select("workflow_execution_id")
         .eq("id", inscricaoId)
-        .single();
+        .maybeSingle();
+
+      if (inscricaoError) {
+        console.error("Erro ao buscar inscrição:", inscricaoError);
+        setLoading(false);
+        return;
+      }
 
       if (!inscricao?.workflow_execution_id) {
         setLoading(false);
@@ -89,7 +95,7 @@ export function WorkflowStatusCard({ inscricaoId }: WorkflowStatusCardProps) {
       }
 
       // Buscar detalhes da execução
-      const { data: executionData } = await supabase
+      const { data: executionData, error: executionError } = await supabase
         .from("workflow_executions")
         .select(`
           *,
@@ -99,19 +105,29 @@ export function WorkflowStatusCard({ inscricaoId }: WorkflowStatusCardProps) {
           )
         `)
         .eq("id", inscricao.workflow_execution_id)
-        .single();
+        .maybeSingle();
+
+      if (executionError) {
+        console.error("Erro ao buscar execução:", executionError);
+        setLoading(false);
+        return;
+      }
 
       if (executionData) {
         setExecution(executionData as any);
 
         // Buscar steps executados
-        const { data: stepsData } = await supabase
+        const { data: stepsData, error: stepsError } = await supabase
           .from("workflow_step_executions")
           .select("*")
           .eq("execution_id", executionData.id)
           .order("created_at", { ascending: true });
 
-        setSteps(stepsData || []);
+        if (stepsError) {
+          console.error("Erro ao buscar steps:", stepsError);
+        } else {
+          setSteps(stepsData || []);
+        }
       }
     } catch (error) {
       console.error("Erro ao carregar status da workflow:", error);
@@ -191,12 +207,13 @@ export function WorkflowStatusCard({ inscricaoId }: WorkflowStatusCardProps) {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Workflow className="h-5 w-5" />
-            {execution.workflows.name}
+            {execution.workflows?.name || "Workflow"}
           </CardTitle>
           {getStatusBadge(execution.status)}
         </div>
         <CardDescription>
-          Versão {execution.workflows.version} • Iniciada em {new Date(execution.started_at).toLocaleString('pt-BR')}
+          {execution.workflows?.version && `Versão ${execution.workflows.version} • `}
+          Iniciada em {new Date(execution.started_at).toLocaleString('pt-BR')}
         </CardDescription>
       </CardHeader>
 

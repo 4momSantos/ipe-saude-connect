@@ -825,7 +825,7 @@ export default function Editais() {
           </SheetHeader>
           
           <div className="mt-6">
-            {selectedInscricao && (
+            {selectedInscricao ? (
               <FluxoCredenciamento 
                 status={selectedInscricao.status as "em_analise" | "aprovado" | "aguardando_assinatura" | "assinado" | "ativo" | "rejeitado"}
                 motivoRejeicao={selectedInscricao.motivo_rejeicao || undefined}
@@ -849,6 +849,14 @@ export default function Editais() {
                   }
                 }}
               />
+            ) : (
+              <Card>
+                <CardContent className="p-6">
+                  <p className="text-muted-foreground text-center">
+                    Carregando informações da inscrição...
+                  </p>
+                </CardContent>
+              </Card>
             )}
           </div>
         </SheetContent>

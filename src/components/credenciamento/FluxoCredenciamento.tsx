@@ -391,7 +391,7 @@ export function FluxoCredenciamento({
       )}
 
       {/* Workflow Status Card */}
-      {inscricaoId && (
+      {inscricaoId && inscricaoId.trim() !== '' && (
         <WorkflowStatusCard inscricaoId={inscricaoId} />
       )}
     </div>

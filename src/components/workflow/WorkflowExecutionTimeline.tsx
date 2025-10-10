@@ -70,6 +70,11 @@ export function WorkflowExecutionTimeline({ execution_id, className }: WorkflowE
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!execution_id) {
+      setLoading(false);
+      return;
+    }
+
     loadSteps();
 
     // Real-time subscription
@@ -95,6 +100,8 @@ export function WorkflowExecutionTimeline({ execution_id, className }: WorkflowE
   }, [execution_id]);
 
   const loadSteps = async () => {
+    if (!execution_id) return;
+    
     try {
       const { data, error } = await supabase
         .from('workflow_step_executions')
@@ -102,7 +109,11 @@ export function WorkflowExecutionTimeline({ execution_id, className }: WorkflowE
         .eq('execution_id', execution_id)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao carregar steps:', error);
+        throw error;
+      }
+      
       setSteps(data || []);
     } catch (error) {
       console.error('Erro ao carregar steps:', error);

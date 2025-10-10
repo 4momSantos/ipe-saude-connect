@@ -100,12 +100,21 @@ export function FluxoCredenciamentoMonitor({ inscricaoId }: FluxoCredenciamentoM
           )
         `)
         .eq('id', inscricaoId)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao buscar dados do fluxo:', error);
+        throw error;
+      }
+      
+      if (!data) {
+        throw new Error('Inscrição não encontrada');
+      }
+      
       return data;
     },
     refetchInterval: 3000, // Poll a cada 3 segundos
+    retry: 1,
   });
 
   useEffect(() => {
