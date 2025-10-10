@@ -49,10 +49,13 @@ export function useAutoSaveInscricao({
 
         if (error) throw error;
       } else {
-        // Criar novo rascunho
+        // Criar ou atualizar rascunho usando UPSERT para evitar duplicação
         const { data, error } = await supabase
           .from('inscricoes_edital')
-          .insert([rascunhoData])
+          .upsert([rascunhoData], { 
+            onConflict: 'candidato_id,edital_id',
+            ignoreDuplicates: false 
+          })
           .select()
           .single();
 
@@ -73,6 +76,17 @@ export function useAutoSaveInscricao({
       }
     } catch (error: any) {
       console.error('Erro ao salvar rascunho:', error);
+      
+      // Tratamento especial para erro de duplicação
+      if (error.code === '23505') {
+        toast({
+          title: "✅ Rascunho já existe",
+          description: "Continuando de onde você parou",
+          duration: 2000,
+        });
+        return; // Não lançar erro, apenas continuar
+      }
+      
       if (!silent) {
         toast({
           title: "Erro ao salvar rascunho",

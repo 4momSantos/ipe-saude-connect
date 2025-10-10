@@ -61,6 +61,7 @@ type Inscricao = {
   edital_id: string;
   status: string;
   motivo_rejeicao: string | null;
+  is_rascunho: boolean;
 };
 
 export default function Editais() {
@@ -132,7 +133,7 @@ export default function Editais() {
         if (user) {
           const { data: inscricoesData, error: inscricoesError } = await supabase
             .from("inscricoes_edital")
-            .select("*")
+            .select("id, edital_id, status, motivo_rejeicao, is_rascunho")
             .eq("candidato_id", user.id)
             .eq("is_rascunho", false); // ✅ EXCLUIR RASCUNHOS
 
@@ -332,6 +333,24 @@ export default function Editais() {
       if (!statusOk || !antesDataFim) {
         throw new Error('Este edital não está mais aberto para inscrições');
       }
+
+      // ✅ VERIFICAR SE JÁ EXISTE INSCRIÇÃO ENVIADA
+      const { data: inscricaoExistente } = await supabase
+        .from('inscricoes_edital')
+        .select('id, status, is_rascunho')
+        .eq('candidato_id', user.id)
+        .eq('edital_id', inscricaoEdital.id)
+        .eq('is_rascunho', false)
+        .maybeSingle();
+
+      if (inscricaoExistente) {
+        toast.error("❌ Você já está inscrito neste edital! Cada usuário pode ter apenas uma inscrição por edital.");
+        setInscricaoEdital(null);
+        console.groupEnd();
+        return;
+      }
+
+      console.log('7️⃣ Validação de duplicação: OK - Nenhuma inscrição anterior encontrada');
 
       const inscricaoData = {
         candidato_id: user.id,
@@ -857,13 +876,23 @@ export default function Editais() {
                             <FileSearch className="h-4 w-4 mr-2" />
                             Ver Detalhes
                           </Button>
-                          <Button 
-                            onClick={() => setInscricaoEdital(edital)}
-                            className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                          >
-                            <CheckCircle2 className="h-4 w-4 mr-2" />
-                            Inscrever-se
-                          </Button>
+                    <Button 
+                      onClick={() => setInscricaoEdital(edital)}
+                      disabled={inscricoes.some(i => i.edital_id === edital.id && !i.is_rascunho)}
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50"
+                    >
+                      {inscricoes.some(i => i.edital_id === edital.id && !i.is_rascunho) ? (
+                        <>
+                          <CheckCircle2 className="h-4 w-4 mr-2" />
+                          Já Inscrito
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="h-4 w-4 mr-2" />
+                          Inscrever-se
+                        </>
+                      )}
+                    </Button>
                         </>
                       ) : (
                         <Button 
