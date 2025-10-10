@@ -486,6 +486,25 @@ export default function Editais() {
 
       console.log('✅ Inscrição processada:', inscricaoResult?.id);
 
+      // ✅ ATUALIZAÇÃO OTIMISTA IMEDIATA
+      const novaInscricao: Inscricao = {
+        id: inscricaoResult.id,
+        edital_id: inscricaoEdital.id,
+        status: inscricaoResult.status || 'em_analise',
+        is_rascunho: false,
+        motivo_rejeicao: null
+      };
+
+      console.log('[Editais] Atualizando estado local com nova inscrição:', novaInscricao);
+
+      // Remover rascunhos e adicionar nova inscrição
+      setInscricoes(prev => [
+        ...prev.filter(i => i.edital_id !== inscricaoEdital.id),
+        novaInscricao
+      ]);
+
+      console.log('[Editais] Estado local atualizado - inscricoesMap será recalculado');
+
       // Buscar workflow vinculada ao edital
       const { data: editalData } = await supabase
         .from('editais')
@@ -556,16 +575,23 @@ export default function Editais() {
         toast.success('Inscrição enviada com sucesso!');
       }
 
-      // ✅ AGUARDAR RELOAD ANTES DE FECHAR
-      setIsReloading(true);
-      await loadData();
-      setIsReloading(false);
+      // ✅ Aguardar re-render do inscricoesMap
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Agora o inscricoesMap já foi recalculado
       setInscricaoEdital(null);
-      
-      // Redirecionar para "Minhas Inscrições"
-      setTimeout(() => {
-        navigate('/minhas-inscricoes');
-      }, 1000);
+
+      // ✅ Toast com ação opcional (sem redirecionamento automático)
+      toast.success(
+        '✅ Inscrição enviada! Clique no botão "Acompanhar Processo" para ver o andamento.',
+        {
+          duration: 5000,
+          action: {
+            label: 'Ver Minhas Inscrições',
+            onClick: () => navigate('/minhas-inscricoes')
+          }
+        }
+      );
     } catch (error: any) {
       console.error('❌ ERRO CAPTURADO:', {
         name: error.name,
