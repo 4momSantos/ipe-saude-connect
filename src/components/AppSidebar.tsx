@@ -107,37 +107,21 @@ const mainMenuItems: MenuItem[] = [
       { title: "Relatório de Avaliações", url: "/relatorios/avaliacoes", icon: Award, roles: ['gestor', 'admin'] as const }
     ]
   },
-];
-
-// Seções de Configurações
-const configMenuSections: MenuSection[] = [
   {
-    label: "Integrações",
-    items: [
+    title: "Configurações",
+    url: "#",
+    icon: Settings2,
+    roles: ['candidato', 'analista', 'gestor', 'admin'] as const,
+    children: [
       { title: "API Keys", url: "/integracao/api-keys", icon: Key, roles: ['admin'] as const },
       { title: "Webhooks", url: "/integracao/webhooks", icon: Webhook, roles: ['admin'] as const },
-    ]
-  },
-  {
-    label: "Templates e Regras",
-    items: [
       { title: "Modelos de Justificativa", url: "/gestao/modelos-justificativa", icon: FileText, roles: ['gestor', 'admin'] as const },
       { title: "Regras de Suspensão", url: "/gestao/regras-suspensao", icon: AlertTriangle, roles: ['gestor', 'admin'] as const },
-    ]
-  },
-  {
-    label: "Segurança e Logs",
-    items: [
       { title: "Auditoria Completa", url: "/auditoria", icon: FileSearch, roles: ['admin'] as const },
       { title: "Meus Dados (LGPD)", url: "/meus-dados", icon: UserCircle, roles: ['candidato', 'analista', 'gestor', 'admin'] as const },
-    ]
-  },
-  {
-    label: "Ferramentas",
-    items: [
       { title: "Teste OCR", url: "/teste-ocr", icon: Sparkles, roles: ['gestor', 'admin'] as const },
     ]
-  }
+  },
 ];
 
 export function AppSidebar() {
@@ -184,14 +168,6 @@ export function AppSidebar() {
       const hasVisibleChildren = !item.children || item.children.length > 0;
       return hasAccess && hasVisibleChildren;
     });
-
-  // Filtrar seções de configuração
-  const visibleConfigSections = configMenuSections
-    .map(section => ({
-      ...section,
-      items: section.items.filter(item => hasAnyRole(item.roles as UserRole[]))
-    }))
-    .filter(section => section.items.length > 0);
 
   if (loading) {
     return null;
@@ -241,14 +217,14 @@ export function AppSidebar() {
                     >
                       <SidebarMenuItem>
                         <CollapsibleTrigger asChild>
-                          <SidebarMenuButton
-                            className={cn(
-                              "group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors",
-                              isActive
-                                ? "bg-primary/10 text-primary font-medium"
-                                : "text-foreground/70 hover:text-foreground hover:bg-muted"
-                            )}
-                          >
+                           <SidebarMenuButton
+                             className={cn(
+                               "group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors",
+                               isActive
+                                 ? "bg-primary/10 text-primary font-medium"
+                                 : "text-white hover:text-white hover:bg-muted"
+                             )}
+                           >
                             <item.icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
                             {!isCollapsed && (
                               <>
@@ -271,14 +247,14 @@ export function AppSidebar() {
                                   <SidebarMenuSubButton asChild>
                                     <NavLink
                                       to={child.url}
-                                      className={({ isActive }) =>
-                                        cn(
-                                          "flex items-center gap-2 rounded-lg px-3 py-2 text-xs transition-colors",
-                                          isActive
-                                            ? "bg-primary text-primary-foreground shadow-sm"
-                                            : "text-foreground/60 hover:text-foreground hover:bg-muted"
-                                        )
-                                      }
+                                       className={({ isActive }) =>
+                                         cn(
+                                           "flex items-center gap-2 rounded-lg px-3 py-2 text-xs transition-colors",
+                                           isActive
+                                             ? "bg-primary text-primary-foreground shadow-sm"
+                                             : "text-white hover:text-white hover:bg-muted"
+                                         )
+                                       }
                                     >
                                       <child.icon className="h-4 w-4" strokeWidth={2} />
                                       <span>{child.title}</span>
@@ -305,7 +281,7 @@ export function AppSidebar() {
                             "group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors",
                             isActive
                               ? "bg-primary text-primary-foreground shadow-sm"
-                              : "text-foreground/70 hover:text-foreground hover:bg-muted"
+                              : "text-white hover:text-white hover:bg-muted"
                           )
                         }
                       >
@@ -321,50 +297,6 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {/* Seção Configurações */}
-        {visibleConfigSections.length > 0 && !isCollapsed && (
-          <>
-            <SidebarSeparator className="my-4" />
-            <SidebarGroup className="px-4">
-              <SidebarGroupLabel className="px-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
-                <Settings2 className="h-3 w-3" />
-                Configurações
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                {visibleConfigSections.map((section) => (
-                  <div key={section.label} className="mb-4">
-                    <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground/80 uppercase tracking-wider">
-                      {section.label}
-                    </div>
-                    <SidebarMenu className="gap-0.5">
-                      {section.items.map((item) => (
-                        <SidebarMenuItem key={item.title}>
-                          <SidebarMenuButton asChild>
-                            <NavLink
-                              to={item.url}
-                              className={({ isActive }) =>
-                                cn(
-                                  "flex items-center gap-3 rounded-lg px-3 py-2 text-xs transition-colors",
-                                  isActive
-                                    ? "bg-primary text-primary-foreground shadow-sm"
-                                    : "text-foreground/60 hover:text-foreground hover:bg-muted"
-                                )
-                              }
-                            >
-                              <item.icon className="h-4 w-4" strokeWidth={2} />
-                              <span className="font-medium">{item.title}</span>
-                            </NavLink>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </div>
-                ))}
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </>
-        )}
 
         {/* Seção Admin */}
         <RoleGuard requiredRoles={['admin']}>
@@ -386,7 +318,7 @@ export function AppSidebar() {
                             "group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors",
                             isActive
                               ? "bg-primary text-primary-foreground shadow-sm"
-                              : "text-foreground/70 hover:text-foreground hover:bg-muted"
+                              : "text-white hover:text-white hover:bg-muted"
                           )
                         }
                       >
