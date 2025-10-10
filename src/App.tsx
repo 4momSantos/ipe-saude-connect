@@ -39,6 +39,12 @@ import VerificarCertificado from "./pages/VerificarCertificado";
 import MonitorFluxo from "./pages/MonitorFluxo";
 import RelatorioAvaliacoes from "./pages/RelatorioAvaliacoes";
 import GestaoRegrasSuspensao from "./pages/GestaoRegrasSuspensao";
+import AuditoriaCompleta from "./pages/AuditoriaCompleta";
+import GerenciarCategorias from "./pages/GerenciarCategorias";
+import GerenciarWebhooks from "./pages/GerenciarWebhooks";
+import GerenciarAPIKeys from "./pages/GerenciarAPIKeys";
+import GerenciarModelosJustificativa from "./pages/GerenciarModelosJustificativa";
+import MeusDadosLGPD from "./pages/MeusDadosLGPD";
 import { ClipboardCheck, Users, MapPin, BarChart3, Settings } from "lucide-react";
 import NotFound from "./pages/NotFound";
 import { supabase } from "@/integrations/supabase/client";
@@ -158,6 +164,12 @@ const App = () => (
                           <Route path="/relatorios" element={<AnalisesRelatorios />} />
                           <Route path="/relatorios/avaliacoes" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><RelatorioAvaliacoes /></RoleProtectedRoute>} />
                           <Route path="/gestao/regras-suspensao" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><GestaoRegrasSuspensao /></RoleProtectedRoute>} />
+                          <Route path="/auditoria" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><AuditoriaCompleta /></RoleProtectedRoute>} />
+                          <Route path="/gestao/categorias" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><GerenciarCategorias /></RoleProtectedRoute>} />
+                          <Route path="/integracao/webhooks" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><GerenciarWebhooks /></RoleProtectedRoute>} />
+                          <Route path="/integracao/api-keys" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><GerenciarAPIKeys /></RoleProtectedRoute>} />
+                          <Route path="/gestao/modelos-justificativa" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><GerenciarModelosJustificativa /></RoleProtectedRoute>} />
+                          <Route path="/meus-dados" element={<MeusDadosLGPD />} />
                           <Route
                             path="/usuarios"
                             element={

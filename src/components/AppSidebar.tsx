@@ -14,7 +14,13 @@ import {
   FileSignature,
   Activity,
   GitBranch,
-  Award
+  Award,
+  FileSearch,
+  Tags,
+  Webhook,
+  Key,
+  FileType,
+  UserCircle
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
@@ -117,6 +123,42 @@ const menuItems = [
     url: "/gestao/regras-suspensao", 
     icon: Shield,
     roles: ['gestor', 'admin'] as const
+  },
+  { 
+    title: "Auditoria Completa", 
+    url: "/auditoria", 
+    icon: FileSearch,
+    roles: ['gestor', 'admin'] as const
+  },
+  { 
+    title: "Categorias", 
+    url: "/gestao/categorias", 
+    icon: Tags,
+    roles: ['gestor', 'admin'] as const
+  },
+  { 
+    title: "Webhooks", 
+    url: "/integracao/webhooks", 
+    icon: Webhook,
+    roles: ['gestor', 'admin'] as const
+  },
+  { 
+    title: "API Keys", 
+    url: "/integracao/api-keys", 
+    icon: Key,
+    roles: ['gestor', 'admin'] as const
+  },
+  { 
+    title: "Modelos de Justificativa", 
+    url: "/gestao/modelos-justificativa", 
+    icon: FileType,
+    roles: ['gestor', 'admin'] as const
+  },
+  { 
+    title: "Meus Dados (LGPD)", 
+    url: "/meus-dados", 
+    icon: UserCircle,
+    roles: ['candidato', 'analista', 'gestor', 'admin'] as const
   },
   { 
     title: "Teste OCR", 
