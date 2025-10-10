@@ -173,7 +173,7 @@ export default function FluxoCredenciamentoPage() {
           onAssinarContrato={handleAssinarContrato}
           inscricaoId={inscricaoId}
           dadosInscricao={inscricaoData?.dados_inscricao}
-          candidatoNome={inscricaoData?.dados_inscricao?.dadosPessoais?.nome}
+          candidatoNome={inscricaoData?.dados_inscricao?.dados_pessoais?.nome_completo || "Candidato"}
           workflowExecutionId={workflowExecutionId || undefined}
         />
       </div>

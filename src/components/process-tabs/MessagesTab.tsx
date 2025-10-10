@@ -182,10 +182,16 @@ export function MessagesTab({ processoId, candidatoNome, executionId, inscricaoI
       {/* Lista de mensagens */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {mensagens.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="text-muted-foreground mb-2">Nenhuma mensagem ainda</div>
-            <div className="text-sm text-muted-foreground">
-              Envie a primeira mensagem para iniciar a conversa
+          <div className="flex flex-col items-center justify-center h-full text-center space-y-4 px-6">
+            <div className="rounded-full bg-primary/10 p-6">
+              <Send className="w-12 h-12 text-primary opacity-50" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold">Nenhuma mensagem ainda</h3>
+              <p className="text-sm text-muted-foreground max-w-md">
+                Quando a equipe de credenciamento da IPE-Saúde enviar atualizações sobre seu processo, 
+                as mensagens aparecerão aqui. Você também pode enviar dúvidas utilizando o campo abaixo.
+              </p>
             </div>
           </div>
         ) : (

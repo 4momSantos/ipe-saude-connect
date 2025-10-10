@@ -49,6 +49,8 @@ function DataRow({ label, value, icon: Icon }: DataRowProps) {
 }
 
 export function DadosInscricaoTab({ dadosInscricao }: DadosInscricaoTabProps) {
+  console.log('[DEBUG DadosInscricaoTab] dadosInscricao recebido:', dadosInscricao);
+
   if (!dadosInscricao) {
     return (
       <Card>
@@ -60,7 +62,13 @@ export function DadosInscricaoTab({ dadosInscricao }: DadosInscricaoTabProps) {
     );
   }
 
-  const { dadosPessoais, pessoaJuridica, endereco, consultorio } = dadosInscricao;
+  // ✅ Extrair seções do JSONB com nomenclatura snake_case real
+  const dadosPessoais = dadosInscricao.dados_pessoais || {};
+  const pessoaJuridica = dadosInscricao.pessoa_juridica || {};
+  const endereco = dadosInscricao.endereco || {};
+  const consultorio = dadosInscricao.consultorio || {};
+  
+  console.log('[DEBUG] Dados extraídos:', { dadosPessoais, pessoaJuridica, endereco });
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -75,12 +83,12 @@ export function DadosInscricaoTab({ dadosInscricao }: DadosInscricaoTabProps) {
           </CardHeader>
           <CardContent>
             <dl className="space-y-1">
-              <DataRow label="Nome Completo" value={dadosPessoais.nome} icon={User} />
+              <DataRow label="Nome Completo" value={dadosPessoais.nome_completo} icon={User} />
               <DataRow label="CPF" value={formatCPF(dadosPessoais.cpf)} icon={FileText} />
               <DataRow label="RG" value={dadosPessoais.rg} icon={FileText} />
               <DataRow 
                 label="Data de Nascimento" 
-                value={formatDate(dadosPessoais.dataNascimento)} 
+                value={formatDate(dadosPessoais.data_nascimento)} 
                 icon={Calendar} 
               />
               <DataRow label="E-mail" value={dadosPessoais.email} icon={Mail} />
@@ -92,7 +100,7 @@ export function DadosInscricaoTab({ dadosInscricao }: DadosInscricaoTabProps) {
       )}
 
       {/* Pessoa Jurídica */}
-      {pessoaJuridica && (pessoaJuridica.cnpj || pessoaJuridica.razaoSocial) && (
+      {pessoaJuridica && (pessoaJuridica.cnpj || pessoaJuridica.denominacao_social) && (
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -102,10 +110,10 @@ export function DadosInscricaoTab({ dadosInscricao }: DadosInscricaoTabProps) {
           </CardHeader>
           <CardContent>
             <dl className="space-y-1">
-              <DataRow label="Razão Social" value={pessoaJuridica.razaoSocial} icon={Building2} />
-              <DataRow label="Nome Fantasia" value={pessoaJuridica.nomeFantasia} icon={Building2} />
+              <DataRow label="Razão Social" value={pessoaJuridica.denominacao_social} icon={Building2} />
+              <DataRow label="Nome Fantasia" value={pessoaJuridica.nome_fantasia} icon={Building2} />
               <DataRow label="CNPJ" value={formatCNPJ(pessoaJuridica.cnpj)} icon={FileText} />
-              <DataRow label="Inscrição Estadual" value={pessoaJuridica.inscricaoEstadual} icon={FileText} />
+              <DataRow label="Inscrição Estadual" value={pessoaJuridica.inscricao_estadual} icon={FileText} />
               {pessoaJuridica.porte && (
                 <div className="py-2">
                   <dt className="text-sm font-medium text-muted-foreground mb-2">Porte da Empresa</dt>

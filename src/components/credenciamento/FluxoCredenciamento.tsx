@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkflowStatusCard } from "@/components/workflow/WorkflowStatusCard";
 import { DadosInscricaoTab } from "./DadosInscricaoTab";
-import { DocumentsTab } from "@/components/process-tabs/DocumentsTab";
+import { DocumentosTabFromJSON } from "./DocumentosTabFromJSON";
 import { MessagesTab } from "@/components/process-tabs/MessagesTab";
 import { 
   FileText, 
@@ -452,7 +452,7 @@ export function FluxoCredenciamento({
         {/* Aba Documentos */}
         <TabsContent value="documentos" className="mt-6">
           {inscricaoId ? (
-            <DocumentsTab processoId={inscricaoId} />
+            <DocumentosTabFromJSON dadosInscricao={dadosInscricao} />
           ) : (
             <Card>
               <CardContent className="py-12 text-center">
