@@ -46,7 +46,7 @@ export default function ContractTemplates() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="space-y-6">
         <div className="mb-6">
           <Skeleton className="h-8 w-64 mb-2" />
           <Skeleton className="h-4 w-96" />
@@ -69,7 +69,7 @@ export default function ContractTemplates() {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">

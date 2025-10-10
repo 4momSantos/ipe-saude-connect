@@ -5,7 +5,7 @@ import { Download, Trash2, Edit, Shield } from "lucide-react";
 
 export default function MeusDadosLGPD() {
   return (
-    <div className="container mx-auto p-6 space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-4xl">
       <div>
         <h1 className="text-3xl font-bold mb-2">Meus Dados (LGPD)</h1>
         <p className="text-muted-foreground">

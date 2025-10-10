@@ -155,7 +155,7 @@ export default function TesteOCR() {
   };
 
   return (
-    <div className="container max-w-7xl mx-auto py-8 space-y-6">
+    <div className="space-y-6 max-w-7xl">
       {/* Header */}
       <div className="space-y-2">
         <div className="flex items-center gap-3">
