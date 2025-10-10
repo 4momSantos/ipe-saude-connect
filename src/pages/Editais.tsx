@@ -86,11 +86,20 @@ export default function Editais() {
   const inscricoesMap = useMemo(() => {
     const map = new Map<string, Inscricao>();
     inscricoes.forEach(inscricao => {
-      if (inscricao.status !== 'rascunho') {
+      // ✅ Usar is_rascunho em vez de status
+      if (!inscricao.is_rascunho) {
         map.set(inscricao.edital_id, inscricao);
       }
     });
-    console.log('[Editais] inscricoesMap atualizado:', Array.from(map.entries()).map(([id, i]) => ({ edital_id: id, status: i.status })));
+    console.log('[Editais] inscricoesMap atualizado:', {
+      total: Array.from(map.entries()).length,
+      detalhes: Array.from(map.entries()).map(([id, i]) => ({ 
+        edital_id: id, 
+        inscricao_id: i.id,
+        status: i.status, 
+        is_rascunho: i.is_rascunho 
+      }))
+    });
     return map;
   }, [inscricoes]);
 
@@ -486,24 +495,26 @@ export default function Editais() {
 
       console.log('✅ Inscrição processada:', inscricaoResult?.id);
 
-      // ✅ ATUALIZAÇÃO OTIMISTA IMEDIATA
-      const novaInscricao: Inscricao = {
-        id: inscricaoResult.id,
-        edital_id: inscricaoEdital.id,
-        status: inscricaoResult.status || 'em_analise',
-        is_rascunho: false,
-        motivo_rejeicao: null
-      };
+      // ✅ Buscar a inscrição atualizada do banco após o processamento
+      const { data: inscricaoAtualizada, error: fetchError } = await supabase
+        .from('inscricoes_edital')
+        .select('id, edital_id, status, motivo_rejeicao, is_rascunho')
+        .eq('id', inscricaoResult.id)
+        .single();
 
-      console.log('[Editais] Atualizando estado local com nova inscrição:', novaInscricao);
+      if (fetchError) {
+        console.error('❌ Erro ao buscar inscrição atualizada:', fetchError);
+      } else if (inscricaoAtualizada) {
+        console.log('[Editais] Atualizando estado local com inscrição do banco:', inscricaoAtualizada);
 
-      // Remover rascunhos e adicionar nova inscrição
-      setInscricoes(prev => [
-        ...prev.filter(i => i.edital_id !== inscricaoEdital.id),
-        novaInscricao
-      ]);
+        // Remover qualquer inscrição antiga do mesmo edital e adicionar a nova
+        setInscricoes(prev => [
+          ...prev.filter(i => i.edital_id !== inscricaoEdital.id),
+          inscricaoAtualizada
+        ]);
 
-      console.log('[Editais] Estado local atualizado - inscricoesMap será recalculado');
+        console.log('[Editais] Estado local atualizado - inscricoesMap será recalculado');
+      }
 
       // Buscar workflow vinculada ao edital
       const { data: editalData } = await supabase
@@ -931,23 +942,14 @@ export default function Editais() {
                             <FileSearch className="h-4 w-4 mr-2" />
                             Ver Detalhes
                           </Button>
-                    <Button 
-                      onClick={() => setInscricaoEdital(edital)}
-                      disabled={inscricoes.some(i => i.edital_id === edital.id && !i.is_rascunho)}
-                      className="bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50"
-                    >
-                      {inscricoes.some(i => i.edital_id === edital.id && !i.is_rascunho) ? (
-                        <>
-                          <CheckCircle2 className="h-4 w-4 mr-2" />
-                          Já Inscrito
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2 className="h-4 w-4 mr-2" />
-                          Inscrever-se
-                        </>
-                      )}
-                    </Button>
+                          <Button 
+                            onClick={() => setInscricaoEdital(edital)}
+                            disabled={isInscrito}
+                            className="bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50"
+                          >
+                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                            Inscrever-se
+                          </Button>
                         </>
                       ) : (
                         <Button 
