@@ -25,6 +25,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useNavigate } from "react-router-dom";
 import { EditalDetalhes } from "@/components/edital/EditalDetalhes";
 import { useEspecialidades } from "@/hooks/useEspecialidades";
+import { useInscricoes } from "@/hooks/useInscricoes";
 
 type Edital = {
   id: string;
@@ -66,7 +67,9 @@ type Inscricao = {
 
 export default function Editais() {
   const [editais, setEditais] = useState<Edital[]>([]);
-  const [inscricoes, setInscricoes] = useState<Inscricao[]>([]);
+  const [user, setUser] = useState<any>(null);
+  // ✅ Substituído por React Query
+  const { inscricoes, isLoading: isLoadingInscricoes, submitInscricao, isSubmitting } = useInscricoes();
   const [selectedEdital, setSelectedEdital] = useState<Edital | null>(null);
   const [selectedInscricao, setSelectedInscricao] = useState<Inscricao | null>(null);
   const [inscricaoEdital, setInscricaoEdital] = useState<Edital | null>(null);
@@ -81,6 +84,14 @@ export default function Editais() {
   const { isGestor, isAdmin, isCandidato } = useUserRole();
   const { data: especialidades } = useEspecialidades();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      setUser(currentUser);
+    };
+    getUser();
+  }, []);
 
   // ✅ Mapa estável de inscrições para evitar re-renders desnecessários
   const inscricoesMap = useMemo(() => {
@@ -104,10 +115,11 @@ export default function Editais() {
   }, [inscricoes]);
 
   useEffect(() => {
-    loadData();
+    loadEditais();
   }, []);
 
-  const loadData = async () => {
+  // ✅ Carregar apenas editais (inscrições vêm do React Query)
+  const loadEditais = async () => {
     try {
       setLoading(true);
       
@@ -148,32 +160,8 @@ export default function Editais() {
       })) || [];
       
       setEditais(editaisComEspecialidades);
-
-      // Se for candidato, carregar suas inscrições
-      if (isCandidato) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: inscricoesData, error: inscricoesError } = await supabase
-            .from("inscricoes_edital")
-            .select("id, edital_id, status, motivo_rejeicao, is_rascunho")
-            .eq("candidato_id", user.id)
-            .eq("is_rascunho", false); // ✅ EXCLUIR RASCUNHOS
-
-          if (inscricoesError) throw inscricoesError;
-          
-          console.log('[Editais] Inscrições carregadas:', {
-            total: inscricoesData?.length,
-            porStatus: inscricoesData?.reduce((acc, i) => {
-              acc[i.status] = (acc[i.status] || 0) + 1;
-              return acc;
-            }, {} as Record<string, number>)
-          });
-          
-          setInscricoes(inscricoesData || []);
-        }
-      }
     } catch (error) {
-      console.error("Erro ao carregar dados:", error);
+      console.error("Erro ao carregar editais:", error);
       toast.error("Erro ao carregar editais");
     } finally {
       setLoading(false);
@@ -301,7 +289,7 @@ export default function Editais() {
       if (error) throw error;
       
       toast.success("✅ Edital excluído com sucesso!");
-      await loadData();
+      await loadEditais();
     } catch (error: any) {
       console.error("Erro ao excluir edital:", error);
       toast.error(`❌ Erro: ${error.message || 'Tente novamente'}`);
@@ -311,79 +299,49 @@ export default function Editais() {
   };
 
   const handleSubmitInscricao = async (data: InscricaoCompletaForm) => {
-    console.group('🔍 [DEBUG] Submissão de Inscrição');
-    console.log('1️⃣ Dados recebidos (RAW):', JSON.stringify(data, (key, value) => 
-      value instanceof Date ? value.toISOString() : value
-    , 2));
-    console.log('2️⃣ Tipo de data_nascimento:', typeof data.data_nascimento, data.data_nascimento);
-    console.log('3️⃣ É instância de Date?', data.data_nascimento instanceof Date);
+    if (!inscricaoEdital || !user || isSubmitting) return;
+
+    console.group('🔍 [DEBUG] Submissão de Inscrição com React Query');
+    console.log('1️⃣ Edital:', inscricaoEdital.id);
+    console.log('2️⃣ Usuário:', user.id);
     
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log('4️⃣ Usuário autenticado:', user?.id, user?.email);
-      
-      if (!user) {
-        throw new Error('Usuário não autenticado');
-      }
-
-      if (!inscricaoEdital) {
-        throw new Error('Edital não selecionado');
-      }
-
-      // NOVA VALIDAÇÃO: Garantir que data_nascimento é Date válido
-      if (!(data.data_nascimento instanceof Date)) {
-        console.error('❌ ERRO: data_nascimento não é Date!', {
-          tipo: typeof data.data_nascimento,
-          valor: data.data_nascimento,
-          isNull: data.data_nascimento === null,
-          isUndefined: data.data_nascimento === undefined
-        });
+      // Validação de data de nascimento
+      if (!(data.data_nascimento instanceof Date) || isNaN(data.data_nascimento.getTime())) {
         throw new Error('Data de nascimento inválida. Por favor, selecione uma data válida.');
       }
-      
-      if (isNaN(data.data_nascimento.getTime())) {
-        console.error('❌ ERRO: data_nascimento é Date inválido!');
-        throw new Error('Data de nascimento inválida. Por favor, selecione uma data válida.');
-      }
-      
-      console.log('5️⃣ Data validada com sucesso:', data.data_nascimento.toISOString());
 
       // Verificar se o edital está disponível para inscrições
       const hoje = new Date();
       const dataFim = new Date(inscricaoEdital.data_fim);
-      
       const statusValidos = ['publicado', 'aberto'];
-      const statusOk = statusValidos.includes(inscricaoEdital.status);
-      const antesDataFim = hoje <= dataFim;
       
-      console.log('6️⃣ Validação de edital:', { statusOk, antesDataFim });
-
-      if (!statusOk || !antesDataFim) {
+      if (!statusValidos.includes(inscricaoEdital.status) || hoje > dataFim) {
         throw new Error('Este edital não está mais aberto para inscrições');
       }
 
-      // ✅ VERIFICAR SE JÁ EXISTE INSCRIÇÃO ENVIADA
+      // Verificar duplicação
       const { data: inscricaoExistente } = await supabase
         .from('inscricoes_edital')
-        .select('id, status, is_rascunho')
+        .select('id')
         .eq('candidato_id', user.id)
         .eq('edital_id', inscricaoEdital.id)
         .eq('is_rascunho', false)
         .maybeSingle();
 
       if (inscricaoExistente) {
-        toast.error("❌ Você já está inscrito neste edital! Cada usuário pode ter apenas uma inscrição por edital.");
+        toast.error("❌ Você já está inscrito neste edital!");
         setInscricaoEdital(null);
         console.groupEnd();
         return;
       }
 
-      console.log('7️⃣ Validação de duplicação: OK - Nenhuma inscrição anterior encontrada');
-
+      // Montar dados de inscrição
       const inscricaoData = {
         candidato_id: user.id,
         edital_id: inscricaoEdital.id,
         status: 'em_analise',
+        is_rascunho: false,
         dados_inscricao: {
           dados_pessoais: {
             crm: data.crm,
@@ -442,79 +400,15 @@ export default function Editais() {
         },
       };
       
-      console.log('7️⃣ inscricaoData montado:', JSON.stringify(inscricaoData, null, 2));
+      console.log('3️⃣ Submetendo via React Query...');
       
-      console.log('8️⃣ Verificando se já existe inscrição...');
+      // ✅ Usar mutation do React Query
+      const inscricaoResult = await submitInscricao(inscricaoData);
       
-      // Verificar se já existe rascunho (não inscrição já enviada)
-      const { data: existingInscricao } = await supabase
-        .from('inscricoes_edital')
-        .select('id, is_rascunho')
-        .eq('candidato_id', user.id)
-        .eq('edital_id', inscricaoEdital.id)
-        .eq('is_rascunho', true)
-        .maybeSingle();
+      console.log('✅ Inscrição processada:', inscricaoResult.id);
 
-      let inscricaoResult;
-
-      if (existingInscricao) {
-        console.log('✏️ Atualizando inscrição existente:', existingInscricao.id);
-        
-        const { data, error } = await supabase
-          .from('inscricoes_edital')
-          .update({
-            dados_inscricao: inscricaoData.dados_inscricao,
-            status: 'em_analise',
-            is_rascunho: false,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingInscricao.id)
-          .select()
-          .single();
-        
-        if (error) {
-          console.error('❌ Erro ao atualizar:', error);
-          throw error;
-        }
-        inscricaoResult = data;
-      } else {
-        console.log('➕ Criando nova inscrição');
-        
-        const { data, error } = await supabase
-          .from('inscricoes_edital')
-          .insert([inscricaoData])
-          .select()
-          .single();
-        
-        if (error) {
-          console.error('❌ Erro ao criar:', error);
-          throw error;
-        }
-        inscricaoResult = data;
-      }
-
-      console.log('✅ Inscrição processada:', inscricaoResult?.id);
-
-      // ✅ Buscar a inscrição atualizada do banco após o processamento
-      const { data: inscricaoAtualizada, error: fetchError } = await supabase
-        .from('inscricoes_edital')
-        .select('id, edital_id, status, motivo_rejeicao, is_rascunho')
-        .eq('id', inscricaoResult.id)
-        .single();
-
-      if (fetchError) {
-        console.error('❌ Erro ao buscar inscrição atualizada:', fetchError);
-      } else if (inscricaoAtualizada) {
-        console.log('[Editais] Atualizando estado local com inscrição do banco:', inscricaoAtualizada);
-
-        // Remover qualquer inscrição antiga do mesmo edital e adicionar a nova
-        setInscricoes(prev => [
-          ...prev.filter(i => i.edital_id !== inscricaoEdital.id),
-          inscricaoAtualizada
-        ]);
-
-        console.log('[Editais] Estado local atualizado - inscricoesMap será recalculado');
-      }
+      // Limpar rascunho do localStorage
+      localStorage.removeItem(`inscricao_rascunho_${inscricaoEdital.id}`);
 
       // Buscar workflow vinculada ao edital
       const { data: editalData } = await supabase
@@ -524,11 +418,11 @@ export default function Editais() {
         .single();
 
       // Se houver workflow, executá-la automaticamente
-      if (editalData?.workflow_id && inscricaoResult) {
-        console.log('🔄 Executando workflow automaticamente...', editalData.workflow_id);
+      if (editalData?.workflow_id) {
+        console.log('🔄 Executando workflow...', editalData.workflow_id);
         
         try {
-          const { data: functionData, error: functionError } = await supabase.functions.invoke('execute-workflow', {
+          const { error: functionError } = await supabase.functions.invoke('execute-workflow', {
             body: {
               workflowId: editalData.workflow_id,
               inscricaoId: inscricaoResult.id,
@@ -538,94 +432,20 @@ export default function Editais() {
 
           if (functionError) {
             console.error('❌ Erro ao executar workflow:', functionError);
-            await supabase
-              .from('inscricoes_edital')
-              .update({ status: 'pendente_workflow' })
-              .eq('id', inscricaoResult.id);
             toast.warning('Inscrição criada, mas o workflow não pôde ser iniciado.');
-          } else {
-            console.log('✅ Workflow iniciada:', functionData);
-            toast.loading('Aguardando início do workflow...', { id: 'workflow-wait' });
-            
-            // SUBSTITUIR POLLING POR REALTIME
-            const channel = supabase
-              .channel(`inscricao-${inscricaoResult.id}`)
-              .on('postgres_changes', {
-                event: 'UPDATE',
-                schema: 'public',
-                table: 'inscricoes_edital',
-                filter: `id=eq.${inscricaoResult.id}`
-              }, (payload: any) => {
-                const newWorkflowId = payload.new.workflow_execution_id;
-                const newStatus = payload.new.status;
-                
-                console.log('[REALTIME] Atualização:', newStatus, newWorkflowId);
-                
-                if (newWorkflowId) {
-                  toast.success('Workflow iniciada com sucesso!', { id: 'workflow-wait' });
-                  supabase.removeChannel(channel);
-                } else if (newStatus === 'failed') {
-                  toast.error('Erro ao iniciar workflow', { id: 'workflow-wait' });
-                  supabase.removeChannel(channel);
-                }
-              })
-              .subscribe();
-            
-            // Timeout de segurança (15s)
-            setTimeout(() => {
-              supabase.removeChannel(channel);
-              toast.info('Processamento iniciado. Acompanhe em Análises.', { id: 'workflow-wait' });
-            }, 15000);
           }
         } catch (workflowError) {
           console.error('❌ Erro ao executar workflow:', workflowError);
-          toast.success('Inscrição enviada com sucesso! (Workflow será processada em breve)');
         }
-      } else {
-        console.log('[Editais] Inscrição enviada com sucesso (sem workflow)!');
-        toast.success('Inscrição enviada com sucesso!');
       }
 
-      // ✅ Aguardar re-render do inscricoesMap
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Agora o inscricoesMap já foi recalculado
+      // ✅ Fechar dialog imediatamente (React Query cuida da sincronização)
       setInscricaoEdital(null);
 
-      // ✅ Toast com ação opcional (sem redirecionamento automático)
-      toast.success(
-        '✅ Inscrição enviada! Clique no botão "Acompanhar Processo" para ver o andamento.',
-        {
-          duration: 5000,
-          action: {
-            label: 'Ver Minhas Inscrições',
-            onClick: () => navigate('/minhas-inscricoes')
-          }
-        }
-      );
+      console.log('=== SUBMIT CONCLUÍDO - Cache será invalidado automaticamente ===');
     } catch (error: any) {
-      console.error('❌ ERRO CAPTURADO:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-        code: error.code,
-        details: error.details
-      });
-      
-      // Tratamento específico por tipo de erro
-      if (error.message?.includes('data_nascimento')) {
-        toast.error('Erro: Data de nascimento inválida. Verifique se selecionou uma data válida.');
-      } else if (error.message?.includes('unique_candidato_edital')) {
-        toast.error('Você já possui uma inscrição neste edital');
-      } else if (error.code === '23505') { // Unique constraint
-        toast.error('Você já possui uma inscrição neste edital');
-      } else if (error.code === '42501') { // RLS violation
-        toast.error('Erro de permissão. Entre em contato com o suporte.');
-      } else {
-        toast.error('Erro ao enviar inscrição: ' + (error.message || 'Tente novamente'));
-      }
-      
-      // NÃO re-lançar erro para prevenir double-submit
+      console.error('❌ ERRO CAPTURADO:', error);
+      // Toast de erro já é exibido pelo hook useInscricoes
     } finally {
       console.groupEnd();
     }
@@ -685,7 +505,8 @@ export default function Editais() {
     }
   };
 
-  if (loading) {
+  // ✅ Combinar loading states
+  if (loading || isLoadingInscricoes) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-pulse text-muted-foreground">Carregando editais...</div>
@@ -914,53 +735,68 @@ export default function Editais() {
                       </Button>
                     </div>
                   )}
-                      {isInscrito ? (
-                        <Button 
-                          onClick={() => handleEditalClick(edital)}
-                          disabled={loadingEditalId === edital.id}
-                          className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                        >
-                          {loadingEditalId === edital.id ? (
-                            <>
-                              <Clock className="h-4 w-4 mr-2 animate-spin" />
-                              Carregando...
-                            </>
-                          ) : (
-                            <>
-                              <Eye className="h-4 w-4 mr-2" />
-                              Acompanhar Processo
-                            </>
-                          )}
-                        </Button>
-                      ) : isCandidato ? (
+                {/* ✅ Loading state durante sincronização */}
+                {isLoadingInscricoes ? (
+                  <Button disabled className="bg-muted">
+                    <Clock className="h-4 w-4 mr-2 animate-spin" />
+                    Sincronizando...
+                  </Button>
+                ) : isInscrito ? (
+                  <Button 
+                    onClick={() => handleEditalClick(edital)}
+                    disabled={loadingEditalId === edital.id}
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                  >
+                    {loadingEditalId === edital.id ? (
+                      <>
+                        <Clock className="h-4 w-4 mr-2 animate-spin" />
+                        Carregando...
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="h-4 w-4 mr-2" />
+                        Acompanhar Processo
+                      </>
+                    )}
+                  </Button>
+                ) : isCandidato ? (
+                  <>
+                    <Button 
+                      onClick={() => setDetalhesEdital(edital)}
+                      variant="outline" 
+                      className="border-border hover:bg-card"
+                    >
+                      <FileSearch className="h-4 w-4 mr-2" />
+                      Ver Detalhes
+                    </Button>
+                    <Button 
+                      onClick={() => setInscricaoEdital(edital)}
+                      disabled={isInscrito || isSubmitting}
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50"
+                    >
+                      {isSubmitting ? (
                         <>
-                          <Button 
-                            onClick={() => setDetalhesEdital(edital)}
-                            variant="outline" 
-                            className="border-border hover:bg-card"
-                          >
-                            <FileSearch className="h-4 w-4 mr-2" />
-                            Ver Detalhes
-                          </Button>
-                          <Button 
-                            onClick={() => setInscricaoEdital(edital)}
-                            disabled={isInscrito}
-                            className="bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50"
-                          >
-                            <CheckCircle2 className="h-4 w-4 mr-2" />
-                            Inscrever-se
-                          </Button>
+                          <Clock className="h-4 w-4 mr-2 animate-spin" />
+                          Enviando...
                         </>
                       ) : (
-                        <Button 
-                          onClick={() => setDetalhesEdital(edital)}
-                          variant="outline" 
-                          className="border-border hover:bg-card"
-                        >
-                          <FileSearch className="h-4 w-4 mr-2" />
-                          Ver Detalhes
-                        </Button>
+                        <>
+                          <CheckCircle2 className="h-4 w-4 mr-2" />
+                          Inscrever-se
+                        </>
                       )}
+                    </Button>
+                  </>
+                ) : (
+                  <Button 
+                    onClick={() => setDetalhesEdital(edital)}
+                    variant="outline" 
+                    className="border-border hover:bg-card"
+                  >
+                    <FileSearch className="h-4 w-4 mr-2" />
+                    Ver Detalhes
+                  </Button>
+                )}
                     </div>
                   </CardContent>
                 </Card>
@@ -1004,7 +840,7 @@ export default function Editais() {
                     if (error) throw error;
 
                     toast.success("Contrato assinado com sucesso!");
-                    loadData();
+                    loadEditais();
                     setSelectedEdital(null);
                     setSelectedInscricao(null);
                   } catch (error) {
