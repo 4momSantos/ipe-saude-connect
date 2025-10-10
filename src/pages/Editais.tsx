@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { FileText, Calendar, Users, CheckCircle2, Clock, Download, Eye, Plus, FileSearch, Edit, Trash, Filter, X, Search, ChevronDown } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -75,11 +75,24 @@ export default function Editais() {
   const [isRascunhoDialogOpen, setIsRascunhoDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isReloading, setIsReloading] = useState(false);
+  const [loadingEditalId, setLoadingEditalId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEspecialidades, setSelectedEspecialidades] = useState<string[]>([]);
   const { isGestor, isAdmin, isCandidato } = useUserRole();
   const { data: especialidades } = useEspecialidades();
   const navigate = useNavigate();
+
+  // ✅ Mapa estável de inscrições para evitar re-renders desnecessários
+  const inscricoesMap = useMemo(() => {
+    const map = new Map<string, Inscricao>();
+    inscricoes.forEach(inscricao => {
+      if (inscricao.status !== 'rascunho') {
+        map.set(inscricao.edital_id, inscricao);
+      }
+    });
+    console.log('[Editais] inscricoesMap atualizado:', Array.from(map.entries()).map(([id, i]) => ({ edital_id: id, status: i.status })));
+    return map;
+  }, [inscricoes]);
 
   useEffect(() => {
     loadData();
@@ -158,24 +171,29 @@ export default function Editais() {
     }
   };
 
-  const getInscricaoForEdital = (editalId: string) => {
-    const inscricao = inscricoes.find((i) => i.edital_id === editalId && i.status !== 'rascunho');
+  // ✅ Usar useCallback com inscricoesMap para estabilizar a função
+  const getInscricaoForEdital = useCallback((editalId: string) => {
+    const inscricao = inscricoesMap.get(editalId);
     console.log('[Editais] Buscando inscrição para edital', editalId, '→', inscricao?.status || 'não encontrada');
     return inscricao;
-  };
+  }, [inscricoesMap]);
 
   const handleEditalClick = async (edital: Edital) => {
-    const inscricao = getInscricaoForEdital(edital.id);
+    setLoadingEditalId(edital.id); // ✅ Indicar carregamento
+    
+    const inscricao = inscricoesMap.get(edital.id); // ✅ Usar map diretamente
     
     if (inscricao) {
       // Se já está inscrito, mostrar acompanhamento
       setSelectedEdital(edital);
       setSelectedInscricao(inscricao);
+      setLoadingEditalId(null);
     } else {
       // Verificar se existe rascunho
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast.error('Você precisa estar autenticado para se inscrever');
+        setLoadingEditalId(null);
         return;
       }
 
@@ -201,6 +219,7 @@ export default function Editais() {
         });
         setIsRascunhoDialogOpen(true);
       }
+      setLoadingEditalId(null);
       // Se não tem rascunho, o dialog abre normalmente
     }
   };
@@ -778,12 +797,12 @@ export default function Editais() {
             </Card>
           ) : (
             editaisFiltrados.map((edital) => {
-              const inscricao = getInscricaoForEdital(edital.id);
+              const inscricao = inscricoesMap.get(edital.id); // ✅ Acesso direto ao map
               const isInscrito = !!inscricao;
 
               return (
                 <Card 
-                  key={`${edital.id}-${inscricoes.length}`}
+                  key={edital.id} // ✅ Key estável baseada apenas no ID
                   className={`border bg-card card-glow hover-lift transition-all duration-300 ${
                     isInscrito ? "ring-2 ring-primary/20" : ""
                   }`}
@@ -861,10 +880,20 @@ export default function Editais() {
                       {isInscrito ? (
                         <Button 
                           onClick={() => handleEditalClick(edital)}
+                          disabled={loadingEditalId === edital.id}
                           className="bg-primary hover:bg-primary/90 text-primary-foreground"
                         >
-                          <Eye className="h-4 w-4 mr-2" />
-                          Acompanhar Processo
+                          {loadingEditalId === edital.id ? (
+                            <>
+                              <Clock className="h-4 w-4 mr-2 animate-spin" />
+                              Carregando...
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="h-4 w-4 mr-2" />
+                              Acompanhar Processo
+                            </>
+                          )}
                         </Button>
                       ) : isCandidato ? (
                         <>
