@@ -12,14 +12,19 @@ import { useAuditTrail, useAuditStats } from '@/hooks/useAuditTrail';
 
 export default function AuditoriaCompleta() {
   const [filters, setFilters] = useState({
-    resource_type: '',
-    action: '',
+    resource_type: 'all',
+    action: 'all',
     start_date: '',
     end_date: '',
   });
   const [selectedLog, setSelectedLog] = useState<any>(null);
   
-  const { data: logs, isLoading } = useAuditTrail(filters);
+  const { data: logs, isLoading } = useAuditTrail({
+    resource_type: filters.resource_type === 'all' ? '' : filters.resource_type,
+    action: filters.action === 'all' ? '' : filters.action,
+    start_date: filters.start_date,
+    end_date: filters.end_date,
+  });
   const { data: stats } = useAuditStats();
 
   const exportToCSV = () => {
@@ -119,7 +124,7 @@ export default function AuditoriaCompleta() {
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="inscricao">Inscrição</SelectItem>
                   <SelectItem value="edital">Edital</SelectItem>
                   <SelectItem value="contrato">Contrato</SelectItem>
@@ -134,7 +139,7 @@ export default function AuditoriaCompleta() {
                   <SelectValue placeholder="Todas" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas</SelectItem>
+                  <SelectItem value="all">Todas</SelectItem>
                   <SelectItem value="created">Criação</SelectItem>
                   <SelectItem value="updated">Atualização</SelectItem>
                   <SelectItem value="deleted">Exclusão</SelectItem>
