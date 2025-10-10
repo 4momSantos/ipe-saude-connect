@@ -13,7 +13,8 @@ import {
   Sparkles,
   FileSignature,
   Activity,
-  GitBranch
+  GitBranch,
+  Award
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import {
@@ -104,6 +105,18 @@ const menuItems = [
     url: "/relatorios", 
     icon: BarChart3,
     roles: ['analista', 'gestor', 'admin'] as const
+  },
+  { 
+    title: "Relatório de Avaliações", 
+    url: "/relatorios/avaliacoes", 
+    icon: Award,
+    roles: ['gestor', 'admin'] as const
+  },
+  { 
+    title: "Regras de Suspensão", 
+    url: "/gestao/regras-suspensao", 
+    icon: Shield,
+    roles: ['gestor', 'admin'] as const
   },
   { 
     title: "Teste OCR", 

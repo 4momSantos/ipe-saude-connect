@@ -37,6 +37,8 @@ import WorkflowMonitoring from "./pages/WorkflowMonitoring";
 import Contratos from "./pages/Contratos";
 import VerificarCertificado from "./pages/VerificarCertificado";
 import MonitorFluxo from "./pages/MonitorFluxo";
+import RelatorioAvaliacoes from "./pages/RelatorioAvaliacoes";
+import GestaoRegrasSuspensao from "./pages/GestaoRegrasSuspensao";
 import { ClipboardCheck, Users, MapPin, BarChart3, Settings } from "lucide-react";
 import NotFound from "./pages/NotFound";
 import { supabase } from "@/integrations/supabase/client";
@@ -154,6 +156,8 @@ const App = () => (
                           <Route path="/contratos/templates/editor/:id" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><ContractTemplateEditor /></RoleProtectedRoute>} />
                           <Route path="/mapa" element={<AnalisesRelatorios />} />
                           <Route path="/relatorios" element={<AnalisesRelatorios />} />
+                          <Route path="/relatorios/avaliacoes" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><RelatorioAvaliacoes /></RoleProtectedRoute>} />
+                          <Route path="/gestao/regras-suspensao" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><GestaoRegrasSuspensao /></RoleProtectedRoute>} />
                           <Route
                             path="/usuarios"
                             element={

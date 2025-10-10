@@ -1,19 +1,24 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useRegrasSuspensao } from "@/hooks/useRegrasSuspensao";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Plus, Shield, Trash2 } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Plus, Shield, Trash2, TestTube2, AlertTriangle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export function GerenciarRegrasSuspensao() {
   const { regras, isLoading, createRegra, toggleRegraAtivo, deleteRegra } = useRegrasSuspensao();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [dryRunDialogOpen, setDryRunDialogOpen] = useState(false);
+  const [selectedRegraForTest, setSelectedRegraForTest] = useState<string | null>(null);
   const [form, setForm] = useState<{
     nome: string;
     descricao: string;
@@ -46,6 +51,24 @@ export function GerenciarRegrasSuspensao() {
       condicao: form.condicao
     });
     setDialogOpen(false);
+  };
+
+  // Dry-Run: testar regra sem aplicar
+  const { data: dryRunResults, isLoading: isDryRunLoading } = useQuery({
+    queryKey: ["dry-run-regra", selectedRegraForTest],
+    queryFn: async () => {
+      if (!selectedRegraForTest) return [];
+      const { data, error } = await supabase.rpc("verificar_regras_suspensao_automatica");
+      if (error) throw error;
+      // Filtrar apenas resultados da regra selecionada
+      return data?.filter((r: any) => r.regra_id === selectedRegraForTest) || [];
+    },
+    enabled: !!selectedRegraForTest && dryRunDialogOpen,
+  });
+
+  const handleTestRegra = (regraId: string) => {
+    setSelectedRegraForTest(regraId);
+    setDryRunDialogOpen(true);
   };
 
   if (isLoading) {
@@ -96,6 +119,14 @@ export function GerenciarRegrasSuspensao() {
                         checked={regra.ativo}
                         onCheckedChange={(checked) => toggleRegraAtivo({ id: regra.id, ativo: checked })}
                       />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleTestRegra(regra.id)}
+                      >
+                        <TestTube2 className="h-4 w-4 mr-2" />
+                        Testar
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -253,6 +284,67 @@ export function GerenciarRegrasSuspensao() {
               Criar Regra
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Dry-Run */}
+      <Dialog open={dryRunDialogOpen} onOpenChange={setDryRunDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Teste de Regra (Dry-Run)</DialogTitle>
+            <DialogDescription>
+              Visualize quais credenciados seriam afetados por esta regra, sem aplicá-la.
+            </DialogDescription>
+          </DialogHeader>
+
+          {isDryRunLoading ? (
+            <div className="flex items-center justify-center py-8">Carregando...</div>
+          ) : dryRunResults && dryRunResults.length > 0 ? (
+            <>
+              <div className="flex items-center gap-2 p-4 bg-orange-50 dark:bg-orange-950 rounded-lg mb-4">
+                <AlertTriangle className="h-5 w-5 text-orange-500" />
+                <p className="text-sm font-medium">
+                  {dryRunResults.length} credenciado(s) seriam afetados por esta regra.
+                </p>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Ação</TableHead>
+                    <TableHead>Motivo</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {dryRunResults.map((result: any) => (
+                    <TableRow key={result.credenciado_id}>
+                      <TableCell className="font-medium">{result.credenciado_nome}</TableCell>
+                      <TableCell>
+                        <Badge variant={result.acao === "suspensao" ? "destructive" : "default"}>
+                          {result.acao}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{result.motivo}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <AlertTriangle className="h-12 w-12 text-green-500 mb-4" />
+              <p className="text-lg font-medium">Nenhum credenciado seria afetado</p>
+              <p className="text-sm text-muted-foreground">
+                Essa regra não encontrou violações no momento.
+              </p>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDryRunDialogOpen(false)}>
+              Fechar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

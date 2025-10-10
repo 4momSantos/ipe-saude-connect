@@ -1,12 +1,17 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, FileText, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DadosCadastrais } from "@/components/credenciados/DadosCadastrais";
 import { EspecialidadesHorarios } from "@/components/credenciados/EspecialidadesHorarios";
 import { HistoricoCredenciado } from "@/components/credenciados/HistoricoCredenciado";
 import { SolicitacoesAlteracao } from "@/components/credenciados/SolicitacoesAlteracao";
+import { HistoricoOcorrencias } from "@/components/credenciados/HistoricoOcorrencias";
+import { HistoricoAvaliacoes } from "@/components/credenciados/HistoricoAvaliacoes";
+import { CredenciadoSuspensao } from "@/components/credenciados/CredenciadoSuspensao";
+import { RegistrarOcorrencia } from "@/components/credenciados/RegistrarOcorrencia";
+import { ProgramarDescredenciamento } from "@/components/credenciados/ProgramarDescredenciamento";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useCredenciado } from "@/hooks/useCredenciados";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -15,6 +20,8 @@ export default function CredenciadoDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState("dados");
+  const [ocorrenciaDialogOpen, setOcorrenciaDialogOpen] = useState(false);
+  const [descredenciamentoDialogOpen, setDescredenciamentoDialogOpen] = useState(false);
   const { data: credenciado, isLoading, error } = useCredenciado(id || "");
 
   if (isLoading) {
@@ -45,6 +52,11 @@ export default function CredenciadoDetail() {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Alerta de Suspensão */}
+      {credenciado.status.toLowerCase() === "suspenso" && (
+        <CredenciadoSuspensao credenciado={credenciado} />
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -69,15 +81,27 @@ export default function CredenciadoDetail() {
             </div>
           </div>
         </div>
+        <div className="flex gap-2">
+          <Button onClick={() => setOcorrenciaDialogOpen(true)} variant="outline">
+            <FileText className="mr-2 h-4 w-4" />
+            Registrar Ocorrência
+          </Button>
+          <Button onClick={() => setDescredenciamentoDialogOpen(true)} variant="outline">
+            <Clock className="mr-2 h-4 w-4" />
+            Programar Descredenciamento
+          </Button>
+        </div>
       </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
+        <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
           <TabsTrigger value="dados">Dados Cadastrais</TabsTrigger>
           <TabsTrigger value="especialidades">Especialidades e Horários</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
           <TabsTrigger value="solicitacoes">Solicitações</TabsTrigger>
+          <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
+          <TabsTrigger value="avaliacoes">Avaliações</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dados" className="space-y-6">
@@ -117,7 +141,27 @@ export default function CredenciadoDetail() {
             }}
           />
         </TabsContent>
+
+        <TabsContent value="ocorrencias" className="space-y-6">
+          <HistoricoOcorrencias credenciadoId={id || ""} />
+        </TabsContent>
+
+        <TabsContent value="avaliacoes" className="space-y-6">
+          <HistoricoAvaliacoes credenciadoId={id || ""} />
+        </TabsContent>
       </Tabs>
+
+      {/* Dialogs */}
+      <RegistrarOcorrencia
+        credenciadoId={id || ""}
+        open={ocorrenciaDialogOpen}
+        onClose={() => setOcorrenciaDialogOpen(false)}
+      />
+      <ProgramarDescredenciamento
+        credenciadoId={id || ""}
+        open={descredenciamentoDialogOpen}
+        onClose={() => setDescredenciamentoDialogOpen(false)}
+      />
     </div>
   );
 }
