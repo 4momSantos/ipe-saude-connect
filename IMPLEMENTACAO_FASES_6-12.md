@@ -39,7 +39,9 @@
 
 ---
 
-## 🔴 AÇÃO NECESSÁRIA: APLICAR MIGRATION SQL
+## 🔴 AÇÃO CRÍTICA NECESSÁRIA: APLICAR MIGRATION SQL
+
+⚠️ **OS HOOKS FORAM REMOVIDOS TEMPORARIAMENTE** para evitar erros de build. Eles serão recriados após a migration.
 
 ### **PASSO 1**: Aplicar a Migration no Banco de Dados
 
