@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Search, Eye, Filter, Clock, CheckCircle, RefreshCw } from "lucide-react";
+import { Search, Eye, Filter, Clock, CheckCircle, RefreshCw, FileSearch } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,6 +47,7 @@ interface Processo {
 }
 
 export default function Analises() {
+  const navigate = useNavigate();
   const [processos, setProcessos] = useState<Processo[]>([]);
   const [loading, setLoading] = useState(true);
   const { roles, loading: rolesLoading } = useUserRole();
@@ -390,6 +392,17 @@ export default function Analises() {
                           >
                             <Eye className="h-4 w-4" />
                             <span className="ml-1 hidden lg:inline">Ver Detalhes</span>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/analista/inscricoes/${processo.id}`);
+                            }}
+                          >
+                            <FileSearch className="h-4 w-4" />
+                            <span className="ml-1 hidden lg:inline">Análise Completa</span>
                           </Button>
                         </div>
                       </TableCell>

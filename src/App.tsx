@@ -15,6 +15,7 @@ import EditarEdital from "./pages/EditarEdital";
 import EditalDetail from "./pages/EditalDetail";
 import Analises from "./pages/Analises";
 import AnalisesRelatorios from "./pages/AnalisesRelatorios";
+import AnalistaInscricaoDetalhes from "./pages/AnalistaInscricaoDetalhes";
 import Credenciados from "./pages/Credenciados";
 import CredenciadoDetail from "./pages/CredenciadoDetail";
 import Workflows from "./pages/Workflows";
@@ -134,6 +135,14 @@ const App = () => (
                             element={
                               <RoleProtectedRoute requiredRoles={['analista', 'gestor', 'admin']}>
                                 <Analises />
+                              </RoleProtectedRoute>
+                            } 
+                          />
+                          <Route 
+                            path="/analista/inscricoes/:id" 
+                            element={
+                              <RoleProtectedRoute requiredRoles={['analista', 'gestor', 'admin']}>
+                                <AnalistaInscricaoDetalhes />
                               </RoleProtectedRoute>
                             } 
                           />
