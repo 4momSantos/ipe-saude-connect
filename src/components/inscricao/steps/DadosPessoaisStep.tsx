@@ -4,14 +4,11 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescripti
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DateInput } from '@/components/ui/date-input';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CalendarIcon, CheckCircle2, Loader2, Sparkles, AlertCircle } from 'lucide-react';
+import { CheckCircle2, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { validateCRM, validateCPFData, validateNIT, formatCPF } from '@/lib/validators';
 import { toast } from 'sonner';
@@ -318,53 +315,27 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Data de Nascimento *</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          'w-full pl-3 text-left font-normal h-10',
-                          !field.value && 'text-muted-foreground'
-                        )}
-                      >
-                        {field.value ? (
-                          format(field.value, 'dd/MM/yyyy', { locale: ptBR })
-                        ) : (
-                          <span>Selecione a data</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={(date) => {
-                        field.onChange(date);
-                        setCpfState({ status: 'idle' });
-                        setBirthDateMismatch(false);
-                      }}
-                      disabled={(date) =>
-                        date > new Date() || date < new Date('1900-01-01')
-                      }
-                      initialFocus
-                      captionLayout="dropdown-buttons"
-                      fromYear={1900}
-                      toYear={new Date().getFullYear()}
-                      locale={ptBR}
-                      classNames={{
-                          caption: "flex justify-center pt-1 relative items-center gap-1",
-                          caption_label: "hidden",
-                          caption_dropdowns: "flex gap-2 relative z-10",
-                          dropdown: "relative inline-flex",
-                          dropdown_month: "relative",
-                          dropdown_year: "relative",
-                      }}
-                    />
-                  </PopoverContent>
-                </Popover>
+                <FormControl>
+                  <DateInput
+                    value={field.value}
+                    onChange={(date) => {
+                      field.onChange(date);
+                      setCpfState({ status: 'idle' });
+                      setBirthDateMismatch(false);
+                    }}
+                    disabled={(date) =>
+                      date > new Date() || date < new Date('1900-01-01')
+                    }
+                    placeholder="DD/MM/AAAA"
+                    minDate={new Date('1900-01-01')}
+                    maxDate={new Date()}
+                    error={!!form.formState.errors.data_nascimento}
+                    showAge={true}
+                  />
+                </FormControl>
+                <FormDescription className="text-xs">
+                  Digite no formato DD/MM/AAAA ou clique no calendário
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}

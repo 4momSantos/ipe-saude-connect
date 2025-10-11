@@ -55,7 +55,20 @@ export const dadosPessoaisSchema = z.object({
     .min(1, 'CPF é obrigatório')
     .transform(val => val.replace(/\D/g, ''))
     .refine(validateCPF, 'CPF inválido'),
-  data_nascimento: z.date({ required_error: 'Data de nascimento é obrigatória' }),
+  data_nascimento: z.date({ required_error: 'Data de nascimento é obrigatória' })
+    .refine((date) => {
+      const today = new Date();
+      const birthDate = new Date(date);
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      
+      // Ajustar idade se ainda não fez aniversário este ano
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      
+      return age >= 18;
+    }, 'Você deve ter pelo menos 18 anos'),
   nome_completo: z.string().min(5, 'Nome completo é obrigatório'),
   rg: z.string().min(5, 'RG é obrigatório'),
   orgao_emissor: z.string().min(2, 'Órgão emissor é obrigatório'),
