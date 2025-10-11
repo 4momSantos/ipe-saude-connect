@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -62,6 +62,7 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasLoadedRascunho, setHasLoadedRascunho] = useState(false);
+  const wizardContainerRef = useRef<HTMLDivElement>(null);
 
   const form = useForm<InscricaoCompletaForm>({
     resolver: zodResolver(inscricaoCompletaSchema),
@@ -118,6 +119,30 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
 
     loadExistingRascunho();
   }, [loadRascunho, form, hasLoadedRascunho, editalId]);
+
+  // Scroll automático sempre que a etapa mudar
+  useEffect(() => {
+    // Scroll usando a ref (preferencial)
+    wizardContainerRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+
+    // Fallback: scroll do window
+    setTimeout(() => {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      });
+    }, 50);
+
+    // Anunciar mudança para leitores de tela
+    const announcement = `Etapa ${currentStep} de ${STEPS.length}: ${STEPS[currentStep - 1].title}`;
+    const ariaLive = document.getElementById('wizard-aria-live');
+    if (ariaLive) {
+      ariaLive.textContent = announcement;
+    }
+  }, [currentStep]);
 
   const progress = (currentStep / STEPS.length) * 100;
 
@@ -327,7 +352,16 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
 
   return (
     <ValidatedDataProvider>
-      <div className="max-w-5xl mx-auto space-y-6">
+      {/* Anúncio para leitores de tela */}
+      <div
+        id="wizard-aria-live"
+        className="sr-only"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      />
+      
+      <div ref={wizardContainerRef} className="max-w-5xl mx-auto space-y-6">
         {/* Edital Info */}
         {editalTitulo && (
           <Card className="border-primary/20 bg-primary/5">
@@ -382,9 +416,10 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
         {STEPS.map((step) => (
           <div
             key={step.id}
+            data-step={step.id === currentStep ? 'current' : step.id < currentStep ? 'completed' : 'pending'}
             className={`relative flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all duration-300 ${
               step.id === currentStep
-                ? 'border-primary bg-primary/10'
+                ? 'border-primary bg-primary/10 animate-pulse'
                 : step.id < currentStep
                 ? 'border-[hsl(var(--green-approved))] bg-[hsl(var(--green-approved)_/_0.1)]'
                 : 'border-border'

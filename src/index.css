@@ -6,6 +6,26 @@
 All colors MUST be HSL.
 */
 
+/* Transição suave para mudança de etapas do wizard */
+[data-step="current"] {
+  animation: step-highlight 0.6s ease-in-out;
+}
+
+@keyframes step-highlight {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.7);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px hsl(var(--primary) / 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0);
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
