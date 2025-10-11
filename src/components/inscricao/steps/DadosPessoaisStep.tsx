@@ -16,17 +16,33 @@ import { useState } from 'react';
 import { validateCRM, validateCPFData, validateNIT, formatCPF } from '@/lib/validators';
 import { toast } from 'sonner';
 import { useValidatedData } from '@/contexts/ValidatedDataContext';
+import type { CPFValidationData, CRMValidationData } from '@/lib/validators';
+import { useRef } from 'react';
 
 interface DadosPessoaisStepProps {
   form: UseFormReturn<InscricaoCompletaForm>;
 }
 
+type CPFValidationState = 
+  | { status: 'idle' }
+  | { status: 'validating-cpf' }
+  | { status: 'validating-nit' }
+  | { status: 'success'; data: CPFValidationData & { nit?: string } }
+  | { status: 'error'; code: 'format' | 'not-found' | 'api-error' | 'birthdate-mismatch' | 'age-restriction'; message: string };
+
+type CRMValidationState = 
+  | { status: 'idle' }
+  | { status: 'validating' }
+  | { status: 'success'; data: CRMValidationData }
+  | { status: 'error'; message: string };
+
 export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
-  const [isValidatingCPF, setIsValidatingCPF] = useState(false);
-  const [cpfValidated, setCpfValidated] = useState(false);
-  const [isValidatingCRM, setIsValidatingCRM] = useState(false);
-  const [crmValidated, setCrmValidated] = useState(false);
+  const [cpfState, setCpfState] = useState<CPFValidationState>({ status: 'idle' });
+  const [crmState, setCrmState] = useState<CRMValidationState>({ status: 'idle' });
   const [birthDateMismatch, setBirthDateMismatch] = useState(false);
+  
+  const cpfAbortControllerRef = useRef<AbortController | null>(null);
+  const crmAbortControllerRef = useRef<AbortController | null>(null);
   
   const { setCpfData, setCrmData } = useValidatedData();
 
@@ -44,68 +60,125 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
       return;
     }
 
-    setIsValidatingCPF(true);
+    // Cancelar validação anterior
+    if (cpfAbortControllerRef.current) {
+      cpfAbortControllerRef.current.abort();
+    }
+    cpfAbortControllerRef.current = new AbortController();
+
+    setCpfState({ status: 'validating-cpf' });
     setBirthDateMismatch(false);
 
     try {
       const result = await validateCPFData(
         cpf,
-        format(dataNascimento, 'yyyy-MM-dd')
+        format(dataNascimento, 'yyyy-MM-dd'),
+        cpfAbortControllerRef.current.signal
       );
 
-      if (result.valid && result.data) {
-        // Auto-preencher nome completo
-        form.setValue('nome_completo', result.data.nome, { shouldValidate: true });
-        
-        // Verificar se a data de nascimento bate
-        const apiDate = new Date(result.data.data_nascimento);
-        const formDate = new Date(dataNascimento);
-        
-        if (apiDate.getTime() !== formDate.getTime()) {
-          setBirthDateMismatch(true);
-          toast.warning('A data de nascimento não corresponde ao CPF informado');
-        }
-
-        // Salvar dados no context
-        setCpfData({
-          validated: true,
-          nome: result.data.nome,
-          data_nascimento: result.data.data_nascimento,
-          situacao: result.data.situacao_cadastral || 'regular',
-          cpf: cpf,
+      if (!result.valid) {
+        setCpfState({ 
+          status: 'error', 
+          code: result.code || 'not-found',
+          message: result.message || 'Erro ao validar CPF' 
         });
+        
+        if (result.code === 'birthdate-mismatch') {
+          setBirthDateMismatch(true);
+        }
+        
+        toast.error(result.message || 'CPF não encontrado na Receita Federal');
+        return;
+      }
 
-        // Tentar buscar o NIT/PIS/PASEP automaticamente
-        try {
-          const nitResult = await validateNIT(
-            cpf,
-            result.data.nome,
-            format(dataNascimento, 'yyyy-MM-dd')
-          );
+      if (!result.data) {
+        setCpfState({ 
+          status: 'error', 
+          code: 'not-found',
+          message: 'Dados do CPF não encontrados' 
+        });
+        toast.error('Dados do CPF não encontrados');
+        return;
+      }
 
-          if (nitResult.valid && nitResult.data) {
-            form.setValue('nit_pis_pasep', nitResult.data.nit, { shouldValidate: true });
-            toast.success(`CPF e NIT validados! Titular: ${result.data.nome}`);
-          } else {
-            toast.success(`CPF validado! Titular: ${result.data.nome}`);
-            toast.info('NIT/PIS/PASEP não encontrado automaticamente');
-          }
-        } catch (error) {
+      // Auto-preencher nome completo
+      form.setValue('nome_completo', result.data.nome, { shouldValidate: true });
+      
+      // Verificar se a data de nascimento bate
+      const apiDate = new Date(result.data.data_nascimento);
+      const formDate = new Date(dataNascimento);
+      
+      if (apiDate.getTime() !== formDate.getTime()) {
+        setBirthDateMismatch(true);
+        setCpfState({ 
+          status: 'error', 
+          code: 'birthdate-mismatch',
+          message: 'A data de nascimento não corresponde ao CPF informado' 
+        });
+        toast.error('A data de nascimento não corresponde ao CPF informado');
+        return;
+      }
+
+      // Salvar dados no context
+      setCpfData({
+        validated: true,
+        nome: result.data.nome,
+        data_nascimento: result.data.data_nascimento,
+        situacao: result.data.situacao_cadastral || 'regular',
+        cpf: cpf,
+      });
+
+      // Tentar buscar o NIT/PIS/PASEP automaticamente
+      setCpfState({ status: 'validating-nit' });
+      
+      try {
+        const nitResult = await validateNIT(
+          cpf,
+          result.data.nome,
+          format(dataNascimento, 'yyyy-MM-dd'),
+          cpfAbortControllerRef.current.signal
+        );
+
+        if (nitResult.valid && nitResult.data) {
+          form.setValue('nit_pis_pasep', nitResult.data.nit, { shouldValidate: true });
+          
+          setCpfState({ 
+            status: 'success', 
+            data: { ...result.data, nit: nitResult.data.nit } 
+          });
+          
+          toast.success(`CPF e NIT validados! Titular: ${result.data.nome}`);
+        } else {
+          setCpfState({ 
+            status: 'success', 
+            data: result.data 
+          });
+          
+          toast.success(`CPF validado! Titular: ${result.data.nome}`);
+          toast.info('NIT/PIS/PASEP não encontrado automaticamente');
+        }
+      } catch (nitError: any) {
+        if (nitError.name !== 'AbortError') {
           console.log('Erro ao buscar NIT, continuando sem ele');
+          
+          setCpfState({ 
+            status: 'success', 
+            data: result.data 
+          });
+          
           toast.success(`CPF validado! Titular: ${result.data.nome}`);
         }
-
-        setCpfValidated(true);
-      } else {
-        toast.error(result.message || 'CPF não encontrado na Receita Federal');
-        setCpfValidated(false);
       }
-    } catch (error) {
-      console.error('Erro ao validar CPF:', error);
-      toast.error('Erro ao validar CPF');
-      setCpfValidated(false);
-    } finally {
-      setIsValidatingCPF(false);
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error('Erro ao validar CPF:', error);
+        setCpfState({ 
+          status: 'error', 
+          code: 'api-error',
+          message: 'Erro ao validar CPF' 
+        });
+        toast.error('Erro ao validar CPF');
+      }
     }
   };
 
@@ -118,45 +191,65 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
       return;
     }
 
-    setIsValidatingCRM(true);
+    // Cancelar validação anterior
+    if (crmAbortControllerRef.current) {
+      crmAbortControllerRef.current.abort();
+    }
+    crmAbortControllerRef.current = new AbortController();
+
+    setCrmState({ status: 'validating' });
 
     try {
       const result = await validateCRM(crm, uf);
 
-      if (result.valid && result.data) {
-        // Auto-preencher dados se nome ainda estiver vazio
-        if (!form.getValues('nome_completo')) {
-          form.setValue('nome_completo', result.data.nome, { shouldValidate: true });
-        }
-
-        // Salvar dados no context para usar nas próximas etapas
-        setCrmData({
-          validated: true,
-          especialidades: result.data.especialidades || [],
-          instituicao_graduacao: result.data.instituicao,
-          ano_formatura: result.data.ano_formatura,
+      if (!result.valid) {
+        setCrmState({ 
+          status: 'error',
+          message: result.message || 'CRM não encontrado' 
         });
-
-        // Preencher instituição e ano de formatura se disponíveis
-        if (result.data.instituicao) {
-          form.setValue('instituicao_graduacao', result.data.instituicao);
-        }
-        if (result.data.ano_formatura) {
-          form.setValue('ano_formatura', result.data.ano_formatura);
-        }
-
-        setCrmValidated(true);
-        toast.success(`CRM validado! Profissional: ${result.data.nome}`);
-      } else {
         toast.error(result.message || 'CRM não encontrado');
-        setCrmValidated(false);
+        return;
       }
+
+      if (!result.data) {
+        setCrmState({ 
+          status: 'error',
+          message: 'Dados do CRM não encontrados' 
+        });
+        toast.error('Dados do CRM não encontrados');
+        return;
+      }
+
+      // Auto-preencher dados se nome ainda estiver vazio
+      if (!form.getValues('nome_completo')) {
+        form.setValue('nome_completo', result.data.nome, { shouldValidate: true });
+      }
+
+      // Salvar dados no context para usar nas próximas etapas
+      setCrmData({
+        validated: true,
+        especialidades: result.data.especialidades || [],
+        instituicao_graduacao: result.data.instituicao,
+        ano_formatura: result.data.ano_formatura,
+      });
+
+      // Preencher instituição e ano de formatura se disponíveis
+      if (result.data.instituicao) {
+        form.setValue('instituicao_graduacao', result.data.instituicao);
+      }
+      if (result.data.ano_formatura) {
+        form.setValue('ano_formatura', result.data.ano_formatura);
+      }
+
+      setCrmState({ status: 'success', data: result.data });
+      toast.success(`CRM validado! Profissional: ${result.data.nome}`);
     } catch (error) {
       console.error('Erro ao validar CRM:', error);
+      setCrmState({ 
+        status: 'error',
+        message: 'Erro ao validar CRM' 
+      });
       toast.error('Erro ao validar CRM');
-      setCrmValidated(false);
-    } finally {
-      setIsValidatingCRM(false);
     }
   };
 
@@ -181,15 +274,36 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
                       maxLength={14}
                       onChange={(e) => {
                         field.onChange(formatCPF(e.target.value));
-                        setCpfValidated(false);
+                        setCpfState({ status: 'idle' });
                         setBirthDateMismatch(false);
                       }}
                     />
                   </FormControl>
-                  {cpfValidated && (
+                  {cpfState.status === 'validating-cpf' && (
+                    <Badge variant="outline" className="gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Consultando Receita Federal...
+                    </Badge>
+                  )}
+                  
+                  {cpfState.status === 'validating-nit' && (
+                    <Badge variant="outline" className="gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Consultando NIT/PIS/PASEP...
+                    </Badge>
+                  )}
+                  
+                  {cpfState.status === 'success' && (
                     <Badge variant="outline" className="gap-1 border-[hsl(var(--green-approved))] text-[hsl(var(--green-approved))]">
                       <CheckCircle2 className="h-3 w-3" />
                       CPF Validado na Receita Federal
+                    </Badge>
+                  )}
+                  
+                  {cpfState.status === 'error' && (
+                    <Badge variant="destructive" className="gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {cpfState.message}
                     </Badge>
                   )}
                   <FormMessage />
@@ -229,7 +343,7 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
                       selected={field.value}
                       onSelect={(date) => {
                         field.onChange(date);
-                        setCpfValidated(false);
+                        setCpfState({ status: 'idle' });
                         setBirthDateMismatch(false);
                       }}
                       disabled={(date) =>
@@ -261,15 +375,20 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
           type="button"
           variant="outline"
           onClick={handleValidateCPF}
-          disabled={isValidatingCPF || cpfValidated}
+          disabled={cpfState.status === 'validating-cpf' || cpfState.status === 'validating-nit' || cpfState.status === 'success'}
           className="w-full md:w-auto gap-2"
         >
-          {isValidatingCPF ? (
+          {cpfState.status === 'validating-cpf' ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Validando CPF e NIT...
+              Validando CPF...
             </>
-          ) : cpfValidated ? (
+          ) : cpfState.status === 'validating-nit' ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Buscando NIT...
+            </>
+          ) : cpfState.status === 'success' ? (
             <>
               <CheckCircle2 className="h-4 w-4" />
               CPF Validado
@@ -306,7 +425,7 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
                 <FormControl>
                   <Input {...field} placeholder="Nome completo conforme documento" />
                 </FormControl>
-                {cpfValidated && (
+                {cpfState.status === 'success' && (
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Sparkles className="h-3 w-3" />
                     <span>Auto-preenchido pela Receita Federal</span>
@@ -380,7 +499,7 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
                 <FormControl>
                   <Input {...field} placeholder="000.00000.00-0" />
                 </FormControl>
-                {cpfValidated && field.value && (
+                {cpfState.status === 'success' && field.value && (
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Sparkles className="h-3 w-3" />
                     <span>Auto-preenchido pelo CNIS</span>
@@ -411,14 +530,28 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
                       placeholder="12345"
                       onChange={(e) => {
                         field.onChange(e);
-                        setCrmValidated(false);
+                        setCrmState({ status: 'idle' });
                       }}
                     />
                   </FormControl>
-                  {crmValidated && (
+                  {crmState.status === 'validating' && (
+                    <Badge variant="outline" className="gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Consultando CFM...
+                    </Badge>
+                  )}
+                  
+                  {crmState.status === 'success' && (
                     <Badge variant="outline" className="gap-1 border-[hsl(var(--green-approved))] text-[hsl(var(--green-approved))]">
                       <CheckCircle2 className="h-3 w-3" />
                       CRM Validado no CFM
+                    </Badge>
+                  )}
+                  
+                  {crmState.status === 'error' && (
+                    <Badge variant="destructive" className="gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {crmState.message}
                     </Badge>
                   )}
                   <FormMessage />
@@ -436,7 +569,7 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
                 <Select
                   onValueChange={(value) => {
                     field.onChange(value);
-                    setCrmValidated(false);
+                    setCrmState({ status: 'idle' });
                   }}
                   value={field.value}
                 >
@@ -463,15 +596,15 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
           type="button"
           variant="outline"
           onClick={handleValidateCRM}
-          disabled={isValidatingCRM || crmValidated}
+          disabled={crmState.status === 'validating' || crmState.status === 'success'}
           className="w-full md:w-auto gap-2"
         >
-          {isValidatingCRM ? (
+          {crmState.status === 'validating' ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
               Validando CRM...
             </>
-          ) : crmValidated ? (
+          ) : crmState.status === 'success' ? (
             <>
               <CheckCircle2 className="h-4 w-4" />
               CRM Validado
@@ -495,7 +628,7 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
                   <FormControl>
                     <Input {...field} placeholder="Ex: UFRGS" />
                   </FormControl>
-                  {crmValidated && field.value && (
+                  {crmState.status === 'success' && field.value && (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Sparkles className="h-3 w-3" />
                       <span>Auto-preenchido pelo CFM</span>
@@ -524,7 +657,7 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
                       max={new Date().getFullYear()}
                     />
                   </FormControl>
-                  {crmValidated && field.value && (
+                  {crmState.status === 'success' && field.value && (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Sparkles className="h-3 w-3" />
                       <span>Auto-preenchido pelo CFM</span>

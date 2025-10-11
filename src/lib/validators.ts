@@ -238,17 +238,31 @@ export interface NITValidationData {
 
 export const validateCPFData = async (
   cpf: string,
-  birthdate: string
-): Promise<{ valid: boolean; data?: CPFValidationData; message?: string }> => {
+  birthdate: string,
+  signal?: AbortSignal
+): Promise<{ 
+  valid: boolean; 
+  data?: CPFValidationData; 
+  message?: string;
+  code?: 'format' | 'not-found' | 'api-error' | 'birthdate-mismatch' | 'age-restriction';
+}> => {
   const cleanCPF = cpf.replace(/\D/g, "");
   
   if (!cleanCPF || !birthdate) {
-    return { valid: false, message: "CPF e data de nascimento são obrigatórios" };
+    return { 
+      valid: false,
+      code: 'format',
+      message: "CPF e data de nascimento são obrigatórios" 
+    };
   }
 
   // Validar formato da data (YYYY-MM-DD)
   if (!/^\d{4}-\d{2}-\d{2}$/.test(birthdate)) {
-    return { valid: false, message: "Formato de data inválido. Use YYYY-MM-DD" };
+    return { 
+      valid: false,
+      code: 'format',
+      message: "Formato de data inválido. Use YYYY-MM-DD" 
+    };
   }
 
   // Validar que a data é do passado
@@ -257,7 +271,11 @@ export const validateCPFData = async (
   today.setHours(0, 0, 0, 0);
   
   if (birthdateDate >= today) {
-    return { valid: false, message: "Data de nascimento deve ser uma data passada" };
+    return { 
+      valid: false,
+      code: 'format',
+      message: "Data de nascimento deve ser uma data passada" 
+    };
   }
 
   // Validar idade mínima (18 anos)
@@ -266,7 +284,11 @@ export const validateCPFData = async (
   minBirthdate.setFullYear(minBirthdate.getFullYear() - minAge);
   
   if (birthdateDate > minBirthdate) {
-    return { valid: false, message: `É necessário ter pelo menos ${minAge} anos` };
+    return { 
+      valid: false,
+      code: 'age-restriction',
+      message: `É necessário ter pelo menos ${minAge} anos` 
+    };
   }
 
   try {
@@ -279,25 +301,57 @@ export const validateCPFData = async (
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
         body: JSON.stringify({ cpf: cleanCPF, birthdate }),
+        ...(signal && { signal })
       }
     );
 
     if (!response.ok) {
-      return { valid: false, message: "Erro ao validar CPF" };
+      return { 
+        valid: false,
+        code: 'api-error',
+        message: "Erro ao validar CPF" 
+      };
     }
 
     const result = await response.json();
+    
+    if (!result.valid && result.birthdate_mismatch) {
+      return {
+        ...result,
+        code: 'birthdate-mismatch'
+      };
+    }
+    
+    if (!result.valid) {
+      return {
+        ...result,
+        code: 'not-found'
+      };
+    }
+    
     return result;
-  } catch (error) {
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      return { 
+        valid: false,
+        code: 'api-error',
+        message: 'Validação cancelada' 
+      };
+    }
     console.error("Erro ao validar CPF:", error);
-    return { valid: false, message: "Erro ao conectar com o serviço de validação" };
+    return { 
+      valid: false,
+      code: 'api-error',
+      message: "Erro ao conectar com o serviço de validação" 
+    };
   }
 };
 
 export const validateNIT = async (
   cpf: string,
   nome: string,
-  dataNascimento: string
+  dataNascimento: string,
+  signal?: AbortSignal
 ): Promise<{ valid: boolean; data?: NITValidationData; message?: string }> => {
   const cleanCPF = cpf.replace(/\D/g, "");
   
@@ -319,6 +373,7 @@ export const validateNIT = async (
           nome: nome,
           data_nascimento: dataNascimento 
         }),
+        ...(signal && { signal })
       }
     );
 
@@ -328,7 +383,10 @@ export const validateNIT = async (
 
     const result = await response.json();
     return result;
-  } catch (error) {
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      return { valid: false, message: 'Validação cancelada' };
+    }
     console.error("Erro ao validar NIT:", error);
     return { valid: false, message: "Erro ao conectar com o serviço de validação" };
   }
