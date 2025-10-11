@@ -24,7 +24,7 @@ serve(async (req) => {
 
     console.log('[ENVIAR_INSCRICAO] Processando envio da inscrição:', inscricao_id);
 
-    // Buscar dados da inscrição
+    // Buscar dados da inscrição e configuração do edital
     const { data: inscricao, error: inscricaoError } = await supabase
       .from('inscricoes_edital')
       .select(`
@@ -33,10 +33,12 @@ serve(async (req) => {
         candidato_id,
         status,
         is_rascunho,
+        dados_inscricao,
         editais (
           id,
           titulo,
-          numero_edital
+          numero_edital,
+          max_especialidades
         )
       `)
       .eq('id', inscricao_id)
@@ -49,6 +51,23 @@ serve(async (req) => {
     if (inscricao.status !== 'rascunho' && !inscricao.is_rascunho) {
       throw new Error('Inscrição já foi enviada anteriormente');
     }
+
+    // ✅ FASE 6: Validação de especialidades no backend
+    const editalData = inscricao.editais as any;
+    const maxEspecialidades = editalData?.max_especialidades || 5;
+    const especialidadesIds = inscricao.dados_inscricao?.especialidades_ids || [];
+    
+    if (Array.isArray(especialidadesIds) && especialidadesIds.length > maxEspecialidades) {
+      throw new Error(
+        `Número de especialidades (${especialidadesIds.length}) excede o máximo permitido (${maxEspecialidades}). ` +
+        `Por favor, remova ${especialidadesIds.length - maxEspecialidades} especialidade(s) antes de enviar.`
+      );
+    }
+
+    console.log('[ENVIAR_INSCRICAO] Validação de especialidades OK:', {
+      selecionadas: especialidadesIds.length,
+      maximo: maxEspecialidades
+    });
 
     // Atualizar inscrição para aguardando_analise
     const { error: updateError } = await supabase

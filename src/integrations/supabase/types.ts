@@ -732,6 +732,7 @@ export type Database = {
           id: string
           inscription_template_id: string | null
           local_portal: string | null
+          max_especialidades: number | null
           numero_edital: string | null
           objeto: string | null
           observacoes_autorizacao: string | null
@@ -772,6 +773,7 @@ export type Database = {
           id?: string
           inscription_template_id?: string | null
           local_portal?: string | null
+          max_especialidades?: number | null
           numero_edital?: string | null
           objeto?: string | null
           observacoes_autorizacao?: string | null
@@ -812,6 +814,7 @@ export type Database = {
           id?: string
           inscription_template_id?: string | null
           local_portal?: string | null
+          max_especialidades?: number | null
           numero_edital?: string | null
           objeto?: string | null
           observacoes_autorizacao?: string | null

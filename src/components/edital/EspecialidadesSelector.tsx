@@ -15,13 +15,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, X, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 interface EspecialidadesSelectorProps {
   selectedIds: string[];
   onChange: (ids: string[]) => void;
   minSelection?: number;
+  maxSelection?: number;
   allowCreate?: boolean;
 }
 
@@ -29,6 +30,7 @@ export function EspecialidadesSelector({
   selectedIds,
   onChange,
   minSelection = 1,
+  maxSelection,
   allowCreate = true,
 }: EspecialidadesSelectorProps) {
   const { data: especialidades, isLoading } = useEspecialidades();
@@ -50,6 +52,11 @@ export function EspecialidadesSelector({
       }
       onChange(selectedIds.filter((selectedId) => selectedId !== id));
     } else {
+      // ✅ VALIDAÇÃO: Não permitir adicionar se atingiu o limite máximo
+      if (maxSelection && selectedIds.length >= maxSelection) {
+        toast.error(`Você pode selecionar no máximo ${maxSelection} especialidade(s)`);
+        return;
+      }
       onChange([...selectedIds, id]);
     }
   };
@@ -126,6 +133,34 @@ export function EspecialidadesSelector({
         )}
       </div>
 
+      {/* ✅ INDICADOR VISUAL de progresso e limite */}
+      <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+        <div className="text-sm">
+          <span className="font-medium text-foreground">
+            {selectedIds.length}
+          </span>
+          {maxSelection && (
+            <span className="text-muted-foreground">
+              {' '}de {maxSelection}
+            </span>
+          )}
+          <span className="text-muted-foreground"> especialidade(s) selecionada(s)</span>
+          {minSelection > 0 && (
+            <span className="text-muted-foreground ml-2">
+              (mínimo: {minSelection})
+            </span>
+          )}
+        </div>
+        
+        {/* ⚠️ Aviso quando atingir o limite */}
+        {maxSelection && selectedIds.length >= maxSelection && (
+          <div className="flex items-center gap-2 text-warning">
+            <AlertCircle className="h-4 w-4" />
+            <span className="text-sm font-medium">Limite atingido</span>
+          </div>
+        )}
+      </div>
+
       {selectedIds.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {selectedIds.map((id) => {
@@ -143,11 +178,16 @@ export function EspecialidadesSelector({
         <div className="space-y-3">
           {filteredEspecialidades?.map((especialidade) => (
             <div key={especialidade.id} className="flex items-center space-x-2">
-              <Checkbox
-                id={especialidade.id}
-                checked={selectedIds.includes(especialidade.id)}
-                onCheckedChange={() => handleToggle(especialidade.id)}
-              />
+                  <Checkbox
+                    id={especialidade.id}
+                    checked={selectedIds.includes(especialidade.id)}
+                    onCheckedChange={() => handleToggle(especialidade.id)}
+                    disabled={
+                      !selectedIds.includes(especialidade.id) &&
+                      maxSelection !== undefined &&
+                      selectedIds.length >= maxSelection
+                    }
+                  />
               <Label
                 htmlFor={especialidade.id}
                 className="flex-1 cursor-pointer text-sm font-normal"
@@ -168,11 +208,6 @@ export function EspecialidadesSelector({
           )}
         </div>
       </ScrollArea>
-
-      <p className="text-xs text-muted-foreground">
-        {selectedIds.length} especialidade(s) selecionada(s)
-        {minSelection > 0 && ` • Mínimo: ${minSelection}`}
-      </p>
     </div>
   );
 }

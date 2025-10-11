@@ -283,7 +283,7 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
       case 2:
         return <PessoaJuridicaStep form={form} />;
       case 3:
-        return <ConsultorioHorariosStep form={form} />;
+        return <ConsultorioHorariosStep form={form} editalId={editalId} />;
       case 4:
         return <DocumentosStep form={form} />;
       case 5:

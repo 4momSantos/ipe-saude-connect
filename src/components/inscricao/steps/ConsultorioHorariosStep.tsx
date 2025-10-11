@@ -18,9 +18,11 @@ import { Plus, Trash2, Clock, Sparkles } from 'lucide-react';
 import { useValidatedData } from '@/contexts/ValidatedDataContext';
 import { useEffect } from 'react';
 import { EspecialidadesSelector } from '@/components/edital/EspecialidadesSelector';
+import { useEditalConfig } from '@/hooks/useEditalConfig';
 
 interface ConsultorioHorariosStepProps {
   form: UseFormReturn<InscricaoCompletaForm>;
+  editalId?: string;
 }
 
 const DIAS_SEMANA = [
@@ -32,7 +34,9 @@ const DIAS_SEMANA = [
   { value: 'sabado', label: 'Sábado' },
 ];
 
-export function ConsultorioHorariosStep({ form }: ConsultorioHorariosStepProps) {
+export function ConsultorioHorariosStep({ form, editalId }: ConsultorioHorariosStepProps) {
+  // ✅ FASE 4: Buscar configuração do edital (incluindo max_especialidades)
+  const { data: editalConfig } = useEditalConfig(editalId);
   const { crm } = useValidatedData();
   
   const { fields, append, remove } = useFieldArray({
@@ -191,6 +195,7 @@ export function ConsultorioHorariosStep({ form }: ConsultorioHorariosStepProps) 
                     selectedIds={field.value || []}
                     onChange={field.onChange}
                     minSelection={1}
+                    maxSelection={editalConfig?.max_especialidades}
                     allowCreate={false}
                   />
                 </FormControl>
