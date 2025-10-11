@@ -231,3 +231,27 @@ export const DOCUMENTOS_OBRIGATORIOS = [
   { tipo: 'simples_nacional', label: 'Comprovante Simples Nacional (se optante)', obrigatorio: false },
   { tipo: 'doc_exames', label: 'Documentos opcionais para exames', obrigatorio: false },
 ];
+
+/**
+ * Mapeia tipo de documento da inscrição para tipo de OCR
+ */
+export function mapTipoToOCRType(tipo: string): string {
+  const mapping: Record<string, string> = {
+    'identidade_medica': 'crm',
+    'rg_cpf': 'rg',
+    'rg': 'rg',
+    'cpf': 'cpf',
+    'cnpj': 'cnpj',
+    'cnh': 'cnh',
+    'diploma': 'diploma',
+    'certidao': 'certidao',
+    'comprovante_endereco': 'comprovante'
+  };
+  return mapping[tipo] || tipo;
+}
+
+/**
+ * Obtém campos padrão para cada tipo de documento
+ * Re-exporta de ocr-processor para facilitar imports
+ */
+export { getDefaultFieldsForDocumentType } from '@/lib/ocr-processor';

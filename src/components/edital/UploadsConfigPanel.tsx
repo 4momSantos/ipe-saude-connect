@@ -5,7 +5,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { DOCUMENTOS_OBRIGATORIOS } from '@/lib/inscricao-validation';
+import { DOCUMENTOS_OBRIGATORIOS, getDefaultFieldsForDocumentType, mapTipoToOCRType } from '@/lib/inscricao-validation';
 
 interface UploadsConfigPanelProps {
   form: UseFormReturn<any>;
@@ -54,6 +54,44 @@ export function UploadsConfigPanel({ form }: UploadsConfigPanelProps) {
     form.setValue('uploads_config', newConfig);
   };
 
+  const toggleOCR = (tipo: string) => {
+    const newConfig = {
+      ...config,
+      [tipo]: {
+        ...config[tipo],
+        ocrConfig: {
+          ...config[tipo]?.ocrConfig,
+          enabled: !config[tipo]?.ocrConfig?.enabled,
+          minConfidence: config[tipo]?.ocrConfig?.minConfidence || 70,
+          autoValidate: config[tipo]?.ocrConfig?.autoValidate ?? true,
+          documentType: mapTipoToOCRType(tipo),
+          expectedFields: getDefaultFieldsForDocumentType(mapTipoToOCRType(tipo))
+        }
+      }
+    };
+    setConfig(newConfig);
+    form.setValue('uploads_config', newConfig);
+  };
+
+  const updateOCRConfig = (tipo: string, key: string, value: any) => {
+    const newConfig = {
+      ...config,
+      [tipo]: {
+        ...config[tipo],
+        ocrConfig: {
+          ...config[tipo]?.ocrConfig,
+          [key]: value
+        }
+      }
+    };
+    setConfig(newConfig);
+    form.setValue('uploads_config', newConfig);
+  };
+
+  const toggleAutoValidate = (tipo: string) => {
+    updateOCRConfig(tipo, 'autoValidate', !config[tipo]?.ocrConfig?.autoValidate);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -99,6 +137,52 @@ export function UploadsConfigPanel({ form }: UploadsConfigPanelProps) {
                 <Label className="text-xs">Obrigatório</Label>
               </div>
             </div>
+
+            {/* Configuração de OCR */}
+            {config[doc.tipo]?.habilitado && (
+              <div className="space-y-2 mt-2 p-3 bg-muted/50 rounded border border-dashed">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold">🔍 Processar OCR</Label>
+                  <Switch
+                    checked={config[doc.tipo]?.ocrConfig?.enabled ?? false}
+                    onCheckedChange={() => toggleOCR(doc.tipo)}
+                  />
+                </div>
+
+                {config[doc.tipo]?.ocrConfig?.enabled && (
+                  <div className="space-y-3 pt-2">
+                    <div>
+                      <Label className="text-xs">Confiança Mínima (%)</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={config[doc.tipo]?.ocrConfig?.minConfidence || 70}
+                        onChange={(e) => updateOCRConfig(doc.tipo, 'minConfidence', parseInt(e.target.value))}
+                        className="h-8 mt-1"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={config[doc.tipo]?.ocrConfig?.autoValidate ?? true}
+                        onCheckedChange={() => toggleAutoValidate(doc.tipo)}
+                      />
+                      <Label className="text-xs">Validação Automática</Label>
+                    </div>
+
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Campos Esperados:</Label>
+                      <p className="text-xs text-muted-foreground mt-1 font-mono">
+                        {getDefaultFieldsForDocumentType(mapTipoToOCRType(doc.tipo))
+                          .map(f => f.ocrField)
+                          .join(', ') || 'Nenhum'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </CardContent>

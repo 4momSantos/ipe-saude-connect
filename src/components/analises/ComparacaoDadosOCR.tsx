@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, TrendingDown } from 'lucide-react';
+import { calcularSimilaridadeLevenshtein, normalize } from '@/utils/compareOCRData';
 
 interface ComparacaoDadosOCRProps {
   dadosInscricao: any;
@@ -42,11 +43,19 @@ export function ComparacaoDadosOCR({ dadosInscricao, documentos }: ComparacaoDad
   const verificarDiscrepancia = (valorInscricao: any, valorOCR: any) => {
     if (!valorOCR || !valorInscricao) return null;
     
-    // Normalizar valores (remover caracteres especiais e espaços)
-    const inscricaoStr = String(valorInscricao).toLowerCase().replace(/[^\w]/g, '');
-    const ocrStr = String(valorOCR).toLowerCase().replace(/[^\w]/g, '');
+    const inscricaoNorm = normalize(valorInscricao);
+    const ocrNorm = normalize(valorOCR);
     
-    return inscricaoStr !== ocrStr;
+    if (inscricaoNorm === ocrNorm) return null;
+
+    // Calcular similaridade usando algoritmo de Levenshtein
+    const similaridade = calcularSimilaridadeLevenshtein(inscricaoNorm, ocrNorm);
+
+    return {
+      hasDiscrepancia: true,
+      similaridade,
+      severidade: similaridade > 80 ? 'baixa' : similaridade > 60 ? 'moderada' : 'alta'
+    };
   };
 
   return (
@@ -54,24 +63,44 @@ export function ComparacaoDadosOCR({ dadosInscricao, documentos }: ComparacaoDad
       {campos.map((campo) => {
         const valorInscricao = getValorInscricao(campo.key);
         const valorOCR = getValorOCR(campo.docTipo, campo.ocrKey);
-        const hasDiscrepancia = verificarDiscrepancia(valorInscricao, valorOCR);
+        const resultado = verificarDiscrepancia(valorInscricao, valorOCR);
 
         // Só mostrar se tiver pelo menos um valor
         if (!valorInscricao && !valorOCR) return null;
 
+        const hasDiscrepancia = resultado?.hasDiscrepancia;
+        const severidade = resultado?.severidade || 'baixa';
+
         return (
           <Card 
             key={campo.key}
-            className={hasDiscrepancia ? 'border-orange-500/50 bg-orange-500/5' : ''}
+            className={
+              hasDiscrepancia 
+                ? severidade === 'alta' 
+                  ? 'border-red-500/50 bg-red-500/5' 
+                  : severidade === 'moderada'
+                  ? 'border-orange-500/50 bg-orange-500/5'
+                  : 'border-yellow-500/50 bg-yellow-500/5'
+                : ''
+            }
           >
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium flex items-center justify-between">
                 {campo.label}
                 {hasDiscrepancia ? (
-                  <Badge variant="destructive" className="gap-1">
-                    <AlertCircle className="w-3 h-3" />
-                    Divergência
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge 
+                      variant={severidade === 'alta' ? 'destructive' : 'secondary'}
+                      className="gap-1"
+                    >
+                      <AlertCircle className="w-3 h-3" />
+                      {severidade === 'alta' ? 'Crítica' : severidade === 'moderada' ? 'Moderada' : 'Baixa'}
+                    </Badge>
+                    <Badge variant="outline" className="gap-1">
+                      <TrendingDown className="w-3 h-3" />
+                      {resultado.similaridade.toFixed(0)}%
+                    </Badge>
+                  </div>
                 ) : valorOCR ? (
                   <Badge variant="default" className="gap-1">
                     <CheckCircle2 className="w-3 h-3" />
@@ -93,7 +122,15 @@ export function ComparacaoDadosOCR({ dadosInscricao, documentos }: ComparacaoDad
                 {/* Valor do OCR */}
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Extraído do Documento</p>
-                  <p className={`font-mono text-sm font-medium ${hasDiscrepancia ? 'text-orange-600 dark:text-orange-400' : ''}`}>
+                  <p className={`font-mono text-sm font-medium ${
+                    hasDiscrepancia 
+                      ? severidade === 'alta'
+                        ? 'text-red-600 dark:text-red-400'
+                        : severidade === 'moderada'
+                        ? 'text-orange-600 dark:text-orange-400'
+                        : 'text-yellow-600 dark:text-yellow-400'
+                      : ''
+                  }`}>
                     {valorOCR || <span className="text-muted-foreground">OCR não processado</span>}
                   </p>
                 </div>

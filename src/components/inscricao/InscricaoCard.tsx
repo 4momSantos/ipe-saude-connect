@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { RefreshCw, AlertCircle, Eye, Upload } from 'lucide-react';
+import { RefreshCw, AlertCircle, Eye, Upload, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -43,13 +43,13 @@ export function InscricaoCard({ inscricao, onRetry, onView }: InscricaoCardProps
     has_error: !!inscricao.workflow_executions?.error_message
   });
 
-  // Buscar documentos rejeitados
+  // Buscar documentos rejeitados e OCRs pendentes
   const { data: documentos } = useQuery({
     queryKey: ['inscricao-documentos-status', inscricao.id],
     queryFn: async () => {
       const { data } = await supabase
         .from('inscricao_documentos')
-        .select('id, status, is_current')
+        .select('id, status, is_current, ocr_processado')
         .eq('inscricao_id', inscricao.id)
         .eq('is_current', true);
       return data || [];
@@ -57,6 +57,7 @@ export function InscricaoCard({ inscricao, onRetry, onView }: InscricaoCardProps
   });
 
   const documentosRejeitados = documentos?.filter(d => d.status === 'rejeitado').length || 0;
+  const ocrsPendentes = documentos?.filter(d => !d.ocr_processado).length || 0;
 
   const canRetry = 
     (inscricao.status === 'inabilitado' || 
@@ -73,9 +74,17 @@ export function InscricaoCard({ inscricao, onRetry, onView }: InscricaoCardProps
     <Card className={isFailed ? 'border-amber-300 bg-amber-50/50 dark:bg-amber-950/20' : ''}>
       <CardHeader>
         <div className="flex items-start justify-between">
-          <CardTitle className="text-lg">
-            {inscricao.editais?.titulo || 'Edital não encontrado'}
-          </CardTitle>
+          <div className="space-y-1">
+            <CardTitle className="text-lg">
+              {inscricao.editais?.titulo || 'Edital não encontrado'}
+            </CardTitle>
+            {ocrsPendentes > 0 && (
+              <Badge variant="secondary" className="gap-1">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                {ocrsPendentes} OCR(s) processando
+              </Badge>
+            )}
+          </div>
           <StatusBadge status={inscricao.status as any} />
         </div>
       </CardHeader>

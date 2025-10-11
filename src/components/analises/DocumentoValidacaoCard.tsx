@@ -10,7 +10,8 @@ import {
   XCircle, 
   ChevronDown, 
   ChevronUp,
-  Download
+  Download,
+  RefreshCw
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -31,8 +32,32 @@ export function DocumentoValidacaoCard({
   const [expanded, setExpanded] = useState(false);
   const [comentario, setComentario] = useState('');
   const [loading, setLoading] = useState(false);
+  const [reprocessing, setReprocessing] = useState(false);
 
   const validacao = validacoes.find(v => v.documento_id === documento.id);
+
+  const handleReprocessOCR = async () => {
+    setReprocessing(true);
+    try {
+      const { error } = await supabase.functions.invoke('reprocess-ocr-documento', {
+        body: { documento_id: documento.id }
+      });
+
+      if (error) throw error;
+
+      toast.success('OCR reprocessado! Atualizando resultados...');
+      
+      // Aguardar um pouco e recarregar
+      setTimeout(() => {
+        onValidar();
+      }, 2000);
+    } catch (error: any) {
+      console.error('Erro ao reprocessar OCR:', error);
+      toast.error('Erro ao reprocessar OCR: ' + error.message);
+    } finally {
+      setReprocessing(false);
+    }
+  };
 
   const handleValidar = async (status: 'aprovado' | 'rejeitado') => {
     if (status === 'rejeitado' && !comentario.trim()) {
@@ -123,7 +148,7 @@ export function DocumentoValidacaoCard({
           )}
 
           {/* Ações */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button
               size="sm"
               variant="outline"
@@ -149,6 +174,20 @@ export function DocumentoValidacaoCard({
               <Download className="w-4 h-4 mr-2" />
               Baixar
             </Button>
+            {documento.ocr_processado && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleReprocessOCR();
+                }}
+                disabled={reprocessing}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${reprocessing ? 'animate-spin' : ''}`} />
+                Reprocessar OCR
+              </Button>
+            )}
           </div>
 
           {/* Validação (se pendente) */}

@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, FileText, History } from 'lucide-react';
+import { ArrowLeft, FileText, History, Sparkles } from 'lucide-react';
 import { normalizeDadosInscricao } from '@/utils/normalizeDadosInscricao';
 import { StatusBadge } from '@/components/StatusBadge';
 import { ComparacaoDadosOCR } from '@/components/analises/ComparacaoDadosOCR';
@@ -137,11 +137,22 @@ export default function AnalistaInscricaoDetalhes() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dados">
-            <ComparacaoDadosOCR 
-              dadosInscricao={dados}
-              documentos={inscricao.inscricao_documentos || []}
-            />
+          <TabsContent value="dados" className="space-y-6">
+            {/* Comparação OCR vs Dados Preenchidos */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5" />
+                  Validação OCR
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ComparacaoDadosOCR 
+                  dadosInscricao={dados}
+                  documentos={inscricao.inscricao_documentos || []}
+                />
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="documentos">
