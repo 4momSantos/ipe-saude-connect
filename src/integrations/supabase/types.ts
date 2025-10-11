@@ -744,6 +744,7 @@ export type Database = {
           status: string
           titulo: string
           updated_at: string | null
+          uploads_config: Json | null
           use_orchestrator_v2: boolean | null
           use_programmatic_flow: boolean | null
           vagas: number | null
@@ -785,6 +786,7 @@ export type Database = {
           status?: string
           titulo: string
           updated_at?: string | null
+          uploads_config?: Json | null
           use_orchestrator_v2?: boolean | null
           use_programmatic_flow?: boolean | null
           vagas?: number | null
@@ -826,6 +828,7 @@ export type Database = {
           status?: string
           titulo?: string
           updated_at?: string | null
+          uploads_config?: Json | null
           use_orchestrator_v2?: boolean | null
           use_programmatic_flow?: boolean | null
           vagas?: number | null

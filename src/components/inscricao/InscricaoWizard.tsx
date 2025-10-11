@@ -52,7 +52,7 @@ const STEPS = [
 ];
 
 interface InscricaoWizardProps {
-  editalId?: string;
+  editalId?: string; // FASE 4: Obrigatório para buscar config de uploads
   editalTitulo?: string;
   onSubmit: (data: InscricaoCompletaForm) => Promise<void>;
   rascunhoInscricaoId?: string | null;
@@ -169,12 +169,44 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
         ];
         break;
       case 4:
-        // Validar documentos
-        const documentosEnviados = form.getValues('documentos').filter(d => d.arquivo || d.url).length;
-        const documentosObrigatorios = DOCUMENTOS_OBRIGATORIOS.filter(d => d.obrigatorio).length;
-        if (documentosEnviados < documentosObrigatorios) {
-          toast.error('Por favor, envie todos os documentos obrigatórios antes de continuar');
-          return;
+        // FASE 4: Validar documentos dinamicamente baseado na config do edital
+        if (editalId) {
+          const { supabase: supabaseClient } = await import('@/integrations/supabase/client');
+          const { data: uploadsConfig } = await supabaseClient
+            .from('editais')
+            .select('uploads_config, inscription_template_id, inscription_templates!inner(anexos_obrigatorios)')
+            .eq('id', editalId)
+            .single();
+          
+          // Calcular documentos obrigatórios dinamicamente
+          let documentosObrigatoriosCount = 0;
+          if (uploadsConfig?.uploads_config) {
+            documentosObrigatoriosCount = Object.values(uploadsConfig.uploads_config as any)
+              .filter((c: any) => c.obrigatorio && c.habilitado)
+              .length;
+          } else if (uploadsConfig?.inscription_templates) {
+            const template = uploadsConfig.inscription_templates as any;
+            if (template.anexos_obrigatorios && Array.isArray(template.anexos_obrigatorios)) {
+              documentosObrigatoriosCount = template.anexos_obrigatorios.filter((a: any) => a.obrigatorio).length;
+            }
+          } else {
+            documentosObrigatoriosCount = DOCUMENTOS_OBRIGATORIOS.filter(d => d.obrigatorio).length;
+          }
+
+          const documentosEnviados = form.getValues('documentos').filter(d => d.arquivo || d.url).length;
+          
+          if (documentosEnviados < documentosObrigatoriosCount) {
+            toast.error(`Por favor, envie todos os ${documentosObrigatoriosCount} documentos obrigatórios antes de continuar`);
+            return;
+          }
+        } else {
+          // Fallback para quando não há editalId
+          const documentosEnviados = form.getValues('documentos').filter(d => d.arquivo || d.url).length;
+          const documentosObrigatorios = DOCUMENTOS_OBRIGATORIOS.filter(d => d.obrigatorio).length;
+          if (documentosEnviados < documentosObrigatorios) {
+            toast.error('Por favor, envie todos os documentos obrigatórios antes de continuar');
+            return;
+          }
         }
         break;
     }
@@ -285,7 +317,7 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
       case 3:
         return <ConsultorioHorariosStep form={form} editalId={editalId} />;
       case 4:
-        return <DocumentosStep form={form} />;
+        return <DocumentosStep form={form} inscricaoId={inscricaoId} editalId={editalId} />;
       case 5:
         return <RevisaoStep form={form} />;
       default:

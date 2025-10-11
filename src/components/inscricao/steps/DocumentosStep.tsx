@@ -1,5 +1,6 @@
 import { UseFormReturn, useFieldArray } from 'react-hook-form';
 import { InscricaoCompletaForm, DOCUMENTOS_OBRIGATORIOS } from '@/lib/inscricao-validation';
+import { useUploadsConfig } from '@/hooks/useUploadsConfig';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +26,8 @@ import type { OCRValidationResult } from '@/lib/ocr-processor';
 
 interface DocumentosStepProps {
   form: UseFormReturn<InscricaoCompletaForm>;
-  inscricaoId?: string; // ID da inscrição para vincular documentos
+  inscricaoId?: string;
+  editalId?: string; // FASE 3: Adicionar editalId para buscar config dinâmica
 }
 
 const statusIcons = {
@@ -52,15 +54,31 @@ const statusLabels = {
   enviado: 'Enviado',
 };
 
-export function DocumentosStep({ form, inscricaoId }: DocumentosStepProps) {
+export function DocumentosStep({ form, inscricaoId, editalId }: DocumentosStepProps) {
   const { fields, update } = useFieldArray({
     control: form.control,
     name: 'documentos',
   });
 
+  // FASE 3: Buscar configuração dinâmica de uploads
+  const { data: uploadsConfig, isLoading: isLoadingConfig } = useUploadsConfig(editalId);
+
   const { salvarDocumento } = useInscricaoDocumentos(inscricaoId);
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   const [ocrResults, setOcrResults] = useState<Record<number, OCRValidationResult>>({});
+
+  // FASE 3: Usar config dinâmica ou fallback para DOCUMENTOS_OBRIGATORIOS
+  const documentosParaExibir = uploadsConfig || DOCUMENTOS_OBRIGATORIOS;
+  const documentosObrigatorios = documentosParaExibir.filter(d => d.obrigatorio);
+
+  if (isLoadingConfig) {
+    return (
+      <div className="flex justify-center items-center p-8">
+        <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
+        <span className="ml-2 text-muted-foreground">Carregando configuração de documentos...</span>
+      </div>
+    );
+  }
 
   const handleFileChange = async (index: number, file: File | null) => {
     if (!file) return;
@@ -70,8 +88,8 @@ export function DocumentosStep({ form, inscricaoId }: DocumentosStepProps) {
     try {
       toast.info('📤 Fazendo upload do arquivo...');
       
-      // Buscar config OCR do documento
-      const doc = DOCUMENTOS_OBRIGATORIOS[index];
+      // FASE 3: Buscar config OCR do documento dinâmico
+      const doc = documentosParaExibir[index];
       const documentoConfig = doc.ocrConfig || {
         documentType: (fields[index].tipo || 'cpf') as any,
         expectedFields: [],
@@ -167,12 +185,12 @@ export function DocumentosStep({ form, inscricaoId }: DocumentosStepProps) {
     });
   };
 
-  const documentosObrigatoriosList = DOCUMENTOS_OBRIGATORIOS.filter(d => d.obrigatorio);
+  // FASE 3: Calcular progresso baseado em documentos obrigatórios da config dinâmica
   const documentosEnviados = fields.filter(d => 
     (d.arquivo || d.url) && 
-    documentosObrigatoriosList.some(doc => doc.tipo === d.tipo)
+    documentosObrigatorios.some(doc => doc.tipo === d.tipo)
   ).length;
-  const progress = Math.min((documentosEnviados / documentosObrigatoriosList.length) * 100, 100);
+  const progress = Math.min((documentosEnviados / documentosObrigatorios.length) * 100, 100);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -190,7 +208,7 @@ export function DocumentosStep({ form, inscricaoId }: DocumentosStepProps) {
           <div className="flex items-center justify-between mb-2">
             <span className="font-medium">Progresso do upload</span>
             <span className="text-sm">
-              {documentosEnviados} de {documentosObrigatoriosList.length} documentos obrigatórios
+              {documentosEnviados} de {documentosObrigatorios.length} documentos obrigatórios
             </span>
           </div>
           <div className="w-full bg-muted rounded-full h-2">
@@ -202,9 +220,18 @@ export function DocumentosStep({ form, inscricaoId }: DocumentosStepProps) {
         </AlertDescription>
       </Alert>
 
-      {/* Lista de documentos */}
+      {/* FASE 3: Lista de documentos dinâmica */}
       <div className="space-y-3">
-        {DOCUMENTOS_OBRIGATORIOS.map((doc, index) => {
+        {documentosParaExibir.map((doc, index) => {
+          // Garantir que fields[index] existe
+          if (!fields[index]) {
+            console.warn(`[DocumentosStep] Field ${index} não existe, criando...`);
+            update(index, {
+              tipo: doc.tipo,
+              status: 'faltante',
+            });
+          }
+          
           const documentoAtual = fields[index];
           const StatusIcon = statusIcons[documentoAtual?.status || 'faltante'];
           const isUploading = uploadingIndex === index;

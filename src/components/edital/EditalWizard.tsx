@@ -13,6 +13,7 @@ import { ParticipacaoHabilitacaoStep } from "./steps/ParticipacaoHabilitacaoStep
 import { WorkflowStep } from "./steps/WorkflowStep";
 import { AnexosStep } from "./steps/AnexosStep";
 import { PublicacaoStep } from "./steps/PublicacaoStep";
+import { UploadsConfigPanel } from "./UploadsConfigPanel"; // FASE 6
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -61,6 +62,8 @@ const editalSchema = z.object({
   documentos_habilitacao: z.array(z.string()).min(1, "Selecione ao menos um documento"),
   anexos: z.record(z.any()).optional(),
   status: z.enum(["rascunho", "publicado", "encerrado"]).default("rascunho"),
+  // FASE 6: Campo para configuração de uploads
+  uploads_config: z.record(z.any()).optional(),
   // Campos de workflow (OBRIGATÓRIOS)
   workflow_id: z.string().uuid("Selecione um workflow válido"),
   workflow_version: z.number().min(1),
@@ -107,6 +110,7 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
       anexos: {},
       anexos_administrativos: {},
       anexos_processo_esperados: [],
+      uploads_config: {}, // FASE 6: Inicializar vazio
       ...initialData,
     },
   });
@@ -312,6 +316,8 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
         // Novos campos separados (Sprint 4)
         anexos_administrativos: USE_WORKFLOW_ATTACHMENTS ? data.anexos_administrativos : data.anexos,
         anexos_processo_esperados: USE_WORKFLOW_ATTACHMENTS ? data.anexos_processo_esperados : [],
+        // FASE 6: Salvar configuração de uploads
+        uploads_config: data.uploads_config || null,
         status: data.status,
         created_by: user.id,
         // Campos de workflow (obrigatórios)
@@ -422,7 +428,13 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return <InformacoesGeraisStep form={form} />;
+        return (
+          <div className="space-y-6">
+            <InformacoesGeraisStep form={form} />
+            {/* FASE 6: Painel de configuração de uploads */}
+            <UploadsConfigPanel form={form} />
+          </div>
+        );
       case 2:
         return <ParticipacaoHabilitacaoStep form={form} />;
       case 3:

@@ -69,6 +69,49 @@ serve(async (req) => {
       maximo: maxEspecialidades
     });
 
+    // FASE 5: Validação dinâmica de uploads obrigatórios
+    const { data: editalConfig, error: editalError } = await supabase
+      .from('editais')
+      .select('uploads_config, inscription_template_id, inscription_templates!inner(anexos_obrigatorios)')
+      .eq('id', inscricao.edital_id)
+      .single();
+
+    if (editalError) throw editalError;
+
+    // Determinar documentos obrigatórios baseado na hierarquia
+    let documentosObrigatorios: string[] = [];
+    if (editalConfig.uploads_config && Object.keys(editalConfig.uploads_config).length > 0) {
+      documentosObrigatorios = Object.entries(editalConfig.uploads_config as any)
+        .filter(([_, config]: [string, any]) => config.obrigatorio && config.habilitado)
+        .map(([tipo]) => tipo);
+    } else if (editalConfig.inscription_templates) {
+      const template = editalConfig.inscription_templates as any;
+      if (template.anexos_obrigatorios && Array.isArray(template.anexos_obrigatorios)) {
+        documentosObrigatorios = template.anexos_obrigatorios
+          .filter((a: any) => a.obrigatorio)
+          .map((a: any) => a.tipo || a.id);
+      }
+    }
+
+    // Validar se todos os documentos obrigatórios foram enviados
+    if (documentosObrigatorios.length > 0) {
+      const documentosEnviados = inscricao.dados_inscricao?.documentos || [];
+      const tiposEnviados = documentosEnviados
+        .filter((d: any) => d.arquivo || d.url)
+        .map((d: any) => d.tipo);
+
+      const faltantes = documentosObrigatorios.filter(tipo => !tiposEnviados.includes(tipo));
+
+      if (faltantes.length > 0) {
+        throw new Error(`Documentos obrigatórios faltando: ${faltantes.join(', ')}`);
+      }
+
+      console.log('[ENVIAR_INSCRICAO] Validação de uploads OK:', {
+        obrigatorios: documentosObrigatorios.length,
+        enviados: tiposEnviados.length
+      });
+    }
+
     // Atualizar inscrição para aguardando_analise
     const { error: updateError } = await supabase
       .from('inscricoes_edital')
