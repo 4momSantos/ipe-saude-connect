@@ -1,9 +1,14 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/StatusBadge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { RefreshCw, AlertCircle, Eye } from 'lucide-react';
+import { RefreshCw, AlertCircle, Eye, Upload } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 interface Inscricao {
   id: string;
@@ -27,6 +32,8 @@ interface InscricaoCardProps {
 }
 
 export function InscricaoCard({ inscricao, onRetry, onView }: InscricaoCardProps) {
+  const navigate = useNavigate();
+
   // Debug logging
   console.log('[INSCRICAO_CARD] Dados da inscrição:', {
     id: inscricao.id,
@@ -35,6 +42,21 @@ export function InscricaoCard({ inscricao, onRetry, onView }: InscricaoCardProps
     workflow_status: inscricao.workflow_executions?.status,
     has_error: !!inscricao.workflow_executions?.error_message
   });
+
+  // Buscar documentos rejeitados
+  const { data: documentos } = useQuery({
+    queryKey: ['inscricao-documentos-status', inscricao.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('inscricao_documentos')
+        .select('id, status, is_current')
+        .eq('inscricao_id', inscricao.id)
+        .eq('is_current', true);
+      return data || [];
+    }
+  });
+
+  const documentosRejeitados = documentos?.filter(d => d.status === 'rejeitado').length || 0;
 
   const canRetry = 
     (inscricao.status === 'inabilitado' || 
@@ -65,6 +87,18 @@ export function InscricaoCard({ inscricao, onRetry, onView }: InscricaoCardProps
           })}
         </p>
 
+        {/* Alerta de documentos rejeitados */}
+        {documentosRejeitados > 0 && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>
+                ⚠️ {documentosRejeitados} documento(s) rejeitado(s) precisa(m) ser reenviado(s)
+              </span>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {isFailed && inscricao.workflow_executions?.error_message && (
           <div className="flex items-start gap-2 p-3 bg-amber-100 dark:bg-amber-950/40 rounded-md border border-amber-200 dark:border-amber-800">
             <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
@@ -84,7 +118,17 @@ export function InscricaoCard({ inscricao, onRetry, onView }: InscricaoCardProps
           </div>
         )}
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {documentosRejeitados > 0 && (
+            <Button 
+              variant="destructive" 
+              onClick={() => navigate(`/minhas-inscricoes/${inscricao.id}/documentos-rejeitados`)}
+              className="gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              Reenviar Documentos ({documentosRejeitados})
+            </Button>
+          )}
           {canRetry && (
             <Button onClick={onRetry} variant="default" className="gap-2">
               <RefreshCw className="h-4 w-4" />

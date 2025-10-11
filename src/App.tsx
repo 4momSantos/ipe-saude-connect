@@ -9,6 +9,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Menu } from "lucide-react";
 import Dashboard from "./pages/Dashboard";
 import Inscricoes from "./pages/Inscricoes";
+import DocumentosRejeitados from "./pages/DocumentosRejeitados";
 import Editais from "./pages/Editais";
 import CriarEdital from "./pages/CriarEdital";
 import EditarEdital from "./pages/EditarEdital";
@@ -130,6 +131,7 @@ const App = () => (
                           <Route path="/editais/editar/:id" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><EditarEdital /></RoleProtectedRoute>} />
                           <Route path="/inscricoes" element={<Inscricoes />} />
                           <Route path="/minhas-inscricoes" element={<Inscricoes />} />
+                          <Route path="/minhas-inscricoes/:inscricaoId/documentos-rejeitados" element={<DocumentosRejeitados />} />
                           <Route 
                             path="/analises" 
                             element={
