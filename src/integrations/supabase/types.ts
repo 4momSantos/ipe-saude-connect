@@ -59,6 +59,13 @@ export type Database = {
             referencedRelation: "inscricoes_edital"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "analises_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: true
+            referencedRelation: "view_inscricoes_validacao_pendente"
+            referencedColumns: ["inscricao_id"]
+          },
         ]
       }
       api_keys_externas: {
@@ -450,6 +457,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "contratos_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: true
+            referencedRelation: "view_inscricoes_validacao_pendente"
+            referencedColumns: ["inscricao_id"]
+          },
+          {
             foreignKeyName: "contratos_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
@@ -669,6 +683,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "inscricoes_edital"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credenciados_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: false
+            referencedRelation: "view_inscricoes_validacao_pendente"
+            referencedColumns: ["inscricao_id"]
           },
         ]
       }
@@ -1225,11 +1246,130 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "inscricao_documentos_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: false
+            referencedRelation: "view_inscricoes_validacao_pendente"
+            referencedColumns: ["inscricao_id"]
+          },
+          {
             foreignKeyName: "inscricao_documentos_parent_document_id_fkey"
             columns: ["parent_document_id"]
             isOneToOne: false
             referencedRelation: "inscricao_documentos"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      inscricao_eventos: {
+        Row: {
+          dados: Json | null
+          descricao: string | null
+          id: string
+          inscricao_id: string
+          timestamp: string | null
+          tipo_evento: string
+          usuario_id: string | null
+        }
+        Insert: {
+          dados?: Json | null
+          descricao?: string | null
+          id?: string
+          inscricao_id: string
+          timestamp?: string | null
+          tipo_evento: string
+          usuario_id?: string | null
+        }
+        Update: {
+          dados?: Json | null
+          descricao?: string | null
+          id?: string
+          inscricao_id?: string
+          timestamp?: string | null
+          tipo_evento?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inscricao_eventos_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: false
+            referencedRelation: "inscricoes_edital"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inscricao_eventos_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: false
+            referencedRelation: "view_inscricoes_validacao_pendente"
+            referencedColumns: ["inscricao_id"]
+          },
+        ]
+      }
+      inscricao_validacoes: {
+        Row: {
+          analista_id: string
+          comentario_analista: string | null
+          created_at: string | null
+          dados_ocr_esperado: Json | null
+          dados_ocr_real: Json | null
+          discrepancias: Json | null
+          documento_id: string | null
+          id: string
+          inscricao_id: string
+          ocr_validado: boolean | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          analista_id: string
+          comentario_analista?: string | null
+          created_at?: string | null
+          dados_ocr_esperado?: Json | null
+          dados_ocr_real?: Json | null
+          discrepancias?: Json | null
+          documento_id?: string | null
+          id?: string
+          inscricao_id: string
+          ocr_validado?: boolean | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          analista_id?: string
+          comentario_analista?: string | null
+          created_at?: string | null
+          dados_ocr_esperado?: Json | null
+          dados_ocr_real?: Json | null
+          discrepancias?: Json | null
+          documento_id?: string | null
+          id?: string
+          inscricao_id?: string
+          ocr_validado?: boolean | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inscricao_validacoes_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "inscricao_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inscricao_validacoes_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: false
+            referencedRelation: "inscricoes_edital"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inscricao_validacoes_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: false
+            referencedRelation: "view_inscricoes_validacao_pendente"
+            referencedColumns: ["inscricao_id"]
           },
         ]
       }
@@ -1240,6 +1380,7 @@ export type Database = {
           candidato_id: string
           created_at: string | null
           dados_inscricao: Json | null
+          data_validacao: string | null
           edital_id: string
           id: string
           is_rascunho: boolean | null
@@ -1247,6 +1388,7 @@ export type Database = {
           retry_count: number | null
           status: string
           updated_at: string | null
+          validacao_status: string | null
           workflow_execution_id: string | null
         }
         Insert: {
@@ -1255,6 +1397,7 @@ export type Database = {
           candidato_id: string
           created_at?: string | null
           dados_inscricao?: Json | null
+          data_validacao?: string | null
           edital_id: string
           id?: string
           is_rascunho?: boolean | null
@@ -1262,6 +1405,7 @@ export type Database = {
           retry_count?: number | null
           status?: string
           updated_at?: string | null
+          validacao_status?: string | null
           workflow_execution_id?: string | null
         }
         Update: {
@@ -1270,6 +1414,7 @@ export type Database = {
           candidato_id?: string
           created_at?: string | null
           dados_inscricao?: Json | null
+          data_validacao?: string | null
           edital_id?: string
           id?: string
           is_rascunho?: boolean | null
@@ -1277,6 +1422,7 @@ export type Database = {
           retry_count?: number | null
           status?: string
           updated_at?: string | null
+          validacao_status?: string | null
           workflow_execution_id?: string | null
         }
         Relationships: [
@@ -2497,6 +2643,13 @@ export type Database = {
             referencedRelation: "inscricoes_edital"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "workflow_messages_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: false
+            referencedRelation: "view_inscricoes_validacao_pendente"
+            referencedColumns: ["inscricao_id"]
+          },
         ]
       }
       workflow_metrics: {
@@ -2596,6 +2749,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "inscricoes_edital"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_queue_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: true
+            referencedRelation: "view_inscricoes_validacao_pendente"
+            referencedColumns: ["inscricao_id"]
           },
           {
             foreignKeyName: "workflow_queue_workflow_id_fkey"
@@ -2925,6 +3085,33 @@ export type Database = {
         }
         Relationships: []
       }
+      view_inscricoes_validacao_pendente: {
+        Row: {
+          analistas: string | null
+          candidato_email: string | null
+          candidato_id: string | null
+          candidato_nome: string | null
+          data_inscricao: string | null
+          data_validacao: string | null
+          documentos_aprovados: number | null
+          documentos_pendentes: number | null
+          documentos_rejeitados: number | null
+          edital_titulo: string | null
+          inscricao_id: string | null
+          total_documentos: number | null
+          ultima_validacao: string | null
+          validacao_status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inscricoes_edital_candidato_profile_fkey"
+            columns: ["candidato_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       view_rollout_status: {
         Row: {
           contratos_assinados: number | null
@@ -3054,6 +3241,16 @@ export type Database = {
         }
         Returns: string
       }
+      log_inscricao_evento: {
+        Args: {
+          p_dados?: Json
+          p_descricao?: string
+          p_inscricao_id: string
+          p_tipo_evento: string
+          p_usuario_id?: string
+        }
+        Returns: string
+      }
       normalize_address: {
         Args: { addr: string }
         Returns: string
@@ -3094,6 +3291,15 @@ export type Database = {
           status: string
           workflow_id: string
         }[]
+      }
+      validar_documento: {
+        Args: {
+          p_comentario?: string
+          p_discrepancias?: Json
+          p_documento_id: string
+          p_status: string
+        }
+        Returns: string
       }
       verificar_regras_suspensao_automatica: {
         Args: Record<PropertyKey, never>
