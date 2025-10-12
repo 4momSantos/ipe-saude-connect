@@ -7,11 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { FileText, Upload, AlertCircle, Sparkles, CheckCircle2, XCircle, RotateCcw, RotateCw, FlipVertical } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FileText, Upload, AlertCircle, Sparkles, CheckCircle2, XCircle, RotateCcw, RotateCw, FlipVertical, TestTube } from 'lucide-react';
 import { toast } from 'sonner';
 import { processOCRWithValidation, getDocumentTypes, getDefaultFieldsForDocumentType } from '@/lib/ocr-processor';
 import type { OCRValidationResult } from '@/lib/ocr-processor';
 import { OCRResultCard } from '@/components/workflow-editor/OCRResultCard';
+import { TesteAssinatura } from '@/components/contratos/TesteAssinatura';
 
 export default function TesteOCR() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -163,15 +165,31 @@ export default function TesteOCR() {
             <Sparkles className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold">Teste de OCR</h1>
+            <h1 className="text-3xl font-bold">Testes de Integração</h1>
             <p className="text-muted-foreground">
-              Teste o processamento OCR de documentos em tempo real
+              Teste OCR e Assinatura Digital em um só lugar
             </p>
           </div>
         </div>
       </div>
 
       <Separator />
+
+      {/* Sistema de Abas */}
+      <Tabs defaultValue="ocr" className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="ocr" className="gap-2">
+            <Sparkles className="h-4 w-4" />
+            Teste OCR
+          </TabsTrigger>
+          <TabsTrigger value="assinatura" className="gap-2">
+            <TestTube className="h-4 w-4" />
+            Teste Assinatura
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Aba OCR (conteúdo existente) */}
+        <TabsContent value="ocr" className="space-y-6 mt-6">
 
       <div className="grid md:grid-cols-2 gap-6">
         {/* Painel de Configuração */}
@@ -503,6 +521,13 @@ export default function TesteOCR() {
           </Alert>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        {/* Aba Assinatura (novo) */}
+        <TabsContent value="assinatura" className="space-y-6 mt-6">
+          <TesteAssinatura />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
