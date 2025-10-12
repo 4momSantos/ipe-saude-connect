@@ -235,7 +235,6 @@ export function TesteAssinatura() {
                   <SelectValue placeholder="Usar meu usuário" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Meu usuário</SelectItem>
                   {candidatos?.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.nome || user.email}
@@ -243,6 +242,9 @@ export function TesteAssinatura() {
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Se não selecionar, usará seu usuário atual
+              </p>
             </div>
 
             <Separator />
