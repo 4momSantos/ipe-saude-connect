@@ -20,6 +20,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Função de log estruturado
+function logEvent(level: 'info' | 'error' | 'warn', action: string, data: any) {
+  console.log(JSON.stringify({
+    timestamp: new Date().toISOString(),
+    level,
+    service: 'gerar-contrato-assinatura',
+    action,
+    ...data
+  }));
+}
+
 interface GerarContratoRequest {
   inscricao_id: string;
   template_id?: string; // Opcional: ID do template customizado
@@ -190,12 +201,7 @@ serve(async (req) => {
       throw new Error('inscricao_id é obrigatório');
     }
 
-    console.log(JSON.stringify({
-      timestamp: new Date().toISOString(),
-      event: 'processing_request',
-      inscricao_id,
-      template_id
-    }));
+    logEvent('info', 'start', { inscricao_id, template_id });
 
     // Inicializar Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -270,11 +276,11 @@ serve(async (req) => {
       especialidades: especialidades.length > 0 ? especialidades : ['Não especificada']
     };
 
-    console.log(JSON.stringify({
-      timestamp: new Date().toISOString(),
-      event: 'contract_data_prepared',
-      candidato: contratoData.candidato_nome
-    }));
+    logEvent('info', 'fetch_data', { 
+      inscricao_id, 
+      candidato: contratoData.candidato_nome,
+      edital: contratoData.edital_titulo 
+    });
 
     // Gerar número único do contrato
     const numeroContrato = `CONT-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
@@ -313,12 +319,10 @@ serve(async (req) => {
 
     // Gerar HTML
     if (templateUsado) {
-      console.log(JSON.stringify({
-        timestamp: new Date().toISOString(),
-        event: 'using_template',
+      logEvent('info', 'using_template', {
         template_id: templateUsado.id,
         template_name: templateUsado.nome
-      }));
+      });
 
       contratoHTML = gerarContratoFromTemplate(
         templateUsado.conteudo_html,
@@ -330,10 +334,7 @@ serve(async (req) => {
         }
       );
     } else {
-      console.log(JSON.stringify({
-        timestamp: new Date().toISOString(),
-        event: 'using_default_template'
-      }));
+      logEvent('info', 'using_default_template', {});
 
       // Fallback: usar função de template padrão
       contratoHTML = gerarContratoHTML(contratoData);
@@ -363,12 +364,14 @@ serve(async (req) => {
       throw new Error(`Erro ao criar contrato: ${contratoError?.message}`);
     }
 
-    console.log(JSON.stringify({
-      timestamp: new Date().toISOString(),
-      event: 'contract_created',
+    logEvent('info', 'html_generated', { 
+      html_length: contratoHTML.length 
+    });
+
+    logEvent('info', 'contract_saved', {
       contrato_id: contrato.id,
       numero_contrato: numeroContrato
-    }));
+    });
 
     // Buscar análise para obter step_execution_id (se houver)
     const { data: analise } = await supabase
@@ -405,11 +408,9 @@ serve(async (req) => {
       throw new Error(`Erro ao criar signature request: ${signatureError?.message}`);
     }
 
-    console.log(JSON.stringify({
-      timestamp: new Date().toISOString(),
-      event: 'signature_request_created',
+    logEvent('info', 'signature_request_created', {
       signature_request_id: signatureRequest.id
-    }));
+    });
 
     // Chamar send-signature-request apenas se as credenciais estiverem configuradas
     let assinafyResponse: any = null;

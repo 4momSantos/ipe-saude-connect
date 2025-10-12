@@ -6,6 +6,7 @@ import { Users, FileText, CheckCircle, TrendingUp, Clock, UserCheck, Workflow, A
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from "recharts";
 import { Separator } from "@/components/ui/separator";
+import { AssignafyMonitor } from "@/components/contratos/AssignafyMonitor";
 
 export function DashboardGestor() {
   const [stats, setStats] = useState({
@@ -463,6 +464,9 @@ export function DashboardGestor() {
           </CardContent>
         </Card>
       )}
+
+      {/* Monitor Integração Assinafy */}
+      <AssignafyMonitor />
     </div>
   );
 }
