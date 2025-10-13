@@ -175,10 +175,19 @@ export function DashboardContratos() {
                       candidato?.email?.split('@')[0] ||
                       "Candidato sem nome";
 
+                    // Verificar problemas no contrato
+                    const temHTML = (contrato.dados_contrato as any)?.html;
+                    const statusProblematico = contrato.status === 'pendente_assinatura' && !temHTML;
+
                     return (
                       <TableRow key={contrato.id}>
                         <TableCell className="font-medium">
                           {contrato.numero_contrato}
+                          {statusProblematico && (
+                            <Badge variant="destructive" className="ml-2 text-xs">
+                              Sem HTML
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell>{candidatoNome}</TableCell>
                         <TableCell>

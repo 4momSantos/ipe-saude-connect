@@ -3251,6 +3251,7 @@ export type Database = {
           id: string
           inscricao_id: string
           numero_contrato: string
+          signature_request_id: string
         }[]
       }
       get_gestores: {

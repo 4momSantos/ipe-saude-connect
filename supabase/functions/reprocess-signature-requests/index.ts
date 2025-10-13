@@ -12,6 +12,7 @@ interface ReprocessResult {
   numero_contrato: string;
   inscricao_id: string;
   signature_request_id?: string;
+  old_signature_request_deleted?: boolean;
   error?: string;
 }
 
@@ -83,6 +84,33 @@ serve(async (req) => {
     // 2. Processar cada contrato
     for (const contrato of contratosPendentes) {
       try {
+        // Se já existe signature_request com status failed, deletar
+        let oldSignatureRequestDeleted = false;
+        if (contrato.signature_request_id) {
+          console.log(JSON.stringify({
+            timestamp: new Date().toISOString(),
+            event: 'deleting_failed_signature_request',
+            signature_request_id: contrato.signature_request_id,
+            contrato_id: contrato.id
+          }));
+
+          const { error: deleteError } = await supabase
+            .from('signature_requests')
+            .delete()
+            .eq('id', contrato.signature_request_id);
+
+          if (deleteError) {
+            console.error(JSON.stringify({
+              timestamp: new Date().toISOString(),
+              event: 'failed_to_delete_signature_request',
+              signature_request_id: contrato.signature_request_id,
+              error: deleteError.message
+            }));
+          } else {
+            oldSignatureRequestDeleted = true;
+          }
+        }
+
         const dadosInscricao = contrato.dados_inscricao || {};
         const dadosPessoais = dadosInscricao.dadosPessoais || dadosInscricao.dados_pessoais || {};
 
@@ -160,7 +188,8 @@ serve(async (req) => {
           contrato_id: contrato.id,
           numero_contrato: contrato.numero_contrato,
           inscricao_id: contrato.inscricao_id,
-          signature_request_id: signatureRequest.id
+          signature_request_id: signatureRequest.id,
+          old_signature_request_deleted: oldSignatureRequestDeleted
         });
 
         successCount++;

@@ -557,6 +557,35 @@ serve(async (req) => {
           }
         }
         
+        // Se ainda não tem HTML, marcar como failed e logar
+        if (!contratoHTML) {
+          const errorMsg = `HTML do contrato não encontrado. Contrato ID: ${contrato.id}, Número: ${contrato.numero_contrato}`;
+          
+          console.error(JSON.stringify({
+            timestamp: new Date().toISOString(),
+            level: 'error',
+            action: 'missing_contract_html',
+            contrato_id: contrato.id,
+            numero_contrato: contrato.numero_contrato,
+            error: errorMsg
+          }));
+
+          await supabase
+            .from('signature_requests')
+            .update({
+              status: 'failed',
+              metadata: {
+                ...(signatureRequest.metadata || {}),
+                error: errorMsg,
+                failed_at: new Date().toISOString(),
+                missing_html: true
+              }
+            })
+            .eq('id', signatureRequestId);
+
+          throw new Error(errorMsg);
+        }
+        
         if (!contratoHTML) {
           throw new Error('HTML do contrato não encontrado em dados_contrato.html nem em metadata.document_html');
         }
