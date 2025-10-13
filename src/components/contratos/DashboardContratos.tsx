@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTodosContratos } from "@/hooks/useContratos";
+import { useReprocessSignatures } from "@/hooks/useReprocessSignatures";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,14 +20,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FileText, Search, Filter, Download, ExternalLink } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { FileText, Search, Filter, Download, ExternalLink, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TesteAssinatura } from "./TesteAssinatura";
 
 export function DashboardContratos() {
   const { contratos, filtrar, isLoading } = useTodosContratos();
+  const { mutate: reprocessSignatures, isPending } = useReprocessSignatures();
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+  const handleReprocess = () => {
+    setShowConfirmDialog(false);
+    reprocessSignatures();
+  };
 
   const contratosFiltrados = contratos
     .filter(c => {
@@ -69,9 +87,24 @@ export function DashboardContratos() {
       
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-6 w-6" />
-            Gestão de Contratos
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileText className="h-6 w-6" />
+              Gestão de Contratos
+            </div>
+            <Button
+              onClick={() => setShowConfirmDialog(true)}
+              variant="outline"
+              size="sm"
+              disabled={isPending}
+            >
+              {isPending ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              Reprocessar Assinaturas Pendentes
+            </Button>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -198,6 +231,27 @@ export function DashboardContratos() {
           </div>
         </CardContent>
       </Card>
+
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reprocessar Assinaturas Pendentes</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação irá identificar contratos com status "Pendente de Assinatura" que não
+              possuem solicitação de assinatura vinculada e enviará os emails de assinatura
+              automaticamente.
+              <br /><br />
+              Deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleReprocess}>
+              Confirmar Reprocessamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
