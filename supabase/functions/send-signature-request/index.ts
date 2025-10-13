@@ -528,6 +528,35 @@ serve(async (req) => {
           contratoHTML = (signatureRequest.metadata as any).document_html;
         }
         
+        // ⏱️ Passo 3: Se HTML veio do fallback, aguardar e tentar buscar novamente
+        if (!contrato.dados_contrato?.html && contratoHTML) {
+          console.log(JSON.stringify({
+            timestamp: new Date().toISOString(),
+            level: 'info',
+            action: 'fallback_html_used_waiting_db',
+            message: 'HTML veio do fallback, aguardando 1s para tentar buscar do banco novamente'
+          }));
+          
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Tentar buscar contrato atualizado do banco
+          const { data: contratoAtualizado } = await supabase
+            .from('contratos')
+            .select('dados_contrato')
+            .eq('id', signatureRequest.contrato_id)
+            .single();
+            
+          if (contratoAtualizado?.dados_contrato?.html) {
+            contratoHTML = contratoAtualizado.dados_contrato.html;
+            console.log(JSON.stringify({
+              timestamp: new Date().toISOString(),
+              level: 'info',
+              action: 'html_found_after_retry',
+              message: 'HTML encontrado no banco após retry'
+            }));
+          }
+        }
+        
         if (!contratoHTML) {
           throw new Error('HTML do contrato não encontrado em dados_contrato.html nem em metadata.document_html');
         }

@@ -364,6 +364,14 @@ serve(async (req) => {
       throw new Error(`Erro ao criar contrato: ${contratoError?.message}`);
     }
 
+    // ⏱️ Passo 2: Aguardar 2s para garantir persistência do contrato no banco
+    logEvent('info', 'waiting_db_commit', {
+      contrato_id: contrato.id,
+      message: 'Aguardando 2s para garantir commit do contrato no banco'
+    });
+    
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
     logEvent('info', 'html_generated', { 
       html_length: contratoHTML.length 
     });
