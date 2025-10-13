@@ -14,7 +14,6 @@ export function useGerarCertificado() {
     mutationFn: async ({ credenciadoId, force_new = false }: GerarCertificadoParams) => {
       console.log('[useGerarCertificado] Iniciando geração de certificado para:', credenciadoId, 'force_new:', force_new);
 
-      // FASE 2: Apenas chamar edge function - ela faz tudo agora
       const { data: certificadoData, error: functionError } = await supabase.functions.invoke(
         "gerar-certificado",
         {
@@ -22,10 +21,20 @@ export function useGerarCertificado() {
         }
       );
 
-      if (functionError) throw functionError;
+      // 🔍 LOG DETALHADO DA RESPOSTA
+      console.log('[useGerarCertificado] Resposta da edge function:', {
+        data: certificadoData,
+        error: functionError
+      });
+
+      if (functionError) {
+        console.error('[useGerarCertificado] Erro da edge function:', functionError);
+        throw functionError;
+      }
       
       if (!certificadoData?.success) {
-        throw new Error(certificadoData?.message || 'Erro ao gerar certificado');
+        console.error('[useGerarCertificado] Resposta sem success:', certificadoData);
+        throw new Error(certificadoData?.message || certificadoData?.error || 'Erro ao gerar certificado');
       }
 
       console.log('[useGerarCertificado] Certificado gerado com sucesso!');

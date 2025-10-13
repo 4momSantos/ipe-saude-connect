@@ -459,9 +459,18 @@ Deno.serve(async (req) => {
           numero_certificado: certificadoSalvo.numero_certificado,
           credenciado_id: certificadoSalvo.credenciado_id,
           documento_url: certificadoSalvo.documento_url,
-          ...result.certificado
+          emitido_em: certificadoSalvo.emitido_em,
+          valido_ate: certificadoSalvo.valido_ate,
+          status: certificadoSalvo.status,
+          dados_certificado: certificadoSalvo.dados_certificado,
+          verificationUrl: verificationUrl
         },
-        credenciado: result.credenciado
+        credenciado: {
+          id: credenciado.id,
+          nome: credenciado.nome,
+          cpf: credenciado.cpf,
+          cnpj: credenciado.cnpj
+        }
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -18,10 +18,20 @@ export function CertificadoCard({ credenciadoId }: CertificadoCardProps) {
 
   const handleGerar = async (forceNew: boolean = false) => {
     try {
+      console.log('[CertificadoCard] Iniciando geração...', { credenciadoId, forceNew });
+      
       await gerar({ credenciadoId, force_new: forceNew });
+      
+      console.log('[CertificadoCard] Certificado gerado, fazendo refetch...');
+      
+      // Aguardar um pouco antes do refetch para garantir que o banco foi atualizado
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       await refetch();
+      
+      console.log('[CertificadoCard] Refetch concluído');
     } catch (error) {
-      console.error('Erro ao gerar certificado:', error);
+      console.error('[CertificadoCard] Erro ao gerar certificado:', error);
     }
   };
 
