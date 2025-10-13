@@ -166,7 +166,7 @@ export function AdvancedToolbar({
         <Button
           variant={editor.isActive({ textAlign: 'left' }) ? 'default' : 'ghost'}
           size="sm"
-          onClick={() => (editor.chain().focus() as any).setTextAlign?.('left').run()}
+          onClick={() => editor.chain().focus().setTextAlign('left').run()}
           title="Alinhar à Esquerda"
         >
           <AlignLeft className="h-4 w-4" />
@@ -174,7 +174,7 @@ export function AdvancedToolbar({
         <Button
           variant={editor.isActive({ textAlign: 'center' }) ? 'default' : 'ghost'}
           size="sm"
-          onClick={() => (editor.chain().focus() as any).setTextAlign?.('center').run()}
+          onClick={() => editor.chain().focus().setTextAlign('center').run()}
           title="Centralizar"
         >
           <AlignCenter className="h-4 w-4" />
@@ -182,7 +182,7 @@ export function AdvancedToolbar({
         <Button
           variant={editor.isActive({ textAlign: 'right' }) ? 'default' : 'ghost'}
           size="sm"
-          onClick={() => (editor.chain().focus() as any).setTextAlign?.('right').run()}
+          onClick={() => editor.chain().focus().setTextAlign('right').run()}
           title="Alinhar à Direita"
         >
           <AlignRight className="h-4 w-4" />
@@ -190,7 +190,7 @@ export function AdvancedToolbar({
         <Button
           variant={editor.isActive({ textAlign: 'justify' }) ? 'default' : 'ghost'}
           size="sm"
-          onClick={() => (editor.chain().focus() as any).setTextAlign?.('justify').run()}
+          onClick={() => editor.chain().focus().setTextAlign('justify').run()}
           title="Justificar"
         >
           <AlignJustify className="h-4 w-4" />

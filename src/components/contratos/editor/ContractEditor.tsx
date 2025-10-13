@@ -80,21 +80,31 @@ export function ContractEditor({
     extensions: [
       StarterKit.configure({
         codeBlock: false,
+        link: false, // Desabilitar link do StarterKit
       }),
       ResizableImage,
       Table.configure({ resizable: true }),
       TableRow,
       TableCell,
       TableHeader,
-      TextAlign.configure({ types: ["heading", "paragraph", "div", "blockquote", "codeBlock"] }),
+      TextAlign.configure({ 
+        types: ["heading", "paragraph", "div", "blockquote", "codeBlock"],
+        alignments: ["left", "center", "right", "justify"],
+        defaultAlignment: "left"
+      }),
       TextStyle,
       FontFamily,
       Color,
-      Highlight,
+      Highlight.configure({ multicolor: true }),
       Underline,
       Subscript,
       Superscript,
-      Link.configure({ openOnClick: false }),
+      Link.configure({ 
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-primary underline'
+        }
+      }),
       TaskList,
       TaskItem.configure({ nested: true }),
       CodeBlockLowlight.configure({ lowlight }),
@@ -116,12 +126,19 @@ export function ContractEditor({
   // Editor de cabeçalho
   const headerEditor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        link: false,
+      }),
       ResizableImage,
-      TextAlign.configure({ types: ["heading", "paragraph", "div", "blockquote"] }),
+      TextAlign.configure({ 
+        types: ["heading", "paragraph", "div", "blockquote"],
+        alignments: ["left", "center", "right", "justify"],
+        defaultAlignment: "left"
+      }),
       TextStyle,
       FontFamily,
       Color,
+      Link.configure({ openOnClick: false }),
       Placeholder.configure({ placeholder: "Cabeçalho do documento..." }),
     ],
     content: initialHeader || "",
@@ -135,12 +152,19 @@ export function ContractEditor({
   // Editor de rodapé
   const footerEditor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        link: false,
+      }),
       ResizableImage,
-      TextAlign.configure({ types: ["heading", "paragraph", "div", "blockquote"] }),
+      TextAlign.configure({ 
+        types: ["heading", "paragraph", "div", "blockquote"],
+        alignments: ["left", "center", "right", "justify"],
+        defaultAlignment: "left"
+      }),
       TextStyle,
       FontFamily,
       Color,
+      Link.configure({ openOnClick: false }),
       Placeholder.configure({ placeholder: "Rodapé do documento..." }),
     ],
     content: initialFooter || "",

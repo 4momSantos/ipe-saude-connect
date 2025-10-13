@@ -9,10 +9,10 @@ interface ImageToolbarProps {
 
 export const ImageToolbar = ({ node, updateAttributes, onDelete }: ImageToolbarProps) => {
   const presetSizes = [
-    { label: 'P', width: 400 },
-    { label: 'M', width: 600 },
-    { label: 'G', width: 800 },
-    { label: 'Total', width: '100%' },
+    { label: 'P', width: 300 },
+    { label: 'M', width: 500 },
+    { label: 'G', width: 700 },
+    { label: 'Max', width: 1000 },
   ];
 
   const handleAddLink = () => {
