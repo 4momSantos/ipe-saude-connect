@@ -98,8 +98,46 @@ Deno.serve(async (req) => {
 
     console.log('[GERAR_CERTIFICADO] Dados do certificado preparados:', numeroCertificado);
 
+    // Salvar certificado no banco de dados
+    const { data: certificadoSalvo, error: saveError } = await supabase
+      .from('certificados')
+      .insert({
+        credenciado_id: credenciadoId,
+        numero_certificado: numeroCertificado,
+        tipo: 'credenciamento',
+        status: 'ativo',
+        emitido_em: new Date().toISOString(),
+        valido_ate: validoAte.toISOString(),
+        dados_certificado: {
+          nome: credenciado.nome,
+          cpf: credenciado.cpf,
+          cnpj: credenciado.cnpj,
+          especialidades,
+          qr_code_url: qrCodeUrl,
+          verification_url: verificationUrl
+        }
+      })
+      .select()
+      .single();
+
+    if (saveError) {
+      console.error('[GERAR_CERTIFICADO] Erro ao salvar certificado:', saveError);
+      throw new Error(`Erro ao salvar certificado: ${saveError.message}`);
+    }
+
+    console.log('[GERAR_CERTIFICADO] Certificado salvo com sucesso:', certificadoSalvo.id);
+
     return new Response(
-      JSON.stringify(result),
+      JSON.stringify({
+        success: true,
+        certificado: {
+          id: certificadoSalvo.id,
+          numero_certificado: certificadoSalvo.numero_certificado,
+          credenciado_id: certificadoSalvo.credenciado_id,
+          ...result.certificado
+        },
+        credenciado: result.credenciado
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200

@@ -106,7 +106,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/verificar-certificado/:numeroCertificado" element={<VerificarCertificado />} />
+            <Route path="/verificar-certificado/:numero" element={<VerificarCertificado />} />
             <Route
               path="/*"
               element={

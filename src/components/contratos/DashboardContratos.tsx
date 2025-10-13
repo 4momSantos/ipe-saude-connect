@@ -3,6 +3,9 @@ import { useTodosContratos } from "@/hooks/useContratos";
 import { useReprocessSignatures } from "@/hooks/useReprocessSignatures";
 import { useResendSignatureEmail } from "@/hooks/useResendSignatureEmail";
 import { useRegenerateContract } from "@/hooks/useRegenerateContract";
+import { useMutation } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -37,10 +40,32 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TesteAssinatura } from "./TesteAssinatura";
 
 export function DashboardContratos() {
-  const { contratos, filtrar, isLoading } = useTodosContratos();
+  const { contratos, filtrar, isLoading, refetch } = useTodosContratos();
   const { mutate: reprocessSignatures, isPending } = useReprocessSignatures();
   const { mutate: resendEmail, isPending: isResending } = useResendSignatureEmail();
   const { mutate: regenerateContract, isPending: isRegenerating } = useRegenerateContract();
+  
+  const { mutate: checkStatus, isPending: isCheckingStatus } = useMutation({
+    mutationFn: async (contratoId: string) => {
+      const { data, error } = await supabase.functions.invoke('check-assinafy-status', {
+        body: { contratoId }
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      if (data.signed) {
+        toast.success('✅ Contrato sincronizado! Status atualizado para assinado.');
+      } else {
+        toast.info(`Status: ${data.status}`);
+      }
+      refetch();
+    },
+    onError: (error: Error) => {
+      toast.error(`Erro ao verificar status: ${error.message}`);
+    }
+  });
+  
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [searchQuery, setSearchQuery] = useState("");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -249,7 +274,7 @@ export function DashboardContratos() {
                                   Regenerar Contrato
                                 </Button>
                               ) : (
-                                <Button
+                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => resendEmail([contrato.id])}
@@ -259,6 +284,17 @@ export function DashboardContratos() {
                                   Reenviar E-mail
                                 </Button>
                               )
+                            )}
+                            {contrato.status === "pendente_assinatura" && (
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => checkStatus(contrato.id)}
+                                disabled={isCheckingStatus}
+                              >
+                                <RefreshCw className="h-4 w-4 mr-2" />
+                                Verificar Status
+                              </Button>
                             )}
                           </div>
                         </TableCell>

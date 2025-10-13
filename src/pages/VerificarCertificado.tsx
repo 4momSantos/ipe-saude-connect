@@ -1,59 +1,50 @@
-import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, CheckCircle2, XCircle, Download } from "lucide-react";
+import { CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { format } from "date-fns";
 
 export default function VerificarCertificado() {
-  const { numeroCertificado } = useParams<{ numeroCertificado: string }>();
-  const [certificado, setCertificado] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { numero } = useParams<{ numero: string }>();
 
-  useEffect(() => {
-    async function fetchCertificado() {
-      try {
-        const { data, error: fetchError } = await supabase
-          .from("certificados")
-          .select(`
-            *,
-            credenciado:credenciados(
-              id,
-              nome,
-              cpf,
-              cnpj,
-              email
+  const { data: certificado, isLoading, error } = useQuery({
+    queryKey: ["certificado", numero],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("certificados")
+        .select(`
+          *,
+          credenciado:credenciados(
+            id,
+            nome,
+            cpf,
+            cnpj,
+            crms:credenciado_crms(
+              crm,
+              uf_crm,
+              especialidade
             )
-          `)
-          .eq("numero_certificado", numeroCertificado)
-          .single();
+          )
+        `)
+        .eq("numero_certificado", numero)
+        .single();
 
-        if (fetchError) throw fetchError;
-        if (!data) throw new Error("Certificado não encontrado");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!numero
+  });
 
-        setCertificado(data);
-      } catch (err: any) {
-        console.error("Erro ao buscar certificado:", err);
-        setError(err.message || "Erro ao buscar certificado");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    if (numeroCertificado) {
-      fetchCertificado();
-    }
-  }, [numeroCertificado]);
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-primary/5">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-8 text-center">
-            <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-            <p className="text-muted-foreground">Verificando certificado...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10">
+        <Card className="max-w-2xl w-full mx-4">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-center p-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -62,20 +53,20 @@ export default function VerificarCertificado() {
 
   if (error || !certificado) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-destructive/10 via-background to-destructive/5">
-        <Card className="w-full max-w-md border-destructive/50">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
-              <XCircle className="h-10 w-10 text-destructive" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-destructive/5 to-destructive/10">
+        <Card className="max-w-2xl w-full mx-4 border-destructive">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <XCircle className="h-8 w-8 text-destructive" />
+              <CardTitle className="text-destructive">Certificado Não Encontrado</CardTitle>
             </div>
-            <CardTitle className="text-destructive">Certificado Não Encontrado</CardTitle>
           </CardHeader>
-          <CardContent className="text-center space-y-4">
+          <CardContent>
             <p className="text-muted-foreground">
-              O certificado <code className="px-2 py-1 bg-muted rounded text-sm">{numeroCertificado}</code> não foi encontrado em nossa base de dados.
+              O certificado <strong>{numero}</strong> não foi encontrado em nossa base de dados.
             </p>
-            <p className="text-sm text-muted-foreground">
-              Verifique se o número foi digitado corretamente ou entre em contato conosco.
+            <p className="text-sm text-muted-foreground mt-2">
+              Verifique se o número está correto ou entre em contato com o emissor.
             </p>
           </CardContent>
         </Card>
@@ -83,98 +74,92 @@ export default function VerificarCertificado() {
     );
   }
 
-  const isValido = certificado.status === "ativo" && new Date(certificado.valido_ate) > new Date();
-  const emitidoEm = new Date(certificado.emitido_em).toLocaleDateString("pt-BR");
-  const validoAte = new Date(certificado.valido_ate).toLocaleDateString("pt-BR");
+  const isValido = certificado.status === 'ativo' && new Date(certificado.valido_ate) > new Date();
+  const credenciado = certificado.credenciado as any;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-primary/5 p-4">
-      <Card className="w-full max-w-3xl shadow-lg">
-        <CardHeader className="text-center border-b">
-          <div className="mx-auto mb-4 h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center">
-            {isValido ? (
-              <CheckCircle2 className="h-12 w-12 text-primary" />
-            ) : (
-              <XCircle className="h-12 w-12 text-destructive" />
-            )}
-          </div>
-          <CardTitle className="text-2xl">
-            {isValido ? "Certificado Válido" : "Certificado Inválido"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-8 space-y-6">
-          {/* Status */}
-          <div className="flex justify-center">
-            <Badge variant={isValido ? "default" : "destructive"} className="px-4 py-2 text-lg">
-              {certificado.status === "ativo" ? "ATIVO" : "INATIVO"}
-            </Badge>
-          </div>
-
-          {/* Informações do Certificado */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <p className="text-sm font-semibold text-muted-foreground">Número do Certificado</p>
-              <p className="text-lg font-mono font-bold text-primary">{certificado.numero_certificado}</p>
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-primary/10 py-12 px-4">
+      <div className="max-w-4xl mx-auto">
+        <Card className="border-2">
+          <CardHeader className="text-center border-b">
+            <div className="flex items-center justify-center gap-3 mb-2">
+              {isValido ? (
+                <CheckCircle className="h-12 w-12 text-green-500" />
+              ) : (
+                <AlertCircle className="h-12 w-12 text-amber-500" />
+              )}
             </div>
+            <CardTitle className="text-3xl">Certificado de Credenciamento</CardTitle>
+            <p className="text-muted-foreground">Verificação de Autenticidade</p>
+          </CardHeader>
 
-            <div className="space-y-2">
-              <p className="text-sm font-semibold text-muted-foreground">Tipo</p>
-              <p className="text-lg capitalize">{certificado.tipo}</p>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-sm font-semibold text-muted-foreground">Credenciado</p>
-              <p className="text-lg font-semibold">{certificado.credenciado.nome}</p>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-sm font-semibold text-muted-foreground">CPF/CNPJ</p>
-              <p className="text-lg font-mono">{certificado.credenciado.cpf || certificado.credenciado.cnpj}</p>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-sm font-semibold text-muted-foreground">Emitido em</p>
-              <p className="text-lg">{emitidoEm}</p>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-sm font-semibold text-muted-foreground">Válido até</p>
-              <p className="text-lg">{validoAte}</p>
-            </div>
-          </div>
-
-          {/* Especialidades */}
-          {certificado.dados_certificado?.especialidades && (
-            <div className="space-y-2 pt-4 border-t">
-              <p className="text-sm font-semibold text-muted-foreground">Especialidade(s)</p>
-              <p className="text-lg">{certificado.dados_certificado.especialidades}</p>
-            </div>
-          )}
-
-          {/* Botão de Download */}
-          {certificado.documento_url && (
-            <div className="pt-6 flex justify-center">
-              <Button
-                size="lg"
-                onClick={() => window.open(certificado.documento_url, "_blank")}
-                className="gap-2"
+          <CardContent className="pt-6 space-y-6">
+            {/* Status */}
+            <div className="text-center">
+              <Badge 
+                variant={isValido ? "default" : "secondary"} 
+                className="text-lg px-6 py-2"
               >
-                <Download className="h-5 w-5" />
-                Baixar Certificado PDF
-              </Button>
+                {isValido ? "✓ Válido" : "⚠ Inválido ou Expirado"}
+              </Badge>
             </div>
-          )}
 
-          {/* Aviso de Validade */}
-          {!isValido && (
-            <div className="mt-6 p-4 bg-destructive/10 border border-destructive/50 rounded-lg text-center">
-              <p className="text-sm text-destructive font-semibold">
-                ⚠️ Este certificado está {certificado.status === "ativo" ? "expirado" : "inativo"}
-              </p>
+            {/* Número do Certificado */}
+            <div className="bg-muted/50 p-4 rounded-lg text-center">
+              <p className="text-sm text-muted-foreground mb-1">Número do Certificado</p>
+              <p className="text-2xl font-mono font-bold">{certificado.numero_certificado}</p>
             </div>
-          )}
-        </CardContent>
-      </Card>
+
+            {/* Dados do Credenciado */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Nome</p>
+                <p className="text-lg font-semibold">{credenciado?.nome || 'Não informado'}</p>
+              </div>
+              
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  {credenciado?.cpf ? 'CPF' : 'CNPJ'}
+                </p>
+                <p className="text-lg font-mono">{credenciado?.cpf || credenciado?.cnpj || 'Não informado'}</p>
+              </div>
+            </div>
+
+            {/* Especialidades */}
+            {credenciado?.crms && credenciado.crms.length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-2">Especialidades</p>
+                <div className="flex flex-wrap gap-2">
+                  {credenciado.crms.map((crm: any, index: number) => (
+                    <Badge key={index} variant="outline" className="text-sm">
+                      {crm.especialidade} - CRM {crm.crm}/{crm.uf_crm}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Validade */}
+            <div className="grid md:grid-cols-2 gap-4 pt-4 border-t">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Emitido em</p>
+                <p className="text-base">{format(new Date(certificado.emitido_em), "dd/MM/yyyy")}</p>
+              </div>
+              
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Válido até</p>
+                <p className="text-base">{format(new Date(certificado.valido_ate), "dd/MM/yyyy")}</p>
+              </div>
+            </div>
+
+            {/* Rodapé */}
+            <div className="text-center text-sm text-muted-foreground pt-4 border-t">
+              <p>Este certificado foi emitido digitalmente e pode ser verificado a qualquer momento através deste link.</p>
+              <p className="mt-2 font-mono text-xs">{window.location.href}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

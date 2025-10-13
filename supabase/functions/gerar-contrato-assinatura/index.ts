@@ -304,16 +304,36 @@ serve(async (req) => {
         templateUsado = template;
       }
     } else {
-      // Buscar template ativo padrão (o mais recente)
-      const { data: templates } = await supabase
+      // Buscar template "Contrato de Credenciamento - Padrão" especificamente
+      const { data: templatePadrao } = await supabase
         .from('contract_templates')
         .select('*')
         .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .eq('nome', 'Contrato de Credenciamento - Padrão')
+        .single();
 
-      if (templates && templates.length > 0) {
-        templateUsado = templates[0];
+      if (templatePadrao) {
+        templateUsado = templatePadrao;
+        logEvent('info', 'found_default_template', {
+          template_id: templatePadrao.id,
+          template_name: templatePadrao.nome
+        });
+      } else {
+        // Fallback: buscar qualquer template ativo
+        const { data: templates } = await supabase
+          .from('contract_templates')
+          .select('*')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (templates && templates.length > 0) {
+          templateUsado = templates[0];
+          logEvent('warn', 'using_fallback_template', {
+            template_id: templates[0].id,
+            template_name: templates[0].nome
+          });
+        }
       }
     }
 
