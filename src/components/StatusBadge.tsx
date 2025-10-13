@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 
-type StatusType = "em_habilitacao" | "habilitado" | "inabilitado" | "em_analise" | "pendente" | "aprovado" | "pendente_workflow" | "rejeitado";
+type StatusType = "em_habilitacao" | "habilitado" | "inabilitado" | "em_analise" | "aguardando_analise" | "pendente" | "aprovado" | "pendente_workflow" | "rejeitado";
 
 interface StatusBadgeProps {
   status: StatusType;
@@ -23,6 +23,10 @@ const statusConfig = {
   em_analise: {
     label: "Em Análise",
     className: "bg-primary/10 text-primary border-primary/20",
+  },
+  aguardando_analise: {
+    label: "Aguardando Análise",
+    className: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20",
   },
   pendente: {
     label: "Pendente",
