@@ -1986,6 +1986,7 @@ export type Database = {
       signature_requests: {
         Row: {
           completed_at: string | null
+          contrato_id: string | null
           created_at: string | null
           document_url: string | null
           external_id: string | null
@@ -2001,6 +2002,7 @@ export type Database = {
         }
         Insert: {
           completed_at?: string | null
+          contrato_id?: string | null
           created_at?: string | null
           document_url?: string | null
           external_id?: string | null
@@ -2016,6 +2018,7 @@ export type Database = {
         }
         Update: {
           completed_at?: string | null
+          contrato_id?: string | null
           created_at?: string | null
           document_url?: string | null
           external_id?: string | null
@@ -2030,6 +2033,13 @@ export type Database = {
           workflow_execution_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_signature_requests_contrato"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "signature_requests_step_execution_id_fkey"
             columns: ["step_execution_id"]
