@@ -335,7 +335,7 @@ serve(async (req) => {
 
                 // Gerar certificado automaticamente via edge function
                 try {
-                  const { error: certError } = await supabase.functions.invoke('gerar-certificado', {
+                  const { data: certData, error: certError } = await supabase.functions.invoke('gerar-certificado', {
                     body: { credenciadoId: credenciado.id }
                   });
 
@@ -347,13 +347,106 @@ serve(async (req) => {
                       credenciadoId: credenciado.id,
                       error: certError.message
                     }));
-                  } else {
+                  } else if (certData?.success) {
                     console.log(JSON.stringify({
                       timestamp: new Date().toISOString(),
                       event: 'certificate_generated',
                       requestId,
-                      credenciadoId: credenciado.id
+                      credenciadoId: credenciado.id,
+                      certificadoNumero: certData.certificado.numero_certificado
                     }));
+
+                    // === FASE 3: ENVIAR EMAIL COM CERTIFICADO ===
+                    const emailCredenciado = dadosPessoais.email || payload.signer?.email;
+                    const nomeCredenciado = dadosPessoais.nome || payload.signer?.name;
+                    const siteUrl = Deno.env.get('SITE_URL') || supabaseUrl.replace('.supabase.co', '.app');
+
+                    if (emailCredenciado && certData.certificado.documento_url) {
+                      try {
+                        await supabase.functions.invoke('send-templated-email', {
+                          body: {
+                            to: emailCredenciado,
+                            subject: 'Certificado de Credenciamento Emitido',
+                            body: `
+                              <html>
+                                <body style="font-family: Arial, sans-serif; padding: 20px; background: #f9fafb;">
+                                  <div style="max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                    <h2 style="color: #3b82f6; margin-bottom: 20px;">Certificado de Credenciamento</h2>
+                                    <p>Olá <strong>${nomeCredenciado}</strong>,</p>
+                                    <p>Seu certificado de credenciamento foi emitido com sucesso!</p>
+                                    
+                                    <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                                      <p style="margin: 5px 0;"><strong>Número do Certificado:</strong> ${certData.certificado.numero_certificado}</p>
+                                      <p style="margin: 5px 0;"><strong>Data de Emissão:</strong> ${new Date().toLocaleDateString('pt-BR')}</p>
+                                      <p style="margin: 5px 0;"><strong>Validade:</strong> ${new Date(certData.certificado.validoAte).toLocaleDateString('pt-BR')}</p>
+                                    </div>
+
+                                    <p style="text-align: center; margin: 30px 0;">
+                                      <a href="${certData.certificado.documento_url}" 
+                                         style="background: #3b82f6; color: white; padding: 12px 24px; 
+                                                text-decoration: none; border-radius: 6px; display: inline-block;">
+                                        Baixar Certificado (PDF)
+                                      </a>
+                                    </p>
+
+                                    <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">
+                                      Você também pode verificar a autenticidade do seu certificado através do QR Code 
+                                      ou acessando: <a href="${certData.certificado.verificationUrl}">${certData.certificado.verificationUrl}</a>
+                                    </p>
+
+                                    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+                                    
+                                    <p style="color: #6b7280; font-size: 12px; text-align: center;">
+                                      Sistema de Credenciamento
+                                    </p>
+                                  </div>
+                                </body>
+                              </html>
+                            `,
+                            context: {
+                              inscricaoId,
+                              candidatoId: inscricao.candidato_id
+                            }
+                          }
+                        });
+
+                        console.log(JSON.stringify({
+                          timestamp: new Date().toISOString(),
+                          event: 'certificate_email_sent',
+                          requestId,
+                          credenciadoId: credenciado.id,
+                          email: emailCredenciado
+                        }));
+
+                        // === FASE 5: NOTIFICAÇÃO IN-APP ===
+                        await supabase
+                          .from('app_notifications')
+                          .insert({
+                            user_id: inscricao.candidato_id,
+                            type: 'success',
+                            title: 'Certificado Emitido',
+                            message: `Seu certificado ${certData.certificado.numero_certificado} foi emitido e está disponível para download.`,
+                            related_type: 'certificado',
+                            related_id: certData.certificado.id
+                          });
+
+                        console.log(JSON.stringify({
+                          timestamp: new Date().toISOString(),
+                          event: 'certificate_notification_created',
+                          requestId,
+                          userId: inscricao.candidato_id
+                        }));
+
+                      } catch (emailError: any) {
+                        console.error(JSON.stringify({
+                          timestamp: new Date().toISOString(),
+                          event: 'certificate_email_failed',
+                          requestId,
+                          credenciadoId: credenciado.id,
+                          error: emailError.message
+                        }));
+                      }
+                    }
                   }
                 } catch (certGenError: any) {
                   console.error(JSON.stringify({
