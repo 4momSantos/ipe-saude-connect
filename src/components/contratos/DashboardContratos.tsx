@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTodosContratos } from "@/hooks/useContratos";
 import { useReprocessSignatures } from "@/hooks/useReprocessSignatures";
 import { useResendSignatureEmail } from "@/hooks/useResendSignatureEmail";
+import { useRegenerateContract } from "@/hooks/useRegenerateContract";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ export function DashboardContratos() {
   const { contratos, filtrar, isLoading } = useTodosContratos();
   const { mutate: reprocessSignatures, isPending } = useReprocessSignatures();
   const { mutate: resendEmail, isPending: isResending } = useResendSignatureEmail();
+  const { mutate: regenerateContract, isPending: isRegenerating } = useRegenerateContract();
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -225,15 +227,27 @@ export function DashboardContratos() {
                               </Button>
                             )}
                             {contrato.status === "pendente_assinatura" && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => resendEmail([contrato.id])}
-                                disabled={isResending}
-                              >
-                                <Mail className="h-4 w-4 mr-2" />
-                                Reenviar E-mail
-                              </Button>
+                              statusProblematico ? (
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => regenerateContract({ contrato_id: contrato.id })}
+                                  disabled={isRegenerating}
+                                >
+                                  <RefreshCw className="h-4 w-4 mr-2" />
+                                  Regenerar Contrato
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => resendEmail([contrato.id])}
+                                  disabled={isResending}
+                                >
+                                  <Mail className="h-4 w-4 mr-2" />
+                                  Reenviar E-mail
+                                </Button>
+                              )
                             )}
                           </div>
                         </TableCell>
