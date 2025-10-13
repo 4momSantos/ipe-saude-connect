@@ -47,6 +47,7 @@ import GerenciarWebhooks from "./pages/GerenciarWebhooks";
 import GerenciarAPIKeys from "./pages/GerenciarAPIKeys";
 import GerenciarModelosJustificativa from "./pages/GerenciarModelosJustificativa";
 import MeusDadosLGPD from "./pages/MeusDadosLGPD";
+import TesteAssinafy from "./pages/TesteAssinafy";
 import { ClipboardCheck, Users, MapPin, BarChart3, Settings } from "lucide-react";
 import NotFound from "./pages/NotFound";
 import { supabase } from "@/integrations/supabase/client";
@@ -181,6 +182,7 @@ const App = () => (
                           <Route path="/integracao/api-keys" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><GerenciarAPIKeys /></RoleProtectedRoute>} />
                           <Route path="/gestao/modelos-justificativa" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><GerenciarModelosJustificativa /></RoleProtectedRoute>} />
                           <Route path="/meus-dados" element={<MeusDadosLGPD />} />
+                          <Route path="/admin/teste-assinafy" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><TesteAssinafy /></RoleProtectedRoute>} />
                           <Route
                             path="/usuarios"
                             element={

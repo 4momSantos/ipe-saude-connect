@@ -22,7 +22,8 @@ import {
   ChevronRight,
   AlertTriangle,
   ShieldCheck,
-  FileCode
+  FileCode,
+  TestTube2
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -113,6 +114,7 @@ const mainMenuItems: MenuItem[] = [
       { title: "Auditoria Completa", url: "/auditoria", icon: FileSearch, roles: ['admin'] as const },
       { title: "Meus Dados (LGPD)", url: "/meus-dados", icon: UserCircle, roles: ['candidato', 'analista', 'gestor', 'admin'] as const },
       { title: "Teste OCR", url: "/teste-ocr", icon: Sparkles, roles: ['gestor', 'admin'] as const },
+      { title: "Teste Assinafy", url: "/admin/teste-assinafy", icon: TestTube2, roles: ['gestor', 'admin'] as const },
     ]
   },
 ];
