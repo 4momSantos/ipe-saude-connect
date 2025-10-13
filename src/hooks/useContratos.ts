@@ -65,6 +65,8 @@ export function useTodosContratos() {
   const query = useQuery({
     queryKey: ["contratos", "todos"],
     queryFn: async () => {
+      console.log('[CONTRATOS] Iniciando fetch de contratos...');
+      
       const { data, error } = await supabase
         .from("contratos")
         .select(`
@@ -73,7 +75,7 @@ export function useTodosContratos() {
             id,
             candidato_id,
             dados_inscricao,
-            candidato:profiles!inscricoes_edital_candidato_id_fkey(
+            candidato:profiles(
               id,
               nome,
               email
@@ -87,7 +89,13 @@ export function useTodosContratos() {
         `)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[CONTRATOS] Erro ao buscar contratos:', error);
+        throw error;
+      }
+      
+      console.log('[CONTRATOS] Contratos retornados:', data?.length);
+      console.log('[CONTRATOS] Dados completos:', data);
       
       // Log de contratos sem HTML para debug
       const contratosSemHTML = data.filter(c => 
