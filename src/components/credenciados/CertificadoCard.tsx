@@ -25,6 +25,29 @@ export function CertificadoCard({ credenciadoId }: CertificadoCardProps) {
     }
   };
 
+  const handleForcarRecriacao = async () => {
+    if (!confirm('Isso vai deletar o certificado atual e criar um novo. Confirma?')) {
+      return;
+    }
+    
+    try {
+      // Deletar certificado atual
+      if (certificado) {
+        const supabase = (await import('@/integrations/supabase/client')).supabase;
+        await supabase
+          .from('certificados')
+          .delete()
+          .eq('id', certificado.id);
+      }
+      
+      // Gerar novo
+      await gerar({ credenciadoId, force_new: false });
+      await refetch();
+    } catch (error) {
+      console.error('Erro ao forçar recriação:', error);
+    }
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -133,7 +156,15 @@ export function CertificadoCard({ credenciadoId }: CertificadoCardProps) {
           </div>
         </div>
 
-        {precisaRegenerar && (
+        {isGenerating && (
+          <Alert>
+            <AlertDescription>
+              ⏳ Gerando PDF do certificado... Isso pode levar até 30 segundos. Aguarde!
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {precisaRegenerar && !isGenerating && (
           <Alert variant="destructive">
             <AlertDescription>
               ⚠️ PDF do certificado não disponível. Clique em "Gerar PDF" abaixo.
@@ -143,23 +174,33 @@ export function CertificadoCard({ credenciadoId }: CertificadoCardProps) {
 
         <div className="flex flex-wrap gap-2">
           {precisaRegenerar ? (
-            <Button 
-              onClick={() => handleGerar(false)} 
-              disabled={isGenerating}
-              variant="default"
-            >
-              {isGenerating ? (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Gerando PDF...
-                </>
-              ) : (
-                <>
-                  <FileText className="mr-2 h-4 w-4" />
-                  Gerar PDF
-                </>
-              )}
-            </Button>
+            <>
+              <Button 
+                onClick={() => handleGerar(false)} 
+                disabled={isGenerating}
+                variant="default"
+              >
+                {isGenerating ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Gerando PDF...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Gerar PDF
+                  </>
+                )}
+              </Button>
+              <Button 
+                onClick={handleForcarRecriacao} 
+                disabled={isGenerating}
+                variant="destructive"
+                size="sm"
+              >
+                🔄 Forçar Recriação
+              </Button>
+            </>
           ) : (
             <>
               <Button onClick={download} variant="default">
