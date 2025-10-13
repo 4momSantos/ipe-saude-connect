@@ -1385,6 +1385,7 @@ export type Database = {
           id: string
           is_rascunho: boolean | null
           motivo_rejeicao: string | null
+          protocolo: string | null
           retry_count: number | null
           status: string
           updated_at: string | null
@@ -1402,6 +1403,7 @@ export type Database = {
           id?: string
           is_rascunho?: boolean | null
           motivo_rejeicao?: string | null
+          protocolo?: string | null
           retry_count?: number | null
           status?: string
           updated_at?: string | null
@@ -1419,6 +1421,7 @@ export type Database = {
           id?: string
           is_rascunho?: boolean | null
           motivo_rejeicao?: string | null
+          protocolo?: string | null
           retry_count?: number | null
           status?: string
           updated_at?: string | null
@@ -3217,6 +3220,10 @@ export type Database = {
       }
       gerar_api_key_externa: {
         Args: { p_nome: string; p_quota_diaria?: number }
+        Returns: string
+      }
+      gerar_protocolo_inscricao: {
+        Args: Record<PropertyKey, never>
         Returns: string
       }
       get_gestores: {

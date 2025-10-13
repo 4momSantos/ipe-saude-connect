@@ -22,6 +22,9 @@ import { ValidatedDataProvider } from '@/contexts/ValidatedDataContext';
 import { useAutoSaveInscricao } from '@/hooks/useAutoSaveInscricao';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { SuccessDialog } from './SuccessDialog';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const STEPS = [
   {
@@ -59,9 +62,16 @@ interface InscricaoWizardProps {
 }
 
 export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInscricaoId }: InscricaoWizardProps) {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasLoadedRascunho, setHasLoadedRascunho] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [inscricaoEnviada, setInscricaoEnviada] = useState<{
+    protocolo: string;
+    dataEnvio: Date;
+    emailCandidato: string;
+  } | null>(null);
   const wizardContainerRef = useRef<HTMLDivElement>(null);
 
   const form = useForm<InscricaoCompletaForm>({
@@ -254,6 +264,16 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
+  const handleAcompanharInscricao = () => {
+    setShowSuccessDialog(false);
+    navigate('/minhas-inscricoes');
+  };
+
+  const handleNovaInscricao = () => {
+    setShowSuccessDialog(false);
+    navigate('/editais');
+  };
+
   const handleSubmit = async (data: InscricaoCompletaForm) => {
     console.log('📝 [InscricaoWizard] handleSubmit chamado');
     
@@ -316,7 +336,30 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
       })();
 
       await Promise.race([submitPromise, timeoutPromise]);
-      toast.success('Inscrição enviada com sucesso!');
+      
+      // Buscar protocolo e dados do usuário
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      let protocolo = `IPE-${new Date().getFullYear()}-XXXXX`;
+      if (inscricaoId) {
+        const { data: inscricaoData } = await supabase
+          .from('inscricoes_edital')
+          .select('protocolo')
+          .eq('id', inscricaoId)
+          .single();
+        
+        if (inscricaoData?.protocolo) {
+          protocolo = inscricaoData.protocolo;
+        }
+      }
+
+      setInscricaoEnviada({
+        protocolo,
+        dataEnvio: new Date(),
+        emailCandidato: user?.email || 'Não disponível',
+      });
+
+      setShowSuccessDialog(true);
     } catch (error: any) {
       console.error('[INSCRICAO] Erro:', error);
       
@@ -526,6 +569,19 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
           </Button>
         )}
       </div>
+      
+      {/* Success Dialog */}
+      {inscricaoEnviada && (
+        <SuccessDialog
+          open={showSuccessDialog}
+          onOpenChange={setShowSuccessDialog}
+          protocolo={inscricaoEnviada.protocolo}
+          dataEnvio={inscricaoEnviada.dataEnvio}
+          emailCandidato={inscricaoEnviada.emailCandidato}
+          onAcompanhar={handleAcompanharInscricao}
+          onNovaInscricao={handleNovaInscricao}
+        />
+      )}
     </div>
     </ValidatedDataProvider>
   );
