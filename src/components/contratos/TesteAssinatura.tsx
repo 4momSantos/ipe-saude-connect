@@ -115,7 +115,9 @@ export function TesteAssinatura() {
         toast.info(`🧹 ${deletedData.length} inscrição(ões) antiga(s) removida(s)`);
       }
 
-      // 4. Criar inscrição de teste
+      // 4. Criar inscrição de teste com CPF único
+      const cpfTeste = `999${String(Math.floor(Math.random() * 100000000)).padStart(8, '0')}`;
+      
       const { data: inscricaoTeste, error: inscricaoError } = await supabase
         .from("inscricoes_edital")
         .insert({
@@ -125,7 +127,7 @@ export function TesteAssinatura() {
           dados_inscricao: {
             dadosPessoais: {
               nome: "TESTE - João da Silva",
-              cpf: "000.000.000-00",
+              cpf: cpfTeste,
               email: emailSignatario,
               telefone: "(11) 99999-9999",
               dataNascimento: "1990-01-01",
