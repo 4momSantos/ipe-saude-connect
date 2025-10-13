@@ -17,7 +17,7 @@ interface BackfillRequest {
 interface BackfillResult {
   processed: number;
   success: number;
-  failed: Array<{ id: string; nome: string; reason: string }>;
+  failed: Array<{ id: string; nome: string; error: string }>;
   skipped: number;
   duration_ms: number;
 }
@@ -182,14 +182,14 @@ Deno.serve(async (req) => {
           result.failed.push({
             id: credenciado.id,
             nome: credenciado.nome,
-            reason: geoResult?.message || 'Geocodificação falhou',
+            error: geoResult?.message || 'Geocodificação falhou',
           });
           
           log({
             timestamp: new Date().toISOString(),
             action: 'geocode_failed',
             credenciado_id: credenciado.id,
-            reason: geoResult?.message,
+            error: geoResult?.message,
           } as any);
         }
 
@@ -202,7 +202,7 @@ Deno.serve(async (req) => {
         result.failed.push({
           id: credenciado.id,
           nome: credenciado.nome,
-          reason: errorMessage,
+          error: errorMessage,
         });
 
         log({
