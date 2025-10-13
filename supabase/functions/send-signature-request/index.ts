@@ -520,10 +520,16 @@ serve(async (req) => {
           throw new Error('Dados do contrato incompletos');
         }
 
-        // Extrair HTML do contrato
-        const contratoHTML = contrato.dados_contrato?.html;
+        // Extrair HTML do contrato (com fallback para metadata)
+        let contratoHTML = contrato.dados_contrato?.html;
+        
+        // Fallback: tentar buscar do metadata do signature_request
+        if (!contratoHTML && signatureRequest.metadata) {
+          contratoHTML = (signatureRequest.metadata as any).document_html;
+        }
+        
         if (!contratoHTML) {
-          throw new Error('HTML do contrato não encontrado em dados_contrato.html');
+          throw new Error('HTML do contrato não encontrado em dados_contrato.html nem em metadata.document_html');
         }
 
         // Obter dados do signatário
