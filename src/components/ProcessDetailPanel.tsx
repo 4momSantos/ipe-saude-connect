@@ -14,6 +14,7 @@ import { WorkflowTimeline } from "./workflow/WorkflowTimeline";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { WorkflowStep, WorkflowAction } from "@/types/workflow";
+import { useAnalisarInscricao } from "@/hooks/useAnalisarInscricao";
 
 interface Processo {
   id: string;
@@ -21,7 +22,7 @@ interface Processo {
   nome: string;
   especialidade: string;
   dataSubmissao: string;
-  status: "em_analise" | "aprovado" | "pendente" | "inabilitado";
+  status: "em_analise" | "aguardando_analise" | "aprovado" | "pendente" | "inabilitado";
   analista?: string;
   edital_titulo?: string;
 }
@@ -39,6 +40,7 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
   const [workflowActions, setWorkflowActions] = useState<WorkflowAction[]>([]);
   const [currentStepId, setCurrentStepId] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const { aprovar, rejeitar, isLoading } = useAnalisarInscricao();
 
   useEffect(() => {
     loadWorkflowData();
@@ -185,14 +187,25 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
     }
   }
 
-  const handleAprovar = () => {
-    onStatusChange(processo.id, "aprovado");
-    toast.success("Processo aprovado com sucesso!");
+  const handleAprovar = async () => {
+    try {
+      await aprovar({ inscricaoId: processo.id });
+      onClose();
+    } catch (error) {
+      // Erro já tratado no hook
+    }
   };
 
-  const handleRejeitar = () => {
-    onStatusChange(processo.id, "inabilitado");
-    toast.error("Processo inabilitado");
+  const handleRejeitar = async () => {
+    try {
+      const motivo = prompt("Motivo da rejeição:");
+      if (!motivo) return;
+      
+      await rejeitar({ inscricaoId: processo.id, motivo });
+      onClose();
+    } catch (error) {
+      // Erro já tratado no hook
+    }
   };
 
   const handleSolicitarInfo = () => {
@@ -231,10 +244,11 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
           </div>
 
           {/* Action Buttons */}
-          {processo.status === "em_analise" && (
+          {(processo.status === "em_analise" || processo.status === "aguardando_analise") && (
             <div className="flex gap-3 px-6 pb-4">
               <Button
                 onClick={handleAprovar}
+                disabled={isLoading}
                 className="bg-green-600 hover:bg-green-700 text-white gap-2"
               >
                 <CheckCircle className="h-4 w-4" />
@@ -242,6 +256,7 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
               </Button>
               <Button
                 onClick={handleRejeitar}
+                disabled={isLoading}
                 className="bg-red-600 hover:bg-red-700 text-white gap-2"
               >
                 <XCircle className="h-4 w-4" />
