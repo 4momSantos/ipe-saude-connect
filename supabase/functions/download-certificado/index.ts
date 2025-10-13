@@ -85,7 +85,8 @@ serve(async (req) => {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${cert.numero_certificado}.pdf"`
+        'Content-Disposition': `attachment; filename="${cert.numero_certificado}.pdf"`,
+        'Content-Length': pdfData.size.toString()
       }
     });
     

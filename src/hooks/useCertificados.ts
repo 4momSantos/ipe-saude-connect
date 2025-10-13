@@ -45,15 +45,35 @@ export function useCertificados(credenciadoId?: string) {
         description: "Aguarde, isso pode levar alguns segundos"
       });
       
-      // Usar edge function de proxy para contornar bloqueios de browser
-      const { data, error } = await supabase.functions.invoke('download-certificado', {
-        body: { certificadoId: query.data.id }
-      });
+      // Chamar edge function diretamente com fetch para obter dados binários
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/download-certificado`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          },
+          body: JSON.stringify({ certificadoId: query.data.id })
+        }
+      );
       
-      if (error) throw error;
+      if (!response.ok) throw new Error('Erro ao baixar PDF');
       
-      // Criar blob e forçar download
-      const blob = new Blob([data], { type: 'application/pdf' });
+      // Obter dados binários corretamente
+      const blob = await response.blob();
+      
+      // Verificar se é realmente um PDF
+      if (blob.type !== 'application/pdf') {
+        throw new Error('Arquivo baixado não é um PDF válido');
+      }
+      
+      // Verificar se tem conteúdo
+      if (blob.size === 0) {
+        throw new Error('PDF está vazio');
+      }
+      
+      // Forçar download
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
