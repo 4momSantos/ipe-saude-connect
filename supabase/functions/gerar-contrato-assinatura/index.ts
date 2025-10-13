@@ -340,8 +340,16 @@ serve(async (req) => {
       contratoHTML = gerarContratoHTML(contratoData);
     }
 
-    // Salvar contrato no banco
-    const { data: contrato, error: contratoError } = await supabase
+    // Fase 3: Criar contrato com retry em caso de duplicate key
+    let contrato = null;
+    let contratoError = null;
+
+    logEvent('info', 'contract_upsert_attempt', {
+      inscricao_id: inscricao_id,
+      numero_contrato: numeroContrato
+    });
+
+    const insertResult = await supabase
       .from('contratos')
       .insert({
         inscricao_id,
@@ -360,8 +368,54 @@ serve(async (req) => {
       .select()
       .single();
 
+    // Se erro de duplicate key (23505), buscar contrato existente e atualizar
+    if (insertResult.error?.code === '23505') {
+      logEvent('info', 'duplicate_contract_found', {
+        inscricao_id: inscricao_id,
+        message: 'Contrato já existe, atualizando com novo HTML'
+      });
+
+      const existingResult = await supabase
+        .from('contratos')
+        .select()
+        .eq('inscricao_id', inscricao_id)
+        .single();
+      
+      if (existingResult.data) {
+        const updateResult = await supabase
+          .from('contratos')
+          .update({
+            dados_contrato: {
+              html: contratoHTML,
+              data_geracao: new Date().toISOString(),
+              candidato: contratoData.candidato_nome,
+              edital: contratoData.edital_titulo,
+              template_usado: templateUsado?.nome || 'Template Padrão'
+            },
+            status: 'pendente_assinatura',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingResult.data.id)
+          .select()
+          .single();
+
+        contrato = updateResult.data;
+        contratoError = updateResult.error;
+
+        logEvent('info', 'contract_updated', {
+          contrato_id: contrato?.id,
+          numero_contrato: existingResult.data.numero_contrato
+        });
+      } else {
+        contratoError = existingResult.error;
+      }
+    } else {
+      contrato = insertResult.data;
+      contratoError = insertResult.error;
+    }
+
     if (contratoError || !contrato) {
-      throw new Error(`Erro ao criar contrato: ${contratoError?.message}`);
+      throw new Error(`Erro ao criar/atualizar contrato: ${contratoError?.message}`);
     }
 
     // ⏱️ Passo 2: Aguardar 2s para garantir persistência do contrato no banco
