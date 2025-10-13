@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTodosContratos } from "@/hooks/useContratos";
 import { useReprocessSignatures } from "@/hooks/useReprocessSignatures";
+import { useResendSignatureEmail } from "@/hooks/useResendSignatureEmail";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -30,13 +31,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { FileText, Search, Filter, Download, ExternalLink, RefreshCw } from "lucide-react";
+import { FileText, Search, Filter, Download, ExternalLink, Mail, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TesteAssinatura } from "./TesteAssinatura";
 
 export function DashboardContratos() {
   const { contratos, filtrar, isLoading } = useTodosContratos();
   const { mutate: reprocessSignatures, isPending } = useReprocessSignatures();
+  const { mutate: resendEmail, isPending: isResending } = useResendSignatureEmail();
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -220,6 +222,17 @@ export function DashboardContratos() {
                                 onClick={() => window.open((contrato.dados_contrato as any)?.assinafy_url, "_blank")}
                               >
                                 <ExternalLink className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {contrato.status === "pendente_assinatura" && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => resendEmail([contrato.id])}
+                                disabled={isResending}
+                              >
+                                <Mail className="h-4 w-4 mr-2" />
+                                Reenviar E-mail
                               </Button>
                             )}
                           </div>

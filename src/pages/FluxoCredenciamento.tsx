@@ -47,10 +47,11 @@ export default function FluxoCredenciamentoPage() {
   const { certificado } = useCertificadoPorInscricao(inscricaoId);
   const [workflowExecutionId, setWorkflowExecutionId] = useState<string | null>(null);
   const [inscricaoData, setInscricaoData] = useState<any>(null);
+  const [credenciadoStatus, setCredenciadoStatus] = useState<string | null>(null);
   const { data: signatureRequest } = useSignatureRequestByWorkflow(workflowExecutionId || "");
   const [assignafyUrl, setAssignafyUrl] = useState<string | null>(null);
 
-  // Buscar workflow_execution_id e dados da inscrição
+  // Buscar workflow_execution_id, dados da inscrição e status do credenciado
   useEffect(() => {
     const fetchInscricaoData = async () => {
       if (!inscricaoId) return;
@@ -77,6 +78,18 @@ export default function FluxoCredenciamentoPage() {
           }
         } else {
           console.log('[FluxoCredenciamento] Nenhum dado encontrado para esta inscrição');
+        }
+
+        // Buscar status do credenciado
+        const { data: credenciado, error: credenciadoError } = await supabase
+          .from("credenciados")
+          .select("status")
+          .eq("inscricao_id", inscricaoId)
+          .maybeSingle();
+
+        if (!credenciadoError && credenciado) {
+          console.log('[FluxoCredenciamento] Status do credenciado:', credenciado.status);
+          setCredenciadoStatus(credenciado.status);
         }
       } catch (err) {
         console.error('[FluxoCredenciamento] Erro inesperado ao buscar dados:', err);
@@ -109,6 +122,13 @@ export default function FluxoCredenciamentoPage() {
   }, [signatureRequest, contrato]);
 
   const mapStatus = (contratoStatus?: string) => {
+    // Priorizar status do credenciado se existir
+    if (credenciadoStatus) {
+      if (credenciadoStatus === 'Aguardando Assinatura') return "aguardando_assinatura";
+      if (credenciadoStatus === 'Ativo') return "ativo";
+    }
+    
+    // Fallback para status do contrato
     if (!contratoStatus) return "em_analise";
     switch (contratoStatus) {
       case "pendente_assinatura": return "aguardando_assinatura";
