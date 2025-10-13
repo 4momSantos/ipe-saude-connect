@@ -20,7 +20,9 @@ export function useCertificados(credenciadoId?: string) {
           )
         `)
         .eq("credenciado_id", credenciadoId)
+        .eq("status", "ativo")
         .order("emitido_em", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (error) throw error;

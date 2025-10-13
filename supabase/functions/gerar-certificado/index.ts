@@ -39,60 +39,88 @@ Deno.serve(async (req) => {
     if (credenciadoError) throw credenciadoError;
     if (!credenciado) throw new Error('Credenciado não encontrado');
 
-    // Verificar se já existe certificado ativo
-    const { data: existingCert } = await supabase
+    // Verificar se já existem certificados ativos
+    const { data: existingCerts } = await supabase
       .from('certificados')
       .select('id, numero_certificado, documento_url, status')
       .eq('credenciado_id', credenciadoId)
-      .eq('status', 'ativo')
-      .maybeSingle();
-
+      .eq('status', 'ativo');
+    
+    console.log('[GERAR_CERTIFICADO] Certificados existentes:', existingCerts?.length || 0);
+    
     let numeroCertificado: string;
     let certificadoExistenteId: string | null = null;
     let motivo: string = 'emissao_inicial';
-
-    // CASO 1: Certificado sem PDF - REGENERAR no mesmo registro
-    if (existingCert && !existingCert.documento_url) {
-      console.log('[GERAR_CERTIFICADO] Regenerando PDF para certificado:', existingCert.numero_certificado);
-      numeroCertificado = existingCert.numero_certificado;
-      certificadoExistenteId = existingCert.id;
+    
+    // Verificar se há certificado incompleto (sem PDF) para regenerar
+    const incompleteCert = existingCerts?.find(c => !c.documento_url);
+    
+    if (incompleteCert) {
+      // CASO 1: Regenerar PDF no certificado existente sem PDF
+      console.log('[GERAR_CERTIFICADO] Regenerando PDF para certificado:', incompleteCert.numero_certificado);
+      numeroCertificado = incompleteCert.numero_certificado;
+      certificadoExistenteId = incompleteCert.id;
       motivo = 'regeneracao';
-    }
-    // CASO 2: Certificado completo existe mas usuário quer novo
-    else if (existingCert && existingCert.documento_url && force_new) {
-      console.log('[GERAR_CERTIFICADO] Gerando NOVO certificado (inativando anterior)');
       
-      // Inativar anterior
-      await supabase
-        .from('certificados')
-        .update({ status: 'inativo' })
-        .eq('id', existingCert.id);
+      // Inativar outros certificados completos se houver
+      const completeCerts = existingCerts?.filter(c => c.documento_url && c.id !== incompleteCert.id);
+      if (completeCerts && completeCerts.length > 0) {
+        console.log('[GERAR_CERTIFICADO] Inativando certificados anteriores completos:', completeCerts.length);
+        await supabase
+          .from('certificados')
+          .update({ status: 'inativo' })
+          .in('id', completeCerts.map(c => c.id));
+      }
+    } else if (existingCerts && existingCerts.length > 0) {
+      // CASO 2: Existe(m) certificado(s) completo(s)
+      const completeCerts = existingCerts.filter(c => c.documento_url);
       
-      // Gerar novo número
-      const ano = new Date().getFullYear();
-      const randomId = crypto.randomUUID().substring(0, 6).toUpperCase();
-      numeroCertificado = `CERT-${ano}-${randomId}`;
-      motivo = 'nova_copia';
-    }
-    // CASO 3: Certificado completo existe - apenas retornar
-    else if (existingCert && existingCert.documento_url) {
-      console.log('[GERAR_CERTIFICADO] Certificado já existe e está completo');
-      
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: 'Certificado já existe',
-          certificado: existingCert,
-          documento_url: existingCert.documento_url
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200
+      if (force_new) {
+        // Forçar novo: inativar todos e criar novo
+        console.log('[GERAR_CERTIFICADO] Gerando NOVO certificado (inativando', completeCerts.length, 'anteriores)');
+        
+        await supabase
+          .from('certificados')
+          .update({ status: 'inativo' })
+          .in('id', completeCerts.map(c => c.id));
+        
+        const ano = new Date().getFullYear();
+        const randomId = crypto.randomUUID().substring(0, 6).toUpperCase();
+        numeroCertificado = `CERT-${ano}-${randomId}`;
+        motivo = 'nova_copia';
+      } else {
+        // Inativar todos menos o mais recente e retornar ele
+        const sortedCerts = completeCerts.sort((a, b) => 
+          new Date(b.numero_certificado).getTime() - new Date(a.numero_certificado).getTime()
+        );
+        const mostRecent = sortedCerts[0];
+        const toInactivate = sortedCerts.slice(1);
+        
+        if (toInactivate.length > 0) {
+          console.log('[GERAR_CERTIFICADO] Inativando', toInactivate.length, 'certificados duplicados');
+          await supabase
+            .from('certificados')
+            .update({ status: 'inativo' })
+            .in('id', toInactivate.map(c => c.id));
         }
-      );
-    }
-    // CASO 4: Não existe certificado - criar novo
-    else {
+        
+        console.log('[GERAR_CERTIFICADO] Retornando certificado mais recente:', mostRecent.numero_certificado);
+        
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: 'Certificado já existe',
+            certificado: mostRecent,
+            documento_url: mostRecent.documento_url
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200
+          }
+        );
+      }
+    } else {
+      // CASO 3: Não existe certificado - criar novo
       const ano = new Date().getFullYear();
       const randomId = crypto.randomUUID().substring(0, 6).toUpperCase();
       numeroCertificado = `CERT-${ano}-${randomId}`;
