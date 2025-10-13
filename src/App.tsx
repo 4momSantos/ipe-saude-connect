@@ -29,7 +29,6 @@ import ProcessoEditor from "./pages/ProcessoEditor";
 import TesteOCR from "./pages/TesteOCR";
 import LoginPage from "./components/LoginPage";
 import UserManagement from "./pages/UserManagement";
-import AdminCleanup from "./pages/AdminCleanup";
 import { ProtectedRoute as RoleProtectedRoute } from "./components/ProtectedRoute";
 import { UserProfileMenu } from "./components/UserProfileMenu";
 import PlaceholderPage from "./pages/PlaceholderPage";
@@ -187,14 +186,6 @@ const App = () => (
                             element={
                               <RoleProtectedRoute requiredRoles={['admin']}>
                                 <UserManagement />
-                              </RoleProtectedRoute>
-                            }
-                          />
-                          <Route
-                            path="/admin/cleanup"
-                            element={
-                              <RoleProtectedRoute requiredRoles={['admin', 'gestor']}>
-                                <AdminCleanup />
                               </RoleProtectedRoute>
                             }
                           />

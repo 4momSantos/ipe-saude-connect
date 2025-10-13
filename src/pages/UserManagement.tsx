@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useUsers, useUserStats } from '@/hooks/useUsers';
+import { useCleanupTestData } from '@/hooks/useCleanupTestData';
 import { RoleAssignment } from '@/components/admin/RoleAssignment';
 import { AuditLogsViewer } from '@/components/admin/AuditLogsViewer';
 import { CreateUserDialog } from '@/components/admin/CreateUserDialog';
@@ -15,6 +16,18 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +48,8 @@ import {
   Crown,
   User,
   TrendingUp,
+  Trash2,
+  AlertCircle,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -56,6 +71,7 @@ const roleColors = {
 export default function UserManagement() {
   const { users, isLoading } = useUsers();
   const { data: stats } = useUserStats();
+  const { cleanup, isLoading: isCleaningUp, result } = useCleanupTestData();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<{
     id: string;
@@ -82,7 +98,7 @@ export default function UserManagement() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-8 animate-fade-in">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Gerenciamento de Usuários</h1>
         <p className="text-muted-foreground">
@@ -264,6 +280,100 @@ export default function UserManagement() {
                 })}
               </TableBody>
             </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Card de Limpeza de Dados de Teste */}
+      <Card className="border-destructive/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Trash2 className="h-5 w-5" />
+            Limpeza de Dados de Teste
+          </CardTitle>
+          <CardDescription>
+            Remove inscrições e dados relacionados de emails de teste (@teste.com)
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Atenção</AlertTitle>
+            <AlertDescription>
+              Esta ação é irreversível e irá deletar permanentemente:
+              <ul className="list-disc ml-6 mt-2">
+                <li>Todas as inscrições de emails terminados em @teste.com</li>
+                <li>Credenciados relacionados a essas inscrições</li>
+                <li>Documentos enviados nessas inscrições</li>
+                <li>Contratos gerados</li>
+                <li>Solicitações de assinatura</li>
+              </ul>
+            </AlertDescription>
+          </Alert>
+
+          <div className="flex items-center gap-4">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="destructive" 
+                  disabled={isCleaningUp}
+                  className="w-full sm:w-auto"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {isCleaningUp ? 'Limpando...' : 'Limpar Dados de Teste'}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação não pode ser desfeita. Todos os dados de teste serão
+                    permanentemente removidos do sistema.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => cleanup()}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Confirmar Limpeza
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+
+          {result && (
+            <Card className="bg-muted">
+              <CardHeader>
+                <CardTitle className="text-base">Resultado da Última Limpeza</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="font-medium">Inscrições deletadas:</p>
+                    <p className="text-2xl font-bold">{result.inscricoes_deletadas}</p>
+                  </div>
+                  <div>
+                    <p className="font-medium">Credenciados deletados:</p>
+                    <p className="text-2xl font-bold">{result.credenciados_deletados}</p>
+                  </div>
+                  <div>
+                    <p className="font-medium">Documentos deletados:</p>
+                    <p className="text-2xl font-bold">{result.documentos_deletados}</p>
+                  </div>
+                  <div>
+                    <p className="font-medium">Contratos deletados:</p>
+                    <p className="text-2xl font-bold">{result.contratos_deletados}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="font-medium">Assinaturas deletadas:</p>
+                    <p className="text-2xl font-bold">{result.assinaturas_deletadas}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </CardContent>
       </Card>
