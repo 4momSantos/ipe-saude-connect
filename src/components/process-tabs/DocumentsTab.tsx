@@ -166,7 +166,22 @@ export function DocumentsTab({ processoId }: { processoId: string }) {
                 size="sm" 
                 variant="outline" 
                 className="border-border hover:bg-card gap-2"
-                onClick={() => window.open(doc.arquivo_url, '_blank')}
+                onClick={async () => {
+                  try {
+                    const { data } = await supabase.storage
+                      .from('inscricao-documentos')
+                      .createSignedUrl(doc.arquivo_url, 3600);
+                    
+                    if (data?.signedUrl) {
+                      window.open(data.signedUrl, '_blank');
+                    } else {
+                      toast.error("URL do documento não disponível");
+                    }
+                  } catch (error) {
+                    console.error("Erro ao gerar URL:", error);
+                    toast.error("Erro ao abrir documento");
+                  }
+                }}
               >
                 <Eye className="h-4 w-4" />
                 Visualizar
