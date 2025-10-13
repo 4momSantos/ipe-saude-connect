@@ -427,39 +427,39 @@ export function ContractEditor({
           {mode === "edit" ? (
             <div className="max-w-4xl mx-auto py-8">
               {!focusMode && (
-                <>
-                  <AdvancedToolbar
-                    editor={currentEditor}
-                    onInsertImage={() => setImageDialogOpen(true)}
-                    onInsertTable={handleInsertTable}
-                    onInsertPageBreak={handleInsertPageBreak}
-                    onToggleFields={() => setShowFields(!showFields)}
-                  />
-
-                  <Tabs value={activeSection} onValueChange={(v) => setActiveSection(v as any)} className="mt-4">
-                    <TabsList>
-                      <TabsTrigger value="header">Cabeçalho</TabsTrigger>
-                      <TabsTrigger value="content">Conteúdo</TabsTrigger>
-                      <TabsTrigger value="footer">Rodapé</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-                </>
+                <AdvancedToolbar
+                  editor={currentEditor}
+                  onInsertImage={() => setImageDialogOpen(true)}
+                  onInsertTable={handleInsertTable}
+                  onInsertPageBreak={handleInsertPageBreak}
+                  onToggleFields={() => setShowFields(!showFields)}
+                />
               )}
 
-              <div className="bg-white shadow-lg rounded-lg mt-4">
-                <TabsContent value="header" className={activeSection === "header" ? "" : "hidden"}>
-                  <EditorContent editor={headerEditor} />
-                </TabsContent>
-                
-                <TabsContent value="content" className={activeSection === "content" ? "" : "hidden"}>
-                  <EditorContent editor={editor} />
-                  <FloatingToolbar editor={editor} />
-                </TabsContent>
-                
-                <TabsContent value="footer" className={activeSection === "footer" ? "" : "hidden"}>
-                  <EditorContent editor={footerEditor} />
-                </TabsContent>
-              </div>
+              <Tabs value={activeSection} onValueChange={(v) => setActiveSection(v as any)} className="mt-4">
+                {!focusMode && (
+                  <TabsList>
+                    <TabsTrigger value="header">Cabeçalho</TabsTrigger>
+                    <TabsTrigger value="content">Conteúdo</TabsTrigger>
+                    <TabsTrigger value="footer">Rodapé</TabsTrigger>
+                  </TabsList>
+                )}
+
+                <div className="bg-white shadow-lg rounded-lg mt-4">
+                  <TabsContent value="header">
+                    <EditorContent editor={headerEditor} />
+                  </TabsContent>
+                  
+                  <TabsContent value="content">
+                    <EditorContent editor={editor} />
+                    <FloatingToolbar editor={editor} />
+                  </TabsContent>
+                  
+                  <TabsContent value="footer">
+                    <EditorContent editor={footerEditor} />
+                  </TabsContent>
+                </div>
+              </Tabs>
             </div>
           ) : (
             <ContractPreview 
