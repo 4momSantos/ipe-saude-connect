@@ -310,19 +310,51 @@ Deno.serve(async (req) => {
     
     // === UPLOAD PARA STORAGE ===
     const fileName = `${credenciadoId}/${numeroCertificado}.pdf`;
-    const { error: uploadError } = await supabase.storage
+    
+    console.log('[GERAR_CERTIFICADO] Tentando upload:', {
+      bucket: 'certificados',
+      fileName,
+      fileSize: pdfBytes.length,
+      contentType: 'application/pdf'
+    });
+    
+    // Tentar upload com upsert
+    let uploadResult = await supabase.storage
       .from('certificados')
       .upload(fileName, pdfBytes, {
         contentType: 'application/pdf',
-        upsert: false
+        upsert: true  // ⬅️ CORREÇÃO PRINCIPAL: Sobrescrever se já existir
       });
     
+    let uploadError = uploadResult.error;
+    
+    // Se falhar com "já existe", tentar deletar e fazer upload novamente
+    if (uploadError && (uploadError as any).status === 409) {
+      console.log('[GERAR_CERTIFICADO] Arquivo existe apesar do upsert, deletando e tentando novamente...');
+      
+      await supabase.storage
+        .from('certificados')
+        .remove([fileName]);
+      
+      uploadResult = await supabase.storage
+        .from('certificados')
+        .upload(fileName, pdfBytes, {
+          contentType: 'application/pdf'
+        });
+      
+      uploadError = uploadResult.error;
+    }
+    
     if (uploadError) {
-      console.error('[GERAR_CERTIFICADO] Erro no upload:', uploadError);
+      console.error('[GERAR_CERTIFICADO] Erro no upload:', {
+        error: uploadError,
+        status: (uploadError as any).status,
+        message: uploadError.message
+      });
       throw new Error(`Erro no upload: ${uploadError.message}`);
     }
     
-    console.log('[GERAR_CERTIFICADO] PDF enviado para storage:', fileName);
+    console.log('[GERAR_CERTIFICADO] Upload realizado com sucesso:', uploadResult.data?.path);
     
     // Obter URL pública
     const { data: { publicUrl } } = supabase.storage
