@@ -6,16 +6,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, FileText, History, Sparkles } from 'lucide-react';
+import { ArrowLeft, FileText, History, Sparkles, CheckCircle, XCircle } from 'lucide-react';
 import { normalizeDadosInscricao } from '@/utils/normalizeDadosInscricao';
 import { StatusBadge } from '@/components/StatusBadge';
 import { ComparacaoDadosOCR } from '@/components/analises/ComparacaoDadosOCR';
 import { DocumentoValidacaoCard } from '@/components/analises/DocumentoValidacaoCard';
+import { useAnalisarInscricao } from '@/hooks/useAnalisarInscricao';
 
 export default function AnalistaInscricaoDetalhes() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { aprovar, rejeitar, isLoading: isAprovacaoLoading } = useAnalisarInscricao();
 
   const { data: inscricao, isLoading } = useQuery({
     queryKey: ['analista-inscricao-detalhes', id],
@@ -83,6 +85,29 @@ export default function AnalistaInscricaoDetalhes() {
 
   const dados = normalizeDadosInscricao(inscricao.dados_inscricao);
 
+  const handleAprovar = async () => {
+    try {
+      await aprovar({ inscricaoId: inscricao.id });
+      queryClient.invalidateQueries({ queryKey: ['analista-inscricao-detalhes', id] });
+      navigate('/analises');
+    } catch (error) {
+      // Erro já tratado no hook
+    }
+  };
+
+  const handleRejeitar = async () => {
+    try {
+      const motivo = prompt("Motivo da rejeição:");
+      if (!motivo) return;
+      
+      await rejeitar({ inscricaoId: inscricao.id, motivo });
+      queryClient.invalidateQueries({ queryKey: ['analista-inscricao-detalhes', id] });
+      navigate('/analises');
+    } catch (error) {
+      // Erro já tratado no hook
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header Fixo */}
@@ -109,11 +134,35 @@ export default function AnalistaInscricaoDetalhes() {
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-3">
               <StatusBadge status={inscricao.status as any} />
               <Badge variant="outline">
                 Validação: {inscricao.validacao_status}
               </Badge>
+              
+              {/* Botões de Aprovação/Rejeição */}
+              {(inscricao.status === 'aguardando_analise' || inscricao.status === 'em_analise') && (
+                <div className="flex gap-2 ml-4">
+                  <Button
+                    onClick={handleAprovar}
+                    disabled={isAprovacaoLoading}
+                    className="bg-green-600 hover:bg-green-700 text-white gap-2"
+                    size="sm"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    Aprovar
+                  </Button>
+                  <Button
+                    onClick={handleRejeitar}
+                    disabled={isAprovacaoLoading}
+                    className="bg-red-600 hover:bg-red-700 text-white gap-2"
+                    size="sm"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Rejeitar
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>

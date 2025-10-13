@@ -29,7 +29,7 @@ import { WorkflowApprovalPanel } from "@/components/workflow/WorkflowApprovalPan
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 
-type StatusType = "em_analise" | "aprovado" | "pendente" | "inabilitado";
+type StatusType = "em_analise" | "aguardando_analise" | "aprovado" | "pendente" | "inabilitado";
 
 interface Processo {
   id: string;
@@ -318,13 +318,14 @@ export default function Analises() {
                   <SelectTrigger className="w-full lg:w-[180px] bg-background">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos</SelectItem>
-                    <SelectItem value="em_analise">Em Análise</SelectItem>
-                    <SelectItem value="pendente">Pendente</SelectItem>
-                    <SelectItem value="aprovado">Aprovado</SelectItem>
-                    <SelectItem value="inabilitado">Inabilitado</SelectItem>
-                  </SelectContent>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="aguardando_analise">Aguardando Análise</SelectItem>
+                <SelectItem value="em_analise">Em Análise</SelectItem>
+                <SelectItem value="pendente">Pendente</SelectItem>
+                <SelectItem value="aprovado">Aprovado</SelectItem>
+                <SelectItem value="inabilitado">Inabilitado</SelectItem>
+              </SelectContent>
                 </Select>
               </div>
             </div>
