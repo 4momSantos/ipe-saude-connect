@@ -1,5 +1,8 @@
 project_id = "ncmofeencqpqhtguxmvy"
 
+[functions.diagnostic-assinafy]
+verify_jwt = false
+
 [functions.setup-assinafy-webhook]
 verify_jwt = true
 
