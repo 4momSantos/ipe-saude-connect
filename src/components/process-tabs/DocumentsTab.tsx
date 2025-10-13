@@ -1,7 +1,7 @@
 import { FileText, Download, CheckCircle, XCircle, Eye, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/StatusBadge";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +12,7 @@ interface Document {
   arquivo_nome: string;
   arquivo_url: string;
   arquivo_tamanho: number | null;
-  status: "pendente" | "aprovado" | "rejeitado";
+  status: "em_habilitacao" | "habilitado" | "inabilitado" | "em_analise" | "pendente" | "aprovado" | "pendente_workflow" | "rejeitado";
   created_at: string;
   observacoes: string | null;
   ocr_processado: boolean;
@@ -105,19 +105,6 @@ export function DocumentsTab({ processoId }: { processoId: string }) {
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
 
-  const getStatusBadge = (status: Document["status"]) => {
-    const config = {
-      pendente: { label: "Pendente", className: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
-      aprovado: { label: "Aprovado", className: "bg-green-500/20 text-green-400 border-green-500/30" },
-      rejeitado: { label: "Rejeitado", className: "bg-red-500/20 text-red-400 border-red-500/30" },
-    };
-    const { label, className } = config[status];
-    return (
-      <Badge variant="outline" className={className}>
-        {label}
-      </Badge>
-    );
-  };
 
   if (isLoading) {
     return (
@@ -170,7 +157,7 @@ export function DocumentsTab({ processoId }: { processoId: string }) {
                   )}
                 </div>
               </div>
-              {getStatusBadge(doc.status)}
+              <StatusBadge status={doc.status} />
             </div>
           </CardHeader>
           <CardContent>
