@@ -386,7 +386,9 @@ serve(async (req) => {
       .insert({
         provider: 'assinafy',
         status: 'pending',
-        contrato_id: contrato.id, // ✅ Vínculo direto ao contrato
+        contrato_id: contrato.id,
+        inscricao_id: inscricao_id, // ✅ ADICIONADO: Vínculo direto à inscrição
+        workflow_execution_id: null,
         signers: [
           {
             name: contratoData.candidato_nome,
@@ -400,17 +402,28 @@ serve(async (req) => {
           numero_contrato: numeroContrato,
           document_html: contratoHTML
         },
-        step_execution_id: null // Não temos workflow aqui
+        step_execution_id: null
       })
       .select()
       .single();
 
-    if (signatureError || !signatureRequest) {
-      throw new Error(`Erro ao criar signature request: ${signatureError?.message}`);
+    if (signatureError) {
+      console.error(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        event: 'signature_request_insert_failed',
+        error: signatureError.message,
+        details: signatureError
+      }));
+      throw new Error(`Erro ao criar signature request: ${signatureError.message}`);
+    }
+
+    if (!signatureRequest) {
+      throw new Error('Signature request não foi criado (sem erro retornado)');
     }
 
     logEvent('info', 'signature_request_created', {
-      signature_request_id: signatureRequest.id
+      signature_request_id: signatureRequest.id,
+      inscricao_id
     });
 
     // Chamar send-signature-request apenas se as credenciais estiverem configuradas

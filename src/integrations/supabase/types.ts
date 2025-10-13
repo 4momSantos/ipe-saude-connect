@@ -1995,6 +1995,7 @@ export type Database = {
           external_id: string | null
           external_status: string | null
           id: string
+          inscricao_id: string | null
           metadata: Json | null
           provider: string
           signers: Json
@@ -2011,6 +2012,7 @@ export type Database = {
           external_id?: string | null
           external_status?: string | null
           id?: string
+          inscricao_id?: string | null
           metadata?: Json | null
           provider?: string
           signers?: Json
@@ -2027,6 +2029,7 @@ export type Database = {
           external_id?: string | null
           external_status?: string | null
           id?: string
+          inscricao_id?: string | null
           metadata?: Json | null
           provider?: string
           signers?: Json
@@ -2042,6 +2045,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "contratos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_signature_requests_inscricao"
+            columns: ["inscricao_id"]
+            isOneToOne: false
+            referencedRelation: "inscricoes_edital"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_signature_requests_inscricao"
+            columns: ["inscricao_id"]
+            isOneToOne: false
+            referencedRelation: "view_inscricoes_validacao_pendente"
+            referencedColumns: ["inscricao_id"]
           },
           {
             foreignKeyName: "signature_requests_step_execution_id_fkey"
