@@ -386,6 +386,7 @@ serve(async (req) => {
       .insert({
         provider: 'assinafy',
         status: 'pending',
+        contrato_id: contrato.id, // ✅ Vínculo direto ao contrato
         signers: [
           {
             name: contratoData.candidato_nome,

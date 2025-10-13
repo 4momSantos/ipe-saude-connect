@@ -246,7 +246,7 @@ async function sendDocumentToAssinafy(
   }));
   
   const formData = new FormData();
-  const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+  const pdfBlob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
   formData.append('file', pdfBlob, fileName);
   
   const uploadResponse = await fetch(
@@ -383,14 +383,22 @@ serve(async (req) => {
       }
     }));
 
-    // Buscar dados da signature request
+    // Buscar dados da signature request via contrato_id
     const { data: signatureRequest, error: requestError } = await supabase
       .from("signature_requests")
       .select(`
         *,
-        workflow_execution:workflow_executions (
+        contrato:contratos (
           id,
-          started_by
+          numero_contrato,
+          dados_contrato,
+          inscricao_id,
+          inscricao:inscricoes_edital (
+            id,
+            candidato_id,
+            edital:editais (id, titulo, numero_edital),
+            candidato:profiles!inscricoes_edital_candidato_id_fkey (id, nome, email)
+          )
         )
       `)
       .eq("id", signatureRequestId)
@@ -400,22 +408,13 @@ serve(async (req) => {
       throw new Error(`Signature request not found: ${requestError?.message || "unknown"}`);
     }
 
-    // Buscar dados da inscrição relacionada
-    const { data: execution } = await supabase
-      .from("workflow_executions")
-      .select(`
-        id,
-        inscricao:inscricoes_edital (
-          id,
-          candidato_id,
-          edital:editais (id, titulo, numero),
-          candidato:profiles!inscricoes_edital_candidato_id_fkey (id, nome, email)
-        )
-      `)
-      .eq("id", signatureRequest.workflow_execution_id)
-      .single();
+    // Extrair dados da inscrição via contrato
+    const contratoRelacionado = signatureRequest.contrato as any;
+    if (!contratoRelacionado) {
+      throw new Error('Contrato não encontrado no signature_request');
+    }
 
-    const inscricaoData = execution?.inscricao as any;
+    const inscricaoData = contratoRelacionado.inscricao;
     const candidato = inscricaoData?.candidato;
 
     // ====== MODO DESENVOLVIMENTO ======
@@ -506,17 +505,11 @@ serve(async (req) => {
       }
 
       try {
-        // Buscar dados do contrato
-        const { data: contrato, error: contratoError } = await supabase
-          .from("contratos")
-          .select("id, numero_contrato, dados_contrato, inscricao_id")
-          .eq("inscricao_id", inscricaoData?.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .single();
-
-        if (contratoError || !contrato) {
-          throw new Error(`Contrato não encontrado: ${contratoError?.message || "unknown"}`);
+        // Usar contrato já carregado da query anterior
+        const contrato = contratoRelacionado;
+        
+        if (!contrato || !contrato.dados_contrato) {
+          throw new Error('Dados do contrato incompletos');
         }
 
         // Extrair HTML do contrato
