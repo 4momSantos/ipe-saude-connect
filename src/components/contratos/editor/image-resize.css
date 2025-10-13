@@ -1,11 +1,32 @@
 .image-node-wrapper {
   margin: 1rem 0;
+  width: 100%;
 }
 
 .image-container {
   position: relative;
-  display: inline-block;
+  display: block;
   max-width: 100%;
+  margin: 0 auto;
+  transition: margin 0.3s ease;
+}
+
+/* Alinhamento à esquerda */
+.image-container[data-align="left"] {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+/* Alinhamento ao centro */
+.image-container[data-align="center"] {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Alinhamento à direita */
+.image-container[data-align="right"] {
+  margin-left: auto;
+  margin-right: 0;
 }
 
 .image-container.selected {

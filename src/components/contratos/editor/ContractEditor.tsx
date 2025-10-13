@@ -46,6 +46,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ContractField, AvailableField } from "@/types/contract-editor";
 import "./print-styles.css";
 import "./image-resize.css";
+import "./editor-styles.css";
 
 const lowlight = createLowlight(common);
 
@@ -85,7 +86,7 @@ export function ContractEditor({
       TableRow,
       TableCell,
       TableHeader,
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      TextAlign.configure({ types: ["heading", "paragraph", "div", "blockquote", "codeBlock"] }),
       TextStyle,
       FontFamily,
       Color,
@@ -117,7 +118,7 @@ export function ContractEditor({
     extensions: [
       StarterKit,
       ResizableImage,
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      TextAlign.configure({ types: ["heading", "paragraph", "div", "blockquote"] }),
       TextStyle,
       FontFamily,
       Color,
@@ -136,7 +137,7 @@ export function ContractEditor({
     extensions: [
       StarterKit,
       ResizableImage,
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      TextAlign.configure({ types: ["heading", "paragraph", "div", "blockquote"] }),
       TextStyle,
       FontFamily,
       Color,

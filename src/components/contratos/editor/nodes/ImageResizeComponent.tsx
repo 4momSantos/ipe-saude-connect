@@ -33,9 +33,9 @@ export const ImageResizeComponent = ({ node, updateAttributes, deleteNode, selec
     <NodeViewWrapper className="image-node-wrapper">
       <div 
         className={`image-container ${isSelected ? 'selected' : ''}`}
+        data-align={node.attrs.align || 'center'}
         onClick={() => setIsSelected(true)}
         onBlur={() => setIsSelected(false)}
-        style={{ textAlign: node.attrs.align }}
       >
         {isSelected && (
           <ImageToolbar
@@ -49,6 +49,7 @@ export const ImageResizeComponent = ({ node, updateAttributes, deleteNode, selec
           size={{ width: size.width, height: size.height }}
           onResizeStop={handleResize}
           lockAspectRatio
+          maxWidth="100%"
           enable={{
             top: false,
             right: isSelected,
@@ -71,7 +72,7 @@ export const ImageResizeComponent = ({ node, updateAttributes, deleteNode, selec
           <img
             src={node.attrs.src}
             alt={node.attrs.alt || ''}
-            style={{ width: '100%', height: 'auto', display: 'block' }}
+            style={{ width: '100%', height: 'auto', display: 'block', margin: '0 auto' }}
           />
         </Resizable>
 

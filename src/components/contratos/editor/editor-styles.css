@@ -1,0 +1,45 @@
+/* Estilos de alinhamento para TipTap */
+.ProseMirror p[style*="text-align: left"],
+.ProseMirror h1[style*="text-align: left"],
+.ProseMirror h2[style*="text-align: left"],
+.ProseMirror h3[style*="text-align: left"],
+.ProseMirror h4[style*="text-align: left"],
+.ProseMirror h5[style*="text-align: left"],
+.ProseMirror h6[style*="text-align: left"] {
+  text-align: left !important;
+}
+
+.ProseMirror p[style*="text-align: center"],
+.ProseMirror h1[style*="text-align: center"],
+.ProseMirror h2[style*="text-align: center"],
+.ProseMirror h3[style*="text-align: center"],
+.ProseMirror h4[style*="text-align: center"],
+.ProseMirror h5[style*="text-align: center"],
+.ProseMirror h6[style*="text-align: center"] {
+  text-align: center !important;
+}
+
+.ProseMirror p[style*="text-align: right"],
+.ProseMirror h1[style*="text-align: right"],
+.ProseMirror h2[style*="text-align: right"],
+.ProseMirror h3[style*="text-align: right"],
+.ProseMirror h4[style*="text-align: right"],
+.ProseMirror h5[style*="text-align: right"],
+.ProseMirror h6[style*="text-align: right"] {
+  text-align: right !important;
+}
+
+.ProseMirror p[style*="text-align: justify"],
+.ProseMirror h1[style*="text-align: justify"],
+.ProseMirror h2[style*="text-align: justify"],
+.ProseMirror h3[style*="text-align: justify"],
+.ProseMirror h4[style*="text-align: justify"],
+.ProseMirror h5[style*="text-align: justify"],
+.ProseMirror h6[style*="text-align: justify"] {
+  text-align: justify !important;
+}
+
+/* Garantir que o editor respeite os estilos */
+.ProseMirror {
+  outline: none;
+}
