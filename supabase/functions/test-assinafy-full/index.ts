@@ -251,6 +251,10 @@ startxref
     report.tests.push(test4);
     console.log('✅ Documento criado:', documentId);
     console.log('📍 ID encontrado em:', test4.details.id_location);
+    
+    // Aguardar processamento do documento
+    console.log('⏳ Aguardando 2s para processamento do documento...');
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     // TESTE 5: Solicitar Assinatura (CRÍTICO)
     console.log('\n📋 TESTE 5: Solicitando assinatura...');

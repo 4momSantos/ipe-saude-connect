@@ -272,12 +272,20 @@ async function sendDocumentToAssinafy(
   }
   
   const uploadData = await uploadResponse.json();
-  const documentId = uploadData.id;
+  const documentId = uploadData.data.id;
   console.log(JSON.stringify({
     level: "info",
     action: "document_uploaded",
     documentId
   }));
+  
+  // Aguardar processamento do documento antes de criar assignment
+  console.log(JSON.stringify({
+    level: "info",
+    action: "waiting_document_processing"
+  }));
+  
+  await new Promise(resolve => setTimeout(resolve, 2000));
   
   // ETAPA 3: Solicitar Assinatura
   console.log(JSON.stringify({
