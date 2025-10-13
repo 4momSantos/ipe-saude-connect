@@ -22,13 +22,12 @@ interface WorkflowEdge {
   target: string;
 }
 
-// Função auxiliar para lock pessimista
+// Função auxiliar para lock simplificado
 async function acquireStepLock(supabase: any, stepExecutionId: string) {
   const { data, error } = await supabase
     .from('workflow_step_executions')
     .update({ 
       status: 'processing',
-      output_data: supabase.raw('COALESCE(output_data, \'{}\'::jsonb) || \'{"locked_at": "' + new Date().toISOString() + '"}\'::jsonb')
     })
     .eq('id', stepExecutionId)
     .in('status', ['paused', 'pending'])
