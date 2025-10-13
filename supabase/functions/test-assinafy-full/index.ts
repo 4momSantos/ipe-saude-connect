@@ -1,3 +1,4 @@
+// Version: 2025-10-13T18:00:00 - FIXED: Added 2s delay before assignment creation to allow document processing
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
