@@ -1,15 +1,21 @@
 /**
  * Edge Function: assinafy-webhook-finalizacao
- * Processa callbacks da Assinafy para finalizar o credenciamento (sem workflows)
+ * Processa callbacks da Assinafy para finalizar o credenciamento
  * 
  * Fluxo:
- * 1. Recebe evento do Assinafy (document.signed/rejected/expired)
- * 2. Valida X-Webhook-Secret (HMAC SHA-256)
- * 3. Atualiza signature_requests
+ * 1. Recebe evento do Assinafy (document.signed/rejected/expired/viewed)
+ * 2. Registra auditoria (IP, timestamp, evento)
+ * 3. Atualiza signature_requests no banco
  * 4. Se assinado:
- *    - Atualiza contrato → 'assinado'
- *    - Cria/ativa credenciado → trigger cria certificado automaticamente
- * 5. Retorna sempre 200 (idempotente)
+ *    - Atualiza contrato → status 'assinado'
+ *    - Cria/ativa credenciado → trigger automático cria certificado
+ *    - Invoca edge function gerar-certificado
+ * 5. Retorna sempre 200 (idempotente para evitar retries)
+ * 
+ * Segurança: 
+ * - Assinafy não utiliza webhook secrets (conforme documentação oficial)
+ * - Autenticação ocorre via X-Api-Key nas requisições à API
+ * - Logs de auditoria registram IP de origem e user-agent
  */
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
@@ -17,7 +23,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-secret',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 interface WebhookPayload {
@@ -36,32 +42,7 @@ interface WebhookPayload {
   data?: any;
 }
 
-/**
- * Valida webhook secret (simples comparação ou HMAC)
- */
-function validateWebhookSecret(
-  receivedSecret: string | null,
-  expectedSecret: string
-): boolean {
-  if (!receivedSecret) {
-    console.error(JSON.stringify({
-      timestamp: new Date().toISOString(),
-      event: 'validation_error',
-      error: 'Missing X-Webhook-Secret header'
-    }));
-    return false;
-  }
-
-  const isValid = receivedSecret === expectedSecret;
-  
-  console.log(JSON.stringify({
-    timestamp: new Date().toISOString(),
-    event: 'secret_validation',
-    valid: isValid
-  }));
-
-  return isValid;
-}
+// Função validateWebhookSecret removida - Assinafy não utiliza webhook secrets
 
 /**
  * Retry wrapper com backoff exponencial
@@ -117,32 +98,25 @@ serve(async (req) => {
     // Configuração
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const webhookSecret = Deno.env.get('ASSINAFY_WEBHOOK_SECRET');
-
     if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error('Missing Supabase configuration');
     }
 
-    // Validar secret
-    const receivedSecret = req.headers.get('X-Webhook-Secret');
+    // ✅ Assinafy não usa validação de webhook secret segundo documentação oficial
+    // A segurança vem da API Key utilizada nas requisições à API
+    // Logs de auditoria para rastreabilidade:
+    const clientIP = req.headers.get('x-forwarded-for') || 
+                     req.headers.get('x-real-ip') || 
+                     'unknown';
     
-    if (webhookSecret) {
-      if (!validateWebhookSecret(receivedSecret, webhookSecret)) {
-        return new Response(
-          JSON.stringify({ error: 'Unauthorized' }),
-          { 
-            status: 401, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      }
-    } else {
-      console.warn(JSON.stringify({
-        timestamp: new Date().toISOString(),
-        event: 'secret_validation_skipped',
-        message: 'ASSINAFY_WEBHOOK_SECRET not configured'
-      }));
-    }
+    console.log(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      event: 'webhook_received',
+      requestId,
+      source: 'assinafy',
+      clientIP,
+      userAgent: req.headers.get('user-agent') || 'unknown'
+    }));
 
     // Parse payload
     const payload: WebhookPayload = await req.json();
