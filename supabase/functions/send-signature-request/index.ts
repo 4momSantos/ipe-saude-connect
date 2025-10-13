@@ -397,7 +397,7 @@ serve(async (req) => {
             id,
             candidato_id,
             edital:editais (id, titulo, numero_edital),
-            candidato:profiles!inscricoes_edital_candidato_id_fkey (id, nome, email)
+            candidato:profiles (id, nome, email)
           )
         )
       `)
