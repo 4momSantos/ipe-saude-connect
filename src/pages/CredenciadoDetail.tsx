@@ -12,6 +12,7 @@ import { HistoricoAvaliacoes } from "@/components/credenciados/HistoricoAvaliaco
 import { CredenciadoSuspensao } from "@/components/credenciados/CredenciadoSuspensao";
 import { RegistrarOcorrencia } from "@/components/credenciados/RegistrarOcorrencia";
 import { ProgramarDescredenciamento } from "@/components/credenciados/ProgramarDescredenciamento";
+import { CertificadoCard } from "@/components/credenciados/CertificadoCard";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useCredenciado } from "@/hooks/useCredenciados";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -120,6 +121,7 @@ export default function CredenciadoDetail() {
               dataCredenciamento: new Date(credenciado.created_at).toLocaleDateString("pt-BR"),
             }} 
           />
+          <CertificadoCard credenciadoId={id || ""} />
         </TabsContent>
 
         <TabsContent value="especialidades" className="space-y-6">
