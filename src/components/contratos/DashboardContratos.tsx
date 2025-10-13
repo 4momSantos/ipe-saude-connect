@@ -41,7 +41,7 @@ export function DashboardContratos() {
   const { mutate: reprocessSignatures, isPending } = useReprocessSignatures();
   const { mutate: resendEmail, isPending: isResending } = useResendSignatureEmail();
   const { mutate: regenerateContract, isPending: isRegenerating } = useRegenerateContract();
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [searchQuery, setSearchQuery] = useState("");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
@@ -59,7 +59,7 @@ export function DashboardContratos() {
         inscricao?.dados_inscricao?.dados_pessoais?.nome_completo ||
         inscricao?.candidato?.email;
         
-      const matchesStatus = !statusFilter || statusFilter === 'all' || c.status === statusFilter;
+      const matchesStatus = !statusFilter || statusFilter === 'todos' || c.status === statusFilter;
       const matchesSearch = !searchQuery || 
         c.numero_contrato?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         candidatoNome?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -136,17 +136,17 @@ export function DashboardContratos() {
                 <SelectValue placeholder="Filtrar por status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os status</SelectItem>
+                <SelectItem value="todos">Todos os status</SelectItem>
                 <SelectItem value="pendente_assinatura">Aguardando Assinatura</SelectItem>
                 <SelectItem value="assinado">Assinado</SelectItem>
                 <SelectItem value="rejeitado">Rejeitado</SelectItem>
               </SelectContent>
             </Select>
-            {(statusFilter || searchQuery) && (
+            {(statusFilter !== 'todos' || searchQuery) && (
               <Button 
                 variant="outline" 
                 onClick={() => {
-                  setStatusFilter("");
+                  setStatusFilter("todos");
                   setSearchQuery("");
                 }}
               >
