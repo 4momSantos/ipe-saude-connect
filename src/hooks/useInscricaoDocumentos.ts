@@ -48,59 +48,34 @@ export function useInscricaoDocumentos(inscricaoId?: string) {
       tipoDocumento,
       arquivo,
       ocrResultado,
-      tempFileName,
     }: {
       inscricaoId: string;
       tipoDocumento: string;
       arquivo: File;
       ocrResultado: any;
-      tempFileName?: string;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
-      // 1. Copiar arquivo de ocr-temp-files para inscricao-documentos
-      let arquivoUrl = '';
+      // Upload direto para bucket permanente
+      const fileName = `${user.id}/${inscricaoId}/${Date.now()}-${arquivo.name}`;
       
-      if (tempFileName) {
-        // Baixar do bucket temporário
-        const { data: tempFileData, error: downloadError } = await supabase.storage
-          .from('ocr-temp-files')
-          .download(tempFileName);
+      const { error: uploadError } = await supabase.storage
+        .from('inscricao-documentos')
+        .upload(fileName, arquivo, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-        if (downloadError) throw downloadError;
+      if (uploadError) throw uploadError;
 
-        // Upload para bucket permanente
-        const permanentFileName = `${user.id}/${inscricaoId}/${Date.now()}-${arquivo.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from('inscricao-documentos')
-          .upload(permanentFileName, tempFileData, {
-            cacheControl: '3600',
-            upsert: false
-          });
-
-        if (uploadError) throw uploadError;
-
-        // Obter URL do arquivo permanente
-        const { data: { publicUrl } } = supabase.storage
-          .from('inscricao-documentos')
-          .getPublicUrl(permanentFileName);
-
-        arquivoUrl = publicUrl;
-
-        // Deletar arquivo temporário
-        await supabase.storage
-          .from('ocr-temp-files')
-          .remove([tempFileName]);
-      }
-
-      // 2. Salvar registro na tabela
+      // Salvar registro na tabela com o CAMINHO do arquivo
       const { data, error } = await supabase
         .from('inscricao_documentos')
         .insert({
           inscricao_id: inscricaoId,
           tipo_documento: tipoDocumento,
-          arquivo_url: arquivoUrl,
+          arquivo_url: fileName, // Caminho no storage
           arquivo_nome: arquivo.name,
           arquivo_tamanho: arquivo.size,
           ocr_processado: !!ocrResultado,
