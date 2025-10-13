@@ -177,7 +177,23 @@ serve(async (req) => {
     const resendApiKey = Deno.env.get("RESEND_API_KEY")!;
     const assifafyApiKey = Deno.env.get("ASSINAFY_API_KEY");
     const assifafyAccountId = Deno.env.get("ASSINAFY_ACCOUNT_ID");
-    const DEV_MODE = Deno.env.get("ENVIRONMENT") !== "production";
+    
+    // 🔍 DIAGNÓSTICO: Verificar ENVIRONMENT
+    const envValue = Deno.env.get("ENVIRONMENT");
+    console.log(JSON.stringify({
+      level: "info",
+      action: "environment_check",
+      ENVIRONMENT_raw: envValue,
+      ENVIRONMENT_exists: !!envValue,
+      ENVIRONMENT_is_production: envValue === "production",
+      ENVIRONMENT_comparison: {
+        actual: envValue,
+        expected: "production",
+        match: envValue === "production"
+      }
+    }));
+    
+    const DEV_MODE = envValue !== "production";
     
     const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -188,7 +204,13 @@ serve(async (req) => {
       requestId,
       action: "processing_signature_request",
       signatureRequestId,
-      devMode: DEV_MODE
+      devMode: DEV_MODE,
+      environment: {
+        ENVIRONMENT: envValue || "NOT_SET",
+        ASSINAFY_API_KEY_configured: !!assifafyApiKey,
+        ASSINAFY_ACCOUNT_ID_configured: !!assifafyAccountId,
+        will_call_assinafy: !DEV_MODE && !!assifafyApiKey && !!assifafyAccountId
+      }
     }));
 
     // Buscar dados da signature request
