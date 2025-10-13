@@ -397,7 +397,7 @@ export type Database = {
       }
       contratos: {
         Row: {
-          analise_id: string
+          analise_id: string | null
           assinado_em: string | null
           created_at: string | null
           dados_contrato: Json | null
@@ -412,7 +412,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          analise_id: string
+          analise_id?: string | null
           assinado_em?: string | null
           created_at?: string | null
           dados_contrato?: Json | null
@@ -427,7 +427,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
-          analise_id?: string
+          analise_id?: string | null
           assinado_em?: string | null
           created_at?: string | null
           dados_contrato?: Json | null
