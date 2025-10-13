@@ -59,7 +59,7 @@ export function DashboardContratos() {
         inscricao?.dados_inscricao?.dados_pessoais?.nome_completo ||
         inscricao?.candidato?.email;
         
-      const matchesStatus = !statusFilter || c.status === statusFilter;
+      const matchesStatus = !statusFilter || statusFilter === 'all' || c.status === statusFilter;
       const matchesSearch = !searchQuery || 
         c.numero_contrato?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         candidatoNome?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -136,12 +136,23 @@ export function DashboardContratos() {
                 <SelectValue placeholder="Filtrar por status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="">Todos os status</SelectItem>
                 <SelectItem value="pendente_assinatura">Aguardando Assinatura</SelectItem>
                 <SelectItem value="assinado">Assinado</SelectItem>
                 <SelectItem value="rejeitado">Rejeitado</SelectItem>
               </SelectContent>
             </Select>
+            {(statusFilter || searchQuery) && (
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setStatusFilter("");
+                  setSearchQuery("");
+                }}
+              >
+                Limpar Filtros
+              </Button>
+            )}
           </div>
 
           {/* Tabela */}

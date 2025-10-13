@@ -88,6 +88,21 @@ export function useTodosContratos() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
+      
+      // Log de contratos sem HTML para debug
+      const contratosSemHTML = data.filter(c => 
+        c.status === 'pendente_assinatura' && 
+        !(c.dados_contrato as any)?.html
+      );
+      
+      if (contratosSemHTML.length > 0) {
+        console.warn('[CONTRATOS] Encontrados contratos sem HTML:', contratosSemHTML.map(c => ({
+          id: c.id,
+          numero: c.numero_contrato,
+          inscricao_id: c.inscricao_id
+        })));
+      }
+      
       return data;
     }
   });
