@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
     const siteUrl = Deno.env.get('SITE_URL')!;
 
-    const { credenciadoId } = await req.json();
+    const { credenciadoId, force_new = false } = await req.json();
 
     if (!credenciadoId) {
       throw new Error('credenciadoId é obrigatório');
@@ -42,18 +42,48 @@ Deno.serve(async (req) => {
     // Verificar se já existe certificado ativo
     const { data: existingCert } = await supabase
       .from('certificados')
-      .select('id, numero_certificado')
+      .select('id, numero_certificado, documento_url, status')
       .eq('credenciado_id', credenciadoId)
       .eq('status', 'ativo')
-      .single();
+      .maybeSingle();
 
-    if (existingCert) {
-      console.log('[GERAR_CERTIFICADO] Certificado já existe:', existingCert.numero_certificado);
+    let numeroCertificado: string;
+    let certificadoExistenteId: string | null = null;
+    let motivo: string = 'emissao_inicial';
+
+    // CASO 1: Certificado sem PDF - REGENERAR no mesmo registro
+    if (existingCert && !existingCert.documento_url) {
+      console.log('[GERAR_CERTIFICADO] Regenerando PDF para certificado:', existingCert.numero_certificado);
+      numeroCertificado = existingCert.numero_certificado;
+      certificadoExistenteId = existingCert.id;
+      motivo = 'regeneracao';
+    }
+    // CASO 2: Certificado completo existe mas usuário quer novo
+    else if (existingCert && existingCert.documento_url && force_new) {
+      console.log('[GERAR_CERTIFICADO] Gerando NOVO certificado (inativando anterior)');
+      
+      // Inativar anterior
+      await supabase
+        .from('certificados')
+        .update({ status: 'inativo' })
+        .eq('id', existingCert.id);
+      
+      // Gerar novo número
+      const ano = new Date().getFullYear();
+      const randomId = crypto.randomUUID().substring(0, 6).toUpperCase();
+      numeroCertificado = `CERT-${ano}-${randomId}`;
+      motivo = 'nova_copia';
+    }
+    // CASO 3: Certificado completo existe - apenas retornar
+    else if (existingCert && existingCert.documento_url) {
+      console.log('[GERAR_CERTIFICADO] Certificado já existe e está completo');
+      
       return new Response(
         JSON.stringify({
-          success: false,
-          message: 'Certificado já existe para este credenciado',
-          certificado: existingCert
+          success: true,
+          message: 'Certificado já existe',
+          certificado: existingCert,
+          documento_url: existingCert.documento_url
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -61,11 +91,13 @@ Deno.serve(async (req) => {
         }
       );
     }
-
-    // Gerar número único do certificado
-    const ano = new Date().getFullYear();
-    const randomId = crypto.randomUUID().substring(0, 6).toUpperCase();
-    const numeroCertificado = `CERT-${ano}-${randomId}`;
+    // CASO 4: Não existe certificado - criar novo
+    else {
+      const ano = new Date().getFullYear();
+      const randomId = crypto.randomUUID().substring(0, 6).toUpperCase();
+      numeroCertificado = `CERT-${ano}-${randomId}`;
+      motivo = 'emissao_inicial';
+    }
 
     // URL de verificação
     const verificationUrl = `${siteUrl}/verificar-certificado/${numeroCertificado}`;
@@ -300,34 +332,92 @@ Deno.serve(async (req) => {
     console.log('[GERAR_CERTIFICADO] URL pública:', publicUrl);
 
     // === SALVAR NO BANCO COM documento_url ===
-    const { data: certificadoSalvo, error: saveError } = await supabase
-      .from('certificados')
-      .insert({
-        credenciado_id: credenciadoId,
-        numero_certificado: numeroCertificado,
-        tipo: 'credenciamento',
-        status: 'ativo',
-        documento_url: publicUrl,
-        emitido_em: new Date().toISOString(),
-        valido_ate: validoAte.toISOString(),
-        dados_certificado: {
-          nome: credenciado.nome,
-          cpf: credenciado.cpf,
-          cnpj: credenciado.cnpj,
-          especialidades,
-          qr_code_url: qrCodeUrl,
-          verification_url: verificationUrl
-        }
-      })
-      .select()
-      .single();
+    let certificadoSalvo: any;
 
-    if (saveError) {
-      console.error('[GERAR_CERTIFICADO] Erro ao salvar certificado:', saveError);
-      throw new Error(`Erro ao salvar certificado: ${saveError.message}`);
+    // Se certificado já existe (regeneração), fazer UPDATE
+    if (certificadoExistenteId) {
+      console.log('[GERAR_CERTIFICADO] Atualizando certificado existente:', certificadoExistenteId);
+      
+      const { data: certificadoAtualizado, error: updateError } = await supabase
+        .from('certificados')
+        .update({
+          documento_url: publicUrl,
+          dados_certificado: {
+            nome: credenciado.nome,
+            cpf: credenciado.cpf,
+            cnpj: credenciado.cnpj,
+            especialidades,
+            qr_code_url: qrCodeUrl,
+            verification_url: verificationUrl
+          },
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', certificadoExistenteId)
+        .select()
+        .single();
+      
+      if (updateError) {
+        console.error('[GERAR_CERTIFICADO] Erro ao atualizar certificado:', updateError);
+        throw new Error(`Erro ao atualizar certificado: ${updateError.message}`);
+      }
+      
+      certificadoSalvo = certificadoAtualizado;
+    }
+    // Senão, criar novo (comportamento padrão)
+    else {
+      console.log('[GERAR_CERTIFICADO] Criando novo certificado');
+      
+      const { data: novoCertificado, error: insertError } = await supabase
+        .from('certificados')
+        .insert({
+          credenciado_id: credenciadoId,
+          numero_certificado: numeroCertificado,
+          tipo: 'credenciamento',
+          status: 'ativo',
+          documento_url: publicUrl,
+          emitido_em: new Date().toISOString(),
+          valido_ate: validoAte.toISOString(),
+          dados_certificado: {
+            nome: credenciado.nome,
+            cpf: credenciado.cpf,
+            cnpj: credenciado.cnpj,
+            especialidades,
+            qr_code_url: qrCodeUrl,
+            verification_url: verificationUrl
+          }
+        })
+        .select()
+        .single();
+      
+      if (insertError) {
+        console.error('[GERAR_CERTIFICADO] Erro ao inserir certificado:', insertError);
+        throw new Error(`Erro ao inserir certificado: ${insertError.message}`);
+      }
+      
+      certificadoSalvo = novoCertificado;
     }
 
     console.log('[GERAR_CERTIFICADO] Certificado salvo com sucesso:', certificadoSalvo.id);
+
+    // === FASE 5: REGISTRAR NO HISTÓRICO ===
+    const { error: historicoError } = await supabase
+      .from('certificados_historico')
+      .insert({
+        certificado_id: certificadoSalvo.id,
+        credenciado_id: credenciadoId,
+        numero_certificado: numeroCertificado,
+        documento_url: publicUrl,
+        motivo,
+        metadata: {
+          force_new,
+          regeneracao: certificadoExistenteId !== null,
+          especialidades
+        }
+      });
+
+    if (historicoError) {
+      console.warn('[GERAR_CERTIFICADO] Erro ao registrar histórico (não crítico):', historicoError);
+    }
 
     return new Response(
       JSON.stringify({

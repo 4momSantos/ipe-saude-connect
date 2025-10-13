@@ -4,20 +4,21 @@ import { toast } from "sonner";
 
 interface GerarCertificadoParams {
   credenciadoId: string;
+  force_new?: boolean;
 }
 
 export function useGerarCertificado() {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: async ({ credenciadoId }: GerarCertificadoParams) => {
-      console.log('[useGerarCertificado] Iniciando geração de certificado para:', credenciadoId);
+    mutationFn: async ({ credenciadoId, force_new = false }: GerarCertificadoParams) => {
+      console.log('[useGerarCertificado] Iniciando geração de certificado para:', credenciadoId, 'force_new:', force_new);
 
       // FASE 2: Apenas chamar edge function - ela faz tudo agora
       const { data: certificadoData, error: functionError } = await supabase.functions.invoke(
         "gerar-certificado",
         {
-          body: { credenciadoId }
+          body: { credenciadoId, force_new }
         }
       );
 

@@ -16,9 +16,9 @@ export function CertificadoCard({ credenciadoId }: CertificadoCardProps) {
   const { certificado, download, isLoading, refetch } = useCertificados(credenciadoId);
   const { gerar, isLoading: isGenerating } = useGerarCertificado();
 
-  const handleGerar = async () => {
+  const handleGerar = async (forceNew: boolean = false) => {
     try {
-      await gerar({ credenciadoId });
+      await gerar({ credenciadoId, force_new: forceNew });
       await refetch();
     } catch (error) {
       console.error('Erro ao gerar certificado:', error);
@@ -62,7 +62,7 @@ export function CertificadoCard({ credenciadoId }: CertificadoCardProps) {
             </AlertDescription>
           </Alert>
           <Button 
-            onClick={handleGerar} 
+            onClick={() => handleGerar(false)} 
             disabled={isGenerating}
             className="mt-4"
           >
@@ -134,9 +134,9 @@ export function CertificadoCard({ credenciadoId }: CertificadoCardProps) {
         </div>
 
         {precisaRegenerar && (
-          <Alert>
+          <Alert variant="destructive">
             <AlertDescription>
-              ⚠️ PDF do certificado não disponível. Clique em "Regenerar" para criar o documento.
+              ⚠️ PDF do certificado não disponível. Clique em "Gerar PDF" abaixo.
             </AlertDescription>
           </Alert>
         )}
@@ -144,19 +144,19 @@ export function CertificadoCard({ credenciadoId }: CertificadoCardProps) {
         <div className="flex flex-wrap gap-2">
           {precisaRegenerar ? (
             <Button 
-              onClick={handleGerar} 
+              onClick={() => handleGerar(false)} 
               disabled={isGenerating}
               variant="default"
             >
               {isGenerating ? (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Regenerando...
+                  Gerando PDF...
                 </>
               ) : (
                 <>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Regenerar PDF
+                  <FileText className="mr-2 h-4 w-4" />
+                  Gerar PDF
                 </>
               )}
             </Button>
@@ -177,12 +177,21 @@ export function CertificadoCard({ credenciadoId }: CertificadoCardProps) {
                 Ver QR Code
               </Button>
               <Button 
-                onClick={handleGerar} 
+                onClick={() => handleGerar(true)} 
                 disabled={isGenerating}
                 variant="outline"
               >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Regenerar
+                {isGenerating ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Gerando nova cópia...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Gerar Nova Cópia
+                  </>
+                )}
               </Button>
             </>
           )}

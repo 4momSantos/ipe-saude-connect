@@ -359,6 +359,64 @@ export type Database = {
           },
         ]
       }
+      certificados_historico: {
+        Row: {
+          certificado_id: string | null
+          created_at: string | null
+          credenciado_id: string | null
+          documento_url: string | null
+          gerado_por: string | null
+          id: string
+          metadata: Json | null
+          motivo: string
+          numero_certificado: string
+        }
+        Insert: {
+          certificado_id?: string | null
+          created_at?: string | null
+          credenciado_id?: string | null
+          documento_url?: string | null
+          gerado_por?: string | null
+          id?: string
+          metadata?: Json | null
+          motivo: string
+          numero_certificado: string
+        }
+        Update: {
+          certificado_id?: string | null
+          created_at?: string | null
+          credenciado_id?: string | null
+          documento_url?: string | null
+          gerado_por?: string | null
+          id?: string
+          metadata?: Json | null
+          motivo?: string
+          numero_certificado?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificados_historico_certificado_id_fkey"
+            columns: ["certificado_id"]
+            isOneToOne: false
+            referencedRelation: "certificados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificados_historico_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificados_historico_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contract_templates: {
         Row: {
           campos_mapeados: Json | null
