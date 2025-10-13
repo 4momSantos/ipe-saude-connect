@@ -48,10 +48,17 @@ export function DashboardContratos() {
 
   const contratosFiltrados = contratos
     .filter(c => {
+      const inscricao = c.inscricao as any;
+      const candidatoNome = 
+        inscricao?.candidato?.nome || 
+        inscricao?.dados_inscricao?.dadosPessoais?.nome ||
+        inscricao?.dados_inscricao?.dados_pessoais?.nome_completo ||
+        inscricao?.candidato?.email;
+        
       const matchesStatus = !statusFilter || c.status === statusFilter;
       const matchesSearch = !searchQuery || 
         c.numero_contrato?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (c.inscricao as any)?.dados_inscricao?.dadosPessoais?.nome?.toLowerCase().includes(searchQuery.toLowerCase());
+        candidatoNome?.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesStatus && matchesSearch;
     });
 
@@ -158,14 +165,22 @@ export function DashboardContratos() {
                   contratosFiltrados.map((contrato) => {
                     const inscricao = contrato.inscricao as any;
                     const edital = inscricao?.edital;
-                    const candidato = inscricao?.dados_inscricao?.dadosPessoais;
+                    const candidato = inscricao?.candidato;
+                    
+                    // Fallbacks inteligentes para nome do candidato
+                    const candidatoNome = 
+                      candidato?.nome || 
+                      inscricao?.dados_inscricao?.dadosPessoais?.nome ||
+                      inscricao?.dados_inscricao?.dados_pessoais?.nome_completo ||
+                      candidato?.email?.split('@')[0] ||
+                      "Candidato sem nome";
 
                     return (
                       <TableRow key={contrato.id}>
                         <TableCell className="font-medium">
                           {contrato.numero_contrato}
                         </TableCell>
-                        <TableCell>{candidato?.nome || "N/A"}</TableCell>
+                        <TableCell>{candidatoNome}</TableCell>
                         <TableCell>
                           {edital?.numero_edital || edital?.titulo || "N/A"}
                         </TableCell>

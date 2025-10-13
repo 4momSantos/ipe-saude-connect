@@ -73,6 +73,11 @@ export function useTodosContratos() {
             id,
             candidato_id,
             dados_inscricao,
+            candidato:profiles!inscricoes_edital_candidato_id_fkey(
+              id,
+              nome,
+              email
+            ),
             edital:editais(
               id,
               titulo,
