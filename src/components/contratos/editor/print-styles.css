@@ -1,0 +1,88 @@
+@media print {
+  /* Reset margins and padding for print */
+  @page {
+    size: A4;
+    margin: 2cm;
+  }
+
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Hide UI elements during print */
+  .no-print,
+  .toolbar,
+  .sidebar,
+  button,
+  .edit-mode-only {
+    display: none !important;
+  }
+
+  /* Page breaks */
+  .page-break {
+    page-break-after: always;
+    break-after: page;
+  }
+
+  /* Contract pages */
+  .contract-page {
+    page-break-inside: avoid;
+    page-break-after: always;
+    break-inside: avoid;
+    break-after: page;
+  }
+
+  .contract-page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  /* Headers and footers */
+  .contract-header,
+  .contract-footer {
+    position: fixed;
+    width: 100%;
+    left: 0;
+    right: 0;
+  }
+
+  .contract-header {
+    top: 0;
+  }
+
+  .contract-footer {
+    bottom: 0;
+  }
+
+  /* Content area */
+  .contract-content {
+    margin-top: 1cm;
+    margin-bottom: 1cm;
+  }
+
+  /* Images */
+  img {
+    max-width: 100% !important;
+    page-break-inside: avoid;
+  }
+
+  /* Tables */
+  table {
+    page-break-inside: avoid;
+  }
+
+  /* Links - show URLs in print */
+  a[href]:after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #666;
+  }
+
+  /* Contract fields */
+  .contract-field {
+    background-color: #f0f0f0 !important;
+    padding: 2px 4px;
+    border-radius: 2px;
+  }
+}
