@@ -3243,6 +3243,16 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_contratos_sem_signature_request: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          dados_contrato: Json
+          dados_inscricao: Json
+          id: string
+          inscricao_id: string
+          numero_contrato: string
+        }[]
+      }
       get_gestores: {
         Args: Record<PropertyKey, never>
         Returns: {

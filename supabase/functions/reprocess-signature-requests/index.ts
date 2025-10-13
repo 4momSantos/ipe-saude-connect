@@ -39,21 +39,9 @@ serve(async (req) => {
       event: 'reprocess_signature_requests_started'
     }));
 
-    // 1. Buscar contratos pendentes sem signature_request
+    // 1. Buscar contratos pendentes sem signature_request usando RPC
     const { data: contratosPendentes, error: fetchError } = await supabase
-      .from('contratos')
-      .select(`
-        id,
-        inscricao_id,
-        numero_contrato,
-        dados_contrato,
-        inscricao:inscricoes_edital (
-          id,
-          dados_inscricao
-        )
-      `)
-      .eq('status', 'pendente_assinatura')
-      .is('signature_requests.id', null);
+      .rpc('get_contratos_sem_signature_request');
 
     if (fetchError) {
       throw new Error(`Erro ao buscar contratos: ${fetchError.message}`);
@@ -95,8 +83,7 @@ serve(async (req) => {
     // 2. Processar cada contrato
     for (const contrato of contratosPendentes) {
       try {
-        const inscricaoData = contrato.inscricao as any;
-        const dadosInscricao = inscricaoData?.dados_inscricao || {};
+        const dadosInscricao = contrato.dados_inscricao || {};
         const dadosPessoais = dadosInscricao.dadosPessoais || dadosInscricao.dados_pessoais || {};
 
         const candidatoNome = dadosPessoais.nome_completo || dadosPessoais.nome || 'Candidato';
