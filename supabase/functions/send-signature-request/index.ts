@@ -12,6 +12,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
+import { PDFDocument, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -64,97 +65,266 @@ async function sendEmail(to: string[], subject: string, html: string, apiKey: st
 }
 
 /**
- * Cria documento na Assinafy com retry e backoff exponencial
+ * Converte HTML em PDF
  */
-async function createAssignafyDocumentWithRetry(
-  apiKey: string,
-  accountId: string,
-  documentData: AssignafyCreateDocumentRequest,
-  maxAttempts: number = 3
-): Promise<AssignafyDocumentResponse> {
-  let lastError: Error | null = null;
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      console.log(JSON.stringify({
-        level: "info",
-        service: "assinafy",
-        action: "create_document",
-        attempt,
-        maxAttempts,
-        payload: documentData
-      }));
-
-      const response = await fetch(`https://api.assinafy.com.br/v1/accounts/${accountId}/documents`, {
-        method: "POST",
-        headers: {
-          "X-Api-Key": apiKey,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(documentData),
-      });
-
-      const responseText = await response.text();
+async function htmlToPDF(html: string, contratoNumero: string): Promise<Uint8Array> {
+  console.log(JSON.stringify({ level: "info", action: "generating_pdf", contratoNumero }));
+  
+  try {
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([595.28, 841.89]); // A4
+    
+    // Extrair texto do HTML (remover tags)
+    const textContent = html
+      .replace(/<style[^>]*>.*?<\/style>/gs, '')
+      .replace(/<script[^>]*>.*?<\/script>/gs, '')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .trim();
+    
+    // Configurações de texto
+    const fontSize = 12;
+    const lineHeight = 14;
+    const margin = 50;
+    const maxWidth = page.getWidth() - (margin * 2);
+    
+    // Quebrar texto em linhas
+    const words = textContent.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
+    
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const width = testLine.length * (fontSize * 0.5);
       
-      console.log(JSON.stringify({
-        level: response.ok ? "info" : "error",
-        service: "assinafy",
-        action: "create_document_response",
-        attempt,
-        status: response.status,
-        statusText: response.statusText,
-        response: responseText
-      }));
-
-      if (!response.ok) {
-        throw new Error(`Assinafy API error: ${response.status} - ${responseText}`);
-      }
-
-      const data = JSON.parse(responseText);
-      
-      // Validar resposta
-      if (!data || !data.id) {
-        throw new Error("Invalid Assinafy response: missing document ID");
-      }
-
-      console.log(JSON.stringify({
-        level: "info",
-        service: "assinafy",
-        action: "document_created",
-        documentId: data.id,
-        attempt
-      }));
-
-      return data;
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-      
-      console.error(JSON.stringify({
-        level: "error",
-        service: "assinafy",
-        action: "create_document_failed",
-        attempt,
-        maxAttempts,
-        error: lastError.message,
-        willRetry: attempt < maxAttempts
-      }));
-
-      if (attempt < maxAttempts) {
-        // Backoff exponencial: 1s, 2s, 4s
-        const delayMs = 1000 * Math.pow(2, attempt - 1);
-        console.log(JSON.stringify({
-          level: "info",
-          service: "assinafy",
-          action: "retry_delay",
-          delayMs,
-          nextAttempt: attempt + 1
-        }));
-        await new Promise(resolve => setTimeout(resolve, delayMs));
+      if (width < maxWidth) {
+        currentLine = testLine;
+      } else {
+        lines.push(currentLine);
+        currentLine = word;
       }
     }
+    if (currentLine) lines.push(currentLine);
+    
+    // Adicionar título
+    page.drawText(`CONTRATO DE CREDENCIAMENTO - ${contratoNumero}`, {
+      x: margin,
+      y: page.getHeight() - margin,
+      size: 14,
+      color: rgb(0, 0, 0),
+    });
+    
+    // Adicionar conteúdo
+    let yPosition = page.getHeight() - margin - 30;
+    let currentPage = page;
+    
+    for (const line of lines) {
+      if (yPosition < margin) {
+        currentPage = pdfDoc.addPage([595.28, 841.89]);
+        yPosition = currentPage.getHeight() - margin;
+      }
+      
+      currentPage.drawText(line, {
+        x: margin,
+        y: yPosition,
+        size: fontSize,
+        color: rgb(0, 0, 0),
+      });
+      
+      yPosition -= lineHeight;
+    }
+    
+    const pdfBytes = await pdfDoc.save();
+    console.log(JSON.stringify({ 
+      level: "info", 
+      action: "pdf_generated", 
+      bytes: pdfBytes.length 
+    }));
+    
+    return pdfBytes;
+    
+  } catch (error) {
+    console.error(JSON.stringify({
+      level: "error",
+      action: "pdf_generation_failed",
+      error: error instanceof Error ? error.message : "Unknown"
+    }));
+    throw new Error(`Falha ao gerar PDF: ${error instanceof Error ? error.message : "Unknown"}`);
   }
+}
 
-  throw new Error(`Assinafy integration failed after ${maxAttempts} attempts: ${lastError?.message}`);
+/**
+ * Envia documento para Assinafy via multipart/form-data
+ */
+async function sendDocumentToAssinafy(
+  apiKey: string,
+  accountId: string,
+  pdfBytes: Uint8Array,
+  fileName: string,
+  signerData: { name: string; email: string }
+): Promise<{ documentId: string; assignmentId: string }> {
+  
+  console.log(JSON.stringify({
+    level: "info",
+    action: "assinafy_send_start",
+    fileName,
+    signerEmail: signerData.email
+  }));
+  
+  // ETAPA 1: Criar/Verificar Signatário
+  let signerId: string | null = null;
+  
+  const searchResponse = await fetch(
+    `https://api.assinafy.com.br/v1/accounts/${accountId}/signers?search=${encodeURIComponent(signerData.email)}`,
+    {
+      method: 'GET',
+      headers: {
+        'X-Api-Key': apiKey,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+  
+  if (searchResponse.ok) {
+    const signersData = await searchResponse.json();
+    const existingSigner = signersData.data?.find((s: any) => s.email === signerData.email);
+    
+    if (existingSigner) {
+      signerId = existingSigner.id;
+      console.log(JSON.stringify({
+        level: "info",
+        action: "signer_found",
+        signerId
+      }));
+    }
+  }
+  
+  if (!signerId) {
+    console.log(JSON.stringify({
+      level: "info",
+      action: "creating_signer",
+      signerEmail: signerData.email
+    }));
+    
+    const createSignerResponse = await fetch(
+      `https://api.assinafy.com.br/v1/accounts/${accountId}/signers`,
+      {
+        method: 'POST',
+        headers: {
+          'X-Api-Key': apiKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          full_name: signerData.name,
+          email: signerData.email
+        })
+      }
+    );
+    
+    if (!createSignerResponse.ok) {
+      const errorText = await createSignerResponse.text();
+      throw new Error(`Erro ao criar signatário: ${errorText}`);
+    }
+    
+    const signerResponseData = await createSignerResponse.json();
+    signerId = signerResponseData.data.id;
+    console.log(JSON.stringify({
+      level: "info",
+      action: "signer_created",
+      signerId
+    }));
+  }
+  
+  // ETAPA 2: Upload do Documento
+  console.log(JSON.stringify({
+    level: "info",
+    action: "uploading_document",
+    fileSize: pdfBytes.length
+  }));
+  
+  const formData = new FormData();
+  const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+  formData.append('file', pdfBlob, fileName);
+  
+  const uploadResponse = await fetch(
+    `https://api.assinafy.com.br/v1/accounts/${accountId}/documents`,
+    {
+      method: 'POST',
+      headers: {
+        'X-Api-Key': apiKey
+      },
+      body: formData
+    }
+  );
+  
+  if (!uploadResponse.ok) {
+    const errorText = await uploadResponse.text();
+    console.error(JSON.stringify({
+      level: "error",
+      action: "upload_failed",
+      status: uploadResponse.status,
+      error: errorText
+    }));
+    throw new Error(`Erro ao fazer upload: ${errorText}`);
+  }
+  
+  const uploadData = await uploadResponse.json();
+  const documentId = uploadData.id;
+  console.log(JSON.stringify({
+    level: "info",
+    action: "document_uploaded",
+    documentId
+  }));
+  
+  // ETAPA 3: Solicitar Assinatura
+  console.log(JSON.stringify({
+    level: "info",
+    action: "requesting_signature",
+    documentId,
+    signerId
+  }));
+  
+  const assignmentResponse = await fetch(
+    `https://api.assinafy.com.br/v1/documents/${documentId}/assignments`,
+    {
+      method: 'POST',
+      headers: {
+        'X-Api-Key': apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        method: 'virtual',
+        signer_ids: [signerId],
+        message: `Por favor, assine o contrato ${fileName}.`,
+        expires_at: null
+      })
+    }
+  );
+  
+  if (!assignmentResponse.ok) {
+    const errorText = await assignmentResponse.text();
+    console.error(JSON.stringify({
+      level: "error",
+      action: "assignment_failed",
+      error: errorText
+    }));
+    throw new Error(`Erro ao solicitar assinatura: ${errorText}`);
+  }
+  
+  const assignmentData = await assignmentResponse.json();
+  console.log(JSON.stringify({
+    level: "info",
+    action: "signature_requested",
+    assignmentId: assignmentData.id
+  }));
+  
+  return {
+    documentId,
+    assignmentId: assignmentData.id
+  };
 }
 
 serve(async (req) => {
@@ -336,43 +506,75 @@ serve(async (req) => {
       }
 
       try {
-        // Criar documento na Assinafy com retry
-        const assifafyResponse = await createAssignafyDocumentWithRetry(
-          assifafyApiKey,
-          assifafyAccountId,
-          {
-            name: `Documento - ${inscricaoData?.edital?.titulo || "Credenciamento"}`,
-            signers: signatureRequest.signers,
-            document_url: signatureRequest.document_url,
-            message: `Solicitação de assinatura para o edital ${inscricaoData?.edital?.numero || "N/A"}`,
-          }
-        );
+        // Buscar dados do contrato
+        const { data: contrato, error: contratoError } = await supabase
+          .from("contratos")
+          .select("id, numero_contrato, dados_contrato, inscricao_id")
+          .eq("inscricao_id", inscricaoData?.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
 
-        // Extrair URL de assinatura
-        const signatureUrl = assifafyResponse.signature_url || 
-                            assifafyResponse.signers?.[0]?.signature_url ||
-                            null;
+        if (contratoError || !contrato) {
+          throw new Error(`Contrato não encontrado: ${contratoError?.message || "unknown"}`);
+        }
+
+        // Extrair HTML do contrato
+        const contratoHTML = contrato.dados_contrato?.html;
+        if (!contratoHTML) {
+          throw new Error('HTML do contrato não encontrado em dados_contrato.html');
+        }
+
+        // Obter dados do signatário
+        const signers = signatureRequest.signers as any[];
+        if (!signers || signers.length === 0) {
+          throw new Error('Nenhum signatário definido');
+        }
+
+        const signer = signers[0];
+        if (!signer.name || !signer.email) {
+          throw new Error('Dados do signatário incompletos');
+        }
 
         console.log(JSON.stringify({
           level: "info",
           requestId,
-          action: "assinafy_document_created",
-          documentId: assifafyResponse.id,
-          signatureRequestId,
-          signatureUrl: signatureUrl ? "present" : "missing"
+          action: "processing_contract",
+          contratoId: contrato.id,
+          numeroContrato: contrato.numero_contrato
         }));
 
-        // Atualizar signature request com ID externo da Assinafy
+        // GERAR PDF
+        const pdfBytes = await htmlToPDF(contratoHTML, contrato.numero_contrato);
+
+        // ENVIAR PARA ASSINAFY
+        const { documentId, assignmentId } = await sendDocumentToAssinafy(
+          assifafyApiKey,
+          assifafyAccountId,
+          pdfBytes,
+          `${contrato.numero_contrato}.pdf`,
+          signer
+        );
+
+        console.log(JSON.stringify({
+          level: "info",
+          requestId,
+          action: "assinafy_process_complete",
+          documentId,
+          assignmentId
+        }));
+
+        // ATUALIZAR SIGNATURE REQUEST
         await supabase
           .from("signature_requests")
           .update({
-            external_id: assifafyResponse.id,
+            external_id: documentId,
             status: "sent",
-            external_status: assifafyResponse.status || "created",
+            external_status: "sent",
             metadata: {
               ...signatureRequest.metadata,
-              assinafy_data: assifafyResponse,
-              signature_url: signatureUrl,
+              assinafy_document_id: documentId,
+              assinafy_assignment_id: assignmentId,
               sent_at: new Date().toISOString(),
             },
           })
@@ -383,7 +585,7 @@ serve(async (req) => {
           requestId,
           action: "signature_request_updated",
           signatureRequestId,
-          externalId: assifafyResponse.id
+          externalId: documentId
         }));
       } catch (error) {
         console.error(JSON.stringify({
