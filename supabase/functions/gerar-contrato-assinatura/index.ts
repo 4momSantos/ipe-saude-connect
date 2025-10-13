@@ -417,11 +417,15 @@ serve(async (req) => {
     
     if (assifafyApiKey && assifafyAccountId) {
       try {
+        logEvent('info', 'calling_send_signature', {
+          signature_request_id: signatureRequest.id
+        });
+
         const { data, error: assinafyError } = await supabase.functions.invoke(
           'send-signature-request',
           {
             body: {
-              signature_request_id: signatureRequest.id
+              signatureRequestId: signatureRequest.id // Corrigido o nome do campo
             }
           }
         );
