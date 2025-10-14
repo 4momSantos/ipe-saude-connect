@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import Map, { Source, Layer, Popup, NavigationControl, FullscreenControl } from 'react-map-gl';
+import mapboxgl from 'mapbox-gl';
 import { useMapboxToken } from '@/hooks/useMapboxToken';
 import { useDensidadeCredenciados, DensidadeZona } from '@/hooks/useDensidadeCredenciados';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -7,7 +7,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, MapPin, TrendingDown, TrendingUp, AlertCircle, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import type { FillLayer, LineLayer } from 'react-map-gl';
 
 const INITIAL_VIEW_STATE = {
   latitude: -8.0476,
@@ -17,8 +16,9 @@ const INITIAL_VIEW_STATE = {
 
 export function MapaDensidadeCredenciados() {
   const [selectedZona, setSelectedZona] = useState<DensidadeZona | null>(null);
-  const [viewState, setViewState] = useState(INITIAL_VIEW_STATE);
-  const mapRef = useRef<any>(null);
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const map = useRef<mapboxgl.Map | null>(null);
+  const popup = useRef<mapboxgl.Popup | null>(null);
 
   const { token, isLoading: tokenLoading, error: tokenError } = useMapboxToken();
   const { data: densidade, isLoading: densidadeLoading, error: densidadeError } = useDensidadeCredenciados();
@@ -47,90 +47,169 @@ export function MapaDensidadeCredenciados() {
     }))
   } : null;
 
-  // Estilo da camada de polígonos (choropleth)
-  const fillLayer: FillLayer = {
-    id: 'zonas-fill',
-    type: 'fill',
-    paint: {
-      'fill-color': ['get', 'cor'],
-      'fill-opacity': 0.6
-    }
-  };
-
-  // Estilo da borda dos polígonos
-  const lineLayer: LineLayer = {
-    id: 'zonas-outline',
-    type: 'line',
-    paint: {
-      'line-color': '#000000',
-      'line-width': 2
-    }
-  };
-
-  // Highlight ao hover
-  const highlightLayer: FillLayer = {
-    id: 'zonas-highlight',
-    type: 'fill',
-    paint: {
-      'fill-color': ['get', 'cor'],
-      'fill-opacity': 0.9
-    },
-    filter: ['==', 'zona_id', selectedZona?.zona_id || '']
-  };
-
-  // Ajustar mapa para mostrar todas as zonas
+  // Inicializar mapa
   useEffect(() => {
-    if (geojsonData && mapRef.current && geojsonData.features.length > 0) {
-      try {
-        const map = mapRef.current.getMap();
-        
-        // Calcular bounds manualmente
-        let minLng = Infinity, maxLng = -Infinity;
-        let minLat = Infinity, maxLat = -Infinity;
+    if (!token || !mapContainer.current || map.current) return;
 
-        geojsonData.features.forEach(feature => {
-          const coords = feature.geometry.coordinates[0];
-          coords.forEach(([lng, lat]: [number, number]) => {
-            minLng = Math.min(minLng, lng);
-            maxLng = Math.max(maxLng, lng);
-            minLat = Math.min(minLat, lat);
-            maxLat = Math.max(maxLat, lat);
-          });
-        });
+    mapboxgl.accessToken = token;
 
-        map.fitBounds(
-          [[minLng, minLat], [maxLng, maxLat]],
-          { padding: 50, maxZoom: 13, duration: 1000 }
-        );
-      } catch (e) {
-        console.error('Erro ao ajustar bounds:', e);
-      }
-    }
-  }, [geojsonData]);
-
-  // Detectar click no polígono
-  const handleMapClick = (event: any) => {
-    if (!event.features || event.features.length === 0) {
-      setSelectedZona(null);
-      return;
-    }
-
-    const feature = event.features[0];
-    const props = feature.properties;
-    
-    setSelectedZona({
-      zona_id: props.zona_id,
-      zona: props.nome,
-      cidade: props.cidade,
-      estado: props.estado,
-      populacao: props.populacao,
-      area_km2: props.area_km2,
-      credenciados: props.credenciados,
-      densidade: props.densidade,
-      cor: props.cor,
-      geometry: feature.geometry
+    map.current = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: 'mapbox://styles/mapbox/light-v11',
+      center: [INITIAL_VIEW_STATE.longitude, INITIAL_VIEW_STATE.latitude],
+      zoom: INITIAL_VIEW_STATE.zoom
     });
-  };
+
+    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    map.current.addControl(new mapboxgl.FullscreenControl(), 'top-right');
+
+    popup.current = new mapboxgl.Popup({
+      closeButton: true,
+      closeOnClick: false,
+      offset: 15
+    });
+
+    return () => {
+      map.current?.remove();
+      map.current = null;
+    };
+  }, [token]);
+
+  // Adicionar camadas de zonas
+  useEffect(() => {
+    if (!map.current || !geojsonData || !map.current.isStyleLoaded()) return;
+
+    const mapInstance = map.current;
+
+    // Remover camadas anteriores se existirem
+    if (mapInstance.getLayer('zonas-fill')) mapInstance.removeLayer('zonas-fill');
+    if (mapInstance.getLayer('zonas-outline')) mapInstance.removeLayer('zonas-outline');
+    if (mapInstance.getSource('zonas')) mapInstance.removeSource('zonas');
+
+    // Adicionar source
+    mapInstance.addSource('zonas', {
+      type: 'geojson',
+      data: geojsonData as any
+    });
+
+    // Camada de preenchimento (choropleth)
+    mapInstance.addLayer({
+      id: 'zonas-fill',
+      type: 'fill',
+      source: 'zonas',
+      paint: {
+        'fill-color': ['get', 'cor'],
+        'fill-opacity': 0.6
+      }
+    });
+
+    // Camada de borda
+    mapInstance.addLayer({
+      id: 'zonas-outline',
+      type: 'line',
+      source: 'zonas',
+      paint: {
+        'line-color': '#000000',
+        'line-width': 2
+      }
+    });
+
+    // Ajustar bounds para mostrar todas as zonas
+    if (geojsonData.features.length > 0) {
+      let minLng = Infinity, maxLng = -Infinity;
+      let minLat = Infinity, maxLat = -Infinity;
+
+      geojsonData.features.forEach(feature => {
+        const coords = feature.geometry.coordinates[0];
+        coords.forEach(([lng, lat]: [number, number]) => {
+          minLng = Math.min(minLng, lng);
+          maxLng = Math.max(maxLng, lng);
+          minLat = Math.min(minLat, lat);
+          maxLat = Math.max(maxLat, lat);
+        });
+      });
+
+      mapInstance.fitBounds(
+        [[minLng, minLat], [maxLng, maxLat]],
+        { padding: 50, maxZoom: 13, duration: 1000 }
+      );
+    }
+
+    // Click handler
+    mapInstance.on('click', 'zonas-fill', (e) => {
+      if (!e.features || e.features.length === 0) return;
+
+      const feature = e.features[0];
+      const props = feature.properties;
+
+      if (!props) return;
+
+      const zona: DensidadeZona = {
+        zona_id: props.zona_id,
+        zona: props.nome,
+        cidade: props.cidade,
+        estado: props.estado,
+        populacao: props.populacao,
+        area_km2: props.area_km2,
+        credenciados: props.credenciados,
+        densidade: props.densidade,
+        cor: props.cor,
+        geometry: feature.geometry
+      };
+
+      setSelectedZona(zona);
+
+      const popupHTML = `
+        <div class="p-3 min-w-[250px]">
+          <h3 class="font-bold text-lg mb-2 flex items-center gap-2">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${zona.cor}" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            Zona ${zona.zona}
+          </h3>
+          
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-600">População:</span>
+              <span class="font-semibold">${zona.populacao.toLocaleString()}</span>
+            </div>
+            
+            <div class="flex justify-between">
+              <span class="text-gray-600">Área:</span>
+              <span class="font-semibold">${zona.area_km2} km²</span>
+            </div>
+            
+            <div class="flex justify-between">
+              <span class="text-gray-600">Credenciados:</span>
+              <span class="font-semibold">${zona.credenciados}</span>
+            </div>
+            
+            <div class="pt-2 border-t">
+              <div class="flex justify-between items-center">
+                <span class="text-gray-600">Densidade:</span>
+                <span class="font-bold px-2 py-1 rounded text-white" style="background-color: ${zona.cor}">
+                  ${zona.densidade} por 10k hab.
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      popup.current?.setLngLat(e.lngLat).setHTML(popupHTML).addTo(mapInstance);
+    });
+
+    // Cursor pointer ao hover
+    mapInstance.on('mouseenter', 'zonas-fill', () => {
+      mapInstance.getCanvas().style.cursor = 'pointer';
+    });
+
+    mapInstance.on('mouseleave', 'zonas-fill', () => {
+      mapInstance.getCanvas().style.cursor = '';
+    });
+
+  }, [geojsonData, map.current?.isStyleLoaded()]);
 
   // Zonas com densidade crítica
   const zonasCriticas = densidade?.zonas.filter(z => z.densidade < 0.5) || [];
@@ -306,76 +385,7 @@ export function MapaDensidadeCredenciados() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="rounded-lg overflow-hidden border-t">
-            <Map
-              ref={mapRef}
-              {...viewState}
-              onMove={(evt) => setViewState(evt.viewState)}
-              mapboxAccessToken={token}
-              style={{ width: '100%', height: '600px' }}
-              mapStyle="mapbox://styles/mapbox/light-v11"
-              onClick={handleMapClick}
-              interactiveLayerIds={['zonas-fill']}
-            >
-              <NavigationControl position="top-right" />
-              <FullscreenControl position="top-right" />
-
-              {geojsonData && (
-                <Source id="zonas" type="geojson" data={geojsonData}>
-                  <Layer {...fillLayer} />
-                  <Layer {...lineLayer} />
-                  {selectedZona && <Layer {...highlightLayer} />}
-                </Source>
-              )}
-
-              {selectedZona && (
-                <Popup
-                  latitude={viewState.latitude}
-                  longitude={viewState.longitude}
-                  onClose={() => setSelectedZona(null)}
-                  closeButton={true}
-                  closeOnClick={false}
-                  offset={15}
-                >
-                  <div className="p-3 min-w-[250px]">
-                    <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
-                      <MapPin className="w-5 h-5" style={{ color: selectedZona.cor }} />
-                      Zona {selectedZona.zona}
-                    </h3>
-                    
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">População:</span>
-                        <span className="font-semibold">{selectedZona.populacao.toLocaleString()}</span>
-                      </div>
-                      
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Área:</span>
-                        <span className="font-semibold">{selectedZona.area_km2} km²</span>
-                      </div>
-                      
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Credenciados:</span>
-                        <span className="font-semibold">{selectedZona.credenciados}</span>
-                      </div>
-                      
-                      <div className="pt-2 border-t">
-                        <div className="flex justify-between items-center">
-                          <span className="text-muted-foreground">Densidade:</span>
-                          <Badge 
-                            className="text-white font-bold"
-                            style={{ backgroundColor: selectedZona.cor }}
-                          >
-                            {selectedZona.densidade} por 10k hab.
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Popup>
-              )}
-            </Map>
-          </div>
+          <div ref={mapContainer} className="w-full h-[600px] rounded-lg overflow-hidden border-t" />
         </CardContent>
       </Card>
 
@@ -402,11 +412,20 @@ export function MapaDensidadeCredenciados() {
               <tbody>
                 {densidade.zonas
                   .sort((a, b) => b.densidade - a.densidade)
-                  .map((zona, i) => (
+                  .map((zona) => (
                     <tr 
                       key={zona.zona_id} 
                       className="border-b hover:bg-muted/50 cursor-pointer transition-colors"
-                      onClick={() => setSelectedZona(zona)}
+                      onClick={() => {
+                        setSelectedZona(zona);
+                        if (map.current) {
+                          // Centralizar no centro aproximado da zona
+                          const coords = zona.geometry.coordinates[0];
+                          const centerLng = coords.reduce((sum: number, c: number[]) => sum + c[0], 0) / coords.length;
+                          const centerLat = coords.reduce((sum: number, c: number[]) => sum + c[1], 0) / coords.length;
+                          map.current.flyTo({ center: [centerLng, centerLat], zoom: 12 });
+                        }
+                      }}
                     >
                       <td className="p-3">
                         <div className="flex items-center gap-2">
