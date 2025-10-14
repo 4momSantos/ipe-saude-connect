@@ -56,6 +56,17 @@ export function MapaDensidadeMultiCidade() {
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
     map.current.addControl(new mapboxgl.FullscreenControl(), 'top-right');
 
+    // Callbacks de erro e debug
+    map.current.on('error', (e) => {
+      console.error('[MAPBOX] Erro interno:', e);
+    });
+
+    map.current.on('data', (e) => {
+      if (e.dataType === 'source' && e.sourceId === 'zonas') {
+        console.log('[MAPA] ✓ Dados da fonte carregados');
+      }
+    });
+
     return () => {
       map.current?.remove();
     };
@@ -85,48 +96,108 @@ export function MapaDensidadeMultiCidade() {
 
       if (!densidadeData.densidades || densidadeData.densidades.length === 0) return;
 
-      // Converter para GeoJSON
-      const geojsonData = {
-        type: 'FeatureCollection' as const,
-        features: densidadeData.densidades.map(d => ({
-          type: 'Feature' as const,
-          properties: {
-            zona_id: d.zona_id,
-            nome: d.zona,
-            populacao: d.populacao,
-            credenciados: d.credenciados,
-            densidade: d.densidade,
-            cor: d.cor,
-          },
-          geometry: d.geometry,
-        })),
+      // Validar e filtrar apenas zonas com geometrias válidas
+      const zonasValidas = densidadeData.densidades.filter(d => {
+        if (!d.geometry) {
+          console.warn(`[MAPA] Zona ${d.zona} sem geometria`);
+          return false;
+        }
+        
+        const geom = typeof d.geometry === 'string' ? JSON.parse(d.geometry) : d.geometry;
+        
+        if (!['Polygon', 'MultiPolygon'].includes(geom.type)) {
+          console.warn(`[MAPA] Zona ${d.zona} com tipo inválido: ${geom.type}`);
+          return false;
+        }
+        
+        if (!geom.coordinates || geom.coordinates.length === 0) {
+          console.warn(`[MAPA] Zona ${d.zona} sem coordenadas`);
+          return false;
+        }
+        
+        console.log(`[MAPA] ✓ Zona ${d.zona} válida:`, geom);
+        return true;
+      });
+
+      if (zonasValidas.length === 0) {
+        console.error('[MAPA] Nenhuma zona válida para renderizar');
+        return;
+      }
+
+      // Converter para GeoJSON válido com IDs únicos
+      const geojsonData: GeoJSON.FeatureCollection = {
+        type: 'FeatureCollection',
+        features: zonasValidas.map((d, index) => {
+          // Parse geometry se for string
+          const geometry = typeof d.geometry === 'string' 
+            ? JSON.parse(d.geometry) 
+            : d.geometry;
+          
+          return {
+            type: 'Feature',
+            id: d.zona_id || `zona-${index}`, // ID único obrigatório
+            properties: {
+              zona_id: d.zona_id,
+              nome: d.zona,
+              populacao: d.populacao,
+              credenciados: d.credenciados,
+              densidade: d.densidade,
+              cor: d.cor,
+            },
+            geometry: geometry,
+          };
+        }),
       };
 
-      // Adicionar fonte e camadas
-      mapInstance.addSource('zonas', {
-        type: 'geojson',
-        data: geojsonData,
-      });
+      console.log('[MAPA] GeoJSON gerado:', JSON.stringify(geojsonData, null, 2));
 
-      mapInstance.addLayer({
-        id: 'zonas-fill',
-        type: 'fill',
-        source: 'zonas',
-        paint: {
-          'fill-color': ['get', 'cor'],
-          'fill-opacity': 0.7,
-        },
-      });
+      // Adicionar fonte com tratamento de erro
+      try {
+        mapInstance.addSource('zonas', {
+          type: 'geojson',
+          data: geojsonData,
+        });
+        
+        console.log('[MAPA] ✓ Fonte adicionada com sucesso');
+      } catch (error) {
+        console.error('[MAPA] ❌ Erro ao adicionar fonte:', error);
+        console.error('[MAPA] GeoJSON problemático:', geojsonData);
+        return;
+      }
 
-      mapInstance.addLayer({
-        id: 'zonas-outline',
-        type: 'line',
-        source: 'zonas',
-        paint: {
-          'line-color': '#000000',
-          'line-width': 2,
-        },
-      });
+      // Adicionar layer de preenchimento com tratamento de erro
+      try {
+        mapInstance.addLayer({
+          id: 'zonas-fill',
+          type: 'fill',
+          source: 'zonas',
+          paint: {
+            'fill-color': ['get', 'cor'],
+            'fill-opacity': 0.7,
+          },
+        });
+        
+        console.log('[MAPA] ✓ Layer de preenchimento adicionado');
+      } catch (error) {
+        console.error('[MAPA] ❌ Erro ao adicionar layer de preenchimento:', error);
+      }
+
+      // Adicionar layer de contorno com tratamento de erro
+      try {
+        mapInstance.addLayer({
+          id: 'zonas-outline',
+          type: 'line',
+          source: 'zonas',
+          paint: {
+            'line-color': '#000000',
+            'line-width': 2,
+          },
+        });
+        
+        console.log('[MAPA] ✓ Layer de contorno adicionado');
+      } catch (error) {
+        console.error('[MAPA] ❌ Erro ao adicionar layer de contorno:', error);
+      }
 
       // Eventos de clique
       mapInstance.on('click', 'zonas-fill', (e) => {
