@@ -42,7 +42,12 @@ export function PagedEditor({
   const [tabs, setTabs] = useState<number[]>([]);
   const [showRulers, setShowRulers] = useState(true);
   const [scrollOffset, setScrollOffset] = useState(0);
-  const { totalPages, contentRef, usableHeightPx } = useAutoPagination(zoom);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Constantes A4
+  const pageHeightCm = 29.7;
+  const usableHeightCm = pageHeightCm - topMargin - bottomMargin;
+  const CM_TO_PX = 37.795;
 
   const zoomLevels = [0.5, 0.75, 1, 1.25, 1.5];
 
@@ -91,6 +96,29 @@ export function PagedEditor({
     return () => window.removeEventListener('keydown', handleKeyboard);
   }, [currentZoomIndex, showRulers]);
 
+  // Calcular número de páginas baseado na altura do conteúdo
+  useEffect(() => {
+    if (!editor) return;
+    
+    const updatePageCount = () => {
+      const editorElement = document.querySelector('.ProseMirror');
+      if (editorElement) {
+        const contentHeightPx = editorElement.scrollHeight;
+        const usableHeightPx = usableHeightCm * CM_TO_PX * zoom;
+        const pages = Math.ceil(contentHeightPx / usableHeightPx) || 1;
+        setTotalPages(pages);
+      }
+    };
+
+    editor.on('update', updatePageCount);
+    const timeoutId = setTimeout(updatePageCount, 100);
+
+    return () => {
+      editor.off('update', updatePageCount);
+      clearTimeout(timeoutId);
+    };
+  }, [editor, usableHeightCm, zoom]);
+
   // Scroll listener para régua vertical
   useEffect(() => {
     const handleScroll = () => {
@@ -118,25 +146,17 @@ export function PagedEditor({
         </div>
       )}
 
-      {/* Container de medição invisível */}
+      {/* Container principal do editor - ÚNICO E CONTÍNUO */}
       <div 
-        ref={contentRef} 
-        className="absolute opacity-0 pointer-events-none" 
-        style={{ width: '15cm' }}
-      >
-        {headerEditor && <EditorContent editor={headerEditor} />}
-        <EditorContent editor={editor} />
-        {footerEditor && <EditorContent editor={footerEditor} />}
-      </div>
-
-      {/* Páginas A4 visíveis */}
-      <div 
-        className="py-8 px-4 relative" 
-        style={{ 
-          marginLeft: showRulers ? '32px' : 0,
-          marginTop: showRulers ? '40px' : '0', // espaço para régua horizontal fixa
+        className="relative mx-auto py-8"
+        style={{
+          width: `${21 * zoom}cm`,
+          marginLeft: showRulers ? '32px' : 'auto',
+          marginRight: 'auto',
+          marginTop: showRulers ? '40px' : '0',
         }}
       >
+        {/* Régua vertical */}
         {showRulers && (
           <VerticalRuler
             zoom={zoom}
@@ -147,60 +167,96 @@ export function PagedEditor({
             scrollOffset={scrollOffset}
           />
         )}
-          {Array.from({ length: totalPages }).map((_, index) => (
-            <A4PageWrapper
-              key={index}
-              pageNumber={index + 1}
-              totalPages={totalPages}
-              zoom={zoom}
-              isLastPage={index === totalPages - 1}
-              showPageNumber={showPageNumbers}
-              pageNumberPosition={pageNumberPosition}
-              pageNumberFormat={pageNumberFormat}
-              startNumber={startNumber}
-              fontFamily={fontFamily}
-              fontSize={fontSize}
-              leftMarginCm={leftMargin}
-              rightMarginCm={rightMargin}
-              topMarginCm={topMargin}
-              bottomMarginCm={bottomMargin}
-            >
-            {/* Conteúdo com altura controlada */}
-            <div 
-              className="page-content-wrapper"
+
+        {/* Container da página A4 - SEM overflow hidden */}
+        <div
+          className="a4-page-wrapper bg-white shadow-lg relative"
+          style={{
+            width: `${21 * zoom}cm`,
+            minHeight: `${29.7 * zoom}cm`,
+            paddingTop: `${topMargin * zoom}cm`,
+            paddingBottom: `${bottomMargin * zoom}cm`,
+            paddingLeft: `${leftMargin * zoom}cm`,
+            paddingRight: `${rightMargin * zoom}cm`,
+          }}
+        >
+          {/* Indicadores de margens */}
+          <div 
+            className="page-margins-indicator"
+            style={{
+              position: 'absolute',
+              top: `${topMargin * zoom}cm`,
+              bottom: `${bottomMargin * zoom}cm`,
+              left: `${leftMargin * zoom}cm`,
+              right: `${rightMargin * zoom}cm`,
+              border: '1px dashed rgba(0, 0, 0, 0.08)',
+              pointerEvents: 'none',
+              zIndex: 1,
+            }}
+          />
+
+          {/* CABEÇALHO (se existir) */}
+          {headerEditor && (
+            <div className="mb-4 pb-2 border-b border-gray-200">
+              <EditorContent editor={headerEditor} />
+            </div>
+          )}
+
+          {/* EDITOR PRINCIPAL - SEM OVERFLOW HIDDEN ✅ */}
+          <div className="relative z-10">
+            <EditorContent editor={editor} />
+          </div>
+
+          {/* RODAPÉ (se existir) */}
+          {footerEditor && (
+            <div className="mt-4 pt-2 border-t border-gray-200">
+              <EditorContent editor={footerEditor} />
+            </div>
+          )}
+
+          {/* Indicadores visuais de quebra de página (overlays) */}
+          {Array.from({ length: totalPages - 1 }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute left-0 right-0 pointer-events-none"
               style={{
-                height: `${usableHeightPx}px`,
-                overflow: 'hidden',
-                position: 'relative',
+                top: `${(i + 1) * pageHeightCm * zoom}cm`,
+                height: '2px',
+                background: 'linear-gradient(90deg, transparent, #3b82f6 20%, #3b82f6 80%, transparent)',
+                zIndex: 5,
               }}
             >
-              {/* Cabeçalho (apenas primeira página) */}
-              {index === 0 && headerEditor && (
-                <div className="page-header mb-4">
-                  <EditorContent editor={headerEditor} />
-                </div>
-              )}
-
-              {/* Conteúdo principal com offset por página */}
-              <div 
-                className="relative"
-                style={{
-                  marginTop: `-${index * usableHeightPx}px`,
-                  pointerEvents: 'all',
-                }}
-              >
-                <EditorContent editor={editor} />
+              <div className="absolute left-1/2 -translate-x-1/2 -top-3 bg-white px-2 text-xs font-semibold text-blue-600">
+                QUEBRA DE PÁGINA
               </div>
-
-              {/* Rodapé (apenas última página) */}
-              {index === totalPages - 1 && footerEditor && (
-                <div className="page-footer absolute bottom-0 left-0 right-0 mt-4">
-                  <EditorContent editor={footerEditor} />
-                </div>
-              )}
             </div>
-          </A4PageWrapper>
-        ))}
+          ))}
+
+          {/* Numeração de páginas (overlay) */}
+          {showPageNumbers && Array.from({ length: totalPages }).map((_, i) => (
+            <div
+              key={i}
+              className={`absolute ${
+                pageNumberPosition === 'left' ? 'left-0' :
+                pageNumberPosition === 'right' ? 'right-0' : 
+                'left-1/2 -translate-x-1/2'
+              }`}
+              style={{
+                top: `${(i + 1) * pageHeightCm * zoom - (bottomMargin * zoom / 2)}cm`,
+                paddingLeft: pageNumberPosition === 'left' ? `${leftMargin * zoom}cm` : 0,
+                paddingRight: pageNumberPosition === 'right' ? `${rightMargin * zoom}cm` : 0,
+                fontFamily: fontFamily,
+                fontSize: `${fontSize * zoom}pt`,
+                color: '#666',
+                zIndex: 20,
+              }}
+            >
+              {pageNumberFormat
+                .replace('{n}', String(i + startNumber))
+                .replace('{total}', String(totalPages))}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
