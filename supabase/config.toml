@@ -78,3 +78,12 @@ verify_jwt = false
 [functions.test-assinafy-full]
 verify_jwt = false
 
+[functions.validate-crm-cfm]
+verify_jwt = true
+
+[functions.processar-contrato-orfao]
+verify_jwt = true
+
+[functions.processar-alertas-prazos]
+verify_jwt = false
+

@@ -1284,6 +1284,60 @@ export type Database = {
           },
         ]
       }
+      historico_status_credenciado: {
+        Row: {
+          alterado_por: string | null
+          alterado_por_nome: string | null
+          created_at: string | null
+          credenciado_id: string
+          documentos_anexos: Json | null
+          id: string
+          metadata: Json | null
+          motivo: string
+          status_anterior: string
+          status_novo: string
+        }
+        Insert: {
+          alterado_por?: string | null
+          alterado_por_nome?: string | null
+          created_at?: string | null
+          credenciado_id: string
+          documentos_anexos?: Json | null
+          id?: string
+          metadata?: Json | null
+          motivo: string
+          status_anterior: string
+          status_novo: string
+        }
+        Update: {
+          alterado_por?: string | null
+          alterado_por_nome?: string | null
+          created_at?: string | null
+          credenciado_id?: string
+          documentos_anexos?: Json | null
+          id?: string
+          metadata?: Json | null
+          motivo?: string
+          status_anterior?: string
+          status_novo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_status_credenciado_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_status_credenciado_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       horarios_atendimento: {
         Row: {
           created_at: string | null
