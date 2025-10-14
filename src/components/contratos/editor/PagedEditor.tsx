@@ -258,7 +258,7 @@ export function PagedEditor({
               <div 
                 className="relative"
                 style={{
-                  transform: `translateY(-${index * usableHeightPx}px)`,
+                  marginTop: `-${index * usableHeightPx}px`,
                   pointerEvents: 'all',
                 }}
               >

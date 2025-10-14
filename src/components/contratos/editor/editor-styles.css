@@ -193,7 +193,7 @@
 .ProseMirror {
   outline: none;
   min-height: 400px;
-  padding: 1rem;
+  padding: 0;
   font-family: 'Arial', sans-serif;
   font-size: 11pt;
   line-height: 1.5;
