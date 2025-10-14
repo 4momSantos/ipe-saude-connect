@@ -254,6 +254,7 @@ export function AdvancedToolbar({
         <>
           <Separator orientation="vertical" className="h-6" />
           <div className="flex items-center gap-1 bg-muted/50 px-2 py-1 rounded">
+            {/* Estrutura */}
             <Button
               variant="ghost"
               size="sm"
@@ -310,6 +311,68 @@ export function AdvancedToolbar({
               ❌📄
             </Button>
             <Separator orientation="vertical" className="h-4 mx-1" />
+            
+            {/* Espessura da Borda */}
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-muted-foreground">Borda:</span>
+              {[1, 2, 3, 4].map((width) => (
+                <Button
+                  key={width}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const table = editor.view.state.selection.$anchor.node(-1);
+                    if (table && table.type.name === 'table') {
+                      const pos = editor.view.state.selection.$anchor.before(-1);
+                      editor.view.dispatch(
+                        editor.view.state.tr.setNodeMarkup(pos, null, {
+                          ...table.attrs,
+                          borderWidth: width
+                        })
+                      );
+                    }
+                  }}
+                  title={`Borda ${width}px`}
+                  className="w-8 h-8 p-0"
+                >
+                  <div 
+                    style={{ 
+                      width: '16px', 
+                      height: '16px', 
+                      border: `${width}px solid currentColor`,
+                      borderRadius: '2px'
+                    }} 
+                  />
+                </Button>
+              ))}
+            </div>
+            
+            <Separator orientation="vertical" className="h-4 mx-1" />
+            
+            {/* Cor da Borda */}
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-muted-foreground">Cor:</span>
+              <input
+                type="color"
+                title="Cor da Borda"
+                className="w-8 h-8 rounded cursor-pointer border border-border"
+                onChange={(e) => {
+                  const table = editor.view.state.selection.$anchor.node(-1);
+                  if (table && table.type.name === 'table') {
+                    const pos = editor.view.state.selection.$anchor.before(-1);
+                    editor.view.dispatch(
+                      editor.view.state.tr.setNodeMarkup(pos, null, {
+                        ...table.attrs,
+                        borderColor: e.target.value
+                      })
+                    );
+                  }
+                }}
+              />
+            </div>
+            
+            <Separator orientation="vertical" className="h-4 mx-1" />
+            
             <Button
               variant="ghost"
               size="sm"

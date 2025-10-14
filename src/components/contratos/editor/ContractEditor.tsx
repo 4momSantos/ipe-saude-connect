@@ -26,7 +26,7 @@ import { ptBR } from "date-fns/locale";
 
 import { FontSize } from "./extensions/FontSize";
 import { PageBreak } from "./extensions/PageBreak";
-import { ResizableImage } from "./extensions/ResizableImage";
+import { ResizableImage, TableWithBorder } from "./extensions/ResizableImage";
 import { SlashCommands } from "./extensions/SlashCommands";
 import { Callout } from "./extensions/Callout";
 import { AdvancedToolbar } from "./toolbar/AdvancedToolbar";
@@ -85,7 +85,7 @@ export function ContractEditor({
         strike: false, // Desabilitar para usar versão standalone se necessário
       }),
       ResizableImage,
-      Table.configure({ 
+      TableWithBorder.configure({ 
         resizable: true,
         handleWidth: 5,
         cellMinWidth: 50,
@@ -310,6 +310,35 @@ export function ContractEditor({
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Aplicar cores de borda das tabelas dinamicamente
+  useEffect(() => {
+    if (!editor) return;
+
+    const applyTableBorderStyles = () => {
+      const tables = document.querySelectorAll('.ProseMirror table[data-border-color]');
+      tables.forEach((table: Element) => {
+        const htmlTable = table as HTMLElement;
+        const borderColor = htmlTable.getAttribute('data-border-color');
+        if (borderColor) {
+          htmlTable.style.borderColor = borderColor;
+          // Aplicar também nas células
+          const cells = htmlTable.querySelectorAll('td, th');
+          cells.forEach((cell: Element) => {
+            (cell as HTMLElement).style.borderColor = borderColor;
+          });
+        }
+      });
+    };
+
+    // Aplicar ao montar e em cada atualização
+    applyTableBorderStyles();
+    editor.on('update', applyTableBorderStyles);
+
+    return () => {
+      editor.off('update', applyTableBorderStyles);
+    };
+  }, [editor]);
 
   const handleInsertField = (field: AvailableField) => {
     if (!editor) return;

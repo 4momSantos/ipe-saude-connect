@@ -37,3 +37,28 @@ export const ResizableImage = Image.extend({
     return ReactNodeViewRenderer(ImageResizeComponent);
   },
 });
+
+// Estender Table para suportar atributos de borda
+import { Table as TiptapTable } from '@tiptap/extension-table';
+
+export const TableWithBorder = TiptapTable.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      borderWidth: {
+        default: 1,
+        parseHTML: element => element.getAttribute('data-border-width') || 1,
+        renderHTML: attributes => {
+          return { 'data-border-width': attributes.borderWidth };
+        },
+      },
+      borderColor: {
+        default: '#e5e7eb',
+        parseHTML: element => element.getAttribute('data-border-color') || '#e5e7eb',
+        renderHTML: attributes => {
+          return { 'data-border-color': attributes.borderColor };
+        },
+      },
+    };
+  },
+});
