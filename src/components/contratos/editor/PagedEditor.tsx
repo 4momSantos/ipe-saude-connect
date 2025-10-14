@@ -32,8 +32,8 @@ export function PagedEditor({
   fontFamily = 'Arial',
   fontSize = 10
 }: PagedEditorProps) {
-  const [zoom, setZoom] = useState(1);
-  const [currentZoomIndex, setCurrentZoomIndex] = useState(2);
+  const [zoom, setZoom] = useState(1.25);
+  const [currentZoomIndex, setCurrentZoomIndex] = useState(3);
   // Margens padrão Word: 2.5cm topo/fundo, 3cm esquerda/direita
   const [leftMargin, setLeftMargin] = useState(3);
   const [rightMargin, setRightMargin] = useState(3);
@@ -63,8 +63,8 @@ export function PagedEditor({
   };
 
   const handleFitWidth = () => {
-    setZoom(1);
-    setCurrentZoomIndex(2);
+    setZoom(1.25);
+    setCurrentZoomIndex(3);
   };
 
   // Atalhos de teclado para zoom e réguas
