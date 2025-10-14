@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import Paged from 'pagedjs';
+import { Previewer } from 'pagedjs';
 
 export interface UsePagedJSOptions {
   onReady?: (totalPages: number) => void;
@@ -31,7 +31,7 @@ export function usePagedJS(options: UsePagedJSOptions = {}) {
       containerRef.current.innerHTML = '';
 
       // Criar novo previewer
-      const previewer = new Paged.Previewer();
+      const previewer = new Previewer();
       previewerRef.current = previewer;
 
       // Renderizar com Paged.js
