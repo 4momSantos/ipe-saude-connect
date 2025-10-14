@@ -20,6 +20,7 @@ import {
   consolidarTelefone,
   extrairEspecialidades 
 } from "./validators.ts";
+import { CONTRACT_STYLES } from "./contract-styles.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -121,6 +122,26 @@ function resolverCaminho(obj: any, caminho: string): string {
   return String(valor || '');
 }
 
+// Função para envolver HTML do contrato em documento completo
+function wrapInHTMLDocument(content: string): string {
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contrato de Credenciamento</title>
+  <style>
+${CONTRACT_STYLES}
+  </style>
+</head>
+<body>
+  <div class="document-container">
+${content}
+  </div>
+</body>
+</html>`;
+}
+
 // Função para gerar HTML do contrato a partir de template
 function gerarContratoFromTemplate(
   templateHTML: string,
@@ -138,6 +159,15 @@ function gerarContratoFromTemplate(
     placeholders: placeholders.slice(0, 10) // Primeiros 10
   });
   
+  // Log do template original (primeiros 500 caracteres)
+  logEvent('info', 'template_html_preview', {
+    preview: templateHTML.substring(0, 500),
+    has_inline_styles: templateHTML.includes('style='),
+    has_strong: templateHTML.includes('<strong>'),
+    has_em: templateHTML.includes('<em>'),
+    has_lists: templateHTML.includes('<ol') || templateHTML.includes('<ul')
+  });
+  
   html = html.replace(regex, (match, campo) => {
     // Remover espaços
     const campoLimpo = campo.trim();
@@ -146,7 +176,13 @@ function gerarContratoFromTemplate(
     const campoKey = campoLimpo.replace(/\./g, '_');
     
     if (campoKey in contratoData) {
-      return String((contratoData as any)[campoKey] || '');
+      const value = String((contratoData as any)[campoKey] || '');
+      logEvent('info', 'placeholder_resolved', { 
+        placeholder: match,
+        campo: campoLimpo,
+        value: value.substring(0, 50) // Primeiros 50 chars do valor
+      });
+      return value;
     }
     
     // Log de placeholder não resolvido
@@ -155,7 +191,7 @@ function gerarContratoFromTemplate(
       campo: campoLimpo 
     });
     
-    return match; // Mantém placeholder se não encontrar
+    return '___________'; // Substitui por linha em branco ao invés de manter placeholder
   });
   
   // Verificar placeholders restantes
@@ -167,7 +203,14 @@ function gerarContratoFromTemplate(
     });
   }
   
-  return html;
+  // Log do HTML gerado (primeiros 1000 caracteres)
+  logEvent('info', 'generated_html_preview', {
+    preview: html.substring(0, 1000),
+    total_length: html.length
+  });
+  
+  // Envolver em documento HTML completo com CSS
+  return wrapInHTMLDocument(html);
 }
 
 // Função para gerar HTML do contrato (fallback se não houver template)
