@@ -164,7 +164,7 @@ p, li, td, th {
 }
 
 /* ============================================
-   ESTILOS DE CONTEÚDO
+   ESTILOS DE CONTEÚDO - PRESERVAR INLINE STYLES
    ============================================ */
 
 body {
@@ -172,6 +172,45 @@ body {
   font-size: 11pt;
   line-height: 1.5;
   color: #000;
+}
+
+/* CRÍTICO: Não sobrescrever estilos inline do TipTap */
+p[style*="line-height"],
+p[style*="margin-top"],
+p[style*="margin-bottom"],
+p[style*="margin-left"],
+p[style*="margin-right"] {
+  /* Estilos inline do TipTap têm prioridade máxima */
+}
+
+/* Espaçamento padrão para parágrafos SEM estilos inline */
+p:not([style*="margin"]) {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+/* Manter formatação de texto (negrito, itálico, sublinhado) */
+strong, b {
+  font-weight: bold;
+}
+
+em, i {
+  font-style: italic;
+}
+
+u {
+  text-decoration: underline;
+}
+
+/* Preservar alinhamento de texto */
+[style*="text-align"] {
+  /* Não sobrescrever */
+}
+
+/* Preservar indentação */
+[style*="padding-left"],
+[style*="margin-left"] {
+  /* Não sobrescrever */
 }
 
 /* Links */
@@ -290,4 +329,71 @@ p img {
   border-radius: 3px;
   font-family: monospace;
   color: #92400e;
+}
+
+/* ============================================
+   COMPATIBILIDADE COM TIPTAP
+   ============================================ */
+
+/* Garantir que classes do TipTap sejam preservadas */
+.ProseMirror,
+.tiptap {
+  /* Resetar estilos conflitantes */
+}
+
+/* Preservar hierarquia de listas do TipTap */
+ol, ul {
+  margin-left: 1.5em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+ol ol, ul ul, ol ul, ul ol {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+/* Preservar espaçamento de cabeçalhos */
+h1, h2, h3, h4, h5, h6 {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+}
+
+/* Se TipTap aplicou estilos inline, eles têm prioridade */
+h1[style], h2[style], h3[style], h4[style], h5[style], h6[style] {
+  /* Não sobrescrever */
+}
+
+/* Manter formatação de links */
+a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+/* Blocos de código e pre */
+pre {
+  background-color: #f3f4f6;
+  padding: 1em;
+  border-radius: 4px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+code {
+  background-color: #f3f4f6;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+}
+
+/* Blockquotes */
+blockquote {
+  border-left: 4px solid #e5e7eb;
+  padding-left: 1em;
+  margin-left: 0;
+  margin-right: 0;
+  font-style: italic;
+  color: #6b7280;
 }

@@ -83,6 +83,14 @@ export function usePagedJS(options: UsePagedJSOptions = {}) {
       const previewer = new Previewer();
       previewerRef.current = previewer;
 
+      // Log detalhado do HTML
+      console.log(`📋 [Render #${renderId}] HTML Preview:`, {
+        length: htmlContent.length,
+        firstParagraph: htmlContent.match(/<p[^>]*>.*?<\/p>/)?.[0],
+        hasInlineStyles: htmlContent.includes('style='),
+        styleCount: (htmlContent.match(/style=/g) || []).length
+      });
+
       // Renderizar com Paged.js
       const flow = await previewer.preview(
         htmlContent,

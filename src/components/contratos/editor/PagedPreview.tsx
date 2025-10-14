@@ -28,20 +28,22 @@ interface PagedPreviewProps {
   onReady?: (totalPages: number) => void;
 }
 
-// Função para processar HTML e garantir URLs absolutas
+// Função para processar HTML preservando estilos inline
 function processHTML(html: string): string {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, 'text/html');
-  
-  // Processar imagens para garantir URLs absolutas
-  doc.querySelectorAll('img').forEach((img) => {
-    const src = img.getAttribute('src');
-    if (src && !src.startsWith('http') && !src.startsWith('blob:') && !src.startsWith('data:')) {
-      img.setAttribute('src', new URL(src, window.location.origin).href);
+  // Usar regex para processar imagens sem alterar estilos inline
+  return html.replace(
+    /<img([^>]*?)src=["']([^"']+)["']([^>]*?)>/gi,
+    (match, before, src, after) => {
+      // Se já é URL absoluta, não modificar
+      if (src.startsWith('http') || src.startsWith('blob:') || src.startsWith('data:')) {
+        return match;
+      }
+      
+      // Converter para URL absoluta
+      const absoluteSrc = new URL(src, window.location.origin).href;
+      return `<img${before}src="${absoluteSrc}"${after}>`;
     }
-  });
-  
-  return doc.body.innerHTML;
+  );
 }
 
 // Pré-carregar fontes do sistema
@@ -85,7 +87,14 @@ export function PagedPreview({
 
   // Processar e combinar HTML com useMemo para evitar recálculos
   const processedHTML = useMemo(() => {
-    let fullHtml = '';
+    let fullHtml = `
+      <div class="document-content" style="
+        font-family: Arial, sans-serif;
+        font-size: 11pt;
+        line-height: 1.5;
+        color: #000;
+      ">
+    `;
     
     // Adicionar cabeçalho se existir
     if (headerContent && headerContent !== '<p></p>' && headerContent.trim() !== '') {
@@ -100,6 +109,10 @@ export function PagedPreview({
       fullHtml += `<div class="document-footer">${processHTML(footerContent)}</div>`;
     }
 
+    fullHtml += '</div>';
+
+    console.log('🔍 HTML sendo enviado ao Paged.js:', fullHtml.substring(0, 500));
+    
     return fullHtml;
   }, [content, headerContent, footerContent]);
 
