@@ -32,7 +32,7 @@ export function PagedEditor({
   fontFamily = 'Arial',
   fontSize = 10
 }: PagedEditorProps) {
-  const [zoom, setZoom] = useState(1.25);
+  const [zoom, setZoom] = useState(1.35);
   const [currentZoomIndex, setCurrentZoomIndex] = useState(3);
   // Margens padrão Word: 2.5cm topo/fundo, 3cm esquerda/direita
   const [leftMargin, setLeftMargin] = useState(3);
@@ -49,7 +49,7 @@ export function PagedEditor({
   const usableHeightCm = pageHeightCm - topMargin - bottomMargin;
   const CM_TO_PX = 37.795;
 
-  const zoomLevels = [0.5, 0.75, 1, 1.25, 1.5];
+  const zoomLevels = [0.5, 0.75, 1, 1.35, 1.5];
 
   const handleZoomIn = () => {
     if (currentZoomIndex < zoomLevels.length - 1) {
@@ -68,7 +68,7 @@ export function PagedEditor({
   };
 
   const handleFitWidth = () => {
-    setZoom(1.25);
+    setZoom(1.35);
     setCurrentZoomIndex(3);
   };
 
@@ -130,7 +130,7 @@ export function PagedEditor({
   }, []);
 
   return (
-    <div className="paged-editor-container py-8 px-8" style={{ minHeight: '100vh' }}>
+    <div className="paged-editor-container py-8 px-4" style={{ minHeight: '100vh' }}>
       {/* Régua Horizontal - STICKY */}
       {showRulers && (
         <HorizontalRuler
@@ -147,10 +147,10 @@ export function PagedEditor({
 
       {/* Container principal do editor */}
       <div 
-        className="relative"
+        className="relative mx-auto"
         style={{
           width: `${21 * zoom}cm`,
-          marginLeft: showRulers ? '40px' : '20px',
+          maxWidth: '95%',
         }}
       >
         {/* Indicador de múltiplas páginas no topo */}

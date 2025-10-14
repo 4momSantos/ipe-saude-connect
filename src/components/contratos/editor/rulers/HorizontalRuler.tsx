@@ -92,12 +92,12 @@ export function HorizontalRuler({
   return (
     <div 
       ref={rulerRef}
-      className="ruler-horizontal sticky bg-white border-b-2 border-gray-400 z-30 select-none cursor-crosshair shadow-sm"
+      className="ruler-horizontal sticky bg-white border-b-2 border-gray-400 z-30 select-none cursor-crosshair shadow-sm mx-auto"
       style={{ 
         height: '32px',
         width: `${21 * zoom}cm`,
+        maxWidth: '95%',
         top: '0',
-        marginLeft: '40px',
       }}
       onClick={handleRulerClick}
     >
