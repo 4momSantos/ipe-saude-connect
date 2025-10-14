@@ -53,7 +53,7 @@ export default function ContractTemplateEditor() {
 
   if (isLoading && id) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="w-full max-w-[95%] mx-auto p-6">
         <Skeleton className="h-8 w-64 mb-6" />
         <Card>
           <CardHeader>
@@ -68,7 +68,7 @@ export default function ContractTemplateEditor() {
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="w-full max-w-[95%] mx-auto p-6">
       <div className="mb-6">
         <Button
           variant="ghost"
