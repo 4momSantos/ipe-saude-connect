@@ -178,6 +178,34 @@ Deno.serve(async (req) => {
             credenciado_id: credenciado.id,
             source: geoResult.source,
           } as any);
+
+          // Detectar zona geográfica automaticamente
+          if (geoResult.latitude && geoResult.longitude && credenciado.cidade && credenciado.estado) {
+            try {
+              const { data: zonaData, error: zonaError } = await supabase.rpc('detectar_zona', {
+                lat: geoResult.latitude,
+                lng: geoResult.longitude,
+                cidade_input: credenciado.cidade,
+                estado_input: credenciado.estado
+              });
+
+              if (!zonaError && zonaData) {
+                await supabase
+                  .from('credenciados')
+                  .update({ zona_id: zonaData })
+                  .eq('id', credenciado.id);
+
+                log({
+                  timestamp: new Date().toISOString(),
+                  action: 'zona_detectada',
+                  credenciado_id: credenciado.id,
+                  zona_id: zonaData,
+                } as any);
+              }
+            } catch (error) {
+              console.error('Erro ao detectar zona:', error);
+            }
+          }
         } else {
           result.failed.push({
             id: credenciado.id,
