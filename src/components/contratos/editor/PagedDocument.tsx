@@ -1,7 +1,8 @@
-import { useState, ReactNode } from 'react';
+import { useState, ReactNode, useEffect } from 'react';
 import { A4Page } from './A4Page';
 import { Button } from '@/components/ui/button';
 import { ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+import { useAutoPagination } from './hooks/useAutoPagination';
 
 interface PagedDocumentProps {
   headerContent?: string;
@@ -10,6 +11,9 @@ interface PagedDocumentProps {
   showPageNumbers?: boolean;
   pageNumberPosition?: 'left' | 'center' | 'right';
   pageNumberFormat?: string;
+  startNumber?: number;
+  fontFamily?: string;
+  fontSize?: number;
 }
 
 export function PagedDocument({
@@ -18,9 +22,13 @@ export function PagedDocument({
   children,
   showPageNumbers = true,
   pageNumberPosition = 'center',
-  pageNumberFormat = 'Página {n} de {total}'
+  pageNumberFormat = 'Página {n} de {total}',
+  startNumber = 1,
+  fontFamily = 'Arial',
+  fontSize = 10
 }: PagedDocumentProps) {
   const [zoom, setZoom] = useState(1);
+  const { totalPages, contentRef, pageBreaks, usableHeightPx } = useAutoPagination(zoom);
 
   const ZOOM_LEVELS = [0.5, 0.75, 1, 1.25, 1.5];
 
@@ -41,6 +49,27 @@ export function PagedDocument({
   const handleFitToWidth = () => {
     setZoom(1);
   };
+
+  // Atalhos de teclado para zoom
+  useEffect(() => {
+    const handleKeyboard = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === '0') {
+          e.preventDefault();
+          setZoom(1);
+        } else if (e.key === '+' || e.key === '=') {
+          e.preventDefault();
+          handleZoomIn();
+        } else if (e.key === '-') {
+          e.preventDefault();
+          handleZoomOut();
+        }
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyboard);
+    return () => window.removeEventListener('keydown', handleKeyboard);
+  }, [zoom]);
 
   return (
     <div className="paged-document-container bg-gray-100 min-h-screen">
@@ -78,37 +107,78 @@ export function PagedDocument({
         </Button>
       </div>
 
-      {/* Área de Páginas */}
-      <div className="py-8">
-        <A4Page
-          pageNumber={1}
-          totalPages={1}
-          showPageNumber={showPageNumbers}
-          pageNumberPosition={pageNumberPosition}
-          pageNumberFormat={pageNumberFormat}
-          zoom={zoom}
-        >
-          {/* Cabeçalho */}
+      {/* Container de medição invisível */}
+      <div className="absolute opacity-0 pointer-events-none" style={{ width: '15cm' }}>
+        <div ref={contentRef}>
           {headerContent && (
             <div 
               className="page-header mb-6 pb-4 border-b"
               dangerouslySetInnerHTML={{ __html: headerContent }}
             />
           )}
-
-          {/* Conteúdo */}
-          <div className="page-content">
+          <div className="page-content" style={{ textAlign: 'justify' }}>
             {children}
           </div>
-
-          {/* Rodapé */}
           {footerContent && (
             <div 
               className="page-footer mt-6 pt-4 border-t"
               dangerouslySetInnerHTML={{ __html: footerContent }}
             />
           )}
-        </A4Page>
+        </div>
+      </div>
+
+      {/* Área de Páginas */}
+      <div className="py-8">
+        {Array.from({ length: totalPages }).map((_, index) => (
+          <A4Page
+            key={index}
+            pageNumber={index + 1}
+            totalPages={totalPages}
+            showPageNumber={showPageNumbers}
+            pageNumberPosition={pageNumberPosition}
+            pageNumberFormat={pageNumberFormat}
+            zoom={zoom}
+            isLastPage={index === totalPages - 1}
+            startNumber={startNumber}
+            fontFamily={fontFamily}
+            fontSize={fontSize}
+          >
+            {/* Cabeçalho */}
+            {headerContent && (
+              <div 
+                className="page-header mb-6 pb-4 border-b"
+                dangerouslySetInnerHTML={{ __html: headerContent }}
+              />
+            )}
+
+            {/* Conteúdo */}
+            <div 
+              className="page-content"
+              style={{ 
+                textAlign: 'justify',
+                overflow: 'hidden',
+                height: `${usableHeightPx}px`,
+              }}
+            >
+              <div 
+                style={{ 
+                  transform: `translateY(-${index * usableHeightPx}px)`,
+                }}
+              >
+                {children}
+              </div>
+            </div>
+
+            {/* Rodapé */}
+            {footerContent && (
+              <div 
+                className="page-footer mt-6 pt-4 border-t"
+                dangerouslySetInnerHTML={{ __html: footerContent }}
+              />
+            )}
+          </A4Page>
+        ))}
       </div>
     </div>
   );
