@@ -54,6 +54,8 @@ import ProcessarContratosOrfaos from "./pages/admin/ProcessarContratosOrfaos";
 import AuditoriaLogs from "./pages/admin/AuditoriaLogs";
 import SituacaoCadastral from "./pages/credenciados/SituacaoCadastral";
 import { ImportarGeometrias } from "./pages/admin/ImportarGeometrias";
+import { GestaoGrupos } from "./components/admin/GestaoGrupos";
+import { GerenciarMembrosGrupo } from "./components/admin/GerenciarMembrosGrupo";
 import { ClipboardCheck, Users, MapPin, BarChart3, Settings } from "lucide-react";
 import NotFound from "./pages/NotFound";
 import { supabase } from "@/integrations/supabase/client";
@@ -194,6 +196,8 @@ const App = () => (
                           <Route path="/admin/processar-orfaos" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><ProcessarContratosOrfaos /></RoleProtectedRoute>} />
                           <Route path="/admin/auditoria" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><AuditoriaLogs /></RoleProtectedRoute>} />
                           <Route path="/admin/importar-geometrias" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><ImportarGeometrias /></RoleProtectedRoute>} />
+                          <Route path="/admin/grupos" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><GestaoGrupos /></RoleProtectedRoute>} />
+                          <Route path="/admin/grupos/:grupoId" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><GerenciarMembrosGrupo /></RoleProtectedRoute>} />
                           <Route path="/credenciados/:id/situacao" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin', 'analista']}><SituacaoCadastral /></RoleProtectedRoute>} />
                           <Route
                             path="/usuarios"

@@ -111,6 +111,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "analises_analista_id_fkey"
+            columns: ["analista_id"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+          {
             foreignKeyName: "analises_inscricao_id_fkey"
             columns: ["inscricao_id"]
             isOneToOne: true
@@ -169,7 +176,15 @@ export type Database = {
           ultima_utilizacao?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "api_keys_externas_criada_por_fkey"
+            columns: ["criada_por"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
       }
       app_notifications: {
         Row: {
@@ -208,7 +223,15 @@ export type Database = {
           type?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "app_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
       }
       audit_logs: {
         Row: {
@@ -256,7 +279,15 @@ export type Database = {
           user_id?: string
           user_role?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
       }
       avaliacoes_prestadores: {
         Row: {
@@ -309,6 +340,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "avaliacoes_prestadores_avaliador_id_fkey"
+            columns: ["avaliador_id"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+          {
             foreignKeyName: "avaliacoes_prestadores_credenciado_id_fkey"
             columns: ["credenciado_id"]
             isOneToOne: false
@@ -358,7 +396,15 @@ export type Database = {
           nome?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "categorias_prestadores_criada_por_fkey"
+            columns: ["criada_por"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
       }
       certificados: {
         Row: {
@@ -473,6 +519,13 @@ export type Database = {
             referencedRelation: "view_geocode_failures_last_24h"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "certificados_historico_gerado_por_fkey"
+            columns: ["gerado_por"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
         ]
       }
       cidades: {
@@ -545,7 +598,15 @@ export type Database = {
           nome?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contract_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
       }
       contratos: {
         Row: {
@@ -1066,6 +1127,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "editais_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+          {
+            foreignKeyName: "editais_gestor_autorizador_id_fkey"
+            columns: ["gestor_autorizador_id"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+          {
             foreignKeyName: "editais_inscription_template_id_fkey"
             columns: ["inscription_template_id"]
             isOneToOne: false
@@ -1165,7 +1240,15 @@ export type Database = {
           updated_at?: string | null
           variables?: Json | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "email_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
       }
       especialidades_medicas: {
         Row: {
@@ -1195,7 +1278,15 @@ export type Database = {
           nome?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "especialidades_medicas_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
       }
       form_templates: {
         Row: {
@@ -1240,7 +1331,15 @@ export type Database = {
           updated_at?: string
           usage_count?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "form_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
       }
       geocode_cache: {
         Row: {
@@ -1281,6 +1380,56 @@ export type Database = {
         }
         Relationships: []
       }
+      grupos_usuarios: {
+        Row: {
+          ativo: boolean | null
+          atualizado_em: string | null
+          cor_identificacao: string | null
+          criado_em: string | null
+          criado_por: string | null
+          descricao: string | null
+          icone: string | null
+          id: string
+          nome: string
+          permissoes: Json | null
+          tipo: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          atualizado_em?: string | null
+          cor_identificacao?: string | null
+          criado_em?: string | null
+          criado_por?: string | null
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome: string
+          permissoes?: Json | null
+          tipo: string
+        }
+        Update: {
+          ativo?: boolean | null
+          atualizado_em?: string | null
+          cor_identificacao?: string | null
+          criado_em?: string | null
+          criado_por?: string | null
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome?: string
+          permissoes?: Json | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grupos_usuarios_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
+      }
       historico_categorizacao: {
         Row: {
           alterado_por: string | null
@@ -1310,6 +1459,13 @@ export type Database = {
           motivo?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "historico_categorizacao_alterado_por_fkey"
+            columns: ["alterado_por"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
           {
             foreignKeyName: "historico_categorizacao_categoria_anterior_id_fkey"
             columns: ["categoria_anterior_id"]
@@ -1378,6 +1534,13 @@ export type Database = {
           status_novo?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "historico_status_credenciado_alterado_por_fkey"
+            columns: ["alterado_por"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
           {
             foreignKeyName: "historico_status_credenciado_credenciado_id_fkey"
             columns: ["credenciado_id"]
@@ -1501,6 +1664,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "inscricao_documentos_analisado_por_fkey"
+            columns: ["analisado_por"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+          {
             foreignKeyName: "inscricao_documentos_inscricao_id_fkey"
             columns: ["inscricao_id"]
             isOneToOne: false
@@ -1520,6 +1690,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "inscricao_documentos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inscricao_documentos_replaced_by_fkey"
+            columns: ["replaced_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+          {
+            foreignKeyName: "inscricao_documentos_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
           },
         ]
       }
@@ -1565,6 +1749,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "view_inscricoes_validacao_pendente"
             referencedColumns: ["inscricao_id"]
+          },
+          {
+            foreignKeyName: "inscricao_eventos_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
           },
         ]
       }
@@ -1612,6 +1803,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "inscricao_validacoes_analista_id_fkey"
+            columns: ["analista_id"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
           {
             foreignKeyName: "inscricao_validacoes_documento_id_fkey"
             columns: ["documento_id"]
@@ -1691,6 +1889,20 @@ export type Database = {
           workflow_execution_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "inscricoes_edital_analisado_por_fkey"
+            columns: ["analisado_por"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+          {
+            foreignKeyName: "inscricoes_edital_candidato_id_fkey"
+            columns: ["candidato_id"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
           {
             foreignKeyName: "inscricoes_edital_candidato_profile_fkey"
             columns: ["candidato_id"]
@@ -1791,7 +2003,15 @@ export type Database = {
           name?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "inscription_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
       }
       logs_regras_suspensao: {
         Row: {
@@ -1882,7 +2102,15 @@ export type Database = {
           updated_at?: string | null
           variaveis?: Json | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "modelos_justificativa_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
       }
       ocorrencias_prestadores: {
         Row: {
@@ -1947,6 +2175,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ocorrencias_prestadores_relator_id_fkey"
+            columns: ["relator_id"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
           },
         ]
       }
@@ -2071,7 +2306,15 @@ export type Database = {
           telefone?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
       }
       regras_suspensao_automatica: {
         Row: {
@@ -2125,7 +2368,15 @@ export type Database = {
           tipo_gatilho?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "regras_suspensao_automatica_criada_por_fkey"
+            columns: ["criada_por"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
       }
       rollout_audit: {
         Row: {
@@ -2165,6 +2416,13 @@ export type Database = {
           reason?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "rollout_audit_authorized_by_fkey"
+            columns: ["authorized_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
           {
             foreignKeyName: "rollout_audit_edital_id_fkey"
             columns: ["edital_id"]
@@ -2209,7 +2467,15 @@ export type Database = {
           notes?: string | null
           snapshot_type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "rollout_snapshots_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
       }
       sancoes_prestadores: {
         Row: {
@@ -2273,6 +2539,13 @@ export type Database = {
           valor_multa?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "sancoes_prestadores_aplicada_por_fkey"
+            columns: ["aplicada_por"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
           {
             foreignKeyName: "sancoes_prestadores_credenciado_id_fkey"
             columns: ["credenciado_id"]
@@ -2447,6 +2720,13 @@ export type Database = {
             referencedRelation: "view_geocode_failures_last_24h"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "solicitacoes_alteracao_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
         ]
       }
       user_consents: {
@@ -2486,7 +2766,15 @@ export type Database = {
           user_agent?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_consents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -2510,7 +2798,97 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
+      }
+      usuarios_grupos: {
+        Row: {
+          adicionado_em: string | null
+          adicionado_por: string | null
+          ativo: boolean | null
+          grupo_id: string | null
+          id: string
+          observacoes: string | null
+          papel: string | null
+          removido_em: string | null
+          removido_por: string | null
+          usuario_id: string | null
+        }
+        Insert: {
+          adicionado_em?: string | null
+          adicionado_por?: string | null
+          ativo?: boolean | null
+          grupo_id?: string | null
+          id?: string
+          observacoes?: string | null
+          papel?: string | null
+          removido_em?: string | null
+          removido_por?: string | null
+          usuario_id?: string | null
+        }
+        Update: {
+          adicionado_em?: string | null
+          adicionado_por?: string | null
+          ativo?: boolean | null
+          grupo_id?: string | null
+          id?: string
+          observacoes?: string | null
+          papel?: string | null
+          removido_em?: string | null
+          removido_por?: string | null
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usuarios_grupos_adicionado_por_fkey"
+            columns: ["adicionado_por"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+          {
+            foreignKeyName: "usuarios_grupos_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "grupos_usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "usuarios_grupos_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "v_grupos_com_membros"
+            referencedColumns: ["grupo_id"]
+          },
+          {
+            foreignKeyName: "usuarios_grupos_removido_por_fkey"
+            columns: ["removido_por"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+          {
+            foreignKeyName: "usuarios_grupos_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
       }
       webhook_deliveries: {
         Row: {
@@ -2660,7 +3038,15 @@ export type Database = {
           updated_at?: string | null
           url?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "webhook_subscriptions_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
       }
       workflow_api_keys: {
         Row: {
@@ -2704,6 +3090,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "workflow_api_keys_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+          {
             foreignKeyName: "workflow_api_keys_workflow_id_fkey"
             columns: ["workflow_id"]
             isOneToOne: false
@@ -2741,6 +3134,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "workflow_approvals_approver_id_fkey"
+            columns: ["approver_id"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
           {
             foreignKeyName: "workflow_approvals_step_execution_id_fkey"
             columns: ["step_execution_id"]
@@ -2881,6 +3281,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "workflow_executions_started_by_fkey"
+            columns: ["started_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+          {
             foreignKeyName: "workflow_executions_workflow_id_fkey"
             columns: ["workflow_id"]
             isOneToOne: false
@@ -2931,6 +3338,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "workflow_step_executions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_form_data_submitted_by_fkey"
+            columns: ["submitted_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
           },
         ]
       }
@@ -2989,6 +3403,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "view_inscricoes_validacao_pendente"
             referencedColumns: ["inscricao_id"]
+          },
+          {
+            foreignKeyName: "workflow_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
           },
         ]
       }
@@ -3148,6 +3569,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "workflow_schedules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+          {
             foreignKeyName: "workflow_schedules_workflow_id_fkey"
             columns: ["workflow_id"]
             isOneToOne: false
@@ -3251,6 +3679,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "workflow_webhooks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+          {
             foreignKeyName: "workflow_webhooks_workflow_id_fkey"
             columns: ["workflow_id"]
             isOneToOne: false
@@ -3296,7 +3731,15 @@ export type Database = {
           updated_at?: string
           version?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "workflows_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
       }
       zonas_geograficas: {
         Row: {
@@ -3362,6 +3805,33 @@ export type Database = {
       }
     }
     Views: {
+      v_grupos_com_membros: {
+        Row: {
+          ativo: boolean | null
+          cor_identificacao: string | null
+          criado_em: string | null
+          descricao: string | null
+          grupo_id: string | null
+          grupo_nome: string | null
+          membros: Json | null
+          permissoes: Json | null
+          tipo: string | null
+          total_coordenadores: number | null
+          total_membros_ativos: number | null
+        }
+        Relationships: []
+      }
+      v_usuarios_com_grupos: {
+        Row: {
+          email: string | null
+          grupos: Json | null
+          nome: string | null
+          role_sistema: string | null
+          total_grupos_ativos: number | null
+          usuario_id: string | null
+        }
+        Relationships: []
+      }
       view_audit_trail: {
         Row: {
           dados_antes: Json | null
@@ -3408,7 +3878,15 @@ export type Database = {
           user_id?: string | null
           user_role?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
       }
       view_credenciados_geo_stats: {
         Row: {
@@ -3505,6 +3983,13 @@ export type Database = {
           validacao_status: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "inscricoes_edital_candidato_id_fkey"
+            columns: ["candidato_id"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
           {
             foreignKeyName: "inscricoes_edital_candidato_profile_fkey"
             columns: ["candidato_id"]
@@ -3676,6 +4161,10 @@ export type Database = {
         Args: { addr: string }
         Returns: string
       }
+      obter_permissoes_usuario: {
+        Args: { p_usuario_id: string }
+        Returns: Json
+      }
       process_orphan_inscricoes: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -3716,6 +4205,10 @@ export type Database = {
       sync_approved_inscricao_to_credenciado_v2: {
         Args: { p_inscricao_id: string }
         Returns: string
+      }
+      usuario_pertence_grupo: {
+        Args: { p_grupo_id: string; p_usuario_id: string }
+        Returns: boolean
       }
       validar_documento: {
         Args: {
