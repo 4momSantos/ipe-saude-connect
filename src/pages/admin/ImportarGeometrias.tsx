@@ -8,11 +8,13 @@ import { toast } from 'sonner';
 
 interface ImportResult {
   cidade: string;
-  total_distritos: number;
+  total_bairros: number;
+  total_zonas: number;
   resultados: Array<{
     zona: string;
     status: string;
-    distritos?: number;
+    bairros?: number;
+    bairros_nomes?: string[];
     erro?: string;
   }>;
 }
@@ -25,9 +27,9 @@ export function ImportarGeometrias() {
     setLoading(prev => ({ ...prev, [cidadeNome]: true }));
     
     try {
-      console.log(`[IMPORT] Iniciando importação para ${cidadeNome}`);
+      console.log(`[IMPORT] Iniciando importação de bairros reais para ${cidadeNome}`);
       
-      const { data, error } = await supabase.functions.invoke('importar-geometrias-ibge', {
+      const { data, error } = await supabase.functions.invoke('importar-bairros-poa', {
         body: { cidade_nome: cidadeNome }
       });
       
@@ -40,13 +42,13 @@ export function ImportarGeometrias() {
       
       setResults(prev => ({ ...prev, [cidadeNome]: data }));
       
-      toast.success(`Geometrias de ${cidadeNome} importadas!`, {
-        description: `${data.total_distritos} distritos processados`
+      toast.success(`Bairros de ${cidadeNome} importados!`, {
+        description: `${data.total_bairros} bairros processados em ${data.total_zonas} zonas`
       });
       
     } catch (error) {
       console.error('[IMPORT] Erro ao importar:', error);
-      toast.error('Erro ao importar geometrias', {
+      toast.error('Erro ao importar bairros', {
         description: error instanceof Error ? error.message : 'Erro desconhecido'
       });
     } finally {
@@ -55,29 +57,27 @@ export function ImportarGeometrias() {
   };
 
   const cidades = [
-    { nome: 'São Paulo', uf: 'SP' },
-    { nome: 'Porto Alegre', uf: 'RS' },
-    { nome: 'Recife', uf: 'PE' }
+    { nome: 'Porto Alegre', uf: 'RS' }
   ];
 
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold mb-2">Importar Geometrias Reais</h1>
+        <h1 className="text-3xl font-bold mb-2">Importar Bairros de Porto Alegre</h1>
         <p className="text-muted-foreground">
-          Substitua os polígonos aproximados por limites oficiais do IBGE
+          Busca geometrias reais de bairros usando OpenStreetMap
         </p>
       </div>
       
       <Alert>
         <MapPin className="h-4 w-4" />
         <AlertDescription>
-          Este processo baixa os limites oficiais dos distritos do IBGE e os agrupa em zonas geográficas.
-          O processo pode levar de 2 a 5 minutos por cidade.
+          Este processo busca os limites reais dos bairros de Porto Alegre no OpenStreetMap e os agrupa por zona.
+          Cada zona processará até 5 bairros principais. O processo leva aproximadamente 2-3 minutos.
         </AlertDescription>
       </Alert>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         {cidades.map(cidade => {
           const isLoading = loading[cidade.nome];
           const result = results[cidade.nome];
@@ -97,7 +97,7 @@ export function ImportarGeometrias() {
                   <div className="text-sm text-muted-foreground mb-2">
                     Última atualização: agora
                     <br />
-                    Fonte: IBGE ({result.total_distritos} distritos)
+                    Fonte: OpenStreetMap ({result.total_bairros} bairros em {result.total_zonas} zonas)
                   </div>
                 )}
                 
@@ -109,10 +109,10 @@ export function ImportarGeometrias() {
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Importando...
+                      Importando bairros...
                     </>
                   ) : (
-                    result ? 'Reimportar Geometrias' : 'Importar Geometrias'
+                    result ? 'Reimportar Bairros' : 'Importar Bairros Reais'
                   )}
                 </Button>
               </CardContent>
@@ -129,7 +129,9 @@ export function ImportarGeometrias() {
           <CardContent>
             <div className="mb-4">
               <p className="text-sm">
-                <strong>Total de distritos:</strong> {result.total_distritos}
+                <strong>Total de bairros processados:</strong> {result.total_bairros}
+                <br />
+                <strong>Total de zonas:</strong> {result.total_zonas}
               </p>
             </div>
             
@@ -145,10 +147,11 @@ export function ImportarGeometrias() {
                       <AlertTriangle className="w-5 h-5 text-yellow-600" />
                     )}
                     <div>
-                      <p className="font-medium">Zona {r.zona}</p>
-                      {r.distritos && (
+                      <p className="font-medium">{r.zona}</p>
+                      {r.bairros && (
                         <p className="text-sm text-muted-foreground">
-                          {r.distritos} distritos inclusos
+                          {r.bairros} bairros inclusos
+                          {r.bairros_nomes && `: ${r.bairros_nomes.join(', ')}`}
                         </p>
                       )}
                       {r.erro && (
