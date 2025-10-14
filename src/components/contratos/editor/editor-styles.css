@@ -275,4 +275,78 @@
   transition: opacity 0.15s ease;
 }
 
+/* Layout com toolbars fixas */
+.editor-layout {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Header fixo */
+.editor-header-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  z-index: 50;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Toolbar fixa */
+.editor-toolbar-fixed {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Área de conteúdo scrollável */
+.editor-main-scrollable {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin-top: 108px; /* 60px header + 48px toolbar */
+  background: #f9f9f9;
+  padding: 0;
+  scroll-behavior: smooth;
+}
+
+/* Fields panel fixo */
+.fields-panel-fixed {
+  position: fixed;
+  left: 0;
+  top: 108px;
+  bottom: 0;
+  width: 320px;
+  z-index: 30;
+  background: white;
+  border-right: 1px solid #e5e7eb;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+  overflow-y: auto;
+}
+
+/* Transição suave no painel lateral */
+.editor-content-area {
+  transition: margin-left 0.2s ease;
+}
+
+/* Focus mode (sem barras fixas) */
+.focus-mode .editor-header-fixed,
+.focus-mode .editor-toolbar-fixed,
+.focus-mode .fields-panel-fixed {
+  display: none;
+}
+
+.focus-mode .editor-main-scrollable {
+  margin-top: 0;
+}
+
 

@@ -103,98 +103,19 @@ export function PagedEditor({
 
   return (
     <div className="paged-editor-container">
-      {/* Controles de Zoom - estilo Google Docs */}
-      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-2 flex items-center justify-center gap-3 shadow-sm">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleZoomOut}
-          disabled={currentZoomIndex === 0}
-          title="Diminuir zoom (Ctrl + -)"
-          className="h-8 w-8 p-0"
-        >
-          <ZoomOut className="h-4 w-4" />
-        </Button>
-        
-        <Select 
-          value={String(Math.round(zoom * 100))} 
-          onValueChange={(value) => {
-            const newZoom = Number(value) / 100;
-            setZoom(newZoom);
-            const index = zoomLevels.findIndex(z => z === newZoom);
-            if (index !== -1) setCurrentZoomIndex(index);
-          }}
-        >
-          <SelectTrigger className="w-24 h-8 text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="50">50%</SelectItem>
-            <SelectItem value="75">75%</SelectItem>
-            <SelectItem value="100">100%</SelectItem>
-            <SelectItem value="125">125%</SelectItem>
-            <SelectItem value="150">150%</SelectItem>
-          </SelectContent>
-        </Select>
-        
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleZoomIn}
-          disabled={currentZoomIndex === zoomLevels.length - 1}
-          title="Aumentar zoom (Ctrl + +)"
-          className="h-8 w-8 p-0"
-        >
-          <ZoomIn className="h-4 w-4" />
-        </Button>
-        
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleFitWidth}
-          title="Ajustar à largura (Ctrl + 0)"
-          className="h-8 px-3"
-        >
-          <Maximize2 className="h-4 w-4 mr-1" />
-          <span className="text-xs">Ajustar</span>
-        </Button>
-
-        <div className="w-px h-6 bg-gray-300" />
-
-        <Button
-          variant={showRulers ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setShowRulers(!showRulers)}
-          title="Mostrar/Ocultar réguas (Ctrl + Shift + R)"
-          className="h-8 px-3"
-        >
-          <Ruler className="h-4 w-4 mr-1" />
-          <span className="text-xs">Réguas</span>
-        </Button>
-
-        <MarginsControl
-          leftMargin={leftMargin}
-          rightMargin={rightMargin}
-          topMargin={topMargin}
-          bottomMargin={bottomMargin}
-          onLeftMarginChange={setLeftMargin}
-          onRightMarginChange={setRightMargin}
-          onTopMarginChange={setTopMargin}
-          onBottomMarginChange={setBottomMargin}
-        />
-      </div>
-
-      {/* Régua Horizontal */}
+      {/* Régua Horizontal - fixa abaixo da toolbar */}
       {showRulers && (
-        <HorizontalRuler
-          zoom={zoom}
-          leftMargin={leftMargin}
-          rightMargin={21 - rightMargin}
-          tabs={tabs}
-          onLeftMarginChange={setLeftMargin}
-          onRightMarginChange={(cm) => setRightMargin(21 - cm)}
-          onTabsChange={setTabs}
-        />
+        <div className="fixed left-0 right-0 z-35 bg-white border-b" style={{ top: '108px' }}>
+          <HorizontalRuler
+            zoom={zoom}
+            leftMargin={leftMargin}
+            rightMargin={21 - rightMargin}
+            tabs={tabs}
+            onLeftMarginChange={setLeftMargin}
+            onRightMarginChange={(cm) => setRightMargin(21 - cm)}
+            onTabsChange={setTabs}
+          />
+        </div>
       )}
 
       {/* Container de medição invisível */}
@@ -209,7 +130,13 @@ export function PagedEditor({
       </div>
 
       {/* Páginas A4 visíveis */}
-      <div className="py-8 relative" style={{ marginLeft: showRulers ? '32px' : 0 }}>
+      <div 
+        className="py-8 px-4 relative" 
+        style={{ 
+          marginLeft: showRulers ? '32px' : 0,
+          marginTop: showRulers ? '40px' : '0', // espaço para régua horizontal fixa
+        }}
+      >
         {showRulers && (
           <VerticalRuler
             zoom={zoom}

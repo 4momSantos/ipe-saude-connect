@@ -457,9 +457,10 @@ export function ContractEditor({
   const estimatedPages = Math.ceil(wordCount / 250);
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-screen flex flex-col overflow-hidden">
+      {/* HEADER FIXO */}
       {!focusMode && (
-        <div className="border-b bg-background p-2 flex items-center justify-between gap-2">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b shadow-sm h-[60px] flex items-center px-4 justify-between gap-2">
           <div className="flex items-center gap-2">
             <Tabs value={mode} onValueChange={(v) => setMode(v as any)}>
               <TabsList>
@@ -550,14 +551,34 @@ export function ContractEditor({
         </div>
       )}
 
-      <div className="flex-1 flex overflow-hidden contract-editor-workspace">
-        {mode === "edit" && showFields && !focusMode && (
-          <div className="w-80 border-r overflow-y-auto">
-            <FieldsPanel onInsertField={handleInsertField} />
-          </div>
-        )}
+      {/* TOOLBAR FIXA */}
+      {mode === "edit" && !focusMode && (
+        <div className="fixed top-[60px] left-0 right-0 z-40 bg-white border-b shadow-sm">
+          <AdvancedToolbar
+            editor={currentEditor}
+            onInsertImage={() => setImageDialogOpen(true)}
+            onInsertTable={handleInsertTable}
+            onInsertPageBreak={handleInsertPageBreak}
+            onToggleFields={() => setShowFields(!showFields)}
+          />
+        </div>
+      )}
 
-        <div className="flex-1 overflow-y-auto editor-workspace-centered" {...getRootProps()}>
+      {/* ÁREA DE CONTEÚDO SCROLLÁVEL */}
+      <main 
+        className="flex-1 overflow-y-auto bg-gray-50"
+        style={{ 
+          marginTop: focusMode ? '0' : '108px', // 60px header + 48px toolbar
+        }}
+      >
+        <div 
+          className="relative contract-editor-workspace"
+          style={{
+            marginLeft: mode === "edit" && showFields && !focusMode ? '320px' : '0',
+            transition: 'margin-left 0.2s ease',
+          }}
+          {...getRootProps()}
+        >
           <input {...getInputProps()} />
           
           {isDragActive && (
@@ -569,31 +590,17 @@ export function ContractEditor({
           )}
 
           {mode === "edit" ? (
-            <div className="w-full">
-              {!focusMode && (
-                <>
-                  <AdvancedToolbar
-                    editor={currentEditor}
-                    onInsertImage={() => setImageDialogOpen(true)}
-                    onInsertTable={handleInsertTable}
-                    onInsertPageBreak={handleInsertPageBreak}
-                    onToggleFields={() => setShowFields(!showFields)}
-                  />
-                </>
-              )}
-
-              <PagedEditor
-                editor={editor}
-                headerEditor={headerEditor}
-                footerEditor={footerEditor}
-                showPageNumbers={showPageNumbers}
-                pageNumberPosition={pageNumberPosition}
-                pageNumberFormat={pageNumberFormat}
-                startNumber={startNumber}
-                fontFamily={pageNumberFontFamily}
-                fontSize={pageNumberFontSize}
-              />
-            </div>
+            <PagedEditor
+              editor={editor}
+              headerEditor={headerEditor}
+              footerEditor={footerEditor}
+              showPageNumbers={showPageNumbers}
+              pageNumberPosition={pageNumberPosition}
+              pageNumberFormat={pageNumberFormat}
+              startNumber={startNumber}
+              fontFamily={pageNumberFontFamily}
+              fontSize={pageNumberFontSize}
+            />
           ) : (
             <PagedDocument
               headerContent={headerEditor?.getHTML()}
@@ -606,7 +613,16 @@ export function ContractEditor({
             </PagedDocument>
           )}
         </div>
-      </div>
+      </main>
+
+      {/* FIELDS PANEL FIXO (SIDEBAR) */}
+      {mode === "edit" && showFields && !focusMode && (
+        <div 
+          className="fixed left-0 top-[108px] bottom-0 w-80 bg-white border-r shadow-lg overflow-y-auto z-30"
+        >
+          <FieldsPanel onInsertField={handleInsertField} />
+        </div>
+      )}
 
       <ImageUploadDialog
         open={imageDialogOpen}
