@@ -8,7 +8,7 @@ import { DimensionamentoRede } from "@/components/analytics/DimensionamentoRede"
 import { RelatoriosCustomizaveis } from "@/components/analytics/RelatoriosCustomizaveis";
 import { GeocodingManager } from "@/components/analytics/GeocodingManager";
 import { GeocodingObservability } from "@/components/analytics/GeocodingObservability";
-import { MapaDensidadeCredenciados } from "@/components/analytics/MapaDensidadeCredenciados";
+import { MapaDensidadeMultiCidade } from "@/components/analytics/MapaDensidadeMultiCidade";
 
 export default function AnalisesRelatorios() {
   const [activeTab, setActiveTab] = useState("mapa");
@@ -60,7 +60,7 @@ export default function AnalisesRelatorios() {
         </TabsContent>
 
         <TabsContent value="densidade" className="mt-6">
-          <MapaDensidadeCredenciados />
+          <MapaDensidadeMultiCidade />
         </TabsContent>
 
         <TabsContent value="dimensionamento" className="mt-6">

@@ -14,23 +14,31 @@ export interface DensidadeZona {
   geometry: any;
 }
 
-export interface DensidadeResponse {
-  cidade: string;
-  estado: string;
-  total_credenciados: number;
-  total_populacao: number;
+export interface CidadeInfo {
+  id: string;
+  nome: string;
+  uf: string;
+  populacao: number;
+  credenciados: number;
   densidade_geral: number;
-  zonas: DensidadeZona[];
+  latitude: number;
+  longitude: number;
+  zoom: number;
 }
 
-export function useDensidadeCredenciados(cidade: string = 'Recife', estado: string = 'PE') {
+export interface DensidadeResponse {
+  cidade: CidadeInfo;
+  densidades: DensidadeZona[];
+}
+
+export function useDensidadeCredenciados(cidadeId: string) {
   return useQuery({
-    queryKey: ['densidade-credenciados', cidade, estado],
+    queryKey: ['densidade-credenciados', cidadeId],
     queryFn: async () => {
-      console.log(`[DENSIDADE] Buscando dados para ${cidade}/${estado}`);
+      console.log(`[DENSIDADE] Buscando dados para cidade ${cidadeId}`);
       
       const { data, error } = await supabase.functions.invoke('densidade-credenciados', {
-        body: { cidade, estado },
+        body: { cidade_id: cidadeId },
       });
 
       if (error) {
