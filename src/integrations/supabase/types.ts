@@ -14,6 +14,64 @@ export type Database = {
   }
   public: {
     Tables: {
+      alertas_enviados: {
+        Row: {
+          credenciado_id: string
+          email_enviado_para: string
+          enviado_em: string | null
+          erro_envio: string | null
+          id: string
+          metadata: Json | null
+          prazo_id: string
+          status_envio: string | null
+          tipo_alerta: string
+        }
+        Insert: {
+          credenciado_id: string
+          email_enviado_para: string
+          enviado_em?: string | null
+          erro_envio?: string | null
+          id?: string
+          metadata?: Json | null
+          prazo_id: string
+          status_envio?: string | null
+          tipo_alerta: string
+        }
+        Update: {
+          credenciado_id?: string
+          email_enviado_para?: string
+          enviado_em?: string | null
+          erro_envio?: string | null
+          id?: string
+          metadata?: Json | null
+          prazo_id?: string
+          status_envio?: string | null
+          tipo_alerta?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alertas_enviados_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alertas_enviados_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alertas_enviados_prazo_id_fkey"
+            columns: ["prazo_id"]
+            isOneToOne: false
+            referencedRelation: "prazos_credenciamento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analises: {
         Row: {
           analisado_em: string | null
@@ -784,6 +842,42 @@ export type Database = {
           ordem?: number | null
           peso?: number | null
           tipo_pontuacao?: string | null
+        }
+        Relationships: []
+      }
+      crm_validation_cache: {
+        Row: {
+          api_response: Json | null
+          cached_at: string | null
+          crm: string
+          especialidades: string[] | null
+          id: string
+          nome: string | null
+          situacao: string | null
+          uf: string
+          valid: boolean
+        }
+        Insert: {
+          api_response?: Json | null
+          cached_at?: string | null
+          crm: string
+          especialidades?: string[] | null
+          id?: string
+          nome?: string | null
+          situacao?: string | null
+          uf: string
+          valid: boolean
+        }
+        Update: {
+          api_response?: Json | null
+          cached_at?: string | null
+          crm?: string
+          especialidades?: string[] | null
+          id?: string
+          nome?: string | null
+          situacao?: string | null
+          uf?: string
+          valid?: boolean
         }
         Relationships: []
       }
@@ -1739,6 +1833,54 @@ export type Database = {
           },
           {
             foreignKeyName: "ocorrencias_prestadores_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prazos_credenciamento: {
+        Row: {
+          created_at: string | null
+          credenciado_id: string
+          data_vencimento: string
+          id: string
+          observacoes: string | null
+          status: string
+          tipo_prazo: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credenciado_id: string
+          data_vencimento: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+          tipo_prazo: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credenciado_id?: string
+          data_vencimento?: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+          tipo_prazo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prazos_credenciamento_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prazos_credenciamento_credenciado_id_fkey"
             columns: ["credenciado_id"]
             isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
@@ -3407,6 +3549,19 @@ export type Database = {
           p_status: string
         }
         Returns: string
+      }
+      verificar_prazos_vencendo: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          credenciado_email: string
+          credenciado_id: string
+          credenciado_nome: string
+          data_vencimento: string
+          dias_restantes: number
+          prazo_id: string
+          tipo_alerta: string
+          tipo_prazo: string
+        }[]
       }
       verificar_regras_suspensao_automatica: {
         Args: Record<PropertyKey, never>
