@@ -40,12 +40,13 @@ import { FloatingToolbar } from "./components/FloatingToolbar";
 import { KeyboardShortcuts } from "./components/KeyboardShortcuts";
 import { PagedDocument } from "./PagedDocument";
 import { PagedEditor } from "./PagedEditor";
+import { PagedPreview } from "./PagedPreview";
 import { PageNumberSettings } from "./PageNumberSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { 
   Eye, Edit, Save, Keyboard, Maximize2, Minimize2, 
-  FileText, Loader2, Check 
+  FileText, Loader2, Check, FileDown
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -77,7 +78,7 @@ export function ContractEditor({
   templateName = "Documento sem título",
   onTemplateNameChange
 }: ContractEditorProps) {
-  const [mode, setMode] = useState<"edit" | "preview">("edit");
+  const [mode, setMode] = useState<"edit" | "preview" | "paged">("edit");
   const [showFields, setShowFields] = useState(true);
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -91,6 +92,7 @@ export function ContractEditor({
   const [startNumber, setStartNumber] = useState(1);
   const [pageNumberFontFamily, setPageNumberFontFamily] = useState('Arial');
   const [pageNumberFontSize, setPageNumberFontSize] = useState(10);
+  const [pagedTotalPages, setPagedTotalPages] = useState(0);
   const { toast } = useToast();
 
   // Editor principal (conteúdo)
@@ -449,6 +451,18 @@ export function ContractEditor({
     await onSave(html, campos, headerHtml, footerHtml);
   };
 
+  const handleExportPDF = () => {
+    if (mode !== 'paged') {
+      toast({
+        title: "Aviso",
+        description: "Vá para o modo 'Preview Final' para exportar o PDF",
+        variant: "destructive",
+      });
+      return;
+    }
+    window.print();
+  };
+
   if (!editor || !headerEditor || !footerEditor) {
     return <div>Carregando editor...</div>;
   }
@@ -492,8 +506,23 @@ export function ContractEditor({
                   <Eye className="h-4 w-4 mr-2" />
                   Visualizar
                 </TabsTrigger>
+                <TabsTrigger value="paged">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Preview Final
+                </TabsTrigger>
               </TabsList>
             </Tabs>
+
+            {mode === "paged" && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleExportPDF}
+              >
+                <FileDown className="h-4 w-4 mr-2" />
+                Gerar PDF
+              </Button>
+            )}
 
             {mode === "edit" && (
               <Button
@@ -626,7 +655,7 @@ export function ContractEditor({
               fontFamily={pageNumberFontFamily}
               fontSize={pageNumberFontSize}
             />
-          ) : (
+          ) : mode === "preview" ? (
             <PagedDocument
               headerContent={headerEditor?.getHTML()}
               footerContent={footerEditor?.getHTML()}
@@ -636,6 +665,13 @@ export function ContractEditor({
             >
               <div dangerouslySetInnerHTML={{ __html: editor?.getHTML() || '' }} />
             </PagedDocument>
+          ) : (
+            <PagedPreview
+              content={editor?.getHTML() || ''}
+              headerContent={headerEditor?.getHTML()}
+              footerContent={footerEditor?.getHTML()}
+              onReady={(total) => setPagedTotalPages(total)}
+            />
           )}
         </div>
       </main>

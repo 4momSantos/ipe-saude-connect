@@ -1,0 +1,206 @@
+/* ============================================
+   PAGED.JS - CSS PAGED MEDIA STYLES
+   ============================================ */
+
+/* Configuração da página A4 */
+@page {
+  size: A4 portrait;
+  margin-top: 2.5cm;
+  margin-bottom: 2.5cm;
+  margin-left: 3cm;
+  margin-right: 3cm;
+}
+
+/* Cabeçalho e rodapé nas páginas */
+@page {
+  @top-center {
+    content: element(running-header);
+    font-size: 10pt;
+    color: #666;
+  }
+  
+  @bottom-center {
+    content: "Página " counter(page) " de " counter(pages);
+    font-size: 10pt;
+    color: #666;
+  }
+}
+
+/* Primeira página - remover numeração */
+@page :first {
+  @bottom-center {
+    content: "";
+  }
+}
+
+/* Páginas esquerdas e direitas (para impressão frente e verso) */
+@page :left {
+  margin-left: 2.5cm;
+  margin-right: 3.5cm;
+}
+
+@page :right {
+  margin-left: 3.5cm;
+  margin-right: 2.5cm;
+}
+
+/* ============================================
+   EVITAR QUEBRAS INADEQUADAS
+   ============================================ */
+
+/* Títulos e cabeçalhos */
+h1, h2, h3, h4, h5, h6 {
+  break-after: avoid;
+  break-inside: avoid;
+  page-break-after: avoid;
+  page-break-inside: avoid;
+}
+
+/* Tabelas */
+table {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Figuras e imagens */
+figure, img {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Listas */
+ul, ol {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Blocos de código */
+pre, code {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Callouts e alertas */
+.callout {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* ============================================
+   ÓRFÃOS E VIÚVAS
+   ============================================ */
+
+p {
+  orphans: 3;
+  widows: 3;
+}
+
+/* ============================================
+   ESTILOS DE CONTEÚDO
+   ============================================ */
+
+body {
+  font-family: Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.5;
+  color: #000;
+}
+
+/* Links */
+a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+/* Cabeçalho corrente (running header) */
+.running-header {
+  position: running(running-header);
+}
+
+/* ============================================
+   QUEBRAS MANUAIS
+   ============================================ */
+
+.page-break {
+  break-after: page;
+  page-break-after: always;
+}
+
+/* ============================================
+   IMPRESSÃO - OCULTAR ELEMENTOS UI
+   ============================================ */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  button, 
+  .toolbar,
+  .floating-toolbar,
+  .zoom-controls {
+    display: none !important;
+  }
+}
+
+/* ============================================
+   TABELAS
+   ============================================ */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+}
+
+table td, table th {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+table th {
+  background-color: #f3f4f6;
+  font-weight: bold;
+}
+
+/* ============================================
+   LISTAS HIERÁRQUICAS
+   ============================================ */
+
+ol {
+  counter-reset: item;
+  list-style-type: none;
+}
+
+ol > li {
+  counter-increment: item;
+}
+
+ol > li::before {
+  content: counters(item, ".") ". ";
+  font-weight: bold;
+}
+
+/* ============================================
+   IMAGENS
+   ============================================ */
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1em auto;
+}
+
+/* ============================================
+   CAMPOS DO CONTRATO (PLACEHOLDERS)
+   ============================================ */
+
+.field-placeholder {
+  background-color: #fef3c7;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: monospace;
+  color: #92400e;
+}
