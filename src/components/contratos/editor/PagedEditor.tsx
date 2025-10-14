@@ -231,7 +231,7 @@ export function PagedEditor({
               className="page-content-wrapper"
               style={{
                 height: `${usableHeightPx}px`,
-                overflow: 'visible',
+                overflow: 'hidden',
                 position: 'relative',
               }}
             >
