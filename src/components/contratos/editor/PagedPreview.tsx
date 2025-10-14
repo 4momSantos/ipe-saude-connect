@@ -1,7 +1,25 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { usePagedJS } from '@/hooks/usePagedJS';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
+
+// Hook para debounce
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 
 interface PagedPreviewProps {
   content: string;
@@ -52,6 +70,7 @@ export function PagedPreview({
   footerContent,
   onReady
 }: PagedPreviewProps) {
+  const { toast } = useToast();
   const { 
     containerRef, 
     isRendering, 
@@ -84,8 +103,12 @@ export function PagedPreview({
     return fullHtml;
   }, [content, headerContent, footerContent]);
 
+  // Debounce do HTML para evitar renderizações múltiplas
+  const debouncedHTML = useDebounce(processedHTML, 300);
+
   useEffect(() => {
     let isMounted = true;
+    let timeoutId: NodeJS.Timeout;
 
     async function renderPreview() {
       try {
@@ -94,7 +117,20 @@ export function PagedPreview({
         
         // Gerar preview apenas se o componente ainda estiver montado
         if (isMounted) {
-          await generatePreview(processedHTML);
+          // Timeout de segurança (30 segundos)
+          const renderPromise = generatePreview(debouncedHTML);
+          
+          timeoutId = setTimeout(() => {
+            console.error('⏰ Timeout: renderização levou mais de 30s');
+            toast({
+              title: "Renderização lenta",
+              description: "O documento está demorando muito. Tente um documento menor.",
+              variant: "destructive"
+            });
+          }, 30000);
+          
+          await renderPromise;
+          clearTimeout(timeoutId);
         }
       } catch (err) {
         console.error('Erro ao renderizar preview:', err);
@@ -105,8 +141,9 @@ export function PagedPreview({
 
     return () => {
       isMounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [processedHTML, generatePreview]);
+  }, [debouncedHTML, generatePreview, toast]);
 
   return (
     <div className="paged-preview-wrapper h-full w-full flex flex-col items-center bg-gray-100 py-8 overflow-auto">
