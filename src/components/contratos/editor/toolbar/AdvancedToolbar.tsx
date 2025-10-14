@@ -235,7 +235,7 @@ export function AdvancedToolbar({
           variant="ghost"
           size="sm"
           onClick={onInsertTable}
-          title="Inserir Tabela"
+          title="Inserir Tabela (3x3)"
         >
           <Table className="h-4 w-4" />
         </Button>
@@ -248,6 +248,80 @@ export function AdvancedToolbar({
           <FileText className="h-4 w-4" />
         </Button>
       </div>
+
+      {/* Controles de Tabela - Aparecem quando cursor está em uma tabela */}
+      {editor.isActive('table') && (
+        <>
+          <Separator orientation="vertical" className="h-6" />
+          <div className="flex items-center gap-1 bg-muted/50 px-2 py-1 rounded">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => editor.chain().focus().addColumnBefore().run()}
+              title="Adicionar Coluna Antes"
+              disabled={!editor.can().addColumnBefore()}
+            >
+              ←📊
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => editor.chain().focus().addColumnAfter().run()}
+              title="Adicionar Coluna Depois"
+              disabled={!editor.can().addColumnAfter()}
+            >
+              📊→
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => editor.chain().focus().deleteColumn().run()}
+              title="Deletar Coluna"
+              disabled={!editor.can().deleteColumn()}
+            >
+              ❌📊
+            </Button>
+            <Separator orientation="vertical" className="h-4 mx-1" />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => editor.chain().focus().addRowBefore().run()}
+              title="Adicionar Linha Acima"
+              disabled={!editor.can().addRowBefore()}
+            >
+              ↑📄
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => editor.chain().focus().addRowAfter().run()}
+              title="Adicionar Linha Abaixo"
+              disabled={!editor.can().addRowAfter()}
+            >
+              ↓📄
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => editor.chain().focus().deleteRow().run()}
+              title="Deletar Linha"
+              disabled={!editor.can().deleteRow()}
+            >
+              ❌📄
+            </Button>
+            <Separator orientation="vertical" className="h-4 mx-1" />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => editor.chain().focus().deleteTable().run()}
+              title="Deletar Tabela"
+              disabled={!editor.can().deleteTable()}
+            >
+              🗑️📋
+            </Button>
+          </div>
+        </>
+      )}
 
       <Separator orientation="vertical" className="h-6" />
 

@@ -47,6 +47,7 @@ import { ContractField, AvailableField } from "@/types/contract-editor";
 import "./print-styles.css";
 import "./image-resize.css";
 import "./editor-styles.css";
+import "./table-styles.css";
 
 const lowlight = createLowlight(common);
 
@@ -80,10 +81,16 @@ export function ContractEditor({
     extensions: [
       StarterKit.configure({
         codeBlock: false,
-        link: false, // Desabilitar link do StarterKit
+        link: false,
+        strike: false, // Desabilitar para usar versão standalone se necessário
       }),
       ResizableImage,
-      Table.configure({ resizable: true }),
+      Table.configure({ 
+        resizable: true,
+        handleWidth: 5,
+        cellMinWidth: 50,
+        allowTableNodeSelection: true,
+      }),
       TableRow,
       TableCell,
       TableHeader,
@@ -119,6 +126,17 @@ export function ContractEditor({
     editorProps: {
       attributes: {
         class: "prose prose-sm max-w-none focus:outline-none min-h-[400px] p-4",
+      },
+      handleDOMEvents: {
+        mousedown: (view, event) => {
+          const target = event.target as HTMLElement;
+          // Permitir interação com handles de redimensionamento de tabela
+          if (target.classList.contains('column-resize-handle') || 
+              target.classList.contains('react-resizable-handle')) {
+            return false;
+          }
+          return false;
+        },
       },
     },
   });

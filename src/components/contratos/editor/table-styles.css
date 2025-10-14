@@ -1,0 +1,101 @@
+/* Estilos para tabelas no editor TipTap */
+
+.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 1rem 0;
+  overflow: hidden;
+  border: 1px solid hsl(var(--border));
+}
+
+.ProseMirror td,
+.ProseMirror th {
+  min-width: 50px;
+  border: 1px solid hsl(var(--border));
+  padding: 8px 12px;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+  background-clip: padding-box;
+}
+
+.ProseMirror th {
+  font-weight: 600;
+  text-align: left;
+  background-color: hsl(var(--muted));
+}
+
+/* Célula selecionada */
+.ProseMirror .selectedCell {
+  background: hsl(var(--primary) / 0.1);
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: -1px;
+}
+
+/* Handle de redimensionamento de coluna */
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  z-index: 20;
+  background-color: hsl(var(--primary));
+  pointer-events: all;
+  cursor: col-resize;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.ProseMirror .column-resize-handle:hover,
+.ProseMirror .resize-cursor .column-resize-handle {
+  opacity: 1;
+}
+
+/* Feedback visual durante o redimensionamento */
+.ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
+
+.ProseMirror.resize-cursor * {
+  cursor: col-resize !important;
+}
+
+/* Controles de tabela */
+.tableWrapper {
+  padding: 1rem 0;
+  overflow-x: auto;
+}
+
+/* Garantir que células não quebrem layout */
+.ProseMirror td > *,
+.ProseMirror th > * {
+  margin-bottom: 0;
+}
+
+.ProseMirror td p,
+.ProseMirror th p {
+  margin: 0;
+}
+
+/* Melhorar visibilidade em modo escuro */
+.dark .ProseMirror table {
+  border-color: hsl(var(--border));
+}
+
+.dark .ProseMirror td,
+.dark .ProseMirror th {
+  border-color: hsl(var(--border));
+}
+
+.dark .ProseMirror th {
+  background-color: hsl(var(--muted));
+}
+
+/* Estilos para impressão */
+@media print {
+  .ProseMirror .column-resize-handle {
+    display: none;
+  }
+}
