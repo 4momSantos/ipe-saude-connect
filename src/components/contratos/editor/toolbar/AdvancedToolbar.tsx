@@ -4,6 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ColorPicker } from "./ColorPicker";
 import { FontSelector } from "./FontSelector";
+import { LineSpacingControl } from "./LineSpacingControl";
 import {
   Bold, Italic, Underline, Strikethrough, Code,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
@@ -196,6 +197,11 @@ export function AdvancedToolbar({
           <AlignJustify className="h-4 w-4" />
         </Button>
       </div>
+
+      <Separator orientation="vertical" className="h-6" />
+
+      {/* Line Spacing */}
+      <LineSpacingControl editor={editor} />
 
       <Separator orientation="vertical" className="h-6" />
 

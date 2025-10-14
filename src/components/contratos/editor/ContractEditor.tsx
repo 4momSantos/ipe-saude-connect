@@ -29,6 +29,8 @@ import { ResizableImage, TableWithBorder } from "./extensions/ResizableImage";
 import { SlashCommands } from "./extensions/SlashCommands";
 import { Callout } from "./extensions/Callout";
 import { HierarchicalOrderedList } from "./extensions/HierarchicalList";
+import { LineHeight } from "./extensions/LineHeight";
+import { ParagraphSpacing } from "./extensions/ParagraphSpacing";
 import { AdvancedToolbar } from "./toolbar/AdvancedToolbar";
 import { FieldsPanel } from "./FieldsPanel";
 import { ContractPreview } from "./ContractPreview";
@@ -134,6 +136,13 @@ export function ContractEditor({
       PageBreak,
       SlashCommands,
       Callout,
+      LineHeight.configure({
+        types: ['paragraph', 'heading'],
+        defaultLineHeight: '1.5',
+      }),
+      ParagraphSpacing.configure({
+        types: ['paragraph', 'heading'],
+      }),
     ],
     content: initialContent || "",
     editorProps: {
