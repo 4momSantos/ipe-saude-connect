@@ -9,13 +9,23 @@ import { useCidades } from '@/hooks/useCidades';
 import { useDensidadeCredenciados } from '@/hooks/useDensidadeCredenciados';
 import { supabase } from '@/integrations/supabase/client';
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
-
 export function MapaDensidadeMultiCidade() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [selectedCidadeId, setSelectedCidadeId] = useState<string>('');
   const [selectedZona, setSelectedZona] = useState<any>(null);
+  const [mapboxToken, setMapboxToken] = useState<string>('');
+  
+  // Buscar token do Mapbox
+  useEffect(() => {
+    async function fetchToken() {
+      const { data } = await supabase.functions.invoke('get-mapbox-token');
+      if (data?.token) {
+        setMapboxToken(data.token);
+      }
+    }
+    fetchToken();
+  }, []);
 
   // Buscar lista de cidades
   const { data: cidades, isLoading: loadingCidades } = useCidades();
@@ -32,9 +42,9 @@ export function MapaDensidadeMultiCidade() {
 
   // Inicializar mapa
   useEffect(() => {
-    if (!mapContainer.current || map.current) return;
+    if (!mapContainer.current || map.current || !mapboxToken) return;
 
-    mapboxgl.accessToken = MAPBOX_TOKEN;
+    mapboxgl.accessToken = mapboxToken;
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
@@ -49,7 +59,7 @@ export function MapaDensidadeMultiCidade() {
     return () => {
       map.current?.remove();
     };
-  }, []);
+  }, [mapboxToken]);
 
   // Atualizar mapa quando dados mudarem
   useEffect(() => {

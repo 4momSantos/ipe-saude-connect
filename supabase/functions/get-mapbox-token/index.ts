@@ -1,52 +1,43 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// Edge Function: get-mapbox-token
+// Retorna o token do Mapbox de forma segura
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const mapboxToken = Deno.env.get('MAPBOX_TOKEN');
-
-    if (!mapboxToken) {
-      console.error('[GET_MAPBOX_TOKEN] Token não configurado nos secrets');
+    const token = Deno.env.get('MAPBOX_ACCESS_TOKEN');
+    
+    if (!token) {
+      console.error('[MAPBOX_TOKEN] Token não configurado');
       return new Response(
-        JSON.stringify({ error: 'Token Mapbox não configurado' }),
+        JSON.stringify({ error: 'Token do Mapbox não configurado' }),
         { 
-          status: 500, 
+          status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
     }
 
-    console.log('[GET_MAPBOX_TOKEN] Token retornado com sucesso');
-
     return new Response(
-      JSON.stringify({ 
-        token: mapboxToken,
-        success: true 
-      }),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json',
-          'Cache-Control': 'public, max-age=3600'
-        } 
-      }
+      JSON.stringify({ token }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
   } catch (error) {
-    console.error('[GET_MAPBOX_TOKEN] Erro:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    console.error('[MAPBOX_TOKEN] Erro:', errorMessage);
+
     return new Response(
-      JSON.stringify({ error: 'Erro ao buscar token' }),
+      JSON.stringify({ error: errorMessage }),
       { 
-        status: 500, 
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
