@@ -104,6 +104,12 @@ export function usePagedJS(options: UsePagedJSOptions = {}) {
       
       console.log(`✅ [Render #${renderId}] Paged.js renderizou ${pages} páginas com sucesso`);
       
+      // Verificar se container ainda existe antes de acessar DOM
+      if (!containerRef.current) {
+        console.log(`⏭️ [Render #${renderId}] Container foi destruído após preview`);
+        return;
+      }
+      
       // Verificar se DOM foi atualizado
       const domPages = containerRef.current.querySelectorAll('.pagedjs_page');
       console.log(`📑 [Render #${renderId}] Páginas no DOM: ${domPages.length}`);
