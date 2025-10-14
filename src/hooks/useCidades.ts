@@ -19,7 +19,7 @@ export function useCidades() {
       console.log('[CIDADES] Buscando cidades disponíveis');
       
       const { data, error } = await supabase
-        .from('cidades')
+        .from('cidades' as any)
         .select('id, nome, uf, populacao_total, latitude_centro, longitude_centro, zoom_padrao, ativa')
         .eq('ativa', true)
         .order('nome');
@@ -31,7 +31,7 @@ export function useCidades() {
 
       console.log('[CIDADES] Cidades carregadas:', data?.length);
       
-      return (data || []) as Cidade[];
+      return (data || []) as unknown as Cidade[];
     },
     staleTime: 30 * 60 * 1000, // 30 minutos
   });
