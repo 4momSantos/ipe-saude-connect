@@ -66,6 +66,9 @@ verify_jwt = true
 [functions.download-certificado]
 verify_jwt = false
 
+[functions.simular-assinatura-contrato]
+verify_jwt = true
+
 [functions.publicar-edital]
 verify_jwt = true
 
