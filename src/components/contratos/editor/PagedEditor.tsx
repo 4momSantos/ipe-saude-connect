@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Editor, EditorContent } from '@tiptap/react';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { useAutoPagination } from './hooks/useAutoPagination';
 import { A4PageWrapper } from './A4PageWrapper';
@@ -29,25 +30,30 @@ export function PagedEditor({
   fontSize = 10
 }: PagedEditorProps) {
   const [zoom, setZoom] = useState(1);
+  const [currentZoomIndex, setCurrentZoomIndex] = useState(2); // Start at 100%
   const { totalPages, contentRef, usableHeightPx } = useAutoPagination(zoom);
 
   const zoomLevels = [0.5, 0.75, 1, 1.25, 1.5];
-  const currentZoomIndex = zoomLevels.indexOf(zoom);
 
   const handleZoomIn = () => {
     if (currentZoomIndex < zoomLevels.length - 1) {
-      setZoom(zoomLevels[currentZoomIndex + 1]);
+      const newIndex = currentZoomIndex + 1;
+      setCurrentZoomIndex(newIndex);
+      setZoom(zoomLevels[newIndex]);
     }
   };
 
   const handleZoomOut = () => {
     if (currentZoomIndex > 0) {
-      setZoom(zoomLevels[currentZoomIndex - 1]);
+      const newIndex = currentZoomIndex - 1;
+      setCurrentZoomIndex(newIndex);
+      setZoom(zoomLevels[newIndex]);
     }
   };
 
   const handleFitWidth = () => {
     setZoom(1);
+    setCurrentZoomIndex(2);
   };
 
   // Atalhos de teclado para zoom
@@ -56,7 +62,7 @@ export function PagedEditor({
       if (e.ctrlKey || e.metaKey) {
         if (e.key === '0') {
           e.preventDefault();
-          setZoom(1);
+          handleFitWidth();
         } else if (e.key === '+' || e.key === '=') {
           e.preventDefault();
           handleZoomIn();
@@ -73,36 +79,60 @@ export function PagedEditor({
 
   return (
     <div className="paged-editor-container">
-      {/* Controles de Zoom */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b p-2 flex items-center justify-center gap-2">
+      {/* Controles de Zoom - estilo Google Docs */}
+      <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-2 flex items-center justify-center gap-3 shadow-sm">
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={handleZoomOut}
           disabled={currentZoomIndex === 0}
+          title="Diminuir zoom (Ctrl + -)"
+          className="h-8 w-8 p-0"
         >
           <ZoomOut className="h-4 w-4" />
         </Button>
         
-        <span className="text-sm font-mono min-w-[60px] text-center">
-          {Math.round(zoom * 100)}%
-        </span>
+        <Select 
+          value={String(Math.round(zoom * 100))} 
+          onValueChange={(value) => {
+            const newZoom = Number(value) / 100;
+            setZoom(newZoom);
+            const index = zoomLevels.findIndex(z => z === newZoom);
+            if (index !== -1) setCurrentZoomIndex(index);
+          }}
+        >
+          <SelectTrigger className="w-24 h-8 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="50">50%</SelectItem>
+            <SelectItem value="75">75%</SelectItem>
+            <SelectItem value="100">100%</SelectItem>
+            <SelectItem value="125">125%</SelectItem>
+            <SelectItem value="150">150%</SelectItem>
+          </SelectContent>
+        </Select>
         
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={handleZoomIn}
           disabled={currentZoomIndex === zoomLevels.length - 1}
+          title="Aumentar zoom (Ctrl + +)"
+          className="h-8 w-8 p-0"
         >
           <ZoomIn className="h-4 w-4" />
         </Button>
         
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={handleFitWidth}
+          title="Ajustar à largura (Ctrl + 0)"
+          className="h-8 px-3"
         >
-          <Maximize2 className="h-4 w-4" />
+          <Maximize2 className="h-4 w-4 mr-1" />
+          <span className="text-xs">Ajustar</span>
         </Button>
       </div>
 

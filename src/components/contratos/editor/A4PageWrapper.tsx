@@ -47,15 +47,15 @@ export function A4PageWrapper({
     <>
       <div
         className="a4-page-wrapper bg-white shadow-lg mx-auto relative"
-        style={{
-          width: `${21 * zoom}cm`,
-          height: `${29.7 * zoom}cm`,
-          paddingTop: `${2.5 * zoom}cm`,
-          paddingBottom: `${2.5 * zoom}cm`,
-          paddingLeft: `${3 * zoom}cm`,
-          paddingRight: `${3 * zoom}cm`,
-          marginBottom: isLastPage ? 0 : `${2 * zoom}cm`,
-        }}
+      style={{
+        width: `${21 * zoom}cm`,
+        height: `${29.7 * zoom}cm`,
+        paddingTop: `${2.5 * zoom}cm`,
+        paddingBottom: `${2.5 * zoom}cm`,
+        paddingLeft: `${3 * zoom}cm`,
+        paddingRight: `${3 * zoom}cm`,
+        marginBottom: isLastPage ? 0 : `${0.5 * zoom}cm`,
+      }}
       >
         {/* Indicador de margens (sutil) */}
         <div 

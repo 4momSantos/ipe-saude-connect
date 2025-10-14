@@ -1,23 +1,24 @@
-/* Background profissional para workspace */
+/* Background minimalista estilo Google Docs */
 .contract-editor-workspace {
-  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  background: #f9f9f9;
 }
 
-/* Páginas com aspecto profissional */
+/* Páginas com sombra minimalista estilo Google Docs */
 .a4-page {
   background: white;
   box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.1),
-    0 8px 16px rgba(0, 0, 0, 0.06);
-  border: 1px solid #e0e0e0;
-  transition: box-shadow 0.3s ease, transform 0.2s ease;
+    0 0 0 0.75px rgba(0, 0, 0, 0.08),
+    0 2px 4px rgba(0, 0, 0, 0.03),
+    0 4px 8px rgba(0, 0, 0, 0.02);
+  border: none;
+  transition: box-shadow 0.15s ease;
 }
 
 .a4-page:hover {
   box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.15),
-    0 12px 24px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
+    0 0 0 0.75px rgba(0, 0, 0, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.05),
+    0 8px 16px rgba(0, 0, 0, 0.03);
 }
 
 /* Quebra de página visível */
@@ -83,27 +84,41 @@
   margin: 0 auto;
 }
 
-/* Container do editor paginado */
+/* Container do editor paginado estilo Google Docs */
 .paged-editor-container {
-  background: #f5f5f5;
+  background: #f9f9f9;
   min-height: 100vh;
 }
 
-/* Wrapper de página A4 para edição */
+/* Wrapper de página A4 para edição - estilo Google Docs */
 .a4-page-wrapper {
   background: white;
   box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.08),
-    0 8px 24px rgba(0, 0, 0, 0.12);
-  border: 1px solid #e0e0e0;
+    0 0 0 0.75px rgba(0, 0, 0, 0.08),
+    0 2px 4px rgba(0, 0, 0, 0.03),
+    0 4px 8px rgba(0, 0, 0, 0.02);
+  border: none;
   position: relative;
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow 0.15s ease;
 }
 
 .a4-page-wrapper:hover {
   box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.12),
-    0 12px 32px rgba(0, 0, 0, 0.16);
+    0 0 0 0.75px rgba(0, 0, 0, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.05),
+    0 8px 16px rgba(0, 0, 0, 0.03);
+}
+
+/* Margens quase invisíveis */
+.page-margins-indicator {
+  position: absolute;
+  top: 2.5cm;
+  bottom: 2.5cm;
+  left: 3cm;
+  right: 3cm;
+  border: 1px solid rgba(0, 0, 0, 0.03) !important;
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* Conteúdo editável dentro da página */
@@ -112,11 +127,19 @@
   z-index: 10;
 }
 
-/* Garantir que TipTap funcione dentro das páginas */
+/* Garantir que TipTap funcione dentro das páginas - tipografia Google Docs */
 .page-content-wrapper .ProseMirror {
   outline: none;
   min-height: auto !important;
   padding: 0;
+  font-family: 'Arial', sans-serif;
+  font-size: 11pt;
+  line-height: 1.5;
+  color: #202124;
+}
+
+.page-content-wrapper .ProseMirror p {
+  margin-bottom: 11pt;
 }
 
 /* Divisor de página estilizado */
@@ -166,28 +189,39 @@
   text-align: justify !important;
 }
 
-/* Garantir que o editor respeite os estilos */
+/* Garantir que o editor respeite os estilos - tipografia Google Docs */
 .ProseMirror {
   outline: none;
   min-height: 400px;
   padding: 1rem;
+  font-family: 'Arial', sans-serif;
+  font-size: 11pt;
+  line-height: 1.5;
+  color: #202124;
+}
+
+.ProseMirror p {
+  margin-bottom: 11pt;
 }
 
 .ProseMirror:focus {
   outline: none;
 }
 
-/* Seleção de texto mais elegante */
+/* Seleção de texto estilo Google Docs */
 .ProseMirror ::selection {
-  background: rgba(59, 130, 246, 0.2);
+  background: rgba(26, 115, 232, 0.2);
+  color: inherit;
 }
 
-/* Placeholder mais elegante */
+/* Placeholder estilo Google Docs */
 .ProseMirror p.is-editor-empty:first-child::before {
-  color: #adb5bd;
+  color: #5f6368;
   content: attr(data-placeholder);
   float: left;
   height: 0;
   pointer-events: none;
+  font-style: normal;
+  font-weight: 400;
 }
 

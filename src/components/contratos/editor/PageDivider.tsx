@@ -5,23 +5,25 @@ interface PageDividerProps {
 export function PageDivider({ zoom }: PageDividerProps) {
   return (
     <div 
-      className="page-divider-container relative flex flex-col items-center justify-center bg-gray-100 mx-auto"
+      className="page-divider-container relative mx-auto"
       style={{
         width: `${21 * zoom}cm`,
-        height: `${1 * zoom}cm`,
-        marginBottom: `${1 * zoom}cm`,
+        height: `${0.3 * zoom}cm`,
+        marginBottom: `${0.2 * zoom}cm`,
+        background: 'transparent',
+        pointerEvents: 'none',
+        userSelect: 'none',
       }}
     >
-      {/* Linha horizontal gradiente */}
-      <div className="h-px w-full bg-gradient-to-r from-transparent via-border to-transparent" />
-      
-      {/* Texto indicador */}
+      {/* Linha horizontal minimalista estilo Google Docs */}
       <div 
-        className="text-center text-muted-foreground font-mono mt-1"
-        style={{ fontSize: `${10 * zoom}px` }}
-      >
-        • • • QUEBRA DE PÁGINA • • •
-      </div>
+        className="w-full"
+        style={{ 
+          height: '1px',
+          background: 'rgba(0, 0, 0, 0.08)',
+          margin: '0 auto'
+        }} 
+      />
     </div>
   );
 }
