@@ -14,13 +14,15 @@ interface DashboardData {
   tendenciaMensal: { mes: string; credenciados: number }[];
 }
 
-const COLORS = [
-  "hsl(217 91% 60%)",
-  "hsl(271 81% 56%)",
-  "hsl(142 71% 45%)",
-  "hsl(38 92% 50%)",
-  "hsl(0 84% 60%)",
-  "hsl(215 20% 35%)",
+const CHART_COLORS = [
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+  "hsl(var(--chart-6))",
+  "hsl(var(--chart-7))",
+  "hsl(var(--chart-8))",
 ];
 
 export function DashboardRelatorios() {
@@ -189,7 +191,7 @@ export function DashboardRelatorios() {
                   dataKey="value"
                 >
                   {data.credenciadosPorEspecialidade.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -217,7 +219,11 @@ export function DashboardRelatorios() {
                     borderRadius: "8px",
                   }}
                 />
-                <Bar dataKey="value" fill="hsl(217 91% 60%)" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                  {data.credenciadosPorRegiao.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -245,9 +251,9 @@ export function DashboardRelatorios() {
                 <Line
                   type="monotone"
                   dataKey="credenciados"
-                  stroke="hsl(142 71% 45%)"
+                  stroke="hsl(var(--chart-2))"
                   strokeWidth={3}
-                  dot={{ fill: "hsl(142 71% 45%)", r: 5 }}
+                  dot={{ fill: "hsl(var(--chart-2))", r: 5 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -278,7 +284,7 @@ export function DashboardRelatorios() {
                     borderRadius: "8px",
                   }}
                 />
-                <Bar dataKey="deficit" fill="hsl(0 84% 60%)" radius={[0, 8, 8, 0]} />
+                <Bar dataKey="deficit" fill="hsl(var(--chart-8))" radius={[0, 8, 8, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

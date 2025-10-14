@@ -60,9 +60,9 @@ export function DashboardCandidato() {
   };
 
   const statusChartData = [
-    { name: "Em Análise", value: stats.em_analise, fill: "hsl(var(--chart-1))" },
+    { name: "Em Análise", value: stats.em_analise, fill: "hsl(var(--chart-4))" },
     { name: "Aprovadas", value: stats.aprovadas, fill: "hsl(var(--chart-2))" },
-    { name: "Rejeitadas", value: stats.rejeitadas, fill: "hsl(var(--chart-3))" },
+    { name: "Rejeitadas", value: stats.rejeitadas, fill: "hsl(var(--chart-8))" },
   ].filter(item => item.value > 0);
 
   const timelineData = inscricoes.slice(0, 6).map((insc, idx) => ({

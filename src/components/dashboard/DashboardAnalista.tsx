@@ -134,13 +134,13 @@ export function DashboardAnalista() {
   }
 
   const statusChartData = [
-    { name: "Pendentes", value: stats.pendentes, fill: "hsl(var(--chart-1))" },
+    { name: "Pendentes", value: stats.pendentes, fill: "hsl(var(--chart-4))" },
     { name: "Analisadas", value: stats.total - stats.pendentes, fill: "hsl(var(--chart-2))" },
   ];
 
   const workflowChartData = [
-    { name: "Em Execução", value: stats.workflowsRunning, fill: "hsl(var(--chart-3))" },
-    { name: "Concluídos", value: stats.workflowsCompleted, fill: "hsl(var(--chart-4))" },
+    { name: "Em Execução", value: stats.workflowsRunning, fill: "hsl(var(--chart-1))" },
+    { name: "Concluídos", value: stats.workflowsCompleted, fill: "hsl(var(--chart-2))" },
   ];
 
   if (loading) {

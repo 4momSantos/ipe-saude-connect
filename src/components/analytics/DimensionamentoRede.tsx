@@ -139,9 +139,9 @@ export function DimensionamentoRede() {
   }
 
   const statusColors = {
-    adequado: "#10B981",
-    alerta: "#F59E0B",
-    critico: "#EF4444",
+    adequado: "hsl(var(--chart-2))",
+    alerta: "hsl(var(--chart-4))",
+    critico: "hsl(var(--chart-8))",
   };
 
   const statusIcons = {
