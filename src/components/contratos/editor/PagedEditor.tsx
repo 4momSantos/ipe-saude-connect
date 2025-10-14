@@ -130,7 +130,7 @@ export function PagedEditor({
   }, []);
 
   return (
-    <div className="paged-editor-container py-8" style={{ minHeight: '100vh' }}>
+    <div className="paged-editor-container py-8 px-8" style={{ minHeight: '100vh' }}>
       {/* Régua Horizontal - STICKY */}
       {showRulers && (
         <HorizontalRuler
@@ -147,9 +147,10 @@ export function PagedEditor({
 
       {/* Container principal do editor */}
       <div 
-        className="relative mx-auto"
+        className="relative"
         style={{
           width: `${21 * zoom}cm`,
+          marginLeft: showRulers ? '40px' : '20px',
         }}
       >
         {/* Container da página A4 */}
