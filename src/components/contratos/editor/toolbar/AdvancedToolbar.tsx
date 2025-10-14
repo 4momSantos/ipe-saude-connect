@@ -210,7 +210,7 @@ export function AdvancedToolbar({
           <List className="h-4 w-4" />
         </Button>
         <Button
-          variant={editor.isActive('orderedList') ? 'default' : 'ghost'}
+          variant={editor.isActive('hierarchicalOrderedList') ? 'default' : 'ghost'}
           size="sm"
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           title="Lista Numerada"
@@ -218,6 +218,50 @@ export function AdvancedToolbar({
           <ListOrdered className="h-4 w-4" />
         </Button>
       </div>
+
+      {/* Controles de Lista - Aparecem quando em lista */}
+      {(editor.isActive('hierarchicalOrderedList') || editor.isActive('bulletList')) && (
+        <>
+          <Separator orientation="vertical" className="h-6" />
+          <div className="flex items-center gap-1 bg-muted/50 px-2 py-1 rounded">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => editor.chain().focus().increaseIndent().run()}
+              title="Aumentar Recuo (Tab)"
+            >
+              <Indent className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => editor.chain().focus().decreaseIndent().run()}
+              title="Diminuir Recuo (Shift+Tab)"
+            >
+              <Outdent className="h-4 w-4" />
+            </Button>
+            
+            {editor.isActive('hierarchicalOrderedList') && (
+              <>
+                <Separator orientation="vertical" className="h-4 mx-1" />
+                <Select
+                  value={editor.getAttributes('hierarchicalOrderedList').format || 'numeric'}
+                  onValueChange={(format) => editor.chain().focus().setListFormat(format as any).run()}
+                >
+                  <SelectTrigger className="w-[140px] h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="numeric">1. 2. 3.</SelectItem>
+                    <SelectItem value="legal">CLÁUSULA I</SelectItem>
+                    <SelectItem value="alpha">a) b) c)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </>
+            )}
+          </div>
+        </>
+      )}
 
       <Separator orientation="vertical" className="h-6" />
 

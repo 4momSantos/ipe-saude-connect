@@ -28,12 +28,15 @@ import { PageBreak } from "./extensions/PageBreak";
 import { ResizableImage, TableWithBorder } from "./extensions/ResizableImage";
 import { SlashCommands } from "./extensions/SlashCommands";
 import { Callout } from "./extensions/Callout";
+import { HierarchicalOrderedList } from "./extensions/HierarchicalList";
 import { AdvancedToolbar } from "./toolbar/AdvancedToolbar";
 import { FieldsPanel } from "./FieldsPanel";
 import { ContractPreview } from "./ContractPreview";
 import { ImageUploadDialog } from "./ImageUploadDialog";
 import { FloatingToolbar } from "./components/FloatingToolbar";
 import { KeyboardShortcuts } from "./components/KeyboardShortcuts";
+import { PagedDocument } from "./PagedDocument";
+import { PageNumberSettings } from "./PageNumberSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { 
@@ -47,6 +50,7 @@ import "./print-styles.css";
 import "./image-resize.css";
 import "./editor-styles.css";
 import "./table-styles.css";
+import "./hierarchical-lists.css";
 
 const lowlight = createLowlight(common);
 
@@ -73,6 +77,9 @@ export function ContractEditor({
   const [activeSection, setActiveSection] = useState<"header" | "content" | "footer">("content");
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "error">("saved");
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [showPageNumbers, setShowPageNumbers] = useState(true);
+  const [pageNumberPosition, setPageNumberPosition] = useState<'left' | 'center' | 'right'>('center');
+  const [pageNumberFormat, setPageNumberFormat] = useState('Página {n} de {total}');
   const { toast } = useToast();
 
   // Editor principal (conteúdo)
@@ -81,8 +88,10 @@ export function ContractEditor({
       StarterKit.configure({
         codeBlock: false,
         link: false,
-        strike: false, // Desabilitar para usar versão standalone se necessário
+        strike: false,
+        orderedList: false, // Desabilitar lista padrão
       }),
+      HierarchicalOrderedList, // Lista hierárquica customizada
       ResizableImage,
       TableWithBorder.configure({ 
         resizable: true,
@@ -507,18 +516,29 @@ export function ContractEditor({
               <Save className="h-4 w-4 mr-2" />
               {isSaving ? "Salvando..." : "Salvar"}
             </Button>
+            
+            {mode === "preview" && (
+              <PageNumberSettings
+                showPageNumbers={showPageNumbers}
+                position={pageNumberPosition}
+                format={pageNumberFormat}
+                onShowChange={setShowPageNumbers}
+                onPositionChange={setPageNumberPosition}
+                onFormatChange={setPageNumberFormat}
+              />
+            )}
           </div>
         </div>
       )}
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden contract-editor-workspace">
         {mode === "edit" && showFields && !focusMode && (
           <div className="w-80 border-r overflow-y-auto">
             <FieldsPanel onInsertField={handleInsertField} />
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto" {...getRootProps()}>
+        <div className="flex-1 overflow-y-auto editor-workspace-centered" {...getRootProps()}>
           <input {...getInputProps()} />
           
           {isDragActive && (
@@ -567,11 +587,15 @@ export function ContractEditor({
               </Tabs>
             </div>
           ) : (
-            <ContractPreview 
-              content={editor.getHTML()}
-              headerContent={headerEditor.getHTML()}
-              footerContent={footerEditor.getHTML()}
-            />
+            <PagedDocument
+              headerContent={headerEditor?.getHTML()}
+              footerContent={footerEditor?.getHTML()}
+              showPageNumbers={showPageNumbers}
+              pageNumberPosition={pageNumberPosition}
+              pageNumberFormat={pageNumberFormat}
+            >
+              <div dangerouslySetInnerHTML={{ __html: editor?.getHTML() || '' }} />
+            </PagedDocument>
           )}
         </div>
       </div>

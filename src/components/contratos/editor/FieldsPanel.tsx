@@ -2,7 +2,10 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { 
+  Collapsible, CollapsibleContent, CollapsibleTrigger 
+} from "@/components/ui/collapsible";
 import { Search, ChevronRight, ChevronDown, User, FileText, Calendar, Building } from "lucide-react";
 import { camposDisponiveis, type AvailableField } from "@/types/contract-editor";
 
@@ -69,53 +72,63 @@ export function FieldsPanel({ onInsertField }: FieldsPanelProps) {
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="p-2">
+        <div className="p-3">
           {Object.entries(groupedFields).map(([categoria, fields]) => {
             const Icon = CATEGORY_ICONS[categoria as keyof typeof CATEGORY_ICONS];
             const isExpanded = expandedCategories.has(categoria);
 
             return (
-              <div key={categoria} className="mb-2">
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start gap-2 mb-1"
-                  onClick={() => toggleCategory(categoria)}
-                >
-                  {isExpanded ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4" />
-                  )}
-                  {Icon && <Icon className="h-4 w-4" />}
-                  <span className="font-medium">
-                    {CATEGORY_LABELS[categoria as keyof typeof CATEGORY_LABELS]}
-                  </span>
-                  <Badge variant="secondary" className="ml-auto">
-                    {fields.length}
-                  </Badge>
-                </Button>
+              <Collapsible
+                key={categoria}
+                open={isExpanded}
+                onOpenChange={() => toggleCategory(categoria)}
+                className="mb-4"
+              >
+                <CollapsibleTrigger className="w-full">
+                  <div className="flex items-center justify-between w-full p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-2">
+                      {Icon && <Icon className="h-4 w-4 text-primary" />}
+                      <span className="font-semibold text-sm">
+                        {CATEGORY_LABELS[categoria as keyof typeof CATEGORY_LABELS]}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-xs">
+                        {fields.length}
+                      </Badge>
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </div>
+                  </div>
+                </CollapsibleTrigger>
 
-                {isExpanded && (
-                  <div className="ml-6 space-y-1">
+                <CollapsibleContent>
+                  {/* GRID DE CARDS */}
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
                     {fields.map((field) => (
-                      <Button
+                      <Card
                         key={field.id}
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start text-left h-auto py-2"
+                        className="cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all duration-200 group"
                         onClick={() => onInsertField(field)}
                       >
-                        <div className="flex flex-col items-start gap-1 w-full">
-                          <span className="text-sm font-medium">{field.label}</span>
-                          <code className="text-xs text-muted-foreground bg-muted px-1 rounded">
-                            {field.preview}
-                          </code>
-                        </div>
-                      </Button>
+                        <CardContent className="p-3">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors">
+                              {field.label}
+                            </span>
+                            <code className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded break-all">
+                              {field.preview}
+                            </code>
+                          </div>
+                        </CardContent>
+                      </Card>
                     ))}
                   </div>
-                )}
-              </div>
+                </CollapsibleContent>
+              </Collapsible>
             );
           })}
         </div>
