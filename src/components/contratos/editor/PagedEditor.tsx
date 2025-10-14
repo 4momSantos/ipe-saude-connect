@@ -7,6 +7,7 @@ import { useAutoPagination } from './hooks/useAutoPagination';
 import { A4PageWrapper } from './A4PageWrapper';
 import { HorizontalRuler } from './rulers/HorizontalRuler';
 import { VerticalRuler } from './rulers/VerticalRuler';
+import { MarginsControl } from './toolbar/MarginsControl';
 
 interface PagedEditorProps {
   editor: Editor;
@@ -170,6 +171,17 @@ export function PagedEditor({
           <Ruler className="h-4 w-4 mr-1" />
           <span className="text-xs">Réguas</span>
         </Button>
+
+        <MarginsControl
+          leftMargin={leftMargin}
+          rightMargin={rightMargin}
+          topMargin={topMargin}
+          bottomMargin={bottomMargin}
+          onLeftMarginChange={setLeftMargin}
+          onRightMarginChange={setRightMargin}
+          onTopMarginChange={setTopMargin}
+          onBottomMarginChange={setBottomMargin}
+        />
       </div>
 
       {/* Régua Horizontal */}

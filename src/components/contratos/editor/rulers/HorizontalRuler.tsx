@@ -92,7 +92,7 @@ export function HorizontalRuler({
   return (
     <div 
       ref={rulerRef}
-      className="ruler-horizontal sticky bg-white border-b-2 border-gray-400 z-30 select-none cursor-default shadow-sm"
+      className="ruler-horizontal sticky bg-white border-b-2 border-gray-400 z-30 select-none cursor-crosshair shadow-sm"
       style={{ 
         height: '32px',
         width: `${21 * zoom}cm`,
@@ -101,32 +101,63 @@ export function HorizontalRuler({
       }}
       onClick={handleRulerClick}
     >
-      <div className="relative h-full max-w-full">
-        {Array.from({ length: 43 }, (_, i) => i * 0.5).map((cm) => {
-          const isFullCm = cm % 1 === 0;
+      <div className="relative h-full w-full overflow-visible">
+        {/* Marcações da régua */}
+        {Array.from({ length: 22 }, (_, i) => i).map((cm) => {
+          const isFullCm = true;
+          const position = (cm / 21) * 100;
+          
           return (
             <div
               key={cm}
               className="absolute"
               style={{ 
-                left: `${(cm / 21) * 100}%`,
+                left: `${position}%`,
                 top: 0,
-                height: '32px'
+                height: '32px',
+                transform: 'translateX(-0.5px)'
               }}
             >
               <div 
-                className={`w-px ${isFullCm ? 'h-5 bg-gray-700' : 'h-3 bg-gray-500'}`}
+                className="w-px h-5 bg-gray-700"
                 style={{ position: 'absolute', top: 0 }}
               />
               
-              {isFullCm && (
+              {isFullCm && cm <= 21 && (
                 <span 
-                  className="text-[11px] text-gray-800 font-semibold font-mono absolute"
-                  style={{ top: '20px', transform: 'translateX(-50%)', left: 0 }}
+                  className="text-[11px] text-gray-800 font-semibold font-mono absolute pointer-events-none select-none"
+                  style={{ 
+                    top: '20px', 
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                  }}
                 >
                   {cm}
                 </span>
               )}
+            </div>
+          );
+        })}
+        
+        {/* Marcações menores (0.5cm) */}
+        {Array.from({ length: 42 }, (_, i) => i * 0.5).filter(cm => cm % 1 !== 0).map((cm) => {
+          const position = (cm / 21) * 100;
+          
+          return (
+            <div
+              key={`half-${cm}`}
+              className="absolute"
+              style={{ 
+                left: `${position}%`,
+                top: 0,
+                height: '32px',
+                transform: 'translateX(-0.5px)'
+              }}
+            >
+              <div 
+                className="w-px h-3 bg-gray-500"
+                style={{ position: 'absolute', top: 0 }}
+              />
             </div>
           );
         })}
@@ -137,19 +168,20 @@ export function HorizontalRuler({
           style={{ 
             left: `${(leftMargin / 21) * 100}%`,
             top: 0,
-            transform: 'translateX(-50%)',
-            height: '100%'
+            height: '100%',
+            width: '20px',
+            transform: 'translateX(-10px)'
           }}
           onMouseDown={(e) => {
             e.stopPropagation();
             setIsDraggingLeft(true);
           }}
         >
-          <div className="w-0.5 h-full bg-blue-600 shadow-sm" />
+          <div className="absolute left-1/2 -translate-x-1/2 w-0.5 h-full bg-blue-600 shadow-sm" />
           
           <div className="absolute top-0 left-1/2 -translate-x-1/2">
-            <svg width="14" height="10" className="group-hover:scale-110 transition-transform drop-shadow-md">
-              <polygon points="0,10 7,0 14,10" fill="#2563eb" />
+            <svg width="16" height="12" className="group-hover:scale-110 transition-transform drop-shadow-md">
+              <polygon points="0,12 8,0 16,12" fill="#2563eb" />
             </svg>
           </div>
           
@@ -164,19 +196,20 @@ export function HorizontalRuler({
           style={{ 
             left: `${(rightMargin / 21) * 100}%`,
             top: 0,
-            transform: 'translateX(-50%)',
-            height: '100%'
+            height: '100%',
+            width: '20px',
+            transform: 'translateX(-10px)'
           }}
           onMouseDown={(e) => {
             e.stopPropagation();
             setIsDraggingRight(true);
           }}
         >
-          <div className="w-0.5 h-full bg-blue-600 shadow-sm" />
+          <div className="absolute left-1/2 -translate-x-1/2 w-0.5 h-full bg-blue-600 shadow-sm" />
           
           <div className="absolute top-0 left-1/2 -translate-x-1/2">
-            <svg width="14" height="10" className="group-hover:scale-110 transition-transform drop-shadow-md">
-              <polygon points="0,10 7,0 14,10" fill="#2563eb" />
+            <svg width="16" height="12" className="group-hover:scale-110 transition-transform drop-shadow-md">
+              <polygon points="0,12 8,0 16,12" fill="#2563eb" />
             </svg>
           </div>
           
