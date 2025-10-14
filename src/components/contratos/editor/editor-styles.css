@@ -225,3 +225,54 @@
   font-weight: 400;
 }
 
+/* Réguas interativas */
+.ruler-horizontal,
+.ruler-vertical {
+  background: #e5e7eb;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Marcações de régua */
+.ruler-mark {
+  position: absolute;
+  background: #9ca3af;
+}
+
+/* Indicadores de margem */
+.margin-indicator {
+  position: absolute;
+  transition: opacity 0.15s ease;
+}
+
+.margin-indicator:hover {
+  opacity: 1;
+  z-index: 10;
+}
+
+/* Cursor durante drag */
+.dragging-margin {
+  cursor: ew-resize !important;
+}
+
+.dragging-margin-vertical {
+  cursor: ns-resize !important;
+}
+
+/* Tabulações */
+.tab-indicator {
+  cursor: move;
+  transition: transform 0.1s ease;
+}
+
+.tab-indicator:hover {
+  transform: scale(1.1);
+}
+
+/* Tooltip de régua */
+.ruler-tooltip {
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+

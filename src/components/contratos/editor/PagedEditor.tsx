@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { Editor, EditorContent } from '@tiptap/react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, Ruler } from 'lucide-react';
 import { useAutoPagination } from './hooks/useAutoPagination';
 import { A4PageWrapper } from './A4PageWrapper';
+import { HorizontalRuler } from './rulers/HorizontalRuler';
+import { VerticalRuler } from './rulers/VerticalRuler';
 
 interface PagedEditorProps {
   editor: Editor;
@@ -30,7 +32,14 @@ export function PagedEditor({
   fontSize = 10
 }: PagedEditorProps) {
   const [zoom, setZoom] = useState(1);
-  const [currentZoomIndex, setCurrentZoomIndex] = useState(2); // Start at 100%
+  const [currentZoomIndex, setCurrentZoomIndex] = useState(2);
+  const [leftMargin, setLeftMargin] = useState(3);
+  const [rightMargin, setRightMargin] = useState(18);
+  const [topMargin, setTopMargin] = useState(2.5);
+  const [bottomMargin, setBottomMargin] = useState(27.2);
+  const [tabs, setTabs] = useState<number[]>([]);
+  const [showRulers, setShowRulers] = useState(true);
+  const [scrollOffset, setScrollOffset] = useState(0);
   const { totalPages, contentRef, usableHeightPx } = useAutoPagination(zoom);
 
   const zoomLevels = [0.5, 0.75, 1, 1.25, 1.5];
@@ -56,7 +65,7 @@ export function PagedEditor({
     setCurrentZoomIndex(2);
   };
 
-  // Atalhos de teclado para zoom
+  // Atalhos de teclado para zoom e réguas
   useEffect(() => {
     const handleKeyboard = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey) {
@@ -69,18 +78,31 @@ export function PagedEditor({
         } else if (e.key === '-') {
           e.preventDefault();
           handleZoomOut();
+        } else if (e.shiftKey && e.key === 'R') {
+          e.preventDefault();
+          setShowRulers(!showRulers);
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyboard);
     return () => window.removeEventListener('keydown', handleKeyboard);
-  }, [currentZoomIndex]);
+  }, [currentZoomIndex, showRulers]);
+
+  // Scroll listener para régua vertical
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollOffset(window.scrollY);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <div className="paged-editor-container">
       {/* Controles de Zoom - estilo Google Docs */}
-      <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-2 flex items-center justify-center gap-3 shadow-sm">
+      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-2 flex items-center justify-center gap-3 shadow-sm">
         <Button
           variant="ghost"
           size="sm"
@@ -134,7 +156,33 @@ export function PagedEditor({
           <Maximize2 className="h-4 w-4 mr-1" />
           <span className="text-xs">Ajustar</span>
         </Button>
+
+        <div className="w-px h-6 bg-gray-300" />
+
+        <Button
+          variant={showRulers ? "default" : "ghost"}
+          size="sm"
+          onClick={() => setShowRulers(!showRulers)}
+          title="Mostrar/Ocultar réguas (Ctrl + Shift + R)"
+          className="h-8 px-3"
+        >
+          <Ruler className="h-4 w-4 mr-1" />
+          <span className="text-xs">Réguas</span>
+        </Button>
       </div>
+
+      {/* Régua Horizontal */}
+      {showRulers && (
+        <HorizontalRuler
+          zoom={zoom}
+          leftMargin={leftMargin}
+          rightMargin={rightMargin}
+          tabs={tabs}
+          onLeftMarginChange={setLeftMargin}
+          onRightMarginChange={setRightMargin}
+          onTabsChange={setTabs}
+        />
+      )}
 
       {/* Container de medição invisível */}
       <div 
@@ -147,22 +195,40 @@ export function PagedEditor({
         {footerEditor && <EditorContent editor={footerEditor} />}
       </div>
 
-      {/* Páginas A4 visíveis */}
-      <div className="py-8">
-        {Array.from({ length: totalPages }).map((_, index) => (
-          <A4PageWrapper
-            key={index}
-            pageNumber={index + 1}
-            totalPages={totalPages}
+      {/* Container com régua vertical e páginas */}
+      <div className="relative flex">
+        {/* Régua Vertical */}
+        {showRulers && (
+          <VerticalRuler
             zoom={zoom}
-            isLastPage={index === totalPages - 1}
-            showPageNumber={showPageNumbers}
-            pageNumberPosition={pageNumberPosition}
-            pageNumberFormat={pageNumberFormat}
-            startNumber={startNumber}
-            fontFamily={fontFamily}
-            fontSize={fontSize}
-          >
+            topMargin={topMargin}
+            bottomMargin={bottomMargin}
+            onTopMarginChange={setTopMargin}
+            onBottomMarginChange={setBottomMargin}
+            scrollOffset={scrollOffset}
+          />
+        )}
+
+        {/* Páginas A4 visíveis */}
+        <div className="py-8 flex-1" style={{ marginLeft: showRulers ? '30px' : 0 }}>
+          {Array.from({ length: totalPages }).map((_, index) => (
+            <A4PageWrapper
+              key={index}
+              pageNumber={index + 1}
+              totalPages={totalPages}
+              zoom={zoom}
+              isLastPage={index === totalPages - 1}
+              showPageNumber={showPageNumbers}
+              pageNumberPosition={pageNumberPosition}
+              pageNumberFormat={pageNumberFormat}
+              startNumber={startNumber}
+              fontFamily={fontFamily}
+              fontSize={fontSize}
+              leftMarginCm={leftMargin}
+              rightMarginCm={rightMargin}
+              topMarginCm={topMargin}
+              bottomMarginCm={bottomMargin}
+            >
             {/* Conteúdo com altura controlada */}
             <div 
               className="page-content-wrapper"
@@ -199,6 +265,7 @@ export function PagedEditor({
             </div>
           </A4PageWrapper>
         ))}
+        </div>
       </div>
     </div>
   );

@@ -31,6 +31,7 @@ import { Callout } from "./extensions/Callout";
 import { HierarchicalOrderedList } from "./extensions/HierarchicalList";
 import { LineHeight } from "./extensions/LineHeight";
 import { ParagraphSpacing } from "./extensions/ParagraphSpacing";
+import { TabStops } from "./extensions/TabStops";
 import { AdvancedToolbar } from "./toolbar/AdvancedToolbar";
 import { FieldsPanel } from "./FieldsPanel";
 import { ContractPreview } from "./ContractPreview";
@@ -40,7 +41,6 @@ import { KeyboardShortcuts } from "./components/KeyboardShortcuts";
 import { PagedDocument } from "./PagedDocument";
 import { PagedEditor } from "./PagedEditor";
 import { PageNumberSettings } from "./PageNumberSettings";
-import { HorizontalRuler } from "./Ruler";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { 
@@ -143,6 +143,7 @@ export function ContractEditor({
       ParagraphSpacing.configure({
         types: ['paragraph', 'heading'],
       }),
+      TabStops,
     ],
     content: initialContent || "",
     editorProps: {
@@ -578,7 +579,6 @@ export function ContractEditor({
                     onInsertPageBreak={handleInsertPageBreak}
                     onToggleFields={() => setShowFields(!showFields)}
                   />
-                  <HorizontalRuler />
                 </>
               )}
 

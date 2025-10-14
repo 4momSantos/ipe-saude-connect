@@ -13,6 +13,10 @@ interface A4PageWrapperProps {
   startNumber?: number;
   fontFamily?: string;
   fontSize?: number;
+  leftMarginCm?: number;
+  rightMarginCm?: number;
+  topMarginCm?: number;
+  bottomMarginCm?: number;
 }
 
 export function A4PageWrapper({
@@ -27,6 +31,10 @@ export function A4PageWrapper({
   startNumber = 1,
   fontFamily = 'Arial',
   fontSize = 10,
+  leftMarginCm = 3,
+  rightMarginCm = 18,
+  topMarginCm = 2.5,
+  bottomMarginCm = 27.2,
 }: A4PageWrapperProps) {
   
   const formatPageNumber = (n: number) => {
@@ -50,10 +58,10 @@ export function A4PageWrapper({
       style={{
         width: `${21 * zoom}cm`,
         height: `${29.7 * zoom}cm`,
-        paddingTop: `${2.5 * zoom}cm`,
-        paddingBottom: `${2.5 * zoom}cm`,
-        paddingLeft: `${3 * zoom}cm`,
-        paddingRight: `${3 * zoom}cm`,
+        paddingTop: `${topMarginCm * zoom}cm`,
+        paddingBottom: `${(29.7 - bottomMarginCm) * zoom}cm`,
+        paddingLeft: `${leftMarginCm * zoom}cm`,
+        paddingRight: `${(21 - rightMarginCm) * zoom}cm`,
         marginBottom: isLastPage ? 0 : `${0.5 * zoom}cm`,
       }}
       >
@@ -62,10 +70,10 @@ export function A4PageWrapper({
           className="page-margins-indicator"
           style={{
             position: 'absolute',
-            top: `${2.5 * zoom}cm`,
-            bottom: `${2.5 * zoom}cm`,
-            left: `${3 * zoom}cm`,
-            right: `${3 * zoom}cm`,
+            top: `${topMarginCm * zoom}cm`,
+            bottom: `${(29.7 - bottomMarginCm) * zoom}cm`,
+            left: `${leftMarginCm * zoom}cm`,
+            right: `${(21 - rightMarginCm) * zoom}cm`,
             border: '1px dashed rgba(0, 0, 0, 0.08)',
             pointerEvents: 'none',
             zIndex: 1,
@@ -82,8 +90,8 @@ export function A4PageWrapper({
           <div 
             className={`absolute bottom-0 left-0 right-0 pb-4 ${getPositionClass()}`}
             style={{
-              paddingLeft: `${3 * zoom}cm`,
-              paddingRight: `${3 * zoom}cm`,
+              paddingLeft: `${leftMarginCm * zoom}cm`,
+              paddingRight: `${(21 - rightMarginCm) * zoom}cm`,
             }}
           >
             <span 
