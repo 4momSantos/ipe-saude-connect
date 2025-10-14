@@ -5,14 +5,69 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// FIX 5: Função auxiliar para retry com backoff exponencial
+// Converter TopoJSON para GeoJSON
+function topojsonToGeojson(topology: any): any {
+  console.log('[TOPOJSON] Convertendo para GeoJSON...');
+  
+  if (!topology.objects || Object.keys(topology.objects).length === 0) {
+    throw new Error('TopoJSON inválido: sem objects');
+  }
+
+  const firstKey = Object.keys(topology.objects)[0];
+  const collection = topology.objects[firstKey];
+  
+  if (collection.geometries && collection.geometries.length > 0) {
+    const geom = collection.geometries[0];
+    
+    // Decodificar arcs usando transform
+    const coordinates = decodeArcs(topology.arcs, topology.transform);
+    
+    return {
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature',
+        properties: geom.properties || { codarea: geom.properties?.codarea },
+        geometry: {
+          type: 'Polygon',
+          coordinates: coordinates
+        }
+      }]
+    };
+  }
+
+  throw new Error('TopoJSON sem geometrias válidas');
+}
+
+function decodeArcs(arcs: any[], transform: any): number[][][] {
+  if (!arcs || arcs.length === 0) return [];
+  
+  const { scale, translate } = transform;
+  const coords: number[][] = [];
+  
+  let x = 0, y = 0;
+  
+  // Processar primeiro arc
+  for (const point of arcs[0]) {
+    x += point[0];
+    y += point[1];
+    
+    const lng = x * scale[0] + translate[0];
+    const lat = y * scale[1] + translate[1];
+    
+    coords.push([lng, lat]);
+  }
+  
+  return [coords];
+}
+
+// Função auxiliar para retry com backoff exponencial
 async function fetchComRetry(url: string, tentativas = 3, delay = 1000) {
   for (let i = 0; i < tentativas; i++) {
     try {
       console.log(`[IBGE] Tentativa ${i + 1}/${tentativas}: ${url}`);
       const response = await fetch(url, {
-        headers: { 'Accept': 'application/vnd.geo+json' },
-        signal: AbortSignal.timeout(30000) // 30s timeout
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(30000)
       });
       
       if (response.ok) return response;
@@ -105,38 +160,53 @@ Deno.serve(async (req) => {
 
     console.log(`[IBGE] Cidade tem ${totalZonas} zonas cadastradas`);
 
-    // Buscar geometria do município do IBGE
-    const url = `https://servicodados.ibge.gov.br/api/v3/malhas/municipios/${codigoIBGE}?formato=application/vnd.geo+json&intrarregiao=distrito`;
+    // CORRIGIDO: URL sem intrarregiao (causa erro 400)
+    const url = `https://servicodados.ibge.gov.br/api/v3/malhas/municipios/${codigoIBGE}?formato=application/json`;
     
     console.log(`[IBGE] Consultando: ${url}`);
     
-    // FIX 5: Usar fetch com retry
     const response = await fetchComRetry(url);
 
     if (!response.ok) {
       throw new Error(`Erro na API do IBGE: ${response.statusText}`);
     }
 
-    const geojson = await response.json();
+    let data = await response.json();
     
-    // FIX 2: Logging detalhado da resposta da API
-    console.log(`[IBGE] Resposta da API (primeiros 500 chars):`, JSON.stringify(geojson, null, 2).substring(0, 500));
-    console.log(`[IBGE] Estrutura primeira feature:`, geojson.features?.[0]);
+    console.log(`[IBGE] Tipo de resposta: ${data.type}`);
     
-    // FIX 4: Validar estrutura da API do IBGE
-    if (!geojson || !geojson.features || geojson.features.length === 0) {
-      console.error(`[IBGE] API retornou estrutura inválida:`, geojson);
+    // Converter TopoJSON para GeoJSON se necessário
+    let geojson;
+    if (data.type === 'Topology') {
+      console.log(`[IBGE] Detectado TopoJSON, convertendo...`);
+      geojson = topojsonToGeojson(data);
+      console.log(`[IBGE] Conversão concluída: ${geojson.features.length} features`);
+    } else if (data.type === 'FeatureCollection') {
+      geojson = data;
+    } else {
+      console.error(`[IBGE] Tipo desconhecido:`, data);
       return new Response(
         JSON.stringify({ 
-          error: 'API do IBGE não retornou distritos válidos',
-          detalhes: 'Estrutura GeoJSON vazia ou inválida',
-          resposta_api: geojson
+          error: 'API do IBGE retornou formato desconhecido',
+          tipo: data.type
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    console.log(`[IBGE] Encontrados ${geojson.features.length} distritos`);
+    // Validar estrutura
+    if (!geojson || !geojson.features || geojson.features.length === 0) {
+      console.error(`[IBGE] GeoJSON inválido:`, geojson);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Geometria não encontrada',
+          detalhes: 'API retornou dados mas sem features válidos'
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    console.log(`[IBGE] ✓ ${geojson.features.length} geometrias carregadas`);
 
     // Classificar distritos em zonas
     const zonas: Record<string, any[]> = {
@@ -177,12 +247,12 @@ Deno.serve(async (req) => {
       const geometriaUnida = unirGeometrias(distritos.map(d => d.geometry));
       const geometriaSimplificada = simplificarGeometria(geometriaUnida, 0.001);
 
-      // FIX 3: Melhorar tratamento de erro - buscar zona sem .single()
+      // Buscar zona no banco pela coluna 'zona' (não 'nome')
       const { data: zonasEncontradas, error: searchError } = await supabase
         .from('zonas_geograficas')
-        .select('id, nome')
+        .select('id, zona')
         .eq('cidade_id', cidade.id)
-        .ilike('nome', `%${zonaName}%`)  // FIX 1: Corrigido de 'zona' para 'nome'
+        .ilike('zona', `%${zonaName}%`)
         .limit(1);
 
       if (searchError) {
