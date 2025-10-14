@@ -195,9 +195,8 @@ export function PagedEditor({
         {footerEditor && <EditorContent editor={footerEditor} />}
       </div>
 
-      {/* Container com régua vertical e páginas */}
-      <div className="relative flex">
-        {/* Régua Vertical */}
+      {/* Páginas A4 visíveis */}
+      <div className="py-8 relative" style={{ marginLeft: showRulers ? '30px' : 0 }}>
         {showRulers && (
           <VerticalRuler
             zoom={zoom}
@@ -208,9 +207,6 @@ export function PagedEditor({
             scrollOffset={scrollOffset}
           />
         )}
-
-        {/* Páginas A4 visíveis */}
-        <div className="py-8 flex-1" style={{ marginLeft: showRulers ? '30px' : 0 }}>
           {Array.from({ length: totalPages }).map((_, index) => (
             <A4PageWrapper
               key={index}
@@ -265,7 +261,6 @@ export function PagedEditor({
             </div>
           </A4PageWrapper>
         ))}
-        </div>
       </div>
     </div>
   );

@@ -67,11 +67,12 @@ export function VerticalRuler({
   return (
     <div 
       ref={rulerRef}
-      className="ruler-vertical fixed left-0 bg-gray-100 border-r border-gray-300 z-20 select-none"
+      className="ruler-vertical absolute bg-gray-100 border-r border-gray-300 z-20 select-none"
       style={{ 
         width: '30px',
         height: `${29.7 * zoom}cm`,
-        top: `${120 + scrollOffset}px`
+        left: '-30px',
+        top: 0
       }}
     >
       <div className="relative w-full h-full">
