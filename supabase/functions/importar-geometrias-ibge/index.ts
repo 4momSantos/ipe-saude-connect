@@ -5,6 +5,33 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// FIX 5: Função auxiliar para retry com backoff exponencial
+async function fetchComRetry(url: string, tentativas = 3, delay = 1000) {
+  for (let i = 0; i < tentativas; i++) {
+    try {
+      console.log(`[IBGE] Tentativa ${i + 1}/${tentativas}: ${url}`);
+      const response = await fetch(url, {
+        headers: { 'Accept': 'application/vnd.geo+json' },
+        signal: AbortSignal.timeout(30000) // 30s timeout
+      });
+      
+      if (response.ok) return response;
+      
+      console.warn(`[IBGE] Status ${response.status}: ${response.statusText}`);
+      
+      if (i < tentativas - 1) {
+        await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+      }
+    } catch (error) {
+      console.error(`[IBGE] Erro na tentativa ${i + 1}:`, error);
+      if (i === tentativas - 1) throw error;
+      await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+    }
+  }
+  
+  throw new Error('Falha após todas as tentativas');
+}
+
 const CODIGOS_IBGE = {
   'Recife': '2611606',
   'Porto Alegre': '4314902',
@@ -59,21 +86,57 @@ Deno.serve(async (req) => {
       );
     }
 
+    // FIX 6: Verificar se cidade tem zonas cadastradas
+    const { count: totalZonas } = await supabase
+      .from('zonas_geograficas')
+      .select('*', { count: 'exact', head: true })
+      .eq('cidade_id', cidade.id);
+
+    if (!totalZonas || totalZonas === 0) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Cidade não tem zonas cadastradas',
+          detalhes: `Crie as zonas (Norte, Sul, Leste, Oeste, Centro) para ${cidade_nome} antes de importar geometrias`,
+          cidade_id: cidade.id
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`[IBGE] Cidade tem ${totalZonas} zonas cadastradas`);
+
     // Buscar geometria do município do IBGE
     const url = `https://servicodados.ibge.gov.br/api/v3/malhas/municipios/${codigoIBGE}?formato=application/vnd.geo+json&intrarregiao=distrito`;
     
     console.log(`[IBGE] Consultando: ${url}`);
     
-    const response = await fetch(url, {
-      headers: { 'Accept': 'application/vnd.geo+json' }
-    });
+    // FIX 5: Usar fetch com retry
+    const response = await fetchComRetry(url);
 
     if (!response.ok) {
       throw new Error(`Erro na API do IBGE: ${response.statusText}`);
     }
 
     const geojson = await response.json();
-    console.log(`[IBGE] Encontrados ${geojson.features?.length || 0} distritos`);
+    
+    // FIX 2: Logging detalhado da resposta da API
+    console.log(`[IBGE] Resposta da API (primeiros 500 chars):`, JSON.stringify(geojson, null, 2).substring(0, 500));
+    console.log(`[IBGE] Estrutura primeira feature:`, geojson.features?.[0]);
+    
+    // FIX 4: Validar estrutura da API do IBGE
+    if (!geojson || !geojson.features || geojson.features.length === 0) {
+      console.error(`[IBGE] API retornou estrutura inválida:`, geojson);
+      return new Response(
+        JSON.stringify({ 
+          error: 'API do IBGE não retornou distritos válidos',
+          detalhes: 'Estrutura GeoJSON vazia ou inválida',
+          resposta_api: geojson
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    console.log(`[IBGE] Encontrados ${geojson.features.length} distritos`);
 
     // Classificar distritos em zonas
     const zonas: Record<string, any[]> = {
@@ -85,6 +148,9 @@ Deno.serve(async (req) => {
     };
 
     const centroMunicipio = CENTROS_CIDADES[cidade_nome as keyof typeof CENTROS_CIDADES];
+    
+    // FIX 2: Logging do centro do município
+    console.log(`[IBGE] Centro do município ${cidade_nome}:`, centroMunicipio);
 
     for (const feature of geojson.features || []) {
       const centroide = calcularCentroide(feature.geometry);
@@ -95,6 +161,9 @@ Deno.serve(async (req) => {
         geometry: feature.geometry
       });
     }
+    
+    // FIX 2: Logging da distribuição de distritos
+    console.log(`[IBGE] Distribuição de distritos por zona:`, Object.entries(zonas).map(([z, d]) => `${z}: ${d.length}`).join(', '));
 
     // Processar cada zona
     const resultados = [];
@@ -108,8 +177,35 @@ Deno.serve(async (req) => {
       const geometriaUnida = unirGeometrias(distritos.map(d => d.geometry));
       const geometriaSimplificada = simplificarGeometria(geometriaUnida, 0.001);
 
-      // Atualizar zona no banco
-      const { data: zona, error } = await supabase
+      // FIX 3: Melhorar tratamento de erro - buscar zona sem .single()
+      const { data: zonasEncontradas, error: searchError } = await supabase
+        .from('zonas_geograficas')
+        .select('id, nome')
+        .eq('cidade_id', cidade.id)
+        .ilike('nome', `%${zonaName}%`)  // FIX 1: Corrigido de 'zona' para 'nome'
+        .limit(1);
+
+      if (searchError) {
+        console.error(`[IBGE] Erro ao buscar zona ${zonaName}:`, searchError);
+        resultados.push({ zona: zonaName, status: 'erro', erro: searchError.message });
+        continue;
+      }
+
+      if (!zonasEncontradas || zonasEncontradas.length === 0) {
+        console.warn(`[IBGE] ⚠️ Zona ${zonaName} não encontrada no banco para ${cidade_nome}`);
+        resultados.push({ 
+          zona: zonaName, 
+          status: 'não encontrado', 
+          distritos: distritos.length,
+          aviso: 'Zona não existe no banco. Criar manualmente ou ajustar nome.'
+        });
+        continue;
+      }
+
+      const zonaId = zonasEncontradas[0].id;
+
+      // Atualizar zona
+      const { error: updateError } = await supabase
         .from('zonas_geograficas')
         .update({
           geometry: geometriaUnida,
@@ -119,14 +215,11 @@ Deno.serve(async (req) => {
           distritos_inclusos: distritos.map(d => d.nome),
           ibge_codigo: codigoIBGE
         })
-        .eq('cidade_id', cidade.id)
-        .ilike('zona', `%${zonaName}%`)
-        .select()
-        .single();
+        .eq('id', zonaId);
 
-      if (error) {
-        console.error(`[IBGE] Erro ao atualizar ${zonaName}:`, error);
-        resultados.push({ zona: zonaName, status: 'erro', erro: error.message });
+      if (updateError) {
+        console.error(`[IBGE] Erro ao atualizar ${zonaName}:`, updateError);
+        resultados.push({ zona: zonaName, status: 'erro', erro: updateError.message });
       } else {
         console.log(`[IBGE] ✓ ${zonaName} atualizada`);
         resultados.push({ 
