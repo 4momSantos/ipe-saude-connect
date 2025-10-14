@@ -14,6 +14,7 @@ export function MapaDensidadeMultiCidade() {
   const map = useRef<mapboxgl.Map | null>(null);
   const [selectedCidadeId, setSelectedCidadeId] = useState<string>('');
   const [selectedZona, setSelectedZona] = useState<any>(null);
+  const [hoveredZona, setHoveredZona] = useState<any>(null);
   const [mapboxToken, setMapboxToken] = useState<string>('');
   
   // Buscar token do Mapbox
@@ -199,19 +200,24 @@ export function MapaDensidadeMultiCidade() {
         console.error('[MAPA] ❌ Erro ao adicionar layer de contorno:', error);
       }
 
-      // Eventos de clique
+      // Eventos de clique e hover
       mapInstance.on('click', 'zonas-fill', (e) => {
         if (e.features && e.features.length > 0) {
           setSelectedZona(e.features[0].properties);
+          setHoveredZona(null); // Limpa hover quando clica
         }
       });
 
-      mapInstance.on('mouseenter', 'zonas-fill', () => {
+      mapInstance.on('mouseenter', 'zonas-fill', (e) => {
         mapInstance.getCanvas().style.cursor = 'pointer';
+        if (e.features && e.features.length > 0 && !selectedZona) {
+          setHoveredZona(e.features[0].properties);
+        }
       });
 
       mapInstance.on('mouseleave', 'zonas-fill', () => {
         mapInstance.getCanvas().style.cursor = '';
+        setHoveredZona(null);
       });
     };
 
@@ -333,31 +339,33 @@ export function MapaDensidadeMultiCidade() {
         <div ref={mapContainer} className="w-full h-full" />
         
         {/* Popup customizado */}
-        {selectedZona && (
+        {(selectedZona || hoveredZona) && (
           <div className="absolute top-4 left-4 z-20">
             <Card className="p-4 min-w-[250px] shadow-lg">
               <div className="flex justify-between items-start mb-2">
-                <h3 className="font-bold text-lg">{selectedZona.nome}</h3>
-                <button 
-                  onClick={() => setSelectedZona(null)}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  ✕
-                </button>
+                <h3 className="font-bold text-lg">{(selectedZona || hoveredZona).nome}</h3>
+                {selectedZona && (
+                  <button 
+                    onClick={() => setSelectedZona(null)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
               
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">População:</span>
                   <span className="font-semibold">
-                    {selectedZona.populacao.toLocaleString()}
+                    {(selectedZona || hoveredZona).populacao.toLocaleString()}
                   </span>
                 </div>
                 
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Credenciados:</span>
                   <span className="font-semibold text-green-600">
-                    {selectedZona.credenciados}
+                    {(selectedZona || hoveredZona).credenciados}
                   </span>
                 </div>
                 
@@ -365,13 +373,13 @@ export function MapaDensidadeMultiCidade() {
                   <span className="text-muted-foreground">Densidade:</span>
                   <Badge 
                     style={{ 
-                      backgroundColor: selectedZona.cor + '33',
-                      color: selectedZona.cor,
-                      border: `1px solid ${selectedZona.cor}`
+                      backgroundColor: (selectedZona || hoveredZona).cor + '33',
+                      color: (selectedZona || hoveredZona).cor,
+                      border: `1px solid ${(selectedZona || hoveredZona).cor}`
                     }}
                     className="text-lg font-bold"
                   >
-                    {selectedZona.densidade}
+                    {(selectedZona || hoveredZona).densidade}
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground text-center">
