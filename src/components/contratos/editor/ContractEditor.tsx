@@ -64,6 +64,8 @@ interface ContractEditorProps {
   initialFooter?: string;
   onSave: (html: string, campos: ContractField[], header?: string, footer?: string) => Promise<void>;
   isSaving?: boolean;
+  templateName?: string;
+  onTemplateNameChange?: (name: string) => void;
 }
 
 export function ContractEditor({ 
@@ -71,7 +73,9 @@ export function ContractEditor({
   initialHeader,
   initialFooter,
   onSave, 
-  isSaving = false 
+  isSaving = false,
+  templateName = "Documento sem título",
+  onTemplateNameChange
 }: ContractEditorProps) {
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [showFields, setShowFields] = useState(true);
@@ -458,10 +462,26 @@ export function ContractEditor({
 
   return (
     <div className="h-screen flex flex-col overflow-hidden">
-      {/* HEADER FIXO */}
+      {/* HEADER FIXO - ESTILO GOOGLE DOCS */}
       {!focusMode && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b shadow-sm h-[60px] flex items-center px-4 justify-between gap-2">
-          <div className="flex items-center gap-2">
+        <div 
+          className="fixed top-0 right-0 z-50 bg-white border-b shadow-sm h-[60px] flex items-center px-4 justify-between gap-2"
+          style={{ 
+            left: 'var(--sidebar-width, 0px)',
+          }}
+        >
+          {/* Título editável inline */}
+          <div className="flex items-center gap-4 flex-1 min-w-0">
+            <input
+              type="text"
+              value={templateName}
+              onChange={(e) => onTemplateNameChange?.(e.target.value)}
+              className="text-lg font-medium bg-transparent border-none outline-none focus:bg-gray-50 px-2 py-1 rounded flex-1 min-w-0"
+              placeholder="Documento sem título"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
             <Tabs value={mode} onValueChange={(v) => setMode(v as any)}>
               <TabsList>
                 <TabsTrigger value="edit">
@@ -553,7 +573,12 @@ export function ContractEditor({
 
       {/* TOOLBAR FIXA */}
       {mode === "edit" && !focusMode && (
-        <div className="fixed top-[60px] left-0 right-0 z-40 bg-white border-b shadow-sm">
+        <div 
+          className="fixed top-[60px] right-0 z-40 bg-white border-b shadow-sm"
+          style={{ 
+            left: 'var(--sidebar-width, 0px)',
+          }}
+        >
           <AdvancedToolbar
             editor={currentEditor}
             onInsertImage={() => setImageDialogOpen(true)}
@@ -569,12 +594,12 @@ export function ContractEditor({
         className="flex-1 overflow-y-auto bg-gray-50"
         style={{ 
           marginTop: focusMode ? '0' : '108px', // 60px header + 48px toolbar
+          marginLeft: 'var(--sidebar-width, 0px)',
         }}
       >
         <div 
           className="relative contract-editor-workspace"
           style={{
-            marginLeft: mode === "edit" && showFields && !focusMode ? '320px' : '0',
             transition: 'margin-left 0.2s ease',
           }}
           {...getRootProps()}
@@ -615,10 +640,10 @@ export function ContractEditor({
         </div>
       </main>
 
-      {/* FIELDS PANEL FIXO (SIDEBAR) */}
+      {/* FIELDS PANEL FIXO (DIREITA) */}
       {mode === "edit" && showFields && !focusMode && (
         <div 
-          className="fixed left-0 top-[108px] bottom-0 w-80 bg-white border-r shadow-lg overflow-y-auto z-30"
+          className="fixed right-0 top-[108px] bottom-0 w-80 bg-white border-l shadow-lg overflow-y-auto z-30"
         >
           <FieldsPanel onInsertField={handleInsertField} />
         </div>

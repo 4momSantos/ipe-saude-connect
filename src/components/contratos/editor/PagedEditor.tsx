@@ -130,45 +130,29 @@ export function PagedEditor({
   }, []);
 
   return (
-    <div className="paged-editor-container">
-      {/* Régua Horizontal - fixa abaixo da toolbar */}
+    <div className="paged-editor-container py-8" style={{ minHeight: '100vh' }}>
+      {/* Régua Horizontal - STICKY */}
       {showRulers && (
-        <div className="fixed left-0 right-0 z-35 bg-white border-b" style={{ top: '108px' }}>
-          <HorizontalRuler
-            zoom={zoom}
-            leftMargin={leftMargin}
-            rightMargin={21 - rightMargin}
-            tabs={tabs}
-            onLeftMarginChange={setLeftMargin}
-            onRightMarginChange={(cm) => setRightMargin(21 - cm)}
-            onTabsChange={setTabs}
-          />
-        </div>
+        <HorizontalRuler
+          zoom={zoom}
+          leftMargin={leftMargin}
+          rightMargin={21 - rightMargin}
+          tabs={tabs}
+          onLeftMarginChange={setLeftMargin}
+          onRightMarginChange={(cm) => setRightMargin(21 - cm)}
+          onTabsChange={setTabs}
+          visible={showRulers}
+        />
       )}
 
-      {/* Container principal do editor - ÚNICO E CONTÍNUO */}
+      {/* Container principal do editor */}
       <div 
-        className="relative mx-auto py-8"
+        className="relative mx-auto"
         style={{
           width: `${21 * zoom}cm`,
-          marginLeft: showRulers ? '32px' : 'auto',
-          marginRight: 'auto',
-          marginTop: showRulers ? '40px' : '0',
         }}
       >
-        {/* Régua vertical */}
-        {showRulers && (
-          <VerticalRuler
-            zoom={zoom}
-            topMargin={topMargin}
-            bottomMargin={29.7 - bottomMargin}
-            onTopMarginChange={setTopMargin}
-            onBottomMarginChange={(cm) => setBottomMargin(29.7 - cm)}
-            scrollOffset={scrollOffset}
-          />
-        )}
-
-        {/* Container da página A4 - SEM overflow hidden */}
+        {/* Container da página A4 */}
         <div
           className="a4-page-wrapper bg-white shadow-lg relative"
           style={{
@@ -178,17 +162,30 @@ export function PagedEditor({
             paddingBottom: `${bottomMargin * zoom}cm`,
             paddingLeft: `${leftMargin * zoom}cm`,
             paddingRight: `${rightMargin * zoom}cm`,
+            position: 'relative',
           }}
         >
+          {/* Régua vertical - ABSOLUTE */}
+          {showRulers && (
+            <VerticalRuler
+              zoom={zoom}
+              topMargin={topMargin}
+              bottomMargin={29.7 - bottomMargin}
+              onTopMarginChange={setTopMargin}
+              onBottomMarginChange={(cm) => setBottomMargin(29.7 - cm)}
+              visible={showRulers}
+            />
+          )}
+
           {/* Indicadores de margens */}
           <div 
             className="page-margins-indicator"
             style={{
               position: 'absolute',
-              top: `${topMargin * zoom}cm`,
-              bottom: `${bottomMargin * zoom}cm`,
-              left: `${leftMargin * zoom}cm`,
-              right: `${rightMargin * zoom}cm`,
+              top: 0,
+              bottom: 0,
+              left: 0,
+              right: 0,
               border: '1px dashed rgba(0, 0, 0, 0.08)',
               pointerEvents: 'none',
               zIndex: 1,
@@ -197,66 +194,92 @@ export function PagedEditor({
 
           {/* CABEÇALHO (se existir) */}
           {headerEditor && (
-            <div className="mb-4 pb-2 border-b border-gray-200">
+            <div className="mb-4 pb-2 border-b border-gray-200 relative z-10">
               <EditorContent editor={headerEditor} />
             </div>
           )}
 
-          {/* EDITOR PRINCIPAL - SEM OVERFLOW HIDDEN ✅ */}
+          {/* EDITOR PRINCIPAL */}
           <div className="relative z-10">
             <EditorContent editor={editor} />
           </div>
 
           {/* RODAPÉ (se existir) */}
           {footerEditor && (
-            <div className="mt-4 pt-2 border-t border-gray-200">
+            <div className="mt-4 pt-2 border-t border-gray-200 relative z-10">
               <EditorContent editor={footerEditor} />
             </div>
           )}
 
-          {/* Indicadores visuais de quebra de página (overlays) */}
-          {Array.from({ length: totalPages - 1 }).map((_, i) => (
-            <div
-              key={i}
-              className="absolute left-0 right-0 pointer-events-none"
-              style={{
-                top: `${(i + 1) * pageHeightCm * zoom}cm`,
-                height: '2px',
-                background: 'linear-gradient(90deg, transparent, #3b82f6 20%, #3b82f6 80%, transparent)',
-                zIndex: 5,
-              }}
-            >
-              <div className="absolute left-1/2 -translate-x-1/2 -top-3 bg-white px-2 text-xs font-semibold text-blue-600">
-                QUEBRA DE PÁGINA
-              </div>
-            </div>
-          ))}
+          {/* Indicadores visuais de quebra de página */}
+          {Array.from({ length: totalPages - 1 }).map((_, i) => {
+            const pageHeight = usableHeightCm;
+            return (
+              <div
+                key={i}
+                className="page-break-indicator"
+                style={{
+                  position: 'absolute',
+                  left: `${leftMargin * zoom}cm`,
+                  right: `${rightMargin * zoom}cm`,
+                  top: `${(topMargin + (i + 1) * pageHeight) * zoom}cm`,
+                  zIndex: 5,
+                }}
+              />
+            );
+          })}
 
-          {/* Numeração de páginas (overlay) */}
-          {showPageNumbers && Array.from({ length: totalPages }).map((_, i) => (
-            <div
-              key={i}
-              className={`absolute ${
-                pageNumberPosition === 'left' ? 'left-0' :
-                pageNumberPosition === 'right' ? 'right-0' : 
-                'left-1/2 -translate-x-1/2'
-              }`}
-              style={{
-                top: `${(i + 1) * pageHeightCm * zoom - (bottomMargin * zoom / 2)}cm`,
-                paddingLeft: pageNumberPosition === 'left' ? `${leftMargin * zoom}cm` : 0,
-                paddingRight: pageNumberPosition === 'right' ? `${rightMargin * zoom}cm` : 0,
-                fontFamily: fontFamily,
-                fontSize: `${fontSize * zoom}pt`,
-                color: '#666',
-                zIndex: 20,
-              }}
-            >
-              {pageNumberFormat
-                .replace('{n}', String(i + startNumber))
-                .replace('{total}', String(totalPages))}
-            </div>
-          ))}
+          {/* Numeração de páginas */}
+          {showPageNumbers && Array.from({ length: totalPages }).map((_, i) => {
+            const pageHeight = usableHeightCm;
+            return (
+              <div
+                key={i}
+                className={`absolute ${
+                  pageNumberPosition === 'left' ? 'left-0' :
+                  pageNumberPosition === 'right' ? 'right-0' : 
+                  'left-1/2 -translate-x-1/2'
+                }`}
+                style={{
+                  top: `${(topMargin + (i + 1) * pageHeight + 0.5) * zoom}cm`,
+                  paddingLeft: pageNumberPosition === 'left' ? `${leftMargin * zoom}cm` : 0,
+                  paddingRight: pageNumberPosition === 'right' ? `${rightMargin * zoom}cm` : 0,
+                  fontFamily: fontFamily,
+                  fontSize: `${fontSize * zoom}pt`,
+                  color: '#666',
+                  zIndex: 20,
+                }}
+              >
+                {pageNumberFormat
+                  .replace('{n}', String(i + startNumber))
+                  .replace('{total}', String(totalPages))}
+              </div>
+            );
+          })}
         </div>
+      </div>
+
+      {/* Controles de Zoom */}
+      <div className="fixed bottom-6 right-6 flex items-center gap-2 bg-white shadow-lg rounded-lg p-2 border z-50">
+        <Button variant="ghost" size="sm" onClick={handleZoomOut}>
+          -
+        </Button>
+        <span className="text-sm font-medium min-w-[60px] text-center">
+          {Math.round(zoom * 100)}%
+        </span>
+        <Button variant="ghost" size="sm" onClick={handleZoomIn}>
+          +
+        </Button>
+        <Button variant="ghost" size="sm" onClick={handleFitWidth}>
+          Ajustar
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => setShowRulers(!showRulers)}
+        >
+          {showRulers ? 'Ocultar réguas' : 'Mostrar réguas'}
+        </Button>
       </div>
     </div>
   );

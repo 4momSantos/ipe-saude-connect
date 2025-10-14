@@ -7,6 +7,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Menu } from "lucide-react";
+import { SidebarWidthObserver } from "@/components/SidebarWidthObserver";
 import Dashboard from "./pages/Dashboard";
 import Inscricoes from "./pages/Inscricoes";
 import DocumentosRejeitados from "./pages/DocumentosRejeitados";
@@ -115,6 +116,7 @@ const App = () => (
                     <SidebarProvider>
                   <div className="flex min-h-screen w-full">
                     <AppSidebar />
+                    <SidebarWidthObserver />
                     <div className="flex-1 flex flex-col">
                       <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-border bg-background/95 backdrop-blur px-6">
                         <SidebarTrigger className="lg:hidden">

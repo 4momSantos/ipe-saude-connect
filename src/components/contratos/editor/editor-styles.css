@@ -84,41 +84,41 @@
   margin: 0 auto;
 }
 
-/* Container do editor paginado estilo Google Docs */
+/* ============================
+   PAGED EDITOR LAYOUT E MARGINS
+   ============================ */
 .paged-editor-container {
-  background: #f9f9f9;
-  min-height: 100vh;
+  position: relative;
+  width: 100%;
+  background: #f8f9fa;
+  overflow: visible;
 }
 
-/* Wrapper de página A4 para edição - estilo Google Docs */
+.paged-editor-container .ProseMirror {
+  outline: none;
+  min-height: auto !important;
+  padding: 0 !important;
+  font-family: 'Arial', sans-serif;
+  font-size: 11pt;
+  line-height: 1.5;
+  color: #202124;
+  overflow: visible !important;
+}
+
 .a4-page-wrapper {
   background: white;
-  box-shadow: 
-    0 0 0 0.75px rgba(0, 0, 0, 0.08),
-    0 2px 4px rgba(0, 0, 0, 0.03),
-    0 4px 8px rgba(0, 0, 0, 0.02);
-  border: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: box-shadow 0.2s ease, transform 0.1s ease;
+  overflow: visible !important;
   position: relative;
-  transition: box-shadow 0.15s ease;
 }
 
 .a4-page-wrapper:hover {
-  box-shadow: 
-    0 0 0 0.75px rgba(0, 0, 0, 0.1),
-    0 4px 8px rgba(0, 0, 0, 0.05),
-    0 8px 16px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
 }
 
-/* Margens quase invisíveis */
 .page-margins-indicator {
-  position: absolute;
-  top: 2.5cm;
-  bottom: 2.5cm;
-  left: 3cm;
-  right: 3cm;
-  border: 1px solid rgba(0, 0, 0, 0.03) !important;
   pointer-events: none;
-  z-index: 1;
 }
 
 /* Conteúdo editável dentro da página */
@@ -349,36 +349,12 @@
   margin-top: 0;
 }
 
-/* Garantir que ProseMirror não tenha padding conflitante */
-.ProseMirror {
-  padding: 0 !important;
-  min-height: auto !important;
-  outline: none;
-  font-family: Arial, sans-serif;
-  font-size: 11pt;
-  line-height: 1.5;
-  color: #202124;
-  overflow: visible !important;
-}
-
-/* Editor contínuo sem overflow hidden */
-.paged-editor-container .ProseMirror {
-  overflow: visible !important;
-}
-
-.paged-editor-container .a4-page-wrapper {
-  overflow: visible !important;
-}
-
-.paged-editor-container .page-content-wrapper {
-  overflow: visible !important;
-}
-
-/* Quebras de página visuais */
+/* ============================
+   PAGE BREAK VISUAL INDICATORS
+   ============================ */
 .page-break-indicator {
   position: relative;
   height: 2px;
-  margin: 20px 0;
   background: linear-gradient(90deg, 
     transparent 0%, 
     #3b82f6 20%, 

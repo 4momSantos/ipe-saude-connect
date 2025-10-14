@@ -68,57 +68,13 @@ export default function ContractTemplateEditor() {
   }
 
   return (
-    <div className="w-full max-w-[95%] mx-auto p-6">
-      <div className="mb-6">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/contratos/templates")}
-          className="mb-4"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Voltar para Templates
-        </Button>
-        <h1 className="text-3xl font-bold">
-          {id ? "Editar Template" : "Criar Novo Template"}
-        </h1>
-      </div>
-
-      <div className="space-y-4 mb-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Informações do Template</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                Nome do Template *
-              </label>
-              <Input
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                placeholder="Ex: Contrato de Credenciamento Médico"
-                required
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                Descrição
-              </label>
-              <Textarea
-                value={descricao}
-                onChange={(e) => setDescricao(e.target.value)}
-                placeholder="Descreva o propósito deste template..."
-                rows={3}
-              />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
+    <div className="w-full h-full">
       <ContractEditor
         initialContent={template?.conteudo_html}
         onSave={handleSave}
         isSaving={isCriando || isEditando}
+        templateName={nome}
+        onTemplateNameChange={setNome}
       />
     </div>
   );
