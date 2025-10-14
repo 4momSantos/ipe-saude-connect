@@ -16,18 +16,30 @@ interface PageNumberSettingsProps {
   showPageNumbers: boolean;
   position: 'left' | 'center' | 'right';
   format: string;
+  startNumber?: number;
+  fontFamily?: string;
+  fontSize?: number;
   onShowChange: (show: boolean) => void;
   onPositionChange: (pos: 'left' | 'center' | 'right') => void;
   onFormatChange: (format: string) => void;
+  onStartNumberChange?: (num: number) => void;
+  onFontFamilyChange?: (font: string) => void;
+  onFontSizeChange?: (size: number) => void;
 }
 
 export function PageNumberSettings({
   showPageNumbers,
   position,
   format,
+  startNumber = 1,
+  fontFamily = 'Arial',
+  fontSize = 10,
   onShowChange,
   onPositionChange,
-  onFormatChange
+  onFormatChange,
+  onStartNumberChange,
+  onFontFamilyChange,
+  onFontSizeChange
 }: PageNumberSettingsProps) {
   const presetFormats = [
     { label: "Página X de Y", value: "Página {n} de {total}" },
@@ -108,6 +120,53 @@ export function PageNumberSettings({
                   Use {"{n}"} para número da página e {"{total}"} para total
                 </p>
               </div>
+
+              {/* Número Inicial */}
+              {onStartNumberChange && (
+                <div className="space-y-2">
+                  <Label>Começar em</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={startNumber}
+                    onChange={(e) => onStartNumberChange(parseInt(e.target.value) || 1)}
+                    className="text-sm"
+                  />
+                </div>
+              )}
+
+              {/* Fonte */}
+              {onFontFamilyChange && (
+                <div className="space-y-2">
+                  <Label>Fonte</Label>
+                  <Select value={fontFamily} onValueChange={onFontFamilyChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Arial">Arial</SelectItem>
+                      <SelectItem value="Times New Roman">Times New Roman</SelectItem>
+                      <SelectItem value="Courier New">Courier New</SelectItem>
+                      <SelectItem value="Georgia">Georgia</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Tamanho da Fonte */}
+              {onFontSizeChange && (
+                <div className="space-y-2">
+                  <Label>Tamanho (pt)</Label>
+                  <Input
+                    type="number"
+                    min={8}
+                    max={16}
+                    value={fontSize}
+                    onChange={(e) => onFontSizeChange(parseInt(e.target.value) || 10)}
+                    className="text-sm"
+                  />
+                </div>
+              )}
             </>
           )}
         </div>

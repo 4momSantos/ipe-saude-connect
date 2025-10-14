@@ -83,6 +83,48 @@
   margin: 0 auto;
 }
 
+/* Container do editor paginado */
+.paged-editor-container {
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+/* Wrapper de página A4 para edição */
+.a4-page-wrapper {
+  background: white;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    0 8px 24px rgba(0, 0, 0, 0.12);
+  border: 1px solid #e0e0e0;
+  position: relative;
+  transition: box-shadow 0.2s ease;
+}
+
+.a4-page-wrapper:hover {
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.12),
+    0 12px 32px rgba(0, 0, 0, 0.16);
+}
+
+/* Conteúdo editável dentro da página */
+.page-content-wrapper {
+  position: relative;
+  z-index: 10;
+}
+
+/* Garantir que TipTap funcione dentro das páginas */
+.page-content-wrapper .ProseMirror {
+  outline: none;
+  min-height: auto !important;
+  padding: 0;
+}
+
+/* Divisor de página estilizado */
+.page-divider-container {
+  pointer-events: none;
+  user-select: none;
+}
+
 /* Estilos de alinhamento para TipTap */
 .ProseMirror p[style*="text-align: left"],
 .ProseMirror h1[style*="text-align: left"],

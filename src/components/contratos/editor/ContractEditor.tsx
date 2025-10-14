@@ -36,6 +36,7 @@ import { ImageUploadDialog } from "./ImageUploadDialog";
 import { FloatingToolbar } from "./components/FloatingToolbar";
 import { KeyboardShortcuts } from "./components/KeyboardShortcuts";
 import { PagedDocument } from "./PagedDocument";
+import { PagedEditor } from "./PagedEditor";
 import { PageNumberSettings } from "./PageNumberSettings";
 import { HorizontalRuler } from "./Ruler";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -81,6 +82,9 @@ export function ContractEditor({
   const [showPageNumbers, setShowPageNumbers] = useState(true);
   const [pageNumberPosition, setPageNumberPosition] = useState<'left' | 'center' | 'right'>('center');
   const [pageNumberFormat, setPageNumberFormat] = useState('Página {n} de {total}');
+  const [startNumber, setStartNumber] = useState(1);
+  const [pageNumberFontFamily, setPageNumberFontFamily] = useState('Arial');
+  const [pageNumberFontSize, setPageNumberFontSize] = useState(10);
   const { toast } = useToast();
 
   // Editor principal (conteúdo)
@@ -518,16 +522,20 @@ export function ContractEditor({
               {isSaving ? "Salvando..." : "Salvar"}
             </Button>
             
-            {mode === "preview" && (
-              <PageNumberSettings
-                showPageNumbers={showPageNumbers}
-                position={pageNumberPosition}
-                format={pageNumberFormat}
-                onShowChange={setShowPageNumbers}
-                onPositionChange={setPageNumberPosition}
-                onFormatChange={setPageNumberFormat}
-              />
-            )}
+            <PageNumberSettings
+              showPageNumbers={showPageNumbers}
+              position={pageNumberPosition}
+              format={pageNumberFormat}
+              startNumber={startNumber}
+              fontFamily={pageNumberFontFamily}
+              fontSize={pageNumberFontSize}
+              onShowChange={setShowPageNumbers}
+              onPositionChange={setPageNumberPosition}
+              onFormatChange={setPageNumberFormat}
+              onStartNumberChange={setStartNumber}
+              onFontFamilyChange={setPageNumberFontFamily}
+              onFontSizeChange={setPageNumberFontSize}
+            />
           </div>
         </div>
       )}
@@ -551,7 +559,7 @@ export function ContractEditor({
           )}
 
           {mode === "edit" ? (
-            <div className="max-w-4xl mx-auto">
+            <div className="w-full">
               {!focusMode && (
                 <>
                   <AdvancedToolbar
@@ -565,30 +573,17 @@ export function ContractEditor({
                 </>
               )}
 
-              <Tabs value={activeSection} onValueChange={(v) => setActiveSection(v as any)} className={!focusMode ? "" : "mt-8"}>
-                {!focusMode && (
-                  <TabsList>
-                    <TabsTrigger value="header">Cabeçalho</TabsTrigger>
-                    <TabsTrigger value="content">Conteúdo</TabsTrigger>
-                    <TabsTrigger value="footer">Rodapé</TabsTrigger>
-                  </TabsList>
-                )}
-
-                <div className="bg-white shadow-lg rounded-lg mt-4">
-                  <TabsContent value="header">
-                    <EditorContent editor={headerEditor} />
-                  </TabsContent>
-                  
-                  <TabsContent value="content">
-                    <EditorContent editor={editor} />
-                    <FloatingToolbar editor={editor} />
-                  </TabsContent>
-                  
-                  <TabsContent value="footer">
-                    <EditorContent editor={footerEditor} />
-                  </TabsContent>
-                </div>
-              </Tabs>
+              <PagedEditor
+                editor={editor}
+                headerEditor={headerEditor}
+                footerEditor={footerEditor}
+                showPageNumbers={showPageNumbers}
+                pageNumberPosition={pageNumberPosition}
+                pageNumberFormat={pageNumberFormat}
+                startNumber={startNumber}
+                fontFamily={pageNumberFontFamily}
+                fontSize={pageNumberFontSize}
+              />
             </div>
           ) : (
             <PagedDocument
