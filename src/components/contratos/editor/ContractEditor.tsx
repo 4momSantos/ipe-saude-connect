@@ -37,6 +37,7 @@ import { FloatingToolbar } from "./components/FloatingToolbar";
 import { KeyboardShortcuts } from "./components/KeyboardShortcuts";
 import { PagedDocument } from "./PagedDocument";
 import { PageNumberSettings } from "./PageNumberSettings";
+import { HorizontalRuler } from "./Ruler";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { 
@@ -550,18 +551,21 @@ export function ContractEditor({
           )}
 
           {mode === "edit" ? (
-            <div className="max-w-4xl mx-auto py-8">
+            <div className="max-w-4xl mx-auto">
               {!focusMode && (
-                <AdvancedToolbar
-                  editor={currentEditor}
-                  onInsertImage={() => setImageDialogOpen(true)}
-                  onInsertTable={handleInsertTable}
-                  onInsertPageBreak={handleInsertPageBreak}
-                  onToggleFields={() => setShowFields(!showFields)}
-                />
+                <>
+                  <AdvancedToolbar
+                    editor={currentEditor}
+                    onInsertImage={() => setImageDialogOpen(true)}
+                    onInsertTable={handleInsertTable}
+                    onInsertPageBreak={handleInsertPageBreak}
+                    onToggleFields={() => setShowFields(!showFields)}
+                  />
+                  <HorizontalRuler />
+                </>
               )}
 
-              <Tabs value={activeSection} onValueChange={(v) => setActiveSection(v as any)} className="mt-4">
+              <Tabs value={activeSection} onValueChange={(v) => setActiveSection(v as any)} className={!focusMode ? "" : "mt-8"}>
                 {!focusMode && (
                   <TabsList>
                     <TabsTrigger value="header">Cabeçalho</TabsTrigger>
