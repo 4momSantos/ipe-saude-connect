@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Previewer } from 'pagedjs';
 import pagedStylesUrl from '../components/contratos/editor/paged-styles.css?url';
 
@@ -17,6 +17,15 @@ export function usePagedJS(options: UsePagedJSOptions = {}) {
   const abortControllerRef = useRef<AbortController | null>(null);
   const isRenderingRef = useRef(false);
   const renderIdRef = useRef(0);
+  
+  // Usar refs para callbacks para evitar recriar generatePreview
+  const onReadyRef = useRef(options.onReady);
+  const onErrorRef = useRef(options.onError);
+  
+  useEffect(() => {
+    onReadyRef.current = options.onReady;
+    onErrorRef.current = options.onError;
+  }, [options.onReady, options.onError]);
 
   const generatePreview = useCallback(async (htmlContent: string) => {
     // Prevenir renderizações simultâneas
@@ -28,7 +37,7 @@ export function usePagedJS(options: UsePagedJSOptions = {}) {
     if (!containerRef.current) {
       const err = new Error('Container não encontrado');
       setError(err);
-      options.onError?.(err);
+      onErrorRef.current?.(err);
       return;
     }
 
@@ -106,7 +115,7 @@ export function usePagedJS(options: UsePagedJSOptions = {}) {
 
       setTotalPages(pages);
       setIsReady(true);
-      options.onReady?.(pages);
+      onReadyRef.current?.(pages);
       
     } catch (err) {
       // Ignorar erros de abort
@@ -126,7 +135,7 @@ export function usePagedJS(options: UsePagedJSOptions = {}) {
       });
       
       setError(error);
-      options.onError?.(error);
+      onErrorRef.current?.(error);
     } finally {
       // Só atualizar estado se não foi abortado
       if (!abortController.signal.aborted) {
@@ -134,7 +143,7 @@ export function usePagedJS(options: UsePagedJSOptions = {}) {
       }
       isRenderingRef.current = false;
     }
-  }, [options]);
+  }, []); // Sem dependências - estável para sempre
 
   const exportPDF = useCallback(async () => {
     if (!isReady || !containerRef.current) {
