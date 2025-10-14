@@ -475,6 +475,42 @@ export type Database = {
           },
         ]
       }
+      cidades: {
+        Row: {
+          ativa: boolean | null
+          created_at: string | null
+          id: string
+          latitude_centro: number
+          longitude_centro: number
+          nome: string
+          populacao_total: number
+          uf: string
+          zoom_padrao: number | null
+        }
+        Insert: {
+          ativa?: boolean | null
+          created_at?: string | null
+          id?: string
+          latitude_centro: number
+          longitude_centro: number
+          nome: string
+          populacao_total: number
+          uf: string
+          zoom_padrao?: number | null
+        }
+        Update: {
+          ativa?: boolean | null
+          created_at?: string | null
+          id?: string
+          latitude_centro?: number
+          longitude_centro?: number
+          nome?: string
+          populacao_total?: number
+          uf?: string
+          zoom_padrao?: number | null
+        }
+        Relationships: []
+      }
       contract_templates: {
         Row: {
           campos_mapeados: Json | null
@@ -691,6 +727,7 @@ export type Database = {
           celular: string | null
           cep: string | null
           cidade: string | null
+          cidade_id: string | null
           cnpj: string | null
           cpf: string | null
           created_at: string | null
@@ -718,12 +755,14 @@ export type Database = {
           suspensao_inicio: string | null
           telefone: string | null
           updated_at: string | null
+          zona_id: string | null
         }
         Insert: {
           categoria_id?: string | null
           celular?: string | null
           cep?: string | null
           cidade?: string | null
+          cidade_id?: string | null
           cnpj?: string | null
           cpf?: string | null
           created_at?: string | null
@@ -751,12 +790,14 @@ export type Database = {
           suspensao_inicio?: string | null
           telefone?: string | null
           updated_at?: string | null
+          zona_id?: string | null
         }
         Update: {
           categoria_id?: string | null
           celular?: string | null
           cep?: string | null
           cidade?: string | null
+          cidade_id?: string | null
           cnpj?: string | null
           cpf?: string | null
           created_at?: string | null
@@ -784,6 +825,7 @@ export type Database = {
           suspensao_inicio?: string | null
           telefone?: string | null
           updated_at?: string | null
+          zona_id?: string | null
         }
         Relationships: [
           {
@@ -791,6 +833,13 @@ export type Database = {
             columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "categorias_prestadores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credenciados_cidade_id_fkey"
+            columns: ["cidade_id"]
+            isOneToOne: false
+            referencedRelation: "cidades"
             referencedColumns: ["id"]
           },
           {
@@ -806,6 +855,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "view_inscricoes_validacao_pendente"
             referencedColumns: ["inscricao_id"]
+          },
+          {
+            foreignKeyName: "credenciados_zona_id_fkey"
+            columns: ["zona_id"]
+            isOneToOne: false
+            referencedRelation: "zonas_geograficas"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -3242,6 +3298,50 @@ export type Database = {
         }
         Relationships: []
       }
+      zonas_geograficas: {
+        Row: {
+          area_km2: number | null
+          cidade: string
+          cidade_id: string
+          created_at: string | null
+          estado: string
+          geometry: Json
+          id: string
+          populacao: number
+          zona: string
+        }
+        Insert: {
+          area_km2?: number | null
+          cidade: string
+          cidade_id: string
+          created_at?: string | null
+          estado: string
+          geometry: Json
+          id?: string
+          populacao: number
+          zona: string
+        }
+        Update: {
+          area_km2?: number | null
+          cidade?: string
+          cidade_id?: string
+          created_at?: string | null
+          estado?: string
+          geometry?: Json
+          id?: string
+          populacao?: number
+          zona?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zonas_geograficas_cidade_id_fkey"
+            columns: ["cidade_id"]
+            isOneToOne: false
+            referencedRelation: "cidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       view_audit_trail: {
@@ -3449,6 +3549,10 @@ export type Database = {
           p_notes?: string
           p_snapshot_type: string
         }
+        Returns: string
+      }
+      detectar_zona: {
+        Args: { p_cidade_id: string; p_latitude: number; p_longitude: number }
         Returns: string
       }
       disable_programmatic_flow: {
