@@ -125,7 +125,18 @@ export function PagedPreview({
         <Alert variant="destructive" className="max-w-2xl mb-4">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Erro ao gerar preview: {error.message}
+            <div className="space-y-2">
+              <p className="font-semibold">Erro ao gerar preview: {error.message}</p>
+              <details className="text-xs">
+                <summary className="cursor-pointer hover:underline">Ver detalhes técnicos</summary>
+                <pre className="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded overflow-auto max-h-40">
+                  {error.stack}
+                </pre>
+              </details>
+              <p className="text-xs mt-2">
+                💡 Tente recarregar a página ou use o modo "Visualizar" alternativo
+              </p>
+            </div>
           </AlertDescription>
         </Alert>
       )}

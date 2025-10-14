@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Previewer } from 'pagedjs';
+import pagedStylesUrl from '@/components/contratos/editor/paged-styles.css?url';
 
 /**
  * Exporta conteúdo HTML para PDF usando Paged.js + html2canvas + jsPDF
@@ -42,18 +43,31 @@ export async function exportToPDF(
     const previewer = new Previewer();
     const flow = await previewer.preview(
       fullHtml,
-      ['/src/components/contratos/editor/paged-styles.css'],
+      [pagedStylesUrl],
       container
     );
 
-    // Aguardar renderização completa
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Validar flow
+    if (!flow || flow.total === 0) {
+      throw new Error('Paged.js não conseguiu paginar o conteúdo');
+    }
 
-    // Capturar páginas
+    console.log(`✅ Paged.js renderizou ${flow.total} páginas`);
+
+    // Capturar páginas (SEM setTimeout!)
     const pages = container.querySelectorAll('.pagedjs_page');
-    
+
     if (pages.length === 0) {
-      throw new Error('Nenhuma página foi gerada pelo Paged.js');
+      throw new Error(
+        `Esperava ${flow.total} páginas, mas querySelector retornou 0. ` +
+        `Container HTML: ${container.innerHTML.substring(0, 100)}...`
+      );
+    }
+
+    if (pages.length !== flow.total) {
+      console.warn(
+        `⚠️ Divergência: flow.total=${flow.total}, mas encontradas ${pages.length} páginas`
+      );
     }
 
     // Criar PDF

@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { Previewer } from 'pagedjs';
+import pagedStylesUrl from '../components/contratos/editor/paged-styles.css?url';
 
 export interface UsePagedJSOptions {
   onReady?: (totalPages: number) => void;
@@ -34,22 +35,51 @@ export function usePagedJS(options: UsePagedJSOptions = {}) {
       const previewer = new Previewer();
       previewerRef.current = previewer;
 
+      console.log('🔄 Iniciando renderização Paged.js...');
+      console.log('📄 HTML length:', htmlContent.length);
+      console.log('🎨 CSS URL:', pagedStylesUrl);
+
       // Renderizar com Paged.js
       const flow = await previewer.preview(
         htmlContent,
-        ['/src/components/contratos/editor/paged-styles.css'],
+        [pagedStylesUrl],
         containerRef.current
       );
 
+      if (!flow) {
+        throw new Error('Paged.js retornou flow null/undefined');
+      }
+
       const pages = flow.total || 0;
+      
+      console.log(`✅ Paged.js renderizou ${pages} páginas com sucesso`);
+      
+      // Verificar se DOM foi atualizado
+      const domPages = containerRef.current.querySelectorAll('.pagedjs_page');
+      console.log(`📑 Páginas no DOM: ${domPages.length}`);
+      
+      if (domPages.length === 0 && pages > 0) {
+        console.error('❌ ERRO: flow.total > 0 mas DOM não tem .pagedjs_page');
+        console.error('Container innerHTML:', containerRef.current.innerHTML.substring(0, 200));
+      }
+
       setTotalPages(pages);
       setIsReady(true);
       options.onReady?.(pages);
+      
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Erro ao gerar preview');
+      
+      console.error('❌ ERRO PAGED.JS:', {
+        message: error.message,
+        stack: error.stack,
+        containerExists: !!containerRef.current,
+        containerHTML: containerRef.current?.innerHTML.substring(0, 100),
+        cssUrl: pagedStylesUrl
+      });
+      
       setError(error);
       options.onError?.(error);
-      console.error('Erro no Paged.js:', err);
     } finally {
       setIsRendering(false);
     }
