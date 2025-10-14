@@ -63,7 +63,7 @@ export function MapaDensidadeMultiCidade() {
 
   // Atualizar mapa quando dados mudarem
   useEffect(() => {
-    if (!map.current || !densidadeData) return;
+    if (!map.current || !densidadeData || !mapboxToken) return;
 
     const mapInstance = map.current;
 

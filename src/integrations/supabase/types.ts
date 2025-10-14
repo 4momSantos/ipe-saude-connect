@@ -3304,9 +3304,15 @@ export type Database = {
           cidade: string
           cidade_id: string
           created_at: string | null
+          distritos_inclusos: string[] | null
           estado: string
+          geometria_atualizada_em: string | null
+          geometria_fonte: string | null
           geometry: Json
+          geometry_simplified: Json | null
+          ibge_codigo: string | null
           id: string
+          osm_id: number | null
           populacao: number
           zona: string
         }
@@ -3315,9 +3321,15 @@ export type Database = {
           cidade: string
           cidade_id: string
           created_at?: string | null
+          distritos_inclusos?: string[] | null
           estado: string
+          geometria_atualizada_em?: string | null
+          geometria_fonte?: string | null
           geometry: Json
+          geometry_simplified?: Json | null
+          ibge_codigo?: string | null
           id?: string
+          osm_id?: number | null
           populacao: number
           zona: string
         }
@@ -3326,9 +3338,15 @@ export type Database = {
           cidade?: string
           cidade_id?: string
           created_at?: string | null
+          distritos_inclusos?: string[] | null
           estado?: string
+          geometria_atualizada_em?: string | null
+          geometria_fonte?: string | null
           geometry?: Json
+          geometry_simplified?: Json | null
+          ibge_codigo?: string | null
           id?: string
+          osm_id?: number | null
           populacao?: number
           zona?: string
         }
