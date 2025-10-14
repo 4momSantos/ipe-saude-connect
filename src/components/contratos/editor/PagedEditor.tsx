@@ -33,10 +33,11 @@ export function PagedEditor({
 }: PagedEditorProps) {
   const [zoom, setZoom] = useState(1);
   const [currentZoomIndex, setCurrentZoomIndex] = useState(2);
+  // Margens padrão Word: 2.5cm topo/fundo, 3cm esquerda/direita
   const [leftMargin, setLeftMargin] = useState(3);
-  const [rightMargin, setRightMargin] = useState(18);
+  const [rightMargin, setRightMargin] = useState(3);
   const [topMargin, setTopMargin] = useState(2.5);
-  const [bottomMargin, setBottomMargin] = useState(27.2);
+  const [bottomMargin, setBottomMargin] = useState(2.5);
   const [tabs, setTabs] = useState<number[]>([]);
   const [showRulers, setShowRulers] = useState(true);
   const [scrollOffset, setScrollOffset] = useState(0);
@@ -176,10 +177,10 @@ export function PagedEditor({
         <HorizontalRuler
           zoom={zoom}
           leftMargin={leftMargin}
-          rightMargin={rightMargin}
+          rightMargin={21 - rightMargin}
           tabs={tabs}
           onLeftMarginChange={setLeftMargin}
-          onRightMarginChange={setRightMargin}
+          onRightMarginChange={(cm) => setRightMargin(21 - cm)}
           onTabsChange={setTabs}
         />
       )}
@@ -196,14 +197,14 @@ export function PagedEditor({
       </div>
 
       {/* Páginas A4 visíveis */}
-      <div className="py-8 relative" style={{ marginLeft: showRulers ? '30px' : 0 }}>
+      <div className="py-8 relative" style={{ marginLeft: showRulers ? '32px' : 0 }}>
         {showRulers && (
           <VerticalRuler
             zoom={zoom}
             topMargin={topMargin}
-            bottomMargin={bottomMargin}
+            bottomMargin={29.7 - bottomMargin}
             onTopMarginChange={setTopMargin}
-            onBottomMarginChange={setBottomMargin}
+            onBottomMarginChange={(cm) => setBottomMargin(29.7 - cm)}
             scrollOffset={scrollOffset}
           />
         )}
@@ -230,7 +231,7 @@ export function PagedEditor({
               className="page-content-wrapper"
               style={{
                 height: `${usableHeightPx}px`,
-                overflow: 'hidden',
+                overflow: 'visible',
                 position: 'relative',
               }}
             >

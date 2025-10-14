@@ -67,11 +67,11 @@ export function VerticalRuler({
   return (
     <div 
       ref={rulerRef}
-      className="ruler-vertical absolute bg-gray-100 border-r border-gray-300 z-20 select-none"
+      className="ruler-vertical absolute bg-white border-r-2 border-gray-400 z-20 select-none shadow-sm"
       style={{ 
-        width: '30px',
+        width: '32px',
         height: `${29.7 * zoom}cm`,
-        left: '-30px',
+        left: '-32px',
         top: 0
       }}
     >
@@ -85,19 +85,19 @@ export function VerticalRuler({
               style={{ 
                 top: `${(cm / 29.7) * 100}%`,
                 left: 0,
-                width: '30px'
+                width: '32px'
               }}
             >
               <div 
-                className={`h-px ${isFullCm ? 'w-4 bg-gray-600' : 'w-2 bg-gray-400'}`}
+                className={`h-px ${isFullCm ? 'w-5 bg-gray-700' : 'w-3 bg-gray-500'}`}
                 style={{ position: 'absolute', left: 0 }}
               />
               
               {isFullCm && (
                 <span 
-                  className="text-[10px] text-gray-700 font-mono absolute"
+                  className="text-[11px] text-gray-800 font-semibold font-mono absolute"
                   style={{ 
-                    left: '16px',
+                    left: '20px',
                     top: '50%',
                     transform: 'translateY(-50%)',
                     writingMode: 'vertical-rl',
@@ -113,7 +113,7 @@ export function VerticalRuler({
         
         {/* Indicador de margem topo */}
         <div
-          className="absolute cursor-ns-resize group"
+          className="absolute cursor-ns-resize group z-10"
           style={{ 
             top: `${(topMargin / 29.7) * 100}%`,
             left: 0,
@@ -125,22 +125,22 @@ export function VerticalRuler({
             setIsDraggingTop(true);
           }}
         >
-          <div className="h-px w-full bg-blue-500" />
+          <div className="h-0.5 w-full bg-blue-600 shadow-sm" />
           
           <div className="absolute top-1/2 left-0 -translate-y-1/2">
-            <svg width="8" height="12" className="group-hover:scale-110 transition-transform">
-              <polygon points="8,0 0,6 8,12" fill="#3b82f6" />
+            <svg width="10" height="14" className="group-hover:scale-110 transition-transform drop-shadow-md">
+              <polygon points="10,0 0,7 10,14" fill="#2563eb" />
             </svg>
           </div>
           
-          <div className="absolute left-full top-1/2 -translate-y-1/2 ml-1 px-2 py-0.5 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-            {topMargin.toFixed(1)}cm
+          <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-blue-600 text-white text-xs font-semibold rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+            Margem: {topMargin.toFixed(1)}cm
           </div>
         </div>
         
         {/* Indicador de margem fundo */}
         <div
-          className="absolute cursor-ns-resize group"
+          className="absolute cursor-ns-resize group z-10"
           style={{ 
             top: `${(bottomMargin / 29.7) * 100}%`,
             left: 0,
@@ -152,16 +152,16 @@ export function VerticalRuler({
             setIsDraggingBottom(true);
           }}
         >
-          <div className="h-px w-full bg-blue-500" />
+          <div className="h-0.5 w-full bg-blue-600 shadow-sm" />
           
           <div className="absolute top-1/2 left-0 -translate-y-1/2">
-            <svg width="8" height="12" className="group-hover:scale-110 transition-transform">
-              <polygon points="8,0 0,6 8,12" fill="#3b82f6" />
+            <svg width="10" height="14" className="group-hover:scale-110 transition-transform drop-shadow-md">
+              <polygon points="10,0 0,7 10,14" fill="#2563eb" />
             </svg>
           </div>
           
-          <div className="absolute left-full top-1/2 -translate-y-1/2 ml-1 px-2 py-0.5 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-            {bottomMargin.toFixed(1)}cm
+          <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-blue-600 text-white text-xs font-semibold rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+            Margem: {(29.7 - bottomMargin).toFixed(1)}cm
           </div>
         </div>
       </div>

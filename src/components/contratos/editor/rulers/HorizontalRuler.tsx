@@ -92,9 +92,9 @@ export function HorizontalRuler({
   return (
     <div 
       ref={rulerRef}
-      className="ruler-horizontal sticky bg-gray-100 border-b border-gray-300 z-30 select-none cursor-default"
+      className="ruler-horizontal sticky bg-white border-b-2 border-gray-400 z-30 select-none cursor-default shadow-sm"
       style={{ 
-        height: '30px',
+        height: '32px',
         width: `${21 * zoom}cm`,
         margin: '0 auto',
         top: '48px'
@@ -111,18 +111,18 @@ export function HorizontalRuler({
               style={{ 
                 left: `${(cm / 21) * 100}%`,
                 top: 0,
-                height: '30px'
+                height: '32px'
               }}
             >
               <div 
-                className={`w-px ${isFullCm ? 'h-4 bg-gray-600' : 'h-2 bg-gray-400'}`}
+                className={`w-px ${isFullCm ? 'h-5 bg-gray-700' : 'h-3 bg-gray-500'}`}
                 style={{ position: 'absolute', top: 0 }}
               />
               
               {isFullCm && (
                 <span 
-                  className="text-[10px] text-gray-700 font-mono absolute"
-                  style={{ top: '18px', transform: 'translateX(-50%)', left: 0 }}
+                  className="text-[11px] text-gray-800 font-semibold font-mono absolute"
+                  style={{ top: '20px', transform: 'translateX(-50%)', left: 0 }}
                 >
                   {cm}
                 </span>
@@ -133,7 +133,7 @@ export function HorizontalRuler({
         
         {/* Indicador de margem esquerda */}
         <div
-          className="absolute cursor-ew-resize group"
+          className="absolute cursor-ew-resize group z-10"
           style={{ 
             left: `${(leftMargin / 21) * 100}%`,
             top: 0,
@@ -145,22 +145,22 @@ export function HorizontalRuler({
             setIsDraggingLeft(true);
           }}
         >
-          <div className="w-px h-full bg-blue-500" />
+          <div className="w-0.5 h-full bg-blue-600 shadow-sm" />
           
           <div className="absolute top-0 left-1/2 -translate-x-1/2">
-            <svg width="12" height="8" className="group-hover:scale-110 transition-transform">
-              <polygon points="0,8 6,0 12,8" fill="#3b82f6" />
+            <svg width="14" height="10" className="group-hover:scale-110 transition-transform drop-shadow-md">
+              <polygon points="0,10 7,0 14,10" fill="#2563eb" />
             </svg>
           </div>
           
-          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-            {leftMargin.toFixed(1)}cm
+          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-blue-600 text-white text-xs font-semibold rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+            Margem: {leftMargin.toFixed(1)}cm
           </div>
         </div>
         
         {/* Indicador de margem direita */}
         <div
-          className="absolute cursor-ew-resize group"
+          className="absolute cursor-ew-resize group z-10"
           style={{ 
             left: `${(rightMargin / 21) * 100}%`,
             top: 0,
@@ -172,16 +172,16 @@ export function HorizontalRuler({
             setIsDraggingRight(true);
           }}
         >
-          <div className="w-px h-full bg-blue-500" />
+          <div className="w-0.5 h-full bg-blue-600 shadow-sm" />
           
           <div className="absolute top-0 left-1/2 -translate-x-1/2">
-            <svg width="12" height="8" className="group-hover:scale-110 transition-transform">
-              <polygon points="0,8 6,0 12,8" fill="#3b82f6" />
+            <svg width="14" height="10" className="group-hover:scale-110 transition-transform drop-shadow-md">
+              <polygon points="0,10 7,0 14,10" fill="#2563eb" />
             </svg>
           </div>
           
-          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-            {rightMargin.toFixed(1)}cm
+          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-blue-600 text-white text-xs font-semibold rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+            Margem: {(21 - rightMargin).toFixed(1)}cm
           </div>
         </div>
         

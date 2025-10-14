@@ -32,9 +32,9 @@ export function A4PageWrapper({
   fontFamily = 'Arial',
   fontSize = 10,
   leftMarginCm = 3,
-  rightMarginCm = 18,
+  rightMarginCm = 3,
   topMarginCm = 2.5,
-  bottomMarginCm = 27.2,
+  bottomMarginCm = 2.5,
 }: A4PageWrapperProps) {
   
   const formatPageNumber = (n: number) => {
@@ -59,9 +59,9 @@ export function A4PageWrapper({
         width: `${21 * zoom}cm`,
         height: `${29.7 * zoom}cm`,
         paddingTop: `${topMarginCm * zoom}cm`,
-        paddingBottom: `${(29.7 - bottomMarginCm) * zoom}cm`,
+        paddingBottom: `${bottomMarginCm * zoom}cm`,
         paddingLeft: `${leftMarginCm * zoom}cm`,
-        paddingRight: `${(21 - rightMarginCm) * zoom}cm`,
+        paddingRight: `${rightMarginCm * zoom}cm`,
         marginBottom: isLastPage ? 0 : `${0.5 * zoom}cm`,
       }}
       >
@@ -71,9 +71,9 @@ export function A4PageWrapper({
           style={{
             position: 'absolute',
             top: `${topMarginCm * zoom}cm`,
-            bottom: `${(29.7 - bottomMarginCm) * zoom}cm`,
+            bottom: `${bottomMarginCm * zoom}cm`,
             left: `${leftMarginCm * zoom}cm`,
-            right: `${(21 - rightMarginCm) * zoom}cm`,
+            right: `${rightMarginCm * zoom}cm`,
             border: '1px dashed rgba(0, 0, 0, 0.08)',
             pointerEvents: 'none',
             zIndex: 1,
@@ -91,7 +91,7 @@ export function A4PageWrapper({
             className={`absolute bottom-0 left-0 right-0 pb-4 ${getPositionClass()}`}
             style={{
               paddingLeft: `${leftMarginCm * zoom}cm`,
-              paddingRight: `${(21 - rightMarginCm) * zoom}cm`,
+              paddingRight: `${rightMarginCm * zoom}cm`,
             }}
           >
             <span 
