@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
 import { TableCell } from "@tiptap/extension-table-cell";
 import { TableHeader } from "@tiptap/extension-table-header";
@@ -297,6 +296,40 @@ export function ContractEditor({
 
     return () => clearInterval(autoSaveInterval);
   }, [editor, headerEditor, footerEditor, initialContent, initialHeader, initialFooter]);
+
+  // Aplicar cores de borda dinamicamente nas tabelas
+  useEffect(() => {
+    if (!editor) return;
+
+    const updateTableBorders = () => {
+      const editorElement = editor.view.dom;
+      const tables = editorElement.querySelectorAll('table[data-border-color]');
+      
+      tables.forEach((table) => {
+        const borderColor = table.getAttribute('data-border-color');
+        const borderWidth = table.getAttribute('data-border-width') || '1';
+        
+        if (borderColor) {
+          (table as HTMLElement).style.borderColor = borderColor;
+          
+          // Aplicar também nas células
+          const cells = table.querySelectorAll('td, th');
+          cells.forEach((cell) => {
+            (cell as HTMLElement).style.borderColor = borderColor;
+            (cell as HTMLElement).style.borderWidth = `${borderWidth}px`;
+          });
+        }
+      });
+    };
+
+    // Executar na inicialização e a cada atualização
+    updateTableBorders();
+    editor.on('update', updateTableBorders);
+    
+    return () => {
+      editor.off('update', updateTableBorders);
+    };
+  }, [editor]);
 
   // Atalho Ctrl+K para abrir shortcuts
   useEffect(() => {

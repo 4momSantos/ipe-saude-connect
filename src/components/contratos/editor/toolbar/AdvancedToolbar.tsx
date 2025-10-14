@@ -356,6 +356,10 @@ export function AdvancedToolbar({
                 type="color"
                 title="Cor da Borda"
                 className="w-8 h-8 rounded cursor-pointer border border-border"
+                value={(() => {
+                  const table = editor.view.state.selection.$anchor.node(-1);
+                  return table?.attrs?.borderColor || '#e5e7eb';
+                })()}
                 onChange={(e) => {
                   const table = editor.view.state.selection.$anchor.node(-1);
                   if (table && table.type.name === 'table') {

@@ -11,18 +11,22 @@
   border-color: hsl(var(--border));
 }
 
-/* Usar variáveis CSS para bordas personalizadas */
+/* Garantir que bordas sejam aplicadas */
+.ProseMirror table[data-border-width] {
+  border-style: solid !important;
+}
+
 .ProseMirror table[data-border-width="1"] {
-  border-width: 1px;
+  border-width: 1px !important;
 }
 .ProseMirror table[data-border-width="2"] {
-  border-width: 2px;
+  border-width: 2px !important;
 }
 .ProseMirror table[data-border-width="3"] {
-  border-width: 3px;
+  border-width: 3px !important;
 }
 .ProseMirror table[data-border-width="4"] {
-  border-width: 4px;
+  border-width: 4px !important;
 }
 
 .ProseMirror td,
@@ -36,6 +40,12 @@
   border-width: inherit;
   border-style: solid;
   border-color: inherit;
+}
+
+/* Células herdam e forçam bordas */
+.ProseMirror table[data-border-width] td,
+.ProseMirror table[data-border-width] th {
+  border-style: solid !important;
 }
 
 .ProseMirror th {
