@@ -197,8 +197,7 @@ serve(async (req) => {
         .update({
           geometry: geometriaUnida,
           geometria_fonte: bairrosProcessados.length > 0 ? 'OpenStreetMap' : 'Fallback Manual',
-          geometria_atualizada_em: new Date().toISOString(),
-          bairros_inclusos: bairrosProcessados.length > 0 ? bairrosProcessados : null
+          geometria_atualizada_em: new Date().toISOString()
         })
         .eq('id', zona.id);
 
