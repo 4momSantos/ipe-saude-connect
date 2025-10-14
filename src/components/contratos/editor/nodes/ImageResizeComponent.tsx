@@ -6,6 +6,7 @@ import { ImageToolbar } from './ImageToolbar';
 export const ImageResizeComponent = ({ node, updateAttributes, deleteNode, selected }: any) => {
   const [isSelected, setIsSelected] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({
     width: typeof node.attrs.width === 'number' ? node.attrs.width : 600,
     height: node.attrs.height || 'auto',
@@ -14,6 +15,23 @@ export const ImageResizeComponent = ({ node, updateAttributes, deleteNode, selec
   useEffect(() => {
     setIsSelected(selected);
   }, [selected]);
+
+  // Detectar clique fora para fechar toolbar
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsSelected(false);
+      }
+    };
+
+    if (isSelected) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isSelected]);
 
   const handleResize = useCallback((_e: any, _direction: any, ref: HTMLElement) => {
     const newWidth = parseInt(ref.style.width);
@@ -24,26 +42,33 @@ export const ImageResizeComponent = ({ node, updateAttributes, deleteNode, selec
       
       setSize({ width: newWidth, height: newHeight });
       
-      // Atualizar atributos sem causar re-render do editor
       requestAnimationFrame(() => {
         updateAttributes({ width: newWidth, height: newHeight });
       });
     }
   }, [updateAttributes]);
 
+  const handleContainerClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsSelected(true);
+  };
+
   return (
     <NodeViewWrapper className="image-node-wrapper">
       <div 
+        ref={containerRef}
         className={`image-container ${isSelected ? 'selected' : ''}`}
         data-align={node.attrs.align || 'center'}
-        onClick={() => setIsSelected(true)}
-        onBlur={() => setIsSelected(false)}
+        onClick={handleContainerClick}
       >
         {isSelected && (
           <ImageToolbar
             node={node}
             updateAttributes={updateAttributes}
-            onDelete={deleteNode}
+            onDelete={() => {
+              setIsSelected(false);
+              deleteNode();
+            }}
           />
         )}
 
@@ -63,13 +88,14 @@ export const ImageResizeComponent = ({ node, updateAttributes, deleteNode, selec
             bottomLeft: isSelected,
             topLeft: isSelected,
           }}
-          handleStyles={{
-            right: { right: -5, cursor: 'ew-resize', width: 8, height: 8 },
-            left: { left: -5, cursor: 'ew-resize', width: 8, height: 8 },
-            topRight: { top: -5, right: -5, cursor: 'ne-resize', width: 8, height: 8 },
-            bottomRight: { bottom: -5, right: -5, cursor: 'se-resize', width: 8, height: 8 },
-            bottomLeft: { bottom: -5, left: -5, cursor: 'sw-resize', width: 8, height: 8 },
-            topLeft: { top: -5, left: -5, cursor: 'nw-resize', width: 8, height: 8 },
+          handleWrapperClass={isSelected ? 'resize-handles-visible' : 'resize-handles-hidden'}
+          handleComponent={{
+            right: <div className="react-resizable-handle react-resizable-handle-right" />,
+            left: <div className="react-resizable-handle react-resizable-handle-left" />,
+            topRight: <div className="react-resizable-handle react-resizable-handle-topRight" />,
+            topLeft: <div className="react-resizable-handle react-resizable-handle-topLeft" />,
+            bottomRight: <div className="react-resizable-handle react-resizable-handle-bottomRight" />,
+            bottomLeft: <div className="react-resizable-handle react-resizable-handle-bottomLeft" />,
           }}
         >
           <img
@@ -82,8 +108,9 @@ export const ImageResizeComponent = ({ node, updateAttributes, deleteNode, selec
               display: 'block', 
               margin: '0 auto',
               userSelect: 'none',
-              pointerEvents: 'none'
+              cursor: 'pointer',
             }}
+            onClick={handleContainerClick}
           />
         </Resizable>
 
@@ -98,6 +125,7 @@ export const ImageResizeComponent = ({ node, updateAttributes, deleteNode, selec
           placeholder="Adicione uma legenda..."
           value={node.attrs.caption || ''}
           onChange={(e) => updateAttributes({ caption: e.target.value })}
+          onClick={(e) => e.stopPropagation()}
           className="image-caption-input"
         />
       </div>

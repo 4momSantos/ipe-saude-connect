@@ -15,7 +15,15 @@ export const FloatingToolbar = ({ editor }: any) => {
     const updateToolbar = () => {
       const { from, to, empty } = editor.state.selection;
       
+      // Não mostrar se seleção vazia
       if (empty) {
+        setShow(false);
+        return;
+      }
+
+      // Não mostrar se selecionou uma imagem
+      const { node } = editor.state.selection as any;
+      if (node && node.type.name === 'resizableImage') {
         setShow(false);
         return;
       }
@@ -24,7 +32,7 @@ export const FloatingToolbar = ({ editor }: any) => {
       const end = editor.view.coordsAtPos(to);
 
       const left = (start.left + end.left) / 2;
-      const top = start.top - 50; // 50px acima da seleção
+      const top = start.top - 60; // Aumentar distância para evitar sobreposição
 
       setPosition({ top, left });
       setShow(true);
@@ -57,11 +65,21 @@ export const FloatingToolbar = ({ editor }: any) => {
 
   return (
     <div 
-      className="floating-toolbar fixed z-50 flex items-center gap-1 bg-card border rounded-lg p-1 shadow-lg"
+      className="floating-toolbar"
       style={{
+        position: 'fixed',
         top: `${position.top}px`,
         left: `${position.left}px`,
         transform: 'translateX(-50%)',
+        zIndex: 900,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        background: 'hsl(var(--card))',
+        border: '1px solid hsl(var(--border))',
+        borderRadius: '8px',
+        padding: '6px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
       }}
     >
       <Button

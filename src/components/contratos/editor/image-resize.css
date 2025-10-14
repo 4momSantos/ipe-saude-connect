@@ -1,3 +1,13 @@
+/* Sistema de z-index hierárquico */
+:root {
+  --z-editor-content: 1;
+  --z-image-container: 10;
+  --z-image-toolbar: 1000;
+  --z-floating-toolbar: 900;
+  --z-image-dimensions: 800;
+  --z-resize-handles: 700;
+}
+
 .image-node-wrapper {
   margin: 1rem 0;
   width: 100%;
@@ -37,16 +47,50 @@
 
 .image-toolbar {
   position: absolute;
-  top: -48px;
-  left: 0;
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   gap: 4px;
   background: hsl(var(--card));
   border: 1px solid hsl(var(--border));
-  border-radius: 6px;
-  padding: 4px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  z-index: 10;
+  border-radius: 8px;
+  padding: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: var(--z-image-toolbar);
+  white-space: nowrap;
+  pointer-events: all;
+  max-width: calc(100vw - 40px);
+  overflow-x: auto;
+}
+
+/* Seta indicadora apontando para a imagem */
+.image-toolbar::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid hsl(var(--card));
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+}
+
+/* Scrollbar customizada se necessário */
+.image-toolbar::-webkit-scrollbar {
+  height: 4px;
+}
+
+.image-toolbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.image-toolbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 2px;
 }
 
 .toolbar-group {
@@ -62,15 +106,16 @@
 
 .image-dimensions {
   position: absolute;
-  bottom: 4px;
-  right: 4px;
-  background: rgba(0,0,0,0.7);
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0,0,0,0.8);
   color: white;
-  padding: 2px 6px;
+  padding: 4px 8px;
   border-radius: 4px;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   pointer-events: none;
+  z-index: var(--z-image-dimensions);
 }
 
 .image-caption-input {
@@ -89,20 +134,86 @@
   border-bottom: 1px solid hsl(var(--primary));
 }
 
-/* Handles de redimensionamento */
+/* Handles de redimensionamento com estilos específicos */
 .react-resizable-handle {
   position: absolute;
-  width: 10px;
-  height: 10px;
+  z-index: var(--z-resize-handles);
+  pointer-events: all;
+}
+
+.react-resizable-handle-right,
+.react-resizable-handle-left {
+  width: 8px;
+  height: 40px;
+  background: hsl(var(--primary));
+  border: 2px solid white;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.react-resizable-handle-right {
+  right: -4px;
+  cursor: ew-resize;
+}
+
+.react-resizable-handle-left {
+  left: -4px;
+  cursor: ew-resize;
+}
+
+.react-resizable-handle-topRight,
+.react-resizable-handle-topLeft,
+.react-resizable-handle-bottomRight,
+.react-resizable-handle-bottomLeft {
+  width: 12px;
+  height: 12px;
   background: hsl(var(--primary));
   border: 2px solid white;
   border-radius: 50%;
-  box-shadow: 0 0 4px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
-.react-resizable-handle::after {
-  content: '';
-  position: absolute;
-  width: 100%;
-  height: 100%;
+.react-resizable-handle-topRight {
+  top: -6px;
+  right: -6px;
+  cursor: ne-resize;
+}
+
+.react-resizable-handle-topLeft {
+  top: -6px;
+  left: -6px;
+  cursor: nw-resize;
+}
+
+.react-resizable-handle-bottomRight {
+  bottom: -6px;
+  right: -6px;
+  cursor: se-resize;
+}
+
+.react-resizable-handle-bottomLeft {
+  bottom: -6px;
+  left: -6px;
+  cursor: sw-resize;
+}
+
+/* Controlar visibilidade dos handles */
+.resize-handles-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.resize-handles-visible {
+  opacity: 1;
+  pointer-events: all;
+  transition: opacity 0.2s ease;
+}
+
+/* Melhorar feedback visual ao hover nos handles */
+.react-resizable-handle:hover {
+  background: hsl(var(--primary) / 0.8);
+  transform: scale(1.2);
+  transition: all 0.2s ease;
 }
