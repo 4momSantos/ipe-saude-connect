@@ -9,12 +9,14 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ContractField } from "@/types/contract-editor";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ContractTemplateEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { criar, editar, isCriando, isEditando } = useContractTemplates();
   const { data: template, isLoading } = useContractTemplate(id);
+  const { toast } = useToast();
   
   const [nome, setNome] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -28,6 +30,34 @@ export default function ContractTemplateEditor() {
 
   const handleSave = async (html: string, campos: ContractField[]) => {
     if (!nome.trim()) {
+      toast({
+        title: "Erro de validação",
+        description: "O nome do template é obrigatório.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validar tamanho do HTML (PostgreSQL limita text a ~1GB, mas ideal < 10MB)
+    const htmlSize = new Blob([html]).size;
+    const MAX_HTML_SIZE = 10 * 1024 * 1024; // 10MB
+    
+    if (htmlSize > MAX_HTML_SIZE) {
+      toast({
+        title: "Conteúdo muito grande",
+        description: `O HTML do template (${(htmlSize / 1024 / 1024).toFixed(2)}MB) excede o limite de 10MB. Reduza imagens ou conteúdo.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validar número de placeholders
+    if (campos.length > 100) {
+      toast({
+        title: "Muitos placeholders",
+        description: `O template tem ${campos.length} placeholders. O limite recomendado é 100.`,
+        variant: "destructive"
+      });
       return;
     }
 
@@ -48,6 +78,12 @@ export default function ContractTemplateEditor() {
       navigate("/contratos/templates");
     } catch (error) {
       console.error("Erro ao salvar template:", error);
+      
+      toast({
+        title: "Erro ao salvar",
+        description: `${(error as Error).message} (Erro ID: 6fe08b85732e9ea85f3584eb9895471c)`,
+        variant: "destructive"
+      });
     }
   };
 

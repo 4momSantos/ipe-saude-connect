@@ -55,8 +55,23 @@ export function useContractTemplates() {
 
   const editarMutation = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<ContractTemplate> & { id: string }) => {
+      console.log('[DEBUG] Iniciando edição do template:', id);
+      console.log('[DEBUG] Dados a atualizar:', {
+        nome: updates.nome,
+        tamanho_html: updates.conteudo_html?.length,
+        num_campos: (updates.campos_mapeados as any)?.length
+      });
+
       const updateData: any = { ...updates };
       if (updateData.campos_mapeados) {
+        // Validar tamanho do JSONB (PostgreSQL limita a ~1GB, mas ideal é < 1MB)
+        const jsonSize = JSON.stringify(updateData.campos_mapeados).length;
+        console.log('[DEBUG] Tamanho JSON campos_mapeados:', jsonSize, 'bytes');
+        
+        if (jsonSize > 1000000) { // 1MB
+          throw new Error('Campos mapeados excedem 1MB. Reduza a quantidade de placeholders.');
+        }
+        
         updateData.campos_mapeados = updateData.campos_mapeados as any;
       }
       delete updateData.id;
@@ -68,7 +83,12 @@ export function useContractTemplates() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[ERROR] Erro do Supabase:', error);
+        throw error;
+      }
+      
+      console.log('[DEBUG] Template atualizado com sucesso!');
       return data;
     },
     onSuccess: () => {
@@ -77,7 +97,19 @@ export function useContractTemplates() {
     },
     onError: (error: Error) => {
       console.error("Erro ao atualizar template:", error);
-      toast.error("Erro ao atualizar template: " + error.message);
+      console.error("Stack:", error.stack);
+      
+      // Mostrar erro mais descritivo
+      let errorMessage = error.message;
+      if (error.message.includes('row is too big')) {
+        errorMessage = 'Conteúdo do template é muito grande. Reduza o tamanho do HTML ou número de placeholders.';
+      } else if (error.message.includes('permission denied')) {
+        errorMessage = 'Você não tem permissão para editar este template.';
+      } else if (error.message.includes('connection')) {
+        errorMessage = 'Erro de conexão com o banco de dados. Verifique sua internet.';
+      }
+      
+      toast.error("Erro ao atualizar template: " + errorMessage);
     }
   });
 

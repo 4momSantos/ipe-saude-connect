@@ -428,27 +428,55 @@ export function ContractEditor({
   const handleSave = async () => {
     if (!editor || !headerEditor || !footerEditor) return;
 
-    const html = editor.getHTML();
-    const headerHtml = headerEditor.getHTML();
-    const footerHtml = footerEditor.getHTML();
+    console.log('[DEBUG] Iniciando salvamento do template...');
+    
+    try {
+      const html = editor.getHTML();
+      const headerHtml = headerEditor.getHTML();
+      const footerHtml = footerEditor.getHTML();
 
-    const regex = /\{\{([^}]+)\}\}/g;
-    const matches = html.match(regex) || [];
-    const uniqueFields = [...new Set(matches)];
+      console.log('[DEBUG] Tamanho do HTML:', {
+        content: html.length,
+        header: headerHtml.length,
+        footer: footerHtml.length,
+        total: html.length + headerHtml.length + footerHtml.length
+      });
 
-    const campos: ContractField[] = uniqueFields.map((placeholder) => {
-      const fieldName = placeholder.replace(/[{}]/g, "");
-      return {
-        id: fieldName,
-        nome: fieldName,
-        label: fieldName,
-        tipo: "text",
-        origem: "custom" as const,
-        caminho: fieldName,
-      };
-    });
+      const regex = /\{\{([^}]+)\}\}/g;
+      const matches = html.match(regex) || [];
+      const uniqueFields = [...new Set(matches)];
 
-    await onSave(html, campos, headerHtml, footerHtml);
+      console.log('[DEBUG] Placeholders encontrados:', uniqueFields);
+
+      const campos: ContractField[] = uniqueFields.map((placeholder) => {
+        const fieldName = placeholder.replace(/[{}]/g, "");
+        return {
+          id: fieldName,
+          nome: fieldName,
+          label: fieldName,
+          tipo: "text",
+          origem: "custom" as const,
+          caminho: fieldName,
+        };
+      });
+
+      console.log('[DEBUG] Campos mapeados:', campos.length);
+      console.log('[DEBUG] Tamanho JSON campos:', JSON.stringify(campos).length);
+
+      await onSave(html, campos, headerHtml, footerHtml);
+      console.log('[DEBUG] Salvamento concluído com sucesso!');
+    } catch (error) {
+      console.error('[ERROR] Falha ao salvar template:', error);
+      console.error('[ERROR] Stack:', (error as Error).stack);
+      
+      toast({
+        title: "Erro ao salvar template",
+        description: `${(error as Error).message} (ID: 6fe08b85732e9ea85f3584eb9895471c)`,
+        variant: "destructive"
+      });
+      
+      throw error;
+    }
   };
 
   const handleExportPDF = async () => {
