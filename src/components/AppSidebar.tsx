@@ -81,8 +81,8 @@ const mainMenuItems: MenuItem[] = [
     ]
   },
   { 
-    title: "Fluxo de Credenciamento", 
-    url: "/fluxo-credenciamento", 
+    title: "Credenciamento", 
+    url: "/monitor-fluxo", 
     icon: GitBranch, 
     roles: ['analista', 'gestor', 'admin'] as const,
     children: [
