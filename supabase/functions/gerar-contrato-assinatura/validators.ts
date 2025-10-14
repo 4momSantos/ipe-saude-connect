@@ -1,0 +1,150 @@
+/**
+ * Validadores para geração de contratos
+ */
+
+export interface ValidationError {
+  field: string;
+  message: string;
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  errors: ValidationError[];
+}
+
+/**
+ * Valida se todos os dados obrigatórios estão presentes
+ */
+export function validateContratoData(inscricao: any, edital: any): ValidationResult {
+  const errors: ValidationError[] = [];
+  
+  // Validar dados pessoais
+  const dadosPessoais = inscricao?.dados_inscricao?.dadosPessoais;
+  if (!dadosPessoais?.nome && !dadosPessoais?.nome_completo) {
+    errors.push({ field: 'nome', message: 'Nome do candidato é obrigatório' });
+  }
+  
+  if (!dadosPessoais?.cpf) {
+    errors.push({ field: 'cpf', message: 'CPF do candidato é obrigatório' });
+  }
+  
+  if (!dadosPessoais?.email && !inscricao?.dados_inscricao?.enderecoCorrespondencia?.email) {
+    errors.push({ field: 'email', message: 'E-mail do candidato é obrigatório' });
+  }
+  
+  // Validar dados do edital
+  if (!edital?.titulo) {
+    errors.push({ field: 'edital_titulo', message: 'Título do edital é obrigatório' });
+  }
+  
+  if (!edital?.numero_edital) {
+    errors.push({ field: 'edital_numero', message: 'Número do edital é obrigatório' });
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
+/**
+ * Extrai e consolida dados de endereço de múltiplas fontes
+ */
+export function consolidarEndereco(dadosInscricao: any): string {
+  // Tentar múltiplas fontes
+  const enderecoCorrespondencia = dadosInscricao?.enderecoCorrespondencia || dadosInscricao?.endereco_correspondencia;
+  const pessoaJuridica = dadosInscricao?.pessoaJuridica || dadosInscricao?.pessoa_juridica;
+  const endereco = dadosInscricao?.endereco;
+  
+  // Priorizar endereço de correspondência
+  if (enderecoCorrespondencia?.endereco) {
+    const parts = [
+      enderecoCorrespondencia.endereco,
+      enderecoCorrespondencia.numero,
+      enderecoCorrespondencia.complemento,
+      enderecoCorrespondencia.bairro,
+      enderecoCorrespondencia.cidade,
+      enderecoCorrespondencia.estado,
+      enderecoCorrespondencia.cep
+    ].filter(Boolean);
+    
+    return parts.join(', ');
+  }
+  
+  // Tentar pessoa jurídica
+  if (pessoaJuridica?.endereco) {
+    const pjEnd = pessoaJuridica.endereco;
+    const parts = [
+      pjEnd.logradouro,
+      pjEnd.numero || 'S/N',
+      pjEnd.complemento,
+      pjEnd.bairro,
+      pjEnd.cidade,
+      pjEnd.estado,
+      pjEnd.cep
+    ].filter(Boolean);
+    
+    return parts.join(', ');
+  }
+  
+  // Fallback para endereço simples
+  if (endereco) {
+    const parts = [
+      endereco.logradouro || endereco.endereco,
+      endereco.numero,
+      endereco.cidade,
+      endereco.estado,
+      endereco.cep
+    ].filter(Boolean);
+    
+    return parts.join(', ');
+  }
+  
+  return 'Não informado';
+}
+
+/**
+ * Extrai telefone/celular de múltiplas fontes
+ */
+export function consolidarTelefone(dadosInscricao: any): { telefone: string; celular: string } {
+  const enderecoCorrespondencia = dadosInscricao?.enderecoCorrespondencia || dadosInscricao?.endereco_correspondencia;
+  const pessoaJuridica = dadosInscricao?.pessoaJuridica || dadosInscricao?.pessoa_juridica;
+  const dadosPessoais = dadosInscricao?.dadosPessoais || dadosInscricao?.dados_pessoais;
+  
+  return {
+    telefone: enderecoCorrespondencia?.telefone || 
+              pessoaJuridica?.contatos?.telefone || 
+              dadosPessoais?.telefone || 
+              'Não informado',
+    celular: enderecoCorrespondencia?.celular || 
+             pessoaJuridica?.contatos?.celular || 
+             dadosPessoais?.celular || 
+             'Não informado'
+  };
+}
+
+/**
+ * Extrai especialidades formatadas
+ */
+export function extrairEspecialidades(dadosInscricao: any): string[] {
+  const consultorio = dadosInscricao?.consultorio;
+  
+  if (!consultorio) return ['Não especificada'];
+  
+  // Tentar pegar de crms
+  const crms = consultorio.crms || [];
+  if (Array.isArray(crms) && crms.length > 0) {
+    return crms
+      .map((crm: any) => crm.especialidade || crm.especialidade_nome)
+      .filter(Boolean);
+  }
+  
+  // Tentar pegar de especialidades_ids
+  const especialidadesIds = consultorio.especialidades_ids || consultorio.especialidades;
+  if (Array.isArray(especialidadesIds) && especialidadesIds.length > 0) {
+    // Retorna os IDs, pois a resolução será feita no edge function
+    return especialidadesIds;
+  }
+  
+  return ['Não especificada'];
+}

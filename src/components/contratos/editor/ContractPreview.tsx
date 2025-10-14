@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import "../editor/print-styles.css";
+import "./print-styles.css";
 
 interface ContractPreviewProps {
   content: string;
@@ -30,7 +30,32 @@ export function ContractPreview({
 
   return (
     <div className={`contract-preview bg-muted py-8 ${className}`}>
-      <div ref={contentRef} className="contract-page">
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          .contract-page, .contract-page * {
+            visibility: visible;
+          }
+          .contract-page {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
+            margin: 0;
+            box-shadow: none;
+          }
+          .contract-preview {
+            background: white !important;
+            padding: 0 !important;
+          }
+        }
+      `}} />
+      
+      <div ref={contentRef} className="contract-page contrato-juridico">
         {/* Cabeçalho */}
         {headerContent && (
           <div 

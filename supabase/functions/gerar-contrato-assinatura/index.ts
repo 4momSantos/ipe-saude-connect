@@ -14,6 +14,12 @@
  */
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { 
+  validateContratoData, 
+  consolidarEndereco, 
+  consolidarTelefone,
+  extrairEspecialidades 
+} from "./validators.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,23 +46,76 @@ interface ContratoData {
   inscricao_id: string;
   candidato_nome: string;
   candidato_cpf: string;
+  candidato_cpf_formatado: string;
+  candidato_rg: string;
   candidato_email: string;
+  candidato_telefone: string;
+  candidato_celular: string;
+  candidato_endereco_completo: string;
+  candidato_data_nascimento: string;
+  candidato_data_nascimento_formatada: string;
   edital_titulo: string;
   edital_numero: string;
+  edital_objeto: string;
+  edital_data_publicacao: string;
+  edital_data_publicacao_formatada: string;
   especialidades: string[];
+  especialidades_texto: string;
+  sistema_data_atual: string;
+  sistema_data_extenso: string;
 }
 
-// Função para resolver caminho em objeto (ex: "dados_inscricao.dadosPessoais.nome")
+// Função para formatar CPF
+function formatarCPF(cpf: string): string {
+  if (!cpf) return '';
+  const cleaned = cpf.replace(/\D/g, '');
+  if (cleaned.length !== 11) return cpf;
+  return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+}
+
+// Função para formatar data por extenso
+function formatarDataExtenso(data: Date): string {
+  const meses = [
+    'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+    'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+  ];
+  
+  const dia = data.getDate();
+  const mes = meses[data.getMonth()];
+  const ano = data.getFullYear();
+  
+  return `${dia} de ${mes} de ${ano}`;
+}
+
+// Função para resolver caminho em objeto com suporte a arrays
 function resolverCaminho(obj: any, caminho: string): string {
   const partes = caminho.split('.');
   let valor = obj;
   
   for (const parte of partes) {
-    if (valor && typeof valor === 'object' && parte in valor) {
+    // Suportar notação de array: campo[0]
+    const arrayMatch = parte.match(/^(\w+)\[(\d+)\]$/);
+    
+    if (arrayMatch) {
+      const [, campo, index] = arrayMatch;
+      if (valor && typeof valor === 'object' && campo in valor) {
+        valor = valor[campo];
+        if (Array.isArray(valor)) {
+          valor = valor[parseInt(index)];
+        }
+      } else {
+        return '';
+      }
+    } else if (valor && typeof valor === 'object' && parte in valor) {
       valor = valor[parte];
     } else {
       return '';
     }
+  }
+  
+  // Se for array, retornar primeiro elemento ou join
+  if (Array.isArray(valor)) {
+    return valor.filter(Boolean).join(', ');
   }
   
   return String(valor || '');
@@ -65,35 +124,48 @@ function resolverCaminho(obj: any, caminho: string): string {
 // Função para gerar HTML do contrato a partir de template
 function gerarContratoFromTemplate(
   templateHTML: string,
-  inscricaoData: any,
-  editalData: any,
-  contratoData: any
+  contratoData: ContratoData
 ): string {
   let html = templateHTML;
   
   // Regex para encontrar placeholders {{campo}}
   const regex = /\{\{([^}]+)\}\}/g;
   
-  html = html.replace(regex, (match, campo) => {
-    const [origem, ...caminho] = campo.split('.');
-    const path = caminho.join('.');
-    
-    switch (origem) {
-      case 'candidato':
-        return resolverCaminho(inscricaoData.dados_inscricao?.dadosPessoais || {}, path);
-      case 'edital':
-        return resolverCaminho(editalData, path);
-      case 'contrato':
-        return resolverCaminho(contratoData, path);
-      case 'sistema':
-        if (campo === 'sistema.data_atual') {
-          return new Date().toLocaleDateString('pt-BR');
-        }
-        return '';
-      default:
-        return match; // Mantém placeholder se não encontrar
-    }
+  // Log de placeholders encontrados
+  const placeholders = html.match(regex) || [];
+  logEvent('info', 'placeholders_found', { 
+    count: placeholders.length,
+    placeholders: placeholders.slice(0, 10) // Primeiros 10
   });
+  
+  html = html.replace(regex, (match, campo) => {
+    // Remover espaços
+    const campoLimpo = campo.trim();
+    
+    // Mapear campo para contratoData
+    const campoKey = campoLimpo.replace(/\./g, '_');
+    
+    if (campoKey in contratoData) {
+      return String((contratoData as any)[campoKey] || '');
+    }
+    
+    // Log de placeholder não resolvido
+    logEvent('warn', 'placeholder_not_resolved', { 
+      placeholder: match,
+      campo: campoLimpo 
+    });
+    
+    return match; // Mantém placeholder se não encontrar
+  });
+  
+  // Verificar placeholders restantes
+  const remainingPlaceholders = html.match(regex) || [];
+  if (remainingPlaceholders.length > 0) {
+    logEvent('warn', 'unresolved_placeholders', {
+      count: remainingPlaceholders.length,
+      placeholders: remainingPlaceholders
+    });
+  }
   
   return html;
 }
@@ -228,7 +300,7 @@ serve(async (req) => {
       }));
     }
 
-    // Buscar dados da inscrição e edital
+    // Buscar dados COMPLETOS da inscrição e edital
     const { data: inscricao, error: inscricaoError } = await supabase
       .from('inscricoes_edital')
       .select(`
@@ -238,7 +310,10 @@ serve(async (req) => {
         editais (
           id,
           titulo,
-          numero_edital
+          numero_edital,
+          objeto,
+          data_publicacao,
+          descricao
         )
       `)
       .eq('id', inscricao_id)
@@ -259,27 +334,73 @@ serve(async (req) => {
       throw new Error(`Perfil do candidato não encontrado: ${profileError?.message}`);
     }
 
-    // Extrair dados para o contrato
+    // VALIDAR dados antes de continuar
+    const validation = validateContratoData(inscricao, inscricao.editais);
+    if (!validation.valid) {
+      logEvent('error', 'validation_failed', { 
+        errors: validation.errors 
+      });
+      throw new Error(`Dados incompletos para gerar contrato: ${validation.errors.map(e => e.message).join('; ')}`);
+    }
+
+    // Extrair dados COMPLETOS para o contrato
     const dadosInscricao = inscricao.dados_inscricao as any || {};
-    const dadosPessoais = dadosInscricao.dadosPessoais || {};
-    const consultorio = dadosInscricao.consultorio || {};
-    const crms = consultorio.crms || [];
-    const especialidades = crms.map((crm: any) => crm.especialidade || 'Não especificada');
+    const dadosPessoais = dadosInscricao.dadosPessoais || dadosInscricao.dados_pessoais || {};
+    const enderecoInfo = consolidarEndereco(dadosInscricao);
+    const telefoneInfo = consolidarTelefone(dadosInscricao);
+    const especialidadesArray = extrairEspecialidades(dadosInscricao);
+    
+    // Buscar nomes das especialidades se necessário
+    let especialidadesTexto = especialidadesArray.join(', ');
+    if (especialidadesArray[0] && especialidadesArray[0].length === 36) {
+      // São UUIDs, buscar nomes
+      const { data: especialidades } = await supabase
+        .from('especialidades_medicas')
+        .select('nome')
+        .in('id', especialidadesArray);
+      
+      if (especialidades && especialidades.length > 0) {
+        especialidadesTexto = especialidades.map(e => e.nome).join(', ');
+      }
+    }
+
+    // Formatar datas
+    const dataAtual = new Date();
+    const dataNascimento = dadosPessoais.data_nascimento ? new Date(dadosPessoais.data_nascimento) : null;
+    const dataPublicacao = (inscricao.editais as any)?.data_publicacao ? new Date((inscricao.editais as any).data_publicacao) : null;
 
     const contratoData: ContratoData = {
       inscricao_id,
-      candidato_nome: dadosPessoais.nome || profile.nome || 'Não informado',
+      candidato_nome: dadosPessoais.nome || dadosPessoais.nome_completo || profile.nome || 'Não informado',
       candidato_cpf: dadosPessoais.cpf || 'Não informado',
+      candidato_cpf_formatado: formatarCPF(dadosPessoais.cpf),
+      candidato_rg: dadosPessoais.rg || 'Não informado',
       candidato_email: dadosPessoais.email || profile.email || 'Não informado',
+      candidato_telefone: telefoneInfo.telefone,
+      candidato_celular: telefoneInfo.celular,
+      candidato_endereco_completo: enderecoInfo,
+      candidato_data_nascimento: dataNascimento ? dataNascimento.toLocaleDateString('pt-BR') : 'Não informado',
+      candidato_data_nascimento_formatada: dataNascimento ? formatarDataExtenso(dataNascimento) : 'Não informado',
       edital_titulo: (inscricao.editais as any)?.titulo || 'Não especificado',
       edital_numero: (inscricao.editais as any)?.numero_edital || 'S/N',
-      especialidades: especialidades.length > 0 ? especialidades : ['Não especificada']
+      edital_objeto: (inscricao.editais as any)?.objeto || 'Credenciamento de profissionais de saúde',
+      edital_data_publicacao: dataPublicacao ? dataPublicacao.toLocaleDateString('pt-BR') : 'Não informado',
+      edital_data_publicacao_formatada: dataPublicacao ? formatarDataExtenso(dataPublicacao) : 'Não informado',
+      especialidades: especialidadesArray,
+      especialidades_texto: especialidadesTexto,
+      sistema_data_atual: dataAtual.toLocaleDateString('pt-BR'),
+      sistema_data_extenso: formatarDataExtenso(dataAtual)
     };
 
-    logEvent('info', 'fetch_data', { 
+    logEvent('info', 'data_consolidated', { 
       inscricao_id, 
       candidato: contratoData.candidato_nome,
-      edital: contratoData.edital_titulo 
+      cpf: contratoData.candidato_cpf_formatado,
+      email: contratoData.candidato_email,
+      endereco: contratoData.candidato_endereco_completo,
+      telefone: contratoData.candidato_telefone,
+      especialidades: contratoData.especialidades_texto,
+      edital: contratoData.edital_titulo
     });
 
     // Gerar número único do contrato
@@ -346,12 +467,7 @@ serve(async (req) => {
 
       contratoHTML = gerarContratoFromTemplate(
         templateUsado.conteudo_html,
-        inscricao,
-        inscricao.editais,
-        {
-          numero_contrato: numeroContrato,
-          created_at: new Date().toISOString()
-        }
+        contratoData
       );
     } else {
       logEvent('info', 'using_default_template', {});

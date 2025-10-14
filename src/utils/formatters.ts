@@ -93,3 +93,23 @@ export function formatCurrency(value: number | string | undefined | null): strin
     currency: 'BRL'
   }).format(numValue);
 }
+
+/**
+ * Formata data por extenso: 14 de outubro de 2025
+ */
+export function formatDateExtenso(date: string | Date | undefined | null): string {
+  if (!date) return '';
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(dateObj.getTime())) return '';
+  
+  const meses = [
+    'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+    'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+  ];
+  
+  const dia = dateObj.getDate();
+  const mes = meses[dateObj.getMonth()];
+  const ano = dateObj.getFullYear();
+  
+  return `${dia} de ${mes} de ${ano}`;
+}
