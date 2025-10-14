@@ -153,6 +153,11 @@ export function PagedEditor({
           marginLeft: showRulers ? '40px' : '20px',
         }}
       >
+        {/* Indicador de múltiplas páginas no topo */}
+        <div className="sticky top-0 left-0 right-0 bg-blue-50 border-b border-blue-200 px-4 py-2 text-sm font-medium text-blue-700 z-30 shadow-sm mb-4 rounded-t-lg">
+          📄 Documento com {totalPages} {totalPages === 1 ? 'página' : 'páginas'} • Edição contínua ativa
+        </div>
+
         {/* Container da página A4 */}
         <div
           className="a4-page-wrapper bg-white shadow-lg relative"
@@ -200,7 +205,7 @@ export function PagedEditor({
             </div>
           )}
 
-          {/* EDITOR PRINCIPAL */}
+          {/* EDITOR PRINCIPAL - CONTÍNUO */}
           <div className="relative z-10">
             <EditorContent editor={editor} />
           </div>
@@ -211,53 +216,63 @@ export function PagedEditor({
               <EditorContent editor={footerEditor} />
             </div>
           )}
+        </div>
 
-          {/* Indicadores visuais de quebra de página */}
-          {Array.from({ length: totalPages - 1 }).map((_, i) => {
-            const pageHeight = usableHeightCm;
-            return (
-              <div
-                key={i}
-                className="page-break-indicator"
+        {/* Quebras de página visuais - FORA do wrapper para cobrir toda a largura */}
+        {Array.from({ length: totalPages - 1 }).map((_, i) => {
+          const pageHeight = usableHeightCm;
+          return (
+            <div
+              key={i}
+              className="relative pointer-events-none"
+              style={{
+                width: `${21 * zoom}cm`,
+                height: '40px',
+                marginTop: `${(topMargin + (i + 1) * pageHeight) * zoom}cm`,
+                marginBottom: '-40px',
+              }}
+            >
+              <div 
+                className="absolute left-0 right-0 top-1/2 -translate-y-1/2"
                 style={{
-                  position: 'absolute',
-                  left: `${leftMargin * zoom}cm`,
-                  right: `${rightMargin * zoom}cm`,
-                  top: `${(topMargin + (i + 1) * pageHeight) * zoom}cm`,
-                  zIndex: 5,
+                  height: '2px',
+                  background: 'linear-gradient(90deg, transparent 0%, #3b82f6 10%, #3b82f6 90%, transparent 100%)',
                 }}
               />
-            );
-          })}
-
-          {/* Numeração de páginas */}
-          {showPageNumbers && Array.from({ length: totalPages }).map((_, i) => {
-            const pageHeight = usableHeightCm;
-            return (
-              <div
-                key={i}
-                className={`absolute ${
-                  pageNumberPosition === 'left' ? 'left-0' :
-                  pageNumberPosition === 'right' ? 'right-0' : 
-                  'left-1/2 -translate-x-1/2'
-                }`}
-                style={{
-                  top: `${(topMargin + (i + 1) * pageHeight + 0.5) * zoom}cm`,
-                  paddingLeft: pageNumberPosition === 'left' ? `${leftMargin * zoom}cm` : 0,
-                  paddingRight: pageNumberPosition === 'right' ? `${rightMargin * zoom}cm` : 0,
-                  fontFamily: fontFamily,
-                  fontSize: `${fontSize * zoom}pt`,
-                  color: '#666',
-                  zIndex: 20,
-                }}
-              >
-                {pageNumberFormat
-                  .replace('{n}', String(i + startNumber))
-                  .replace('{total}', String(totalPages))}
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-3 py-1 text-xs font-bold text-blue-600 border border-blue-300 rounded-full shadow-sm">
+                PÁGINA {i + 2}
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
+
+        {/* Numeração de páginas */}
+        {showPageNumbers && Array.from({ length: totalPages }).map((_, i) => {
+          const pageHeight = usableHeightCm;
+          return (
+            <div
+              key={i}
+              className={`absolute ${
+                pageNumberPosition === 'left' ? 'left-0' :
+                pageNumberPosition === 'right' ? 'right-0' : 
+                'left-1/2 -translate-x-1/2'
+              }`}
+              style={{
+                top: `${(topMargin + (i + 1) * pageHeight + 0.5) * zoom}cm`,
+                paddingLeft: pageNumberPosition === 'left' ? `${leftMargin * zoom}cm` : 0,
+                paddingRight: pageNumberPosition === 'right' ? `${rightMargin * zoom}cm` : 0,
+                fontFamily: fontFamily,
+                fontSize: `${fontSize * zoom}pt`,
+                color: '#666',
+                zIndex: 20,
+              }}
+            >
+              {pageNumberFormat
+                .replace('{n}', String(i + startNumber))
+                .replace('{total}', String(totalPages))}
+            </div>
+          );
+        })}
       </div>
 
       {/* Controles de Zoom */}
