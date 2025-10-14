@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { usePagedJS } from '@/hooks/usePagedJS';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -8,6 +8,42 @@ interface PagedPreviewProps {
   headerContent?: string;
   footerContent?: string;
   onReady?: (totalPages: number) => void;
+}
+
+// Função para processar HTML e garantir URLs absolutas
+function processHTML(html: string): string {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  
+  // Processar imagens para garantir URLs absolutas
+  doc.querySelectorAll('img').forEach((img) => {
+    const src = img.getAttribute('src');
+    if (src && !src.startsWith('http') && !src.startsWith('blob:') && !src.startsWith('data:')) {
+      img.setAttribute('src', new URL(src, window.location.origin).href);
+    }
+  });
+  
+  return doc.body.innerHTML;
+}
+
+// Pré-carregar fontes do sistema
+async function preloadFonts(): Promise<void> {
+  const fonts = [
+    'Arial',
+    'Times New Roman',
+    'Courier New',
+    'Georgia',
+    'Verdana',
+    'Helvetica'
+  ];
+  
+  try {
+    await Promise.all(
+      fonts.map(font => document.fonts.load(`12px "${font}"`))
+    );
+  } catch (err) {
+    console.warn('Algumas fontes não puderam ser carregadas:', err);
+  }
 }
 
 export function PagedPreview({
@@ -28,23 +64,49 @@ export function PagedPreview({
     onError: (err) => console.error('Erro no Paged.js:', err)
   });
 
-  useEffect(() => {
-    // Combinar header, content e footer em um único HTML
+  // Processar e combinar HTML com useMemo para evitar recálculos
+  const processedHTML = useMemo(() => {
     let fullHtml = '';
     
-    if (headerContent && headerContent !== '<p></p>') {
-      fullHtml += `<div class="running-header">${headerContent}</div>`;
+    // Adicionar cabeçalho se existir
+    if (headerContent && headerContent !== '<p></p>' && headerContent.trim() !== '') {
+      fullHtml += `<div class="running-header">${processHTML(headerContent)}</div>`;
     }
     
-    fullHtml += content;
+    // Adicionar conteúdo principal
+    fullHtml += processHTML(content);
     
-    if (footerContent && footerContent !== '<p></p>') {
-      fullHtml += `<div class="document-footer">${footerContent}</div>`;
+    // Adicionar rodapé se existir
+    if (footerContent && footerContent !== '<p></p>' && footerContent.trim() !== '') {
+      fullHtml += `<div class="document-footer">${processHTML(footerContent)}</div>`;
     }
 
-    // Gerar preview
-    generatePreview(fullHtml);
-  }, [content, headerContent, footerContent, generatePreview]);
+    return fullHtml;
+  }, [content, headerContent, footerContent]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function renderPreview() {
+      try {
+        // Pré-carregar fontes antes de renderizar
+        await preloadFonts();
+        
+        // Gerar preview apenas se o componente ainda estiver montado
+        if (isMounted) {
+          await generatePreview(processedHTML);
+        }
+      } catch (err) {
+        console.error('Erro ao renderizar preview:', err);
+      }
+    }
+
+    renderPreview();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [processedHTML, generatePreview]);
 
   return (
     <div className="paged-preview-wrapper h-full w-full flex flex-col items-center bg-gray-100 py-8 overflow-auto">

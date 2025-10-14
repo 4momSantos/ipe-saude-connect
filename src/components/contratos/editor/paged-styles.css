@@ -2,6 +2,25 @@
    PAGED.JS - CSS PAGED MEDIA STYLES
    ============================================ */
 
+/* Garantir que fontes do sistema sejam carregadas */
+@font-face {
+  font-family: 'Arial';
+  src: local('Arial'), local('Helvetica');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Times New Roman';
+  src: local('Times New Roman'), local('Times'), local('serif');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Courier New';
+  src: local('Courier New'), local('Courier'), local('monospace');
+  font-display: swap;
+}
+
 /* Configuração da página A4 */
 @page {
   size: A4 portrait;
@@ -17,12 +36,16 @@
     content: element(running-header);
     font-size: 10pt;
     color: #666;
+    vertical-align: middle;
+    padding-top: 0.5cm;
   }
   
   @bottom-center {
     content: "Página " counter(page) " de " counter(pages);
     font-size: 10pt;
     color: #666;
+    vertical-align: middle;
+    padding-bottom: 0.5cm;
   }
 }
 
@@ -48,49 +71,94 @@
    EVITAR QUEBRAS INADEQUADAS
    ============================================ */
 
-/* Títulos e cabeçalhos */
+/* Títulos e cabeçalhos - nunca quebrar */
 h1, h2, h3, h4, h5, h6 {
   break-after: avoid;
   break-inside: avoid;
   page-break-after: avoid;
   page-break-inside: avoid;
+  orphans: 3;
+  widows: 3;
 }
 
-/* Tabelas */
+/* Manter título com parágrafo seguinte */
+h1 + p, h2 + p, h3 + p, h4 + p, h5 + p, h6 + p {
+  break-before: avoid;
+  page-break-before: avoid;
+}
+
+/* Tabelas - evitar quebra sempre que possível */
 table {
   break-inside: avoid;
   page-break-inside: avoid;
+  border-collapse: collapse;
+  width: 100%;
 }
 
-/* Figuras e imagens */
+/* Se tabela for muito grande, permitir quebra entre linhas */
+table tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+table td, table th {
+  orphans: 2;
+  widows: 2;
+}
+
+/* Figuras e imagens - nunca quebrar */
 figure, img {
   break-inside: avoid;
   page-break-inside: avoid;
+  max-width: 100%;
+  height: auto;
 }
 
-/* Listas */
+/* Manter legenda com imagem */
+figure > figcaption {
+  break-before: avoid;
+  page-break-before: avoid;
+}
+
+/* Listas - permitir quebra mas manter itens juntos */
 ul, ol {
+  orphans: 2;
+  widows: 2;
+}
+
+ul > li, ol > li {
   break-inside: avoid;
   page-break-inside: avoid;
 }
 
-/* Blocos de código */
+/* Blocos de código - nunca quebrar */
 pre, code {
   break-inside: avoid;
   page-break-inside: avoid;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
-/* Callouts e alertas */
+/* Callouts e alertas - nunca quebrar */
 .callout {
   break-inside: avoid;
   page-break-inside: avoid;
+  margin: 1em 0;
+}
+
+/* Blockquotes - manter juntos */
+blockquote {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  orphans: 3;
+  widows: 3;
 }
 
 /* ============================================
    ÓRFÃOS E VIÚVAS
    ============================================ */
 
-p {
+p, li, td, th {
   orphans: 3;
   widows: 3;
 }
@@ -115,6 +183,13 @@ a {
 /* Cabeçalho corrente (running header) */
 .running-header {
   position: running(running-header);
+  text-align: center;
+}
+
+/* Rodapé do documento (diferente da numeração) */
+.document-footer {
+  position: running(document-footer);
+  text-align: center;
 }
 
 /* ============================================
@@ -191,6 +266,18 @@ img {
   height: auto;
   display: block;
   margin: 1em auto;
+}
+
+/* Imagens com largura customizada mantêm proporção */
+img[width] {
+  height: auto !important;
+}
+
+/* Imagens inline */
+p img {
+  display: inline-block;
+  margin: 0 0.5em;
+  vertical-align: middle;
 }
 
 /* ============================================

@@ -451,7 +451,7 @@ export function ContractEditor({
     await onSave(html, campos, headerHtml, footerHtml);
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (mode !== 'paged') {
       toast({
         title: "Aviso",
@@ -460,7 +460,37 @@ export function ContractEditor({
       });
       return;
     }
-    window.print();
+
+    // Importar dinamicamente para evitar carregar na inicialização
+    const { exportToPDF } = await import('@/utils/pdfExport');
+    
+    try {
+      toast({
+        title: "Gerando PDF...",
+        description: "Isso pode levar alguns segundos.",
+      });
+
+      const filename = `${templateName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
+      
+      await exportToPDF(
+        editor?.getHTML() || '',
+        headerEditor?.getHTML(),
+        footerEditor?.getHTML(),
+        filename
+      );
+
+      toast({
+        title: "PDF gerado com sucesso!",
+        description: `O arquivo ${filename} foi baixado.`,
+      });
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      toast({
+        title: "Erro ao gerar PDF",
+        description: "Tente usar Ctrl+P para imprimir manualmente.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (!editor || !headerEditor || !footerEditor) {
