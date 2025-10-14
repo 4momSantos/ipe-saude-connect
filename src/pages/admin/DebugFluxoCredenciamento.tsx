@@ -181,7 +181,7 @@ export default function DebugFluxoCredenciamento() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <div className="font-medium text-sm">1. Inscrição</div>
-                      <Badge variant="success">Aprovada</Badge>
+                      <Badge variant="default" className="bg-green-600 text-white">Aprovada</Badge>
                     </div>
                     {getEtapaStatus(true, fluxo.inscricao_created_at)}
                   </div>
@@ -191,7 +191,8 @@ export default function DebugFluxoCredenciamento() {
                     <div className="flex items-center gap-2">
                       <div className="font-medium text-sm">2. Análise</div>
                       {fluxo.analise_status && (
-                        <Badge variant={fluxo.analise_status === 'aprovado' ? 'success' : 'default'}>
+                        <Badge variant={fluxo.analise_status === 'aprovado' ? 'default' : 'secondary'} 
+                               className={fluxo.analise_status === 'aprovado' ? 'bg-green-600 text-white' : ''}>
                           {fluxo.analise_status}
                         </Badge>
                       )}
@@ -205,9 +206,13 @@ export default function DebugFluxoCredenciamento() {
                       <div className="font-medium text-sm">3. Contrato</div>
                       {fluxo.contrato_status && (
                         <Badge variant={
-                          fluxo.contrato_status === 'assinado' ? 'success' : 
-                          fluxo.contrato_status === 'pendente_assinatura' ? 'warning' : 
-                          'default'
+                          fluxo.contrato_status === 'assinado' ? 'default' : 
+                          fluxo.contrato_status === 'pendente_assinatura' ? 'secondary' : 
+                          'outline'
+                        } className={
+                          fluxo.contrato_status === 'assinado' ? 'bg-green-600 text-white' :
+                          fluxo.contrato_status === 'pendente_assinatura' ? 'bg-yellow-600 text-white' : 
+                          ''
                         }>
                           {fluxo.contrato_status}
                         </Badge>
@@ -224,7 +229,7 @@ export default function DebugFluxoCredenciamento() {
                     <div className="flex items-center gap-2">
                       <div className="font-medium text-sm">4. Credenciado</div>
                       {fluxo.credenciado_status && (
-                        <Badge variant={fluxo.credenciado_status === 'Ativo' ? 'success' : 'default'}>
+                        <Badge variant="default" className={fluxo.credenciado_status === 'Ativo' ? 'bg-green-600 text-white' : ''}>
                           {fluxo.credenciado_status}
                         </Badge>
                       )}
