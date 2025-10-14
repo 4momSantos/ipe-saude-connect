@@ -363,6 +363,26 @@ export function AppSidebar() {
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
                       <NavLink
+                        to="/admin/grupos"
+                        className={({ isActive }) =>
+                          cn(
+                            "group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors",
+                            isActive
+                              ? "bg-primary text-primary-foreground shadow-sm"
+                              : "text-white hover:text-white hover:bg-muted"
+                          )
+                        }
+                      >
+                        <Users className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+                        {!isCollapsed && (
+                          <span className="text-sm font-medium">Grupos</span>
+                        )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink
                         to="/admin/importar-geometrias"
                         className={({ isActive }) =>
                           cn(
