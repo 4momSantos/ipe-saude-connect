@@ -1,12 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Copy, ExternalLink } from "lucide-react";
+import { Copy, ExternalLink, Download } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 
 export default function TesteCertificados() {
+  const [downloading, setDownloading] = useState<string | null>(null);
+
   const certificados = [
     {
+      id: '00000000-0000-0000-0000-000000000101',
       codigo: 'A1B2C3D4',
       numero: 'CRC-2025-000001',
       status: 'Válido',
@@ -14,6 +19,7 @@ export default function TesteCertificados() {
       variant: 'default' as const
     },
     {
+      id: '00000000-0000-0000-0000-000000000102',
       codigo: 'X9Y8Z7W6',
       numero: 'CRC-2024-999999',
       status: 'Expirado',
@@ -21,6 +27,7 @@ export default function TesteCertificados() {
       variant: 'secondary' as const
     },
     {
+      id: '00000000-0000-0000-0000-000000000103',
       codigo: 'P1Q2R3S4',
       numero: 'CRC-2025-000002',
       status: 'Irregular',
@@ -32,6 +39,37 @@ export default function TesteCertificados() {
   const copiar = (texto: string) => {
     navigator.clipboard.writeText(texto);
     toast.success('Copiado para área de transferência!');
+  };
+
+  const baixarCertificado = async (certificadoId: string, numero: string) => {
+    try {
+      setDownloading(certificadoId);
+      
+      const { data, error } = await supabase.functions.invoke('download-certificado', {
+        body: { certificadoId }
+      });
+
+      if (error) throw error;
+
+      if (data instanceof Blob) {
+        const url = window.URL.createObjectURL(data);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${numero}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast.success('Certificado baixado com sucesso!');
+      } else {
+        throw new Error('Formato de resposta inválido');
+      }
+    } catch (error) {
+      console.error('Erro ao baixar certificado:', error);
+      toast.error('Erro ao baixar certificado. Verifique se ele possui PDF gerado.');
+    } finally {
+      setDownloading(null);
+    }
   };
 
   return (
@@ -75,15 +113,30 @@ export default function TesteCertificados() {
                 </div>
               </div>
 
-              <Button 
-                className="w-full" 
-                asChild
-              >
-                <a href={`/#validar-certificado`} target="_blank">
-                  Testar na Landing Page
-                  <ExternalLink className="ml-2 h-4 w-4" />
-                </a>
-              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button 
+                  variant="outline"
+                  onClick={() => baixarCertificado(cert.id, cert.numero)}
+                  disabled={downloading === cert.id}
+                >
+                  {downloading === cert.id ? (
+                    <>Baixando...</>
+                  ) : (
+                    <>
+                      <Download className="mr-2 h-4 w-4" />
+                      Baixar PDF
+                    </>
+                  )}
+                </Button>
+                <Button 
+                  asChild
+                >
+                  <a href={`/#validar-certificado`} target="_blank">
+                    Testar Validação
+                    <ExternalLink className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}
