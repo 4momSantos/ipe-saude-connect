@@ -12,13 +12,23 @@ serve(async (req) => {
   }
 
   try {
-    const { cnpj } = await req.json();
+    // Validação rigorosa de entrada
+    const body = await req.json().catch(() => null);
+    
+    if (!body || typeof body !== 'object') {
+      return new Response(
+        JSON.stringify({ valid: false, message: 'Body JSON inválido' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    const { cnpj } = body;
     
     console.log('[validate-cnpj] Validando CNPJ:', cnpj);
 
-    if (!cnpj) {
+    if (!cnpj || typeof cnpj !== 'string') {
       return new Response(
-        JSON.stringify({ valid: false, message: 'CNPJ não informado' }),
+        JSON.stringify({ valid: false, message: 'CNPJ é obrigatório e deve ser string' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }

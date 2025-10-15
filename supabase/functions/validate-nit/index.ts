@@ -12,14 +12,52 @@ serve(async (req) => {
   }
 
   try {
-    const { cpf, nome, data_nascimento } = await req.json();
-
-    if (!cpf || !nome || !data_nascimento) {
+    // Validação rigorosa de entrada
+    const body = await req.json().catch(() => null);
+    
+    if (!body || typeof body !== 'object') {
       return new Response(
-        JSON.stringify({ 
-          valid: false, 
-          message: 'CPF, nome e data de nascimento são obrigatórios' 
-        }),
+        JSON.stringify({ valid: false, message: 'Body JSON inválido' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    const { cpf, nome, data_nascimento } = body;
+
+    if (!cpf || typeof cpf !== 'string') {
+      return new Response(
+        JSON.stringify({ valid: false, message: 'CPF é obrigatório e deve ser string' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    if (!nome || typeof nome !== 'string') {
+      return new Response(
+        JSON.stringify({ valid: false, message: 'Nome é obrigatório e deve ser string' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    if (!data_nascimento || typeof data_nascimento !== 'string') {
+      return new Response(
+        JSON.stringify({ valid: false, message: 'Data de nascimento é obrigatória' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    // Validar formato CPF
+    const cleanCpf = cpf.replace(/\D/g, '');
+    if (cleanCpf.length !== 11) {
+      return new Response(
+        JSON.stringify({ valid: false, message: 'CPF deve ter 11 dígitos' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    // Validar formato data (YYYY-MM-DD)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data_nascimento)) {
+      return new Response(
+        JSON.stringify({ valid: false, message: 'Data de nascimento deve estar no formato YYYY-MM-DD' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
@@ -35,9 +73,6 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
-
-    // Limpar CPF (remover pontos e traços)
-    const cleanCpf = cpf.replace(/\D/g, '');
 
     console.log('Consultando NIT/PIS/PASEP para CPF:', cleanCpf);
 

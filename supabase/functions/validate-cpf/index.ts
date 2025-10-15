@@ -12,15 +12,37 @@ serve(async (req) => {
   }
 
   try {
-    const { cpf, birthdate } = await req.json();
-
-    if (!cpf || !birthdate) {
-      console.error('Missing required parameters:', { cpf, birthdate });
+    // Validação rigorosa de entrada
+    const body = await req.json().catch(() => null);
+    
+    if (!body || typeof body !== 'object') {
       return new Response(
-        JSON.stringify({ 
-          valid: false, 
-          message: 'CPF e data de nascimento são obrigatórios' 
-        }),
+        JSON.stringify({ valid: false, message: 'Body JSON inválido' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    const { cpf, birthdate } = body;
+
+    if (!cpf || typeof cpf !== 'string') {
+      return new Response(
+        JSON.stringify({ valid: false, message: 'CPF é obrigatório e deve ser string' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    if (!birthdate || typeof birthdate !== 'string') {
+      return new Response(
+        JSON.stringify({ valid: false, message: 'Data de nascimento é obrigatória' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
+    // Validar formato CPF
+    const cleanCPF = cpf.replace(/\D/g, '');
+    if (cleanCPF.length !== 11) {
+      return new Response(
+        JSON.stringify({ valid: false, message: 'CPF deve ter 11 dígitos' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
@@ -81,9 +103,6 @@ serve(async (req) => {
       );
     }
 
-    // Clean CPF and format birthdate
-    const cleanCPF = cpf.replace(/\D/g, '');
-    
     console.log('Validating CPF:', { cpf: cleanCPF, birthdate });
 
     const url = new URL('https://api.infosimples.com/api/v2/consultas/receita-federal/cpf');

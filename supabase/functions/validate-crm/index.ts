@@ -25,11 +25,45 @@ serve(async (req) => {
   }
 
   try {
-    const { inscricao, uf } = await req.json();
-
-    if (!inscricao || !uf) {
+    // Validação rigorosa de entrada
+    const body = await req.json().catch(() => null);
+    
+    if (!body || typeof body !== 'object') {
       return new Response(
-        JSON.stringify({ error: 'CRM e UF são obrigatórios' }),
+        JSON.stringify({ error: 'Body JSON inválido' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { inscricao, uf } = body;
+
+    if (!inscricao || typeof inscricao !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Campo "inscricao" (CRM) é obrigatório e deve ser string' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!uf || typeof uf !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'Campo "uf" é obrigatório e deve ser string' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validar formato
+    const cleanCRM = inscricao.replace(/\D/g, '');
+    if (cleanCRM.length < 4 || cleanCRM.length > 10) {
+      return new Response(
+        JSON.stringify({ error: 'CRM deve ter entre 4 e 10 dígitos' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const cleanUF = uf.trim().toUpperCase();
+    if (!/^[A-Z]{2}$/.test(cleanUF)) {
+      return new Response(
+        JSON.stringify({ error: 'UF deve ter exatamente 2 letras' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -43,9 +77,9 @@ serve(async (req) => {
       );
     }
 
-    console.log('Validando CRM:', inscricao, 'UF:', uf);
+    console.log('Validando CRM:', cleanCRM, 'UF:', cleanUF);
 
-    const apiUrl = `https://api.infosimples.com/api/v2/consultas/cfm/cadastro?token=${token}&timeout=600&inscricao=${inscricao}&uf=${uf}`;
+    const apiUrl = `https://api.infosimples.com/api/v2/consultas/cfm/cadastro?token=${token}&timeout=600&inscricao=${cleanCRM}&uf=${cleanUF}`;
     
     const response = await fetch(apiUrl);
     
@@ -77,7 +111,7 @@ serve(async (req) => {
         data: {
           nome: medico.nome,
           crm: medico.inscricao,
-          uf: uf,
+          uf: cleanUF,
           tipo_inscricao: medico.inscricao_tipo,
           situacao: medico.situacao,
           especialidades: medico.especialidade_lista || [],
