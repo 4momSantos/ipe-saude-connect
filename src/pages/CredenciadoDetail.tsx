@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, FileText, Clock, UserCheck, DollarSign } from "lucide-react";
+import { ArrowLeft, Loader2, FileText, Clock, UserCheck, DollarSign, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DadosCadastrais } from "@/components/credenciados/DadosCadastrais";
@@ -16,6 +16,7 @@ import { CertificadoCard } from "@/components/credenciados/CertificadoCard";
 import { ProfissionaisCredenciado } from "@/components/credenciados/ProfissionaisCredenciado";
 import { ServicosCredenciado } from "@/components/credenciados/ServicosCredenciado";
 import { CategoriasCredenciadoSection } from "@/components/credenciados/CategoriasCredenciadoSection";
+import { HistoricoCategorizacao } from "@/components/credenciados/HistoricoCategorizacao";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useCredenciado } from "@/hooks/useCredenciados";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -107,7 +108,7 @@ export default function CredenciadoDetail() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-8 lg:w-auto lg:inline-grid">
+        <TabsList className="grid w-full grid-cols-9 lg:w-auto lg:inline-grid">
           <TabsTrigger value="dados">Dados Cadastrais</TabsTrigger>
           {credenciado.cnpj && (
             <TabsTrigger value="profissionais">
@@ -124,6 +125,10 @@ export default function CredenciadoDetail() {
           <TabsTrigger value="solicitacoes">Solicitações</TabsTrigger>
           <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
           <TabsTrigger value="avaliacoes">Avaliações</TabsTrigger>
+          <TabsTrigger value="historico-categorias">
+            <History className="h-4 w-4 mr-2" />
+            Histórico Categorias
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dados" className="space-y-6">
@@ -196,6 +201,10 @@ export default function CredenciadoDetail() {
 
         <TabsContent value="avaliacoes" className="space-y-6">
           <HistoricoAvaliacoes credenciadoId={id || ""} />
+        </TabsContent>
+
+        <TabsContent value="historico-categorias" className="space-y-6">
+          <HistoricoCategorizacao credenciadoId={id || ""} />
         </TabsContent>
       </Tabs>
 
