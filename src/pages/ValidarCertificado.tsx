@@ -64,12 +64,12 @@ export default function ValidarCertificado() {
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Nome</p>
-              <p className="text-lg font-semibold">{data.credenciado_nome}</p>
+              <p className="text-lg font-semibold">{data.credenciado?.nome}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Tipo</p>
               <p className="text-lg font-semibold">
-                {data.credenciado_tipo === 'juridica' ? 'Pessoa Jurídica' : 'Pessoa Física'}
+                {data.credenciado?.tipo === 'juridica' ? 'Pessoa Jurídica' : 'Pessoa Física'}
               </p>
             </div>
             <div>

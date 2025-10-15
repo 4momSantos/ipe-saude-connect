@@ -6,27 +6,37 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Search, CheckCircle, XCircle, Clock, AlertCircle, ShieldCheck, Download } from "lucide-react";
-import { useConsultarPublico } from "@/hooks/useCertificadoRegularidade";
+import { useConsultarPublico, useConsultarPorCredenciado } from "@/hooks/useCertificadoRegularidade";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export default function ConsultaCertificado() {
-  const [tipoConsulta, setTipoConsulta] = useState<'codigo' | 'numero'>('codigo');
+export function ConsultaCertificado() {
+  const [tipoConsulta, setTipoConsulta] = useState<'codigo' | 'numero' | 'credenciado'>('codigo');
   const [valor, setValor] = useState('');
   const [downloadingCertId, setDownloadingCertId] = useState<string | null>(null);
   
-  const { mutate: consultar, data: resultado, isPending, reset } = useConsultarPublico();
+  const { mutate: consultar, data: resultadoPublico, isPending: isPendingPublico, reset: resetPublico } = useConsultarPublico();
+  const { mutate: consultarCredenciado, data: resultadoCredenciado, isPending: isPendingCredenciado, reset: resetCredenciado } = useConsultarPorCredenciado();
+  
+  const resultado = tipoConsulta === 'credenciado' ? resultadoCredenciado : resultadoPublico;
+  const isPending = tipoConsulta === 'credenciado' ? isPendingCredenciado : isPendingPublico;
 
   const handleConsultar = () => {
     if (!valor.trim()) return;
-    consultar({ tipo: tipoConsulta, valor: valor.trim() });
+    
+    if (tipoConsulta === 'credenciado') {
+      consultarCredenciado(valor.trim());
+    } else {
+      consultar({ tipo: tipoConsulta as 'codigo' | 'numero', valor: valor.trim() });
+    }
   };
 
   const handleLimpar = () => {
     setValor('');
-    reset();
+    resetPublico();
+    resetCredenciado();
   };
 
   const handleDownload = async (certificadoId: string, numeroCert: string) => {
@@ -117,11 +127,11 @@ export default function ConsultaCertificado() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Emitido em:</span>
-                <span>{format(new Date(emitido_em), "dd/MM/yyyy", { locale: ptBR })}</span>
+                <span>{format(new Date(emitido_em!), "dd/MM/yyyy", { locale: ptBR })}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Válido até:</span>
-                <span>{format(new Date(valido_ate), "dd/MM/yyyy", { locale: ptBR })}</span>
+                <span>{format(new Date(valido_ate!), "dd/MM/yyyy", { locale: ptBR })}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Status:</span>
@@ -175,9 +185,10 @@ export default function ConsultaCertificado() {
             </CardHeader>
             <CardContent className="space-y-6">
               <Tabs value={tipoConsulta} onValueChange={(v) => setTipoConsulta(v as any)}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="codigo">Código de Verificação</TabsTrigger>
-                  <TabsTrigger value="numero">Número do Certificado</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="codigo">Código</TabsTrigger>
+                  <TabsTrigger value="numero">Número</TabsTrigger>
+                  <TabsTrigger value="credenciado">Credenciado</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="codigo" className="space-y-4">
@@ -186,6 +197,7 @@ export default function ConsultaCertificado() {
                       placeholder="Digite o código (ex: A1B2C3D4)"
                       value={valor}
                       onChange={(e) => setValor(e.target.value.toUpperCase())}
+                      onKeyPress={(e) => e.key === 'Enter' && handleConsultar()}
                       maxLength={8}
                       className="text-center text-lg font-mono"
                     />
@@ -201,10 +213,26 @@ export default function ConsultaCertificado() {
                       placeholder="Digite o número (ex: CRC-2025-000123)"
                       value={valor}
                       onChange={(e) => setValor(e.target.value.toUpperCase())}
+                      onKeyPress={(e) => e.key === 'Enter' && handleConsultar()}
                       className="text-center text-lg font-mono"
                     />
                     <p className="text-xs text-muted-foreground text-center">
                       Formato: CRC-YYYY-NNNNNN
+                    </p>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="credenciado" className="space-y-4">
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="Digite CPF, CNPJ ou ID"
+                      value={valor}
+                      onChange={(e) => setValor(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleConsultar()}
+                      className="text-center text-lg"
+                    />
+                    <p className="text-xs text-muted-foreground text-center">
+                      Insira CPF (11 dígitos), CNPJ (14 dígitos) ou UUID
                     </p>
                   </div>
                 </TabsContent>

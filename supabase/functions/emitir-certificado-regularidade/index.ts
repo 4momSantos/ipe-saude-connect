@@ -142,6 +142,23 @@ serve(async (req) => {
 
     console.log('[EMITIR_CERT] Certificado emitido:', certificado.id);
 
+    // 9. Gerar PDF do certificado automaticamente
+    try {
+      console.log('[EMITIR_CERT] Gerando PDF...');
+      const { data: pdfResult, error: pdfError } = await supabase.functions.invoke(
+        'gerar-pdf-certificado',
+        { body: { certificadoId: certificado.id } }
+      );
+
+      if (pdfError) {
+        console.error('[EMITIR_CERT] ⚠️ Erro ao gerar PDF:', pdfError);
+      } else {
+        console.log('[EMITIR_CERT] ✅ PDF gerado:', pdfResult.url_pdf);
+      }
+    } catch (pdfErr: any) {
+      console.error('[EMITIR_CERT] ⚠️ Erro ao invocar gerar-pdf:', pdfErr.message);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

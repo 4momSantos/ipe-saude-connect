@@ -125,3 +125,32 @@ export const useConsultarPublico = () => {
     }
   });
 };
+
+// Hook para consulta por credenciado (CPF, CNPJ ou UUID)
+export const useConsultarPorCredenciado = () => {
+  return useMutation({
+    mutationFn: async (identificador: string): Promise<ConsultaPublicaResult> => {
+      const { data, error } = await supabase
+        .rpc('consultar_certificado_por_credenciado', { 
+          p_identificador: identificador 
+        })
+        .single();
+
+      if (error) throw error;
+      
+      // Garantir que credenciado é um objeto
+      const credenciadoData = typeof data.credenciado === 'string' 
+        ? JSON.parse(data.credenciado) 
+        : data.credenciado;
+      
+      return {
+        ...data,
+        credenciado: credenciadoData
+      } as ConsultaPublicaResult;
+    },
+    onError: (error: any) => {
+      console.error("[CONSULTA_CREDENCIADO] Erro:", error);
+      toast.error("Erro ao consultar certificado do credenciado");
+    }
+  });
+};

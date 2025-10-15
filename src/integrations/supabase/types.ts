@@ -5181,6 +5181,22 @@ export type Database = {
           reset_queue_items: number
         }[]
       }
+      consultar_certificado_por_credenciado: {
+        Args: { p_identificador: string }
+        Returns: {
+          certificado_id: string
+          codigo_verificacao: string
+          credenciado: Json
+          emitido_em: string
+          encontrado: boolean
+          hash_verificacao: string
+          numero_certificado: string
+          situacao: string
+          status: string
+          tem_pdf: boolean
+          valido_ate: string
+        }[]
+      }
       consultar_certificado_publico: {
         Args: { p_tipo: string; p_valor: string }
         Returns: {
@@ -5255,12 +5271,14 @@ export type Database = {
         Returns: string
       }
       gerar_hash_certificado: {
-        Args: {
-          p_credenciado_id: string
-          p_numero: string
-          p_status: string
-          p_timestamp: string
-        }
+        Args:
+          | {
+              p_credenciado_id: string
+              p_numero: string
+              p_status: string
+              p_timestamp: string
+            }
+          | { p_data: string }
         Returns: string
       }
       gerar_numero_certificado: {
