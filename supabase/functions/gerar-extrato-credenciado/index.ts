@@ -232,6 +232,20 @@ serve(async (req) => {
       .from("certificados")
       .createSignedUrl(`extratos/${fileName}`, 86400); // 24h
 
+    // Registrar emissão
+    await supabase
+      .from('documentos_emitidos')
+      .insert({
+        credenciado_id: credenciadoId,
+        tipo_documento: 'extrato_completo',
+        url_documento: urlData?.signedUrl || '',
+        metadata: {
+          versao: '1.0',
+          gerado_automaticamente: true,
+          secoes: secoes || ['todas']
+        }
+      });
+
     return new Response(
       JSON.stringify({
         success: true,

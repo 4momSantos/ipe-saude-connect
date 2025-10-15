@@ -1566,6 +1566,81 @@ export type Database = {
         }
         Relationships: []
       }
+      documentos_emitidos: {
+        Row: {
+          created_at: string | null
+          credenciado_id: string
+          emitido_em: string
+          emitido_por: string | null
+          id: string
+          metadata: Json | null
+          numero_documento: string | null
+          tipo_documento: string
+          url_documento: string
+          validade_ate: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credenciado_id: string
+          emitido_em?: string
+          emitido_por?: string | null
+          id?: string
+          metadata?: Json | null
+          numero_documento?: string | null
+          tipo_documento: string
+          url_documento: string
+          validade_ate?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credenciado_id?: string
+          emitido_em?: string
+          emitido_por?: string | null
+          id?: string
+          metadata?: Json | null
+          numero_documento?: string | null
+          tipo_documento?: string
+          url_documento?: string
+          validade_ate?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_emitidos_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_emitidos_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "documentos_emitidos_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "documentos_emitidos_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_emitidos_emitido_por_fkey"
+            columns: ["emitido_por"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
+      }
       editais: {
         Row: {
           anexos: Json | null
