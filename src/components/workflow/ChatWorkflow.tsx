@@ -53,7 +53,7 @@ interface Mensagem {
   em_resposta_a: string | null;
   anexos: any[];
   lido_por: any[];
-  criado_em: string;
+  created_at: string;
   editada: boolean;
   mensagem_original?: any;
 }
@@ -128,7 +128,7 @@ export function ChatWorkflow({ inscricaoId, executionId, etapaAtual, usuarioPape
         .from('v_mensagens_completas' as any)
         .select('*')
         .eq('inscricao_id', inscricaoId)
-        .order('criado_em', { ascending: true });
+        .order('created_at', { ascending: true });
 
       if (error) throw error;
       
@@ -409,7 +409,7 @@ export function ChatWorkflow({ inscricaoId, executionId, etapaAtual, usuarioPape
               {mensagem.usuario_papel}
             </Badge>
             <span className="text-xs text-muted-foreground">
-              {formatDistanceToNow(new Date(mensagem.criado_em), {
+              {formatDistanceToNow(new Date(mensagem.created_at), {
                 addSuffix: true,
                 locale: ptBR
               })}
