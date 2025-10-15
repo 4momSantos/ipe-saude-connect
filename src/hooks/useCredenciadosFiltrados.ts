@@ -16,7 +16,7 @@ export function useCredenciadosFiltrados(editalId?: string) {
 
         if (credenciadosError) throw credenciadosError;
 
-        // Buscar CRMs para cada credenciado
+        // Buscar CRMs e profissionais para cada credenciado
         const credenciadosComCrms = await Promise.all(
           (credenciadosData || []).map(async (credenciado) => {
             const { data: crmsData } = await supabase
@@ -34,9 +34,21 @@ export function useCredenciadosFiltrados(editalId?: string) {
               `)
               .eq("credenciado_id", credenciado.id);
 
+            // Se for CNPJ, buscar profissionais vinculados
+            let profissionaisData = null;
+            if (credenciado.cnpj) {
+              const { data } = await supabase
+                .from("profissionais_credenciados" as any)
+                .select("*")
+                .eq("credenciado_id", credenciado.id)
+                .eq("ativo", true);
+              profissionaisData = data;
+            }
+
             return {
               ...credenciado,
               crms: crmsData || [],
+              profissionais: profissionaisData || [],
             };
           })
         );
@@ -84,7 +96,7 @@ export function useCredenciadosFiltrados(editalId?: string) {
 
       if (credenciadosError) throw credenciadosError;
 
-      // Buscar CRMs para cada credenciado
+      // Buscar CRMs e profissionais para cada credenciado
       const credenciadosComCrms = await Promise.all(
         (credenciadosData || []).map(async (credenciado) => {
           const { data: crmsData } = await supabase
@@ -102,9 +114,21 @@ export function useCredenciadosFiltrados(editalId?: string) {
             `)
             .eq("credenciado_id", credenciado.id);
 
+          // Se for CNPJ, buscar profissionais vinculados
+          let profissionaisData = null;
+          if (credenciado.cnpj) {
+            const { data } = await supabase
+              .from("profissionais_credenciados" as any)
+              .select("*")
+              .eq("credenciado_id", credenciado.id)
+              .eq("ativo", true);
+            profissionaisData = data;
+          }
+
           return {
             ...credenciado,
             crms: crmsData || [],
+            profissionais: profissionaisData || [],
           };
         })
       );

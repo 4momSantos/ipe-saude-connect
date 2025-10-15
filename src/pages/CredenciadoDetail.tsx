@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, FileText, Clock } from "lucide-react";
+import { ArrowLeft, Loader2, FileText, Clock, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DadosCadastrais } from "@/components/credenciados/DadosCadastrais";
@@ -13,6 +13,7 @@ import { CredenciadoSuspensao } from "@/components/credenciados/CredenciadoSuspe
 import { RegistrarOcorrencia } from "@/components/credenciados/RegistrarOcorrencia";
 import { ProgramarDescredenciamento } from "@/components/credenciados/ProgramarDescredenciamento";
 import { CertificadoCard } from "@/components/credenciados/CertificadoCard";
+import { ProfissionaisCredenciado } from "@/components/credenciados/ProfissionaisCredenciado";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useCredenciado } from "@/hooks/useCredenciados";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -104,9 +105,15 @@ export default function CredenciadoDetail() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
+        <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-grid">
           <TabsTrigger value="dados">Dados Cadastrais</TabsTrigger>
-          <TabsTrigger value="especialidades">Especialidades e Horários</TabsTrigger>
+          {credenciado.cnpj && (
+            <TabsTrigger value="profissionais">
+              <UserCheck className="h-4 w-4 mr-2" />
+              Profissionais
+            </TabsTrigger>
+          )}
+          <TabsTrigger value="especialidades">Especialidades</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
           <TabsTrigger value="solicitacoes">Solicitações</TabsTrigger>
           <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
@@ -137,6 +144,15 @@ export default function CredenciadoDetail() {
           />
           <CertificadoCard credenciadoId={id || ""} />
         </TabsContent>
+
+        {credenciado.cnpj && (
+          <TabsContent value="profissionais" className="space-y-6">
+            <ProfissionaisCredenciado 
+              credenciadoId={id || ""} 
+              isCNPJ={!!credenciado.cnpj}
+            />
+          </TabsContent>
+        )}
 
         <TabsContent value="especialidades" className="space-y-6">
           <EspecialidadesHorarios credenciadoId={id || ""} />
