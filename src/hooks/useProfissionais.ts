@@ -42,15 +42,7 @@ export function useProfissionais(credenciadoId?: string) {
 
       const { data, error } = await supabase
         .from("profissionais_credenciados" as any)
-        .select(`
-          *,
-          credenciado_crms (
-            id, crm, uf_crm, especialidade, especialidade_id,
-            horarios_atendimento (
-              id, dia_semana, horario_inicio, horario_fim
-            )
-          )
-        `)
+        .select("*")
         .eq("credenciado_id", credenciadoId)
         .eq("ativo", true)
         .order("principal", { ascending: false });

@@ -122,6 +122,17 @@ export function ProfissionaisCredenciado({ credenciadoId, isCNPJ }: Profissionai
                             <span className="font-medium">RG:</span> {prof.rg}
                           </p>
                         )}
+                        {prof.crm && (
+                          <p className="flex items-center gap-1">
+                            <Stethoscope className="h-3 w-3" />
+                            CRM: {prof.crm}-{prof.uf_crm}
+                          </p>
+                        )}
+                        {prof.especialidade && (
+                          <p>
+                            <span className="font-medium">Especialidade:</span> {prof.especialidade}
+                          </p>
+                        )}
                         {prof.email && (
                           <p className="flex items-center gap-1">
                             <Mail className="h-3 w-3" />
@@ -132,6 +143,12 @@ export function ProfissionaisCredenciado({ credenciadoId, isCNPJ }: Profissionai
                           <p className="flex items-center gap-1">
                             <Phone className="h-3 w-3" />
                             {prof.telefone}
+                          </p>
+                        )}
+                        {prof.celular && (
+                          <p className="flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {prof.celular}
                           </p>
                         )}
                       </div>
@@ -154,34 +171,6 @@ export function ProfissionaisCredenciado({ credenciadoId, isCNPJ }: Profissionai
                     </div>
                   </div>
 
-                  {prof.credenciado_crms && prof.credenciado_crms.length > 0 && (
-                    <div className="space-y-2 pt-3 border-t border-border">
-                      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                        <Stethoscope className="h-3 w-3" />
-                        Registros Profissionais
-                      </div>
-                      <div className="grid gap-2 md:grid-cols-2">
-                        {prof.credenciado_crms.map((crm) => (
-                          <div
-                            key={crm.id}
-                            className="rounded-md bg-muted/50 p-3 space-y-1"
-                          >
-                            <p className="font-medium text-sm text-foreground">
-                              {crm.especialidade || "Especialidade não definida"}
-                            </p>
-                            <p className="text-muted-foreground text-xs">
-                              CRM: {crm.crm}-{crm.uf_crm}
-                            </p>
-                            {crm.horarios_atendimento && crm.horarios_atendimento.length > 0 && (
-                              <p className="text-xs text-muted-foreground">
-                                {crm.horarios_atendimento.length} horário(s) cadastrado(s)
-                              </p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
