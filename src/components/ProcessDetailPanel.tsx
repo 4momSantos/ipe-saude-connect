@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { WorkflowStep, WorkflowAction } from "@/types/workflow";
 import { useAnalisarInscricao } from "@/hooks/useAnalisarInscricao";
+import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 
 interface Processo {
   id: string;
@@ -41,6 +42,7 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
   const [currentStepId, setCurrentStepId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const { aprovar, rejeitar, isLoading } = useAnalisarInscricao();
+  const { unreadCount } = useUnreadMessages(processo.id);
 
   useEffect(() => {
     loadWorkflowData();
@@ -300,10 +302,18 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
             </TabsTrigger>
             <TabsTrigger
               value="mensagens"
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3 gap-2"
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3 gap-2 relative"
             >
               <MessageSquare className="h-4 w-4" />
               Mensagens
+              {unreadCount > 0 && (
+                <Badge 
+                  variant="destructive" 
+                  className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs flex items-center justify-center rounded-full animate-pulse"
+                >
+                  {unreadCount}
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger
               value="historico"

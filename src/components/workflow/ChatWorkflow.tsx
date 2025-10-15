@@ -16,8 +16,11 @@ import {
   Check,
   CheckCheck,
   AtSign,
-  X
+  X,
+  File,
+  Loader2
 } from 'lucide-react';
+import { AttachmentPreview } from './AttachmentPreview';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -461,18 +464,18 @@ export function ChatWorkflow({ inscricaoId, executionId, etapaAtual, usuarioPape
 
             {/* Anexos */}
             {mensagem.anexos && mensagem.anexos.length > 0 && (
-              <div className="mt-2 space-y-1">
-                {mensagem.anexos.map((anexo: any) => (
-                  <a
-                    key={anexo.id}
-                    href={anexo.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm hover:underline"
-                  >
-                    <Paperclip className="w-4 h-4" />
-                    {anexo.nome}
-                  </a>
+              <div className="mt-2 space-y-2">
+                {mensagem.anexos.map((anexo: any, idx: number) => (
+                  <AttachmentPreview 
+                    key={anexo.id || idx} 
+                    anexo={{
+                      nome: anexo.nome || anexo.nome_arquivo,
+                      url: anexo.url || anexo.url_publica,
+                      tipo: anexo.tipo || anexo.mime_type || 'application/octet-stream',
+                      tamanho: anexo.tamanho || anexo.tamanho_bytes || 0
+                    }}
+                    compact={mensagem.anexos.length > 1} 
+                  />
                 ))}
               </div>
             )}
@@ -631,19 +634,28 @@ export function ChatWorkflow({ inscricaoId, executionId, etapaAtual, usuarioPape
           )}
         </div>
 
-        {/* Anexos selecionados */}
+        {/* Preview de anexos antes de enviar */}
         {anexos.length > 0 && (
-          <div className="mt-2 flex gap-2 flex-wrap">
-            {anexos.map((file, index) => (
-              <Badge key={index} variant="secondary" className="gap-2">
-                {file.name}
-                <button
-                  onClick={() => setAnexos(anexos.filter((_, i) => i !== index))}
-                  className="hover:text-destructive"
+          <div className="flex flex-wrap gap-2 p-3 mb-3 bg-muted rounded-lg border mt-2">
+            {anexos.map((file, idx) => (
+              <div 
+                key={idx}
+                className="flex items-center gap-2 px-3 py-2 bg-background rounded-md border border-border"
+              >
+                <File className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm">{file.name}</span>
+                <span className="text-xs text-muted-foreground">
+                  ({(file.size / 1024).toFixed(1)} KB)
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setAnexos(anexos.filter((_, i) => i !== idx))}
+                  className="h-5 w-5 p-0"
                 >
-                  <X className="w-3 h-3" />
-                </button>
-              </Badge>
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
             ))}
           </div>
         )}
@@ -655,11 +667,28 @@ export function ChatWorkflow({ inscricaoId, executionId, etapaAtual, usuarioPape
               ref={fileInputRef}
               type="file"
               multiple
+              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
               className="hidden"
               onChange={(e) => {
-                if (e.target.files) {
-                  setAnexos([...anexos, ...Array.from(e.target.files)]);
+                const files = Array.from(e.target.files || []);
+                
+                // Validar tamanho (max 10MB por arquivo)
+                const maxSize = 10 * 1024 * 1024;
+                const invalidFiles = files.filter(f => f.size > maxSize);
+                
+                if (invalidFiles.length > 0) {
+                  toast.error(`Arquivos muito grandes (máx 10MB): ${invalidFiles.map(f => f.name).join(', ')}`);
+                  return;
                 }
+                
+                // Validar total de arquivos (max 5)
+                if (anexos.length + files.length > 5) {
+                  toast.error('Máximo de 5 arquivos por mensagem');
+                  return;
+                }
+                
+                setAnexos([...anexos, ...files]);
+                e.target.value = ''; // Limpar input
               }}
             />
             <Button
@@ -687,7 +716,11 @@ export function ChatWorkflow({ inscricaoId, executionId, etapaAtual, usuarioPape
             onClick={enviarMensagem}
             disabled={enviando || (!novaMensagem.trim() && anexos.length === 0)}
           >
-            <Send className="w-4 h-4 mr-2" />
+            {enviando ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4 mr-2" />
+            )}
             Enviar
           </Button>
         </div>

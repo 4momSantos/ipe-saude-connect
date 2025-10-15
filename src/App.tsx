@@ -63,6 +63,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session } from "@supabase/supabase-js";
 import { ConsentModal } from "./components/lgpd/ConsentModal";
 import { useUserConsent } from "./hooks/useUserConsent";
+import { useGlobalMessageNotifications } from "./hooks/useGlobalMessageNotifications";
 
 const queryClient = new QueryClient();
 
@@ -94,6 +95,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 // Wrapper para verificar consentimento LGPD
 const ConsentGuard = ({ children }: { children: React.ReactNode }) => {
   const { hasConsent, isLoading, giveConsent } = useUserConsent();
+  
+  // Ativar notificações globais de mensagens
+  useGlobalMessageNotifications();
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Verificando consentimento...</div>;

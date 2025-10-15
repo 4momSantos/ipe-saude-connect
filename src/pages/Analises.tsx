@@ -26,8 +26,11 @@ import {
 import { StatusBadge } from "@/components/StatusBadge";
 import { ProcessDetailPanel } from "@/components/ProcessDetailPanel";
 import { WorkflowApprovalPanel } from "@/components/workflow/WorkflowApprovalPanel";
+import { useUnreadMessages } from "@/hooks/useUnreadMessages";
+import { MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type StatusType = "em_analise" | "aguardando_analise" | "aprovado" | "pendente" | "inabilitado";
 
@@ -340,12 +343,41 @@ export default function Analises() {
                     <TableHead>Especialidade</TableHead>
                     <TableHead>Data Submissão</TableHead>
                     <TableHead>Workflow</TableHead>
+                    <TableHead>Mensagens</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {processosFiltrados.map((processo) => (
+              {processosFiltrados.map((processo) => {
+                const UnreadBadge = () => {
+                  const { unreadCount, loading } = useUnreadMessages(processo.id);
+                  
+                  if (loading) {
+                    return <Skeleton className="h-6 w-16" />;
+                  }
+                  
+                  if (unreadCount === 0) {
+                    return (
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <MessageCircle className="h-3 w-3" />
+                        Nenhuma
+                      </span>
+                    );
+                  }
+                  
+                  return (
+                    <Badge 
+                      variant="destructive" 
+                      className="animate-pulse flex items-center gap-1"
+                    >
+                      <MessageCircle className="h-3 w-3" />
+                      {unreadCount} {unreadCount === 1 ? 'nova' : 'novas'}
+                    </Badge>
+                  );
+                };
+                
+                return (
                     <TableRow
                       key={processo.id}
                       className="hover:bg-card/50 cursor-pointer"
@@ -381,6 +413,9 @@ export default function Analises() {
                         )}
                       </TableCell>
                       <TableCell>
+                        <UnreadBadge />
+                      </TableCell>
+                      <TableCell>
                         <StatusBadge status={processo.status} />
                       </TableCell>
                       <TableCell className="text-right">
@@ -408,7 +443,8 @@ export default function Analises() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  );
+                })}
                 </TableBody>
               </Table>
             </div>
