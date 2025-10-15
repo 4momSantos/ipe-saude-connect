@@ -4677,14 +4677,11 @@ export type Database = {
           arquivo_nome: string | null
           arquivo_url: string | null
           created_at: string | null
-          credenciado_cnpj: string | null
           credenciado_cpf: string | null
           credenciado_id: string | null
           credenciado_nome: string | null
           id: string | null
           inscricao_id: string | null
-          ocr_confidence: number | null
-          ocr_resultado: Json | null
           status: string | null
           texto_busca: string | null
           tipo_documento: string | null
@@ -5227,6 +5224,10 @@ export type Database = {
       disable_programmatic_flow: {
         Args: { p_edital_id: string; p_reason?: string }
         Returns: Json
+      }
+      documento_search_text: {
+        Args: { arquivo_nome: string; tipo_documento: string }
+        Returns: string
       }
       enable_programmatic_flow: {
         Args: { p_edital_id: string; p_reason?: string }
