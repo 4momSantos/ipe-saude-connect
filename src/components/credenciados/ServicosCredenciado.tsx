@@ -35,6 +35,7 @@ import {
 import { useProcedimentos } from "@/hooks/useProcedimentos";
 import { useProfissionais } from "@/hooks/useProfissionais";
 import { useEspecialidades } from "@/hooks/useEspecialidades";
+import { useResolverEspecialidades } from "@/hooks/useResolverEspecialidades";
 
 interface ServicosCredenciadoProps {
   credenciadoId: string;
@@ -50,6 +51,16 @@ export function ServicosCredenciado({ credenciadoId, canEdit = false }: Servicos
   const { data: especialidades } = useEspecialidades();
   const { data: procedimentos } = useProcedimentos(especialidadeSelecionada || undefined);
   const { data: profissionais } = useProfissionais(credenciadoId);
+  
+  // Extrair CRMs dos profissionais para exibição
+  const profissionaisComCRM = profissionais?.flatMap(prof => 
+    prof.credenciado_crms?.map(crm => ({
+      id: prof.id,
+      nome: prof.nome,
+      crm: crm.crm,
+      uf_crm: crm.uf_crm,
+    })) || []
+  ) || [];
 
   const createMutation = useCreateServicoCredenciado();
   const updateMutation = useUpdateServicoCredenciado();
