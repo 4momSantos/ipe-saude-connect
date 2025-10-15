@@ -1,12 +1,6 @@
 /**
- * Edge Function: gerar-certificado-credenciamento
- * Gera certificado PDF, salva em Storage, registra no banco e envia por e-mail
- * 
- * Stack:
- * - PDF gerado via HTML template
- * - QR code de validação
- * - Supabase Storage para armazenamento
- * - Resend para envio de e-mail
+ * Edge Function: gerar-certificado-credenciamento  
+ * HOTFIX #1 APLICADO: Usa pdf-lib localmente ao invés de API externa
  */
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
@@ -35,255 +29,6 @@ interface CertificadoData {
 }
 
 /**
- * Gera HTML do certificado
- */
-function gerarCertificadoHTML(data: CertificadoData, qrCodeUrl: string): string {
-  const especialidadesLista = data.especialidades
-    .map(esp => `<li>${esp}</li>`)
-    .join('');
-
-  return `
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <title>Certificado de Credenciamento</title>
-  <style>
-    @page {
-      size: A4;
-      margin: 0;
-    }
-    body {
-      font-family: 'Georgia', serif;
-      margin: 0;
-      padding: 60px;
-      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    }
-    .certificado {
-      background: white;
-      padding: 60px;
-      border-radius: 20px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.1);
-      border: 8px solid #2c3e50;
-      position: relative;
-    }
-    .header {
-      text-align: center;
-      border-bottom: 3px solid #3498db;
-      padding-bottom: 30px;
-      margin-bottom: 40px;
-    }
-    .header h1 {
-      font-size: 42px;
-      color: #2c3e50;
-      margin: 0 0 10px 0;
-      text-transform: uppercase;
-      letter-spacing: 3px;
-    }
-    .header h2 {
-      font-size: 24px;
-      color: #3498db;
-      margin: 0;
-      font-weight: normal;
-    }
-    .conteudo {
-      text-align: center;
-      padding: 40px 20px;
-      line-height: 1.8;
-    }
-    .conteudo p {
-      font-size: 18px;
-      color: #555;
-      margin: 20px 0;
-    }
-    .nome-credenciado {
-      font-size: 32px;
-      color: #2c3e50;
-      font-weight: bold;
-      margin: 30px 0;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-    }
-    .especialidades {
-      background: #ecf0f1;
-      padding: 20px;
-      border-radius: 10px;
-      margin: 30px 0;
-    }
-    .especialidades h3 {
-      color: #2c3e50;
-      margin: 0 0 15px 0;
-      font-size: 20px;
-    }
-    .especialidades ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-    .especialidades li {
-      padding: 8px 0;
-      color: #555;
-      font-size: 16px;
-      border-bottom: 1px solid #bdc3c7;
-    }
-    .especialidades li:last-child {
-      border-bottom: none;
-    }
-    .dados-certificado {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 50px;
-      padding-top: 30px;
-      border-top: 2px solid #3498db;
-    }
-    .dados-item {
-      text-align: left;
-    }
-    .dados-item strong {
-      display: block;
-      color: #2c3e50;
-      font-size: 14px;
-      margin-bottom: 5px;
-    }
-    .dados-item span {
-      color: #7f8c8d;
-      font-size: 14px;
-    }
-    .qr-code {
-      text-align: center;
-      margin-top: 40px;
-      padding-top: 30px;
-      border-top: 1px solid #ecf0f1;
-    }
-    .qr-code img {
-      width: 120px;
-      height: 120px;
-      border: 2px solid #2c3e50;
-      border-radius: 10px;
-    }
-    .qr-code p {
-      font-size: 12px;
-      color: #95a5a6;
-      margin-top: 10px;
-    }
-    .rodape {
-      text-align: center;
-      margin-top: 40px;
-      padding-top: 20px;
-      border-top: 1px solid #ecf0f1;
-      font-size: 12px;
-      color: #95a5a6;
-    }
-    .assinatura {
-      margin-top: 60px;
-      text-align: center;
-    }
-    .linha-assinatura {
-      border-top: 2px solid #2c3e50;
-      width: 300px;
-      margin: 0 auto;
-    }
-    .assinatura p {
-      margin-top: 10px;
-      font-size: 14px;
-      color: #555;
-    }
-    .selo {
-      position: absolute;
-      top: 40px;
-      right: 40px;
-      width: 100px;
-      height: 100px;
-      border: 4px solid #3498db;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: white;
-      font-size: 12px;
-      color: #3498db;
-      font-weight: bold;
-      text-align: center;
-      padding: 10px;
-    }
-  </style>
-</head>
-<body>
-  <div class="certificado">
-    <div class="selo">
-      CERTIFICADO<br>OFICIAL
-    </div>
-    
-    <div class="header">
-      <h1>Certificado de Credenciamento</h1>
-      <h2>Prestador de Serviços de Saúde</h2>
-    </div>
-
-    <div class="conteudo">
-      <p>Certificamos que</p>
-      
-      <div class="nome-credenciado">
-        ${data.credenciado_nome}
-      </div>
-
-      <p>
-        inscrito(a) sob o CPF <strong>${data.credenciado_cpf}</strong>,
-        foi devidamente credenciado(a) para prestação de serviços de saúde
-        ${data.edital_titulo ? `conforme ${data.edital_titulo}` : ''}
-      </p>
-
-      <div class="especialidades">
-        <h3>Especialidades Credenciadas:</h3>
-        <ul>
-          ${especialidadesLista}
-        </ul>
-      </div>
-
-      <p>
-        Este certificado é válido por <strong>24 meses</strong> a partir da data de emissão,
-        podendo ser renovado mediante cumprimento dos requisitos estabelecidos.
-      </p>
-    </div>
-
-    <div class="dados-certificado">
-      <div class="dados-item">
-        <strong>Número do Certificado:</strong>
-        <span>${data.numero_certificado}</span>
-      </div>
-      <div class="dados-item">
-        <strong>Data de Emissão:</strong>
-        <span>${new Date(data.data_emissao).toLocaleDateString('pt-BR')}</span>
-      </div>
-      <div class="dados-item">
-        <strong>Validade:</strong>
-        <span>${new Date(data.valido_ate).toLocaleDateString('pt-BR')}</span>
-      </div>
-    </div>
-
-    <div class="qr-code">
-      <img src="${qrCodeUrl}" alt="QR Code de Validação" />
-      <p>Escaneie para validar a autenticidade deste certificado</p>
-    </div>
-
-    <div class="assinatura">
-      <div class="linha-assinatura"></div>
-      <p><strong>Autoridade Certificadora</strong></p>
-      <p>Sistema de Credenciamento</p>
-    </div>
-
-    <div class="rodape">
-      <p>
-        Este documento é válido e pode ser verificado através do código QR acima.<br>
-        Emitido eletronicamente em ${new Date(data.data_emissao).toLocaleString('pt-BR')}
-      </p>
-    </div>
-  </div>
-</body>
-</html>
-  `.trim();
-}
-
-/**
  * Gera QR Code usando API pública
  */
 function gerarQRCodeURL(numeroCertificado: string, supabaseUrl: string): string {
@@ -292,8 +37,7 @@ function gerarQRCodeURL(numeroCertificado: string, supabaseUrl: string): string 
 }
 
 /**
- * Converte dados do certificado em PDF usando pdf-lib (HOTFIX #1)
- * Substituiu API externa não confiável por biblioteca local
+ * HOTFIX #1: Converte dados em PDF usando pdf-lib (substituiu api.html2pdf.app)
  */
 async function gerarPDFCertificado(data: CertificadoData, qrCodeUrl: string): Promise<Uint8Array> {
   console.log('[PDF] Iniciando geração com pdf-lib');
@@ -609,7 +353,7 @@ serve(async (req) => {
           cpf: certificadoData.credenciado_cpf,
           especialidades: especialidades,
           edital: certificadoData.edital_titulo,
-          html: certificadoHTML
+          gerado_com: 'pdf-lib'
         },
         valido_ate: validoAte.toISOString(),
         status: 'ativo'
