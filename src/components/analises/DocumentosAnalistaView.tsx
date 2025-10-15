@@ -7,6 +7,10 @@ import { FileText, CheckCircle2, XCircle, AlertCircle, Download, Eye, ThumbsUp, 
 import { useInscricaoDocumentos, InscricaoDocumento } from '@/hooks/useInscricaoDocumentos';
 import { useAnalisarInscricao } from '@/hooks/useAnalisarInscricao';
 import { useGerarContrato } from '@/hooks/useGerarContrato';
+import { DecisaoDialog } from './DecisaoDialog';
+import { HistoricoDecisoes } from './HistoricoDecisoes';
+import { useHistoricoDecisoes } from '@/hooks/useHistoricoDecisoes';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -32,6 +36,8 @@ export function DocumentosAnalistaView({ inscricaoId }: DocumentosAnalistaViewPr
   const [documentoSelecionado, setDocumentoSelecionado] = useState<InscricaoDocumento | null>(null);
   const [observacoes, setObservacoes] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [decisaoDialogOpen, setDecisaoDialogOpen] = useState(false);
+  const { data: historico = [], isLoading: isLoadingHistorico } = useHistoricoDecisoes(inscricaoId);
   
   // Estados para aprovação/rejeição da inscrição
   const [aprovarDialogOpen, setAprovarDialogOpen] = useState(false);
@@ -352,6 +358,30 @@ export function DocumentosAnalistaView({ inscricaoId }: DocumentosAnalistaViewPr
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+        </TabsContent>
+
+        <TabsContent value="decisoes">
+          <Card>
+            <CardHeader>
+              <CardTitle>Histórico de Decisões</CardTitle>
+              <CardDescription>Timeline de todas as decisões registradas</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <HistoricoDecisoes decisoes={historico} isLoading={isLoadingHistorico} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <DecisaoDialog
+        open={decisaoDialogOpen}
+        onOpenChange={setDecisaoDialogOpen}
+        inscricaoId={inscricaoId}
+        analiseId={documentos[0]?.inscricao_id || inscricaoId}
+        dadosInscricao={{}}
+        documentos={documentos || []}
+      />
 
       {/* Dialog de Rejeição */}
       <AlertDialog open={rejeitarDialogOpen} onOpenChange={setRejeitarDialogOpen}>
