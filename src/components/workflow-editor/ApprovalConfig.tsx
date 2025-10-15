@@ -7,12 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Users, User, UsersRound } from "lucide-react";
-
-export interface ApprovalConfig {
-  assignmentType: "all" | "specific" | "groups" | "mixed";
-  assignedAnalysts?: string[];
-  assignedGroups?: string[];
-}
+import { ApprovalConfig } from "@/types/workflow-editor";
 
 interface ApprovalConfigPanelProps {
   config: ApprovalConfig;
@@ -101,7 +96,7 @@ export function ApprovalConfigPanel({ config, onChange }: ApprovalConfigPanelPro
         descricao: g.descricao || '',
         tipo: g.tipo,
         total_membros_ativos: g.total_membros_ativos || 0,
-        cor_identificacao: g.cor_identificacao || '#3b82f6'
+        cor_identificacao: '#3b82f6' // Cor padrão já que a coluna não existe na view
       })) || []);
     } catch (error: any) {
       console.error("Erro ao carregar grupos:", error);

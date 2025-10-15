@@ -12,7 +12,7 @@ import { HttpConfigPanel } from "./HttpConfig";
 import { SignatureConfigPanel } from "./SignatureConfig";
 import { EmailConfigPanel } from "./EmailConfig";
 import { DatabaseConfigPanel } from "./DatabaseConfig";
-import { ApprovalConfigPanel, ApprovalConfig } from "./ApprovalConfig";
+import { ApprovalConfigPanel } from "./ApprovalConfig";
 import { ConditionConfigPanel, ConditionConfig } from "./ConditionConfig";
 import { ConditionalExpressionConfigPanel } from "./ConditionalExpressionConfig";
 import { TriggerConfigPanel } from "./TriggerConfig";
