@@ -1361,7 +1361,10 @@ export type Database = {
           cpf: string | null
           created_at: string | null
           data_descredenciamento_programado: string | null
+          data_habilitacao: string | null
+          data_inicio_atendimento: string | null
           data_nascimento: string | null
+          data_solicitacao: string | null
           email: string | null
           endereco: string | null
           estado: string | null
@@ -1396,7 +1399,10 @@ export type Database = {
           cpf?: string | null
           created_at?: string | null
           data_descredenciamento_programado?: string | null
+          data_habilitacao?: string | null
+          data_inicio_atendimento?: string | null
           data_nascimento?: string | null
+          data_solicitacao?: string | null
           email?: string | null
           endereco?: string | null
           estado?: string | null
@@ -1431,7 +1437,10 @@ export type Database = {
           cpf?: string | null
           created_at?: string | null
           data_descredenciamento_programado?: string | null
+          data_habilitacao?: string | null
+          data_inicio_atendimento?: string | null
           data_nascimento?: string | null
+          data_solicitacao?: string | null
           email?: string | null
           endereco?: string | null
           estado?: string | null
