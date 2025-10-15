@@ -133,6 +133,73 @@ export type Database = {
           },
         ]
       }
+      anexos_mensagens: {
+        Row: {
+          enviado_em: string | null
+          enviado_por: string | null
+          id: string
+          mensagem_id: string | null
+          mime_type: string | null
+          nome_arquivo: string
+          nome_original: string
+          storage_bucket: string | null
+          storage_path: string
+          tamanho_bytes: number | null
+          url_publica: string | null
+          virus_scan_status: string | null
+        }
+        Insert: {
+          enviado_em?: string | null
+          enviado_por?: string | null
+          id?: string
+          mensagem_id?: string | null
+          mime_type?: string | null
+          nome_arquivo: string
+          nome_original: string
+          storage_bucket?: string | null
+          storage_path: string
+          tamanho_bytes?: number | null
+          url_publica?: string | null
+          virus_scan_status?: string | null
+        }
+        Update: {
+          enviado_em?: string | null
+          enviado_por?: string | null
+          id?: string
+          mensagem_id?: string | null
+          mime_type?: string | null
+          nome_arquivo?: string
+          nome_original?: string
+          storage_bucket?: string | null
+          storage_path?: string
+          tamanho_bytes?: number | null
+          url_publica?: string | null
+          virus_scan_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anexos_mensagens_enviado_por_fkey"
+            columns: ["enviado_por"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+          {
+            foreignKeyName: "anexos_mensagens_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "v_mensagens_completas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "anexos_mensagens_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       api_keys_externas: {
         Row: {
           ativo: boolean | null
@@ -3350,39 +3417,110 @@ export type Database = {
       }
       workflow_messages: {
         Row: {
+          anexos: Json | null
+          busca_texto: unknown | null
           content: string
           created_at: string | null
+          deletada: boolean | null
+          deletada_em: string | null
+          editada: boolean | null
+          editada_em: string | null
+          em_resposta_a: string | null
+          etapa_id: string | null
+          etapa_nome: string | null
           execution_id: string
           id: string
           inscricao_id: string | null
           is_read: boolean | null
+          lido_por: Json | null
+          mencoes: string[] | null
+          mensagem: string | null
+          mensagem_html: string | null
+          privada: boolean | null
           sender_id: string
           sender_type: string
+          tipo: string
           updated_at: string | null
+          usuario_email: string | null
+          usuario_nome: string | null
+          usuario_papel: string | null
+          visivel_para: string[] | null
         }
         Insert: {
+          anexos?: Json | null
+          busca_texto?: unknown | null
           content: string
           created_at?: string | null
+          deletada?: boolean | null
+          deletada_em?: string | null
+          editada?: boolean | null
+          editada_em?: string | null
+          em_resposta_a?: string | null
+          etapa_id?: string | null
+          etapa_nome?: string | null
           execution_id: string
           id?: string
           inscricao_id?: string | null
           is_read?: boolean | null
+          lido_por?: Json | null
+          mencoes?: string[] | null
+          mensagem?: string | null
+          mensagem_html?: string | null
+          privada?: boolean | null
           sender_id: string
           sender_type: string
+          tipo?: string
           updated_at?: string | null
+          usuario_email?: string | null
+          usuario_nome?: string | null
+          usuario_papel?: string | null
+          visivel_para?: string[] | null
         }
         Update: {
+          anexos?: Json | null
+          busca_texto?: unknown | null
           content?: string
           created_at?: string | null
+          deletada?: boolean | null
+          deletada_em?: string | null
+          editada?: boolean | null
+          editada_em?: string | null
+          em_resposta_a?: string | null
+          etapa_id?: string | null
+          etapa_nome?: string | null
           execution_id?: string
           id?: string
           inscricao_id?: string | null
           is_read?: boolean | null
+          lido_por?: Json | null
+          mencoes?: string[] | null
+          mensagem?: string | null
+          mensagem_html?: string | null
+          privada?: boolean | null
           sender_id?: string
           sender_type?: string
+          tipo?: string
           updated_at?: string | null
+          usuario_email?: string | null
+          usuario_nome?: string | null
+          usuario_papel?: string | null
+          visivel_para?: string[] | null
         }
         Relationships: [
+          {
+            foreignKeyName: "workflow_messages_em_resposta_a_fkey"
+            columns: ["em_resposta_a"]
+            isOneToOne: false
+            referencedRelation: "v_mensagens_completas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_messages_em_resposta_a_fkey"
+            columns: ["em_resposta_a"]
+            isOneToOne: false
+            referencedRelation: "workflow_messages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workflow_messages_execution_id_fkey"
             columns: ["execution_id"]
@@ -3821,6 +3959,83 @@ export type Database = {
         }
         Relationships: []
       }
+      v_mensagens_completas: {
+        Row: {
+          anexos: Json | null
+          busca_texto: unknown | null
+          content: string | null
+          created_at: string | null
+          deletada: boolean | null
+          deletada_em: string | null
+          editada: boolean | null
+          editada_em: string | null
+          em_resposta_a: string | null
+          etapa_id: string | null
+          etapa_nome: string | null
+          execution_id: string | null
+          id: string | null
+          inscricao_id: string | null
+          is_read: boolean | null
+          lido_por: Json | null
+          mencoes: string[] | null
+          mensagem: string | null
+          mensagem_html: string | null
+          mensagem_original: string | null
+          privada: boolean | null
+          sender_id: string | null
+          sender_type: string | null
+          tipo: string | null
+          updated_at: string | null
+          usuario_email: string | null
+          usuario_nome: string | null
+          usuario_papel: string | null
+          visivel_para: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_messages_em_resposta_a_fkey"
+            columns: ["em_resposta_a"]
+            isOneToOne: false
+            referencedRelation: "v_mensagens_completas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_messages_em_resposta_a_fkey"
+            columns: ["em_resposta_a"]
+            isOneToOne: false
+            referencedRelation: "workflow_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_messages_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_executions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_messages_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: false
+            referencedRelation: "inscricoes_edital"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_messages_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: false
+            referencedRelation: "view_inscricoes_validacao_pendente"
+            referencedColumns: ["inscricao_id"]
+          },
+          {
+            foreignKeyName: "workflow_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
+      }
       v_usuarios_com_grupos: {
         Row: {
           email: string | null
@@ -4019,6 +4234,15 @@ export type Database = {
       }
     }
     Functions: {
+      buscar_usuarios_para_mencao: {
+        Args: { p_inscricao_id: string; p_termo?: string }
+        Returns: {
+          email: string
+          id: string
+          nome: string
+          papel: string
+        }[]
+      }
       calcular_estatisticas_avaliacoes: {
         Args: { p_periodo_fim?: string; p_periodo_inicio?: string }
         Returns: {
@@ -4156,6 +4380,10 @@ export type Database = {
           p_usuario_id?: string
         }
         Returns: string
+      }
+      marcar_mensagem_lida: {
+        Args: { p_mensagem_id: string; p_usuario_id?: string }
+        Returns: boolean
       }
       normalize_address: {
         Args: { addr: string }

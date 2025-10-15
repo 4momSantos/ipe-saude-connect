@@ -58,12 +58,13 @@ interface Usuario {
 }
 
 interface ChatWorkflowProps {
-  executionId: string;
+  inscricaoId: string;
+  executionId?: string;
   etapaAtual?: string;
   usuarioPapel?: 'candidato' | 'analista' | 'gestor' | 'admin';
 }
 
-export function ChatWorkflow({ executionId, etapaAtual, usuarioPapel = 'candidato' }: ChatWorkflowProps) {
+export function ChatWorkflow({ inscricaoId, executionId, etapaAtual, usuarioPapel = 'candidato' }: ChatWorkflowProps) {
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
@@ -93,7 +94,7 @@ export function ChatWorkflow({ executionId, etapaAtual, usuarioPapel = 'candidat
     return () => {
       cleanup?.();
     };
-  }, [executionId]);
+  }, [inscricaoId, executionId]);
 
   useEffect(() => {
     scrollParaFinal();
@@ -118,7 +119,7 @@ export function ChatWorkflow({ executionId, etapaAtual, usuarioPapel = 'candidat
       const { data, error } = await supabase
         .from('v_mensagens_completas' as any)
         .select('*')
-        .eq('execution_id', executionId)
+        .eq('inscricao_id', inscricaoId)
         .order('criado_em', { ascending: true });
 
       if (error) throw error;
@@ -142,7 +143,7 @@ export function ChatWorkflow({ executionId, etapaAtual, usuarioPapel = 'candidat
     try {
       const { data, error } = await supabase
         .rpc('buscar_usuarios_para_mencao' as any, {
-          p_execution_id: executionId,
+          p_inscricao_id: inscricaoId,
           p_termo: buscaMencao
         } as any);
 
@@ -155,14 +156,14 @@ export function ChatWorkflow({ executionId, etapaAtual, usuarioPapel = 'candidat
 
   const setupRealtime = () => {
     const channel = supabase
-      .channel(`workflow_chat_${executionId}`)
+      .channel(`workflow_chat_${inscricaoId}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'workflow_messages',
-          filter: `execution_id=eq.${executionId}`
+          filter: `inscricao_id=eq.${inscricaoId}`
         },
         (payload) => {
           console.log('Nova mensagem recebida:', payload);
@@ -292,6 +293,7 @@ export function ChatWorkflow({ executionId, etapaAtual, usuarioPapel = 'candidat
       const { data, error } = await supabase
         .from('workflow_messages')
         .insert({
+          inscricao_id: inscricaoId,
           execution_id: executionId,
           etapa_id: etapaAtual,
           sender_id: user.id,
@@ -301,6 +303,7 @@ export function ChatWorkflow({ executionId, etapaAtual, usuarioPapel = 'candidat
           sender_type: usuarioPapel,
           tipo: tipoMensagem,
           content: novaMensagem,
+          mensagem: novaMensagem,
           mensagem_html: html,
           mencoes: mencoes,
           visivel_para: visivel_para,

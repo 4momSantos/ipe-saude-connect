@@ -131,12 +131,12 @@ export function useWorkflowMessages({
         id: msg.id,
         sender_id: msg.sender_id,
         sender_type: msg.sender_type,
-        content: msg.content,
+        content: msg.content || msg.mensagem,
         created_at: msg.created_at,
         is_read: msg.is_read,
         read_at: msg.read_at,
-        sender_name: msg.profiles?.nome || "Usuário",
-        sender_email: msg.profiles?.email,
+        sender_name: msg.usuario_nome || msg.profiles?.nome || "Usuário",
+        sender_email: msg.usuario_email || msg.profiles?.email,
       }));
 
       setMessages(formattedMessages);
@@ -235,6 +235,10 @@ export function useWorkflowMessages({
         sender_id: currentUserId,
         sender_type: currentUserType,
         content: content.trim(),
+        mensagem: content.trim(),
+        tipo: 'comentario',
+        visivel_para: ['todos'],
+        usuario_papel: currentUserType,
       });
 
       if (error) throw error;
