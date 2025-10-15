@@ -3428,7 +3428,7 @@ export type Database = {
           em_resposta_a: string | null
           etapa_id: string | null
           etapa_nome: string | null
-          execution_id: string
+          execution_id: string | null
           id: string
           inscricao_id: string | null
           is_read: boolean | null
@@ -3458,7 +3458,7 @@ export type Database = {
           em_resposta_a?: string | null
           etapa_id?: string | null
           etapa_nome?: string | null
-          execution_id: string
+          execution_id?: string | null
           id?: string
           inscricao_id?: string | null
           is_read?: boolean | null
@@ -3488,7 +3488,7 @@ export type Database = {
           em_resposta_a?: string | null
           etapa_id?: string | null
           etapa_nome?: string | null
-          execution_id?: string
+          execution_id?: string | null
           id?: string
           inscricao_id?: string | null
           is_read?: boolean | null

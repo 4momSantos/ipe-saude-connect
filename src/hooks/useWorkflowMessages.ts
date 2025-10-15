@@ -229,8 +229,8 @@ export function useWorkflowMessages({
     try {
       setSending(true);
 
-      const { error } = await supabase.from("workflow_messages").insert({
-        execution_id: executionId,
+      const insertData: any = {
+        execution_id: executionId || null,
         inscricao_id: inscricaoId,
         sender_id: currentUserId,
         sender_type: currentUserType,
@@ -239,7 +239,9 @@ export function useWorkflowMessages({
         tipo: 'comentario',
         visivel_para: ['todos'],
         usuario_papel: currentUserType,
-      });
+      };
+
+      const { error } = await supabase.from("workflow_messages").insert(insertData);
 
       if (error) throw error;
 

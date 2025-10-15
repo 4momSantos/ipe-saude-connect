@@ -290,26 +290,28 @@ export function ChatWorkflow({ inscricaoId, executionId, etapaAtual, usuarioPape
       );
 
       // Inserir mensagem
+      const insertData: any = {
+        inscricao_id: inscricaoId,
+        execution_id: executionId || null,
+        etapa_id: etapaAtual || null,
+        sender_id: user.id,
+        usuario_nome: profile?.nome || user.email,
+        usuario_email: user.email || '',
+        usuario_papel: usuarioPapel,
+        sender_type: usuarioPapel,
+        tipo: tipoMensagem,
+        content: novaMensagem,
+        mensagem: novaMensagem,
+        mensagem_html: html,
+        mencoes: mencoes,
+        visivel_para: visivel_para,
+        privada: privada,
+        em_resposta_a: emRespostaA || null
+      };
+
       const { data, error } = await supabase
         .from('workflow_messages')
-        .insert({
-          inscricao_id: inscricaoId,
-          execution_id: executionId,
-          etapa_id: etapaAtual,
-          sender_id: user.id,
-          usuario_nome: profile?.nome || user.email,
-          usuario_email: user.email,
-          usuario_papel: usuarioPapel,
-          sender_type: usuarioPapel,
-          tipo: tipoMensagem,
-          content: novaMensagem,
-          mensagem: novaMensagem,
-          mensagem_html: html,
-          mencoes: mencoes,
-          visivel_para: visivel_para,
-          privada: privada,
-          em_resposta_a: emRespostaA
-        })
+        .insert(insertData)
         .select()
         .single();
 
