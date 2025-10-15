@@ -37,6 +37,7 @@ export function AlteracaoStatusDialog({
   const [dataInicio, setDataInicio] = useState<Date>();
   const [dataFim, setDataFim] = useState<Date>();
   const [dataEfetiva, setDataEfetiva] = useState<Date>();
+  const [descredenciarImediato, setDescredenciarImediato] = useState(true);
   const [motivoDetalhado, setMotivoDetalhado] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   
@@ -44,7 +45,7 @@ export function AlteracaoStatusDialog({
 
   const isJustificativaValida = justificativa.trim().length >= 100;
   const isDatasValidas = (novoStatus !== 'Suspenso' && novoStatus !== 'Afastado') || (dataInicio && dataFim && dataFim > dataInicio);
-  const isDataEfetivaValida = novoStatus !== 'Descredenciado' || dataEfetiva !== undefined;
+  const isDataEfetivaValida = novoStatus !== 'Descredenciado' || descredenciarImediato || dataEfetiva !== undefined;
   const isFormValido = isJustificativaValida && isDatasValidas && isDataEfetivaValida;
 
   const getStatusConfig = (status: StatusCredenciado) => {
@@ -104,13 +105,15 @@ export function AlteracaoStatusDialog({
 
   const handleConfirmar = async () => {
     try {
+      const dataEfetivaFinal = descredenciarImediato ? new Date().toISOString().split('T')[0] : dataEfetiva?.toISOString().split('T')[0];
+      
       await mutation.mutateAsync({
         credenciado_id: credenciadoId,
         novo_status: novoStatus,
         justificativa,
         data_inicio: dataInicio?.toISOString().split('T')[0],
         data_fim: dataFim?.toISOString().split('T')[0],
-        data_efetiva: dataEfetiva?.toISOString().split('T')[0],
+        data_efetiva: dataEfetivaFinal,
         motivo_detalhado: motivoDetalhado || undefined
       });
       
@@ -128,6 +131,7 @@ export function AlteracaoStatusDialog({
     setDataInicio(undefined);
     setDataFim(undefined);
     setDataEfetiva(undefined);
+    setDescredenciarImediato(true);
     setMotivoDetalhado('');
     setShowPreview(false);
   };
@@ -170,11 +174,11 @@ export function AlteracaoStatusDialog({
               </div>
             )}
 
-            {novoStatus === 'Descredenciado' && dataEfetiva && (
+            {novoStatus === 'Descredenciado' && (
               <div className="p-4 border rounded-lg bg-muted/50">
                 <p className="text-sm font-semibold mb-2">Data Efetiva:</p>
                 <p className="text-sm">
-                  {format(dataEfetiva, "PPP", { locale: ptBR })}
+                  {descredenciarImediato ? 'Imediato (hoje)' : dataEfetiva ? format(dataEfetiva, "PPP", { locale: ptBR }) : 'Não definida'}
                 </p>
               </div>
             )}
@@ -329,30 +333,55 @@ export function AlteracaoStatusDialog({
 
           {/* Data Efetiva para Descredenciado */}
           {novoStatus === 'Descredenciado' && (
-            <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
-              <Label className="text-base font-semibold">Data Efetiva do Descredenciamento *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !dataEfetiva && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dataEfetiva ? format(dataEfetiva, "PPP", { locale: ptBR }) : "Selecione a data"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={dataEfetiva}
-                    onSelect={setDataEfetiva}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+            <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+              <Label className="text-base font-semibold">Descredenciamento *</Label>
+              
+              <RadioGroup value={descredenciarImediato ? 'imediato' : 'programado'} onValueChange={(v) => setDescredenciarImediato(v === 'imediato')}>
+                <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                  <RadioGroupItem value="imediato" id="imediato" />
+                  <Label htmlFor="imediato" className="cursor-pointer flex-1">
+                    <div className="font-semibold">Imediato</div>
+                    <div className="text-sm text-muted-foreground">Descredenciar hoje</div>
+                  </Label>
+                </div>
+                
+                <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                  <RadioGroupItem value="programado" id="programado" />
+                  <Label htmlFor="programado" className="cursor-pointer flex-1">
+                    <div className="font-semibold">Programado</div>
+                    <div className="text-sm text-muted-foreground">Definir data futura</div>
+                  </Label>
+                </div>
+              </RadioGroup>
+
+              {!descredenciarImediato && (
+                <div className="space-y-2">
+                  <Label>Data de Descredenciamento</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !dataEfetiva && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dataEfetiva ? format(dataEfetiva, "PPP", { locale: ptBR }) : "Selecione a data"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={dataEfetiva}
+                        onSelect={setDataEfetiva}
+                        disabled={(date) => date < new Date()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
             </div>
           )}
 

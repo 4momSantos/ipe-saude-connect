@@ -71,10 +71,11 @@ serve(async (req) => {
 
     const { inscricao_id, analise_id, decisao }: ProcessarDecisaoRequest = await req.json();
 
-    // Validar justificativa
-    if (!decisao.justificativa || decisao.justificativa.length < 50) {
+    // Validar justificativa (aprovação requer 100 chars, outros 50)
+    const minCaracteres = decisao.status === 'aprovado' ? 100 : 50;
+    if (!decisao.justificativa || decisao.justificativa.length < minCaracteres) {
       return new Response(
-        JSON.stringify({ error: 'Justificativa deve ter no mínimo 50 caracteres' }),
+        JSON.stringify({ error: `Justificativa deve ter no mínimo ${minCaracteres} caracteres` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

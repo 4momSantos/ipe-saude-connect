@@ -39,7 +39,8 @@ export function FormDecisao({
   const [prazoCorrecao, setPrazoCorrecao] = useState<Date>();
   const [showPreview, setShowPreview] = useState(false);
 
-  const isJustificativaValida = justificativa.trim().length >= 50;
+  const minCaracteres = status === 'aprovado' ? 100 : 50;
+  const isJustificativaValida = justificativa.trim().length >= minCaracteres;
   const isPrazoValido = status !== 'pendente_correcao' || prazoCorrecao !== undefined;
   const isFormValido = isJustificativaValida && isPrazoValido;
 
@@ -138,7 +139,7 @@ export function FormDecisao({
         <Label htmlFor="justificativa" className="text-base font-semibold">
           Justificativa * 
           <span className="text-sm font-normal text-muted-foreground ml-2">
-            (mínimo 50 caracteres - {justificativa.length}/50)
+            (mínimo {minCaracteres} caracteres - {justificativa.length}/{minCaracteres})
           </span>
         </Label>
         <Textarea
@@ -147,7 +148,7 @@ export function FormDecisao({
           onChange={(e) => setJustificativa(e.target.value)}
           placeholder={
             status === 'aprovado' 
-              ? "Descreva os motivos pelos quais a inscrição foi aprovada..."
+              ? "Descreva detalhadamente os motivos da aprovação, documentos validados e conformidades atendidas..."
               : status === 'reprovado'
               ? "Descreva detalhadamente os motivos da reprovação..."
               : "Descreva quais correções são necessárias e por quê..."
@@ -159,7 +160,12 @@ export function FormDecisao({
         />
         {!isJustificativaValida && justificativa.length > 0 && (
           <p className="text-sm text-red-600">
-            Ainda faltam {50 - justificativa.length} caracteres
+            Ainda faltam {minCaracteres - justificativa.length} caracteres
+          </p>
+        )}
+        {status === 'aprovado' && (
+          <p className="text-sm text-muted-foreground">
+            ℹ️ A aprovação requer justificativa mais detalhada (mínimo 100 caracteres)
           </p>
         )}
       </div>
