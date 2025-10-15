@@ -73,6 +73,13 @@ export type Database = {
             foreignKeyName: "acoes_prazos_credenciado_id_fkey"
             columns: ["credenciado_id"]
             isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "acoes_prazos_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
             referencedColumns: ["id"]
           },
@@ -139,6 +146,13 @@ export type Database = {
             columns: ["credenciado_id"]
             isOneToOne: false
             referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "alertas_enviados_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
             referencedColumns: ["credenciado_id"]
           },
           {
@@ -564,6 +578,13 @@ export type Database = {
             foreignKeyName: "avaliacoes_prestadores_credenciado_id_fkey"
             columns: ["credenciado_id"]
             isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_prestadores_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
             referencedColumns: ["id"]
           },
@@ -672,7 +693,55 @@ export type Database = {
             foreignKeyName: "certificados_credenciado_id_fkey"
             columns: ["credenciado_id"]
             isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "certificados_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      certificados_consultas_publicas: {
+        Row: {
+          certificado_id: string | null
+          consultado_em: string | null
+          id: string
+          ip_origem: unknown | null
+          parametro_busca: string | null
+          resultado: string
+          tipo_consulta: string
+          user_agent: string | null
+        }
+        Insert: {
+          certificado_id?: string | null
+          consultado_em?: string | null
+          id?: string
+          ip_origem?: unknown | null
+          parametro_busca?: string | null
+          resultado: string
+          tipo_consulta: string
+          user_agent?: string | null
+        }
+        Update: {
+          certificado_id?: string | null
+          consultado_em?: string | null
+          id?: string
+          ip_origem?: unknown | null
+          parametro_busca?: string | null
+          resultado?: string
+          tipo_consulta?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificados_consultas_publicas_certificado_id_fkey"
+            columns: ["certificado_id"]
+            isOneToOne: false
+            referencedRelation: "certificados_regularidade"
             referencedColumns: ["id"]
           },
         ]
@@ -737,6 +806,13 @@ export type Database = {
             foreignKeyName: "certificados_historico_credenciado_id_fkey"
             columns: ["credenciado_id"]
             isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "certificados_historico_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
             referencedColumns: ["id"]
           },
@@ -746,6 +822,126 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_usuarios_com_grupos"
             referencedColumns: ["usuario_id"]
+          },
+        ]
+      }
+      certificados_regularidade: {
+        Row: {
+          ativo: boolean | null
+          cancelado: boolean | null
+          cancelado_em: string | null
+          cancelado_por: string | null
+          codigo_verificacao: string
+          created_at: string | null
+          credenciado_id: string
+          dados_snapshot: Json
+          detalhes: Json
+          emitido_em: string
+          emitido_por: string | null
+          hash_verificacao: string
+          id: string
+          metadata_pdf: Json | null
+          motivo_cancelamento: string | null
+          numero_certificado: string
+          pendencias: Json
+          status: Database["public"]["Enums"]["status_regularidade_enum"]
+          substituido_por: string | null
+          total_consultas: number | null
+          ultima_consulta: string | null
+          updated_at: string | null
+          url_pdf: string | null
+          valido_ate: string
+          valido_de: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          cancelado?: boolean | null
+          cancelado_em?: string | null
+          cancelado_por?: string | null
+          codigo_verificacao: string
+          created_at?: string | null
+          credenciado_id: string
+          dados_snapshot: Json
+          detalhes?: Json
+          emitido_em?: string
+          emitido_por?: string | null
+          hash_verificacao: string
+          id?: string
+          metadata_pdf?: Json | null
+          motivo_cancelamento?: string | null
+          numero_certificado: string
+          pendencias?: Json
+          status: Database["public"]["Enums"]["status_regularidade_enum"]
+          substituido_por?: string | null
+          total_consultas?: number | null
+          ultima_consulta?: string | null
+          updated_at?: string | null
+          url_pdf?: string | null
+          valido_ate: string
+          valido_de: string
+        }
+        Update: {
+          ativo?: boolean | null
+          cancelado?: boolean | null
+          cancelado_em?: string | null
+          cancelado_por?: string | null
+          codigo_verificacao?: string
+          created_at?: string | null
+          credenciado_id?: string
+          dados_snapshot?: Json
+          detalhes?: Json
+          emitido_em?: string
+          emitido_por?: string | null
+          hash_verificacao?: string
+          id?: string
+          metadata_pdf?: Json | null
+          motivo_cancelamento?: string | null
+          numero_certificado?: string
+          pendencias?: Json
+          status?: Database["public"]["Enums"]["status_regularidade_enum"]
+          substituido_por?: string | null
+          total_consultas?: number | null
+          ultima_consulta?: string | null
+          updated_at?: string | null
+          url_pdf?: string | null
+          valido_ate?: string
+          valido_de?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificados_regularidade_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificados_regularidade_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "certificados_regularidade_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "certificados_regularidade_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificados_regularidade_substituido_por_fkey"
+            columns: ["substituido_por"]
+            isOneToOne: false
+            referencedRelation: "certificados_regularidade"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1004,6 +1200,13 @@ export type Database = {
             foreignKeyName: "controle_prazos_credenciado_id_fkey"
             columns: ["credenciado_id"]
             isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "controle_prazos_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
             referencedColumns: ["id"]
           },
@@ -1063,6 +1266,13 @@ export type Database = {
             foreignKeyName: "credenciado_crms_credenciado_id_fkey"
             columns: ["credenciado_id"]
             isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "credenciado_crms_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
             referencedColumns: ["id"]
           },
@@ -1116,6 +1326,13 @@ export type Database = {
             columns: ["credenciado_id"]
             isOneToOne: false
             referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "credenciado_historico_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
             referencedColumns: ["credenciado_id"]
           },
           {
@@ -1881,6 +2098,13 @@ export type Database = {
             foreignKeyName: "historico_categorizacao_credenciado_id_fkey"
             columns: ["credenciado_id"]
             isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "historico_categorizacao_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
             referencedColumns: ["id"]
           },
@@ -1943,6 +2167,13 @@ export type Database = {
             columns: ["credenciado_id"]
             isOneToOne: false
             referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "historico_status_credenciado_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
             referencedColumns: ["credenciado_id"]
           },
           {
@@ -2532,6 +2763,13 @@ export type Database = {
             foreignKeyName: "logs_regras_suspensao_credenciado_id_fkey"
             columns: ["credenciado_id"]
             isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "logs_regras_suspensao_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
             referencedColumns: ["id"]
           },
@@ -2656,6 +2894,13 @@ export type Database = {
             foreignKeyName: "ocorrencias_prestadores_credenciado_id_fkey"
             columns: ["credenciado_id"]
             isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "ocorrencias_prestadores_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
             referencedColumns: ["id"]
           },
@@ -2715,6 +2960,13 @@ export type Database = {
             columns: ["credenciado_id"]
             isOneToOne: false
             referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "prazos_credenciamento_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
             referencedColumns: ["credenciado_id"]
           },
           {
@@ -3071,6 +3323,13 @@ export type Database = {
             foreignKeyName: "sancoes_prestadores_credenciado_id_fkey"
             columns: ["credenciado_id"]
             isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "sancoes_prestadores_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
             referencedColumns: ["id"]
           },
@@ -3232,6 +3491,13 @@ export type Database = {
             columns: ["credenciado_id"]
             isOneToOne: false
             referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_alteracao_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
             referencedColumns: ["credenciado_id"]
           },
           {
@@ -4434,6 +4700,39 @@ export type Database = {
           },
         ]
       }
+      v_dados_regularidade: {
+        Row: {
+          contratos: Json | null
+          cpf_cnpj: string | null
+          credenciado_id: string | null
+          data_ultima_atualizacao: string | null
+          documentos: Json | null
+          nome: string | null
+          status_cadastro: string | null
+          tipo_pessoa: string | null
+        }
+        Insert: {
+          contratos?: never
+          cpf_cnpj?: string | null
+          credenciado_id?: string | null
+          data_ultima_atualizacao?: string | null
+          documentos?: never
+          nome?: string | null
+          status_cadastro?: string | null
+          tipo_pessoa?: never
+        }
+        Update: {
+          contratos?: never
+          cpf_cnpj?: string | null
+          credenciado_id?: string | null
+          data_ultima_atualizacao?: string | null
+          documentos?: never
+          nome?: string | null
+          status_cadastro?: string | null
+          tipo_pessoa?: never
+        }
+        Relationships: []
+      }
       v_dashboard_vencimentos: {
         Row: {
           atencao: number | null
@@ -4584,6 +4883,13 @@ export type Database = {
             columns: ["credenciado_id"]
             isOneToOne: false
             referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "controle_prazos_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
             referencedColumns: ["credenciado_id"]
           },
           {
@@ -4844,6 +5150,14 @@ export type Database = {
           total_avaliacoes: number
         }[]
       }
+      calcular_status_regularidade: {
+        Args: { p_credenciado_id: string }
+        Returns: {
+          detalhes: Json
+          pendencias: Json
+          status: Database["public"]["Enums"]["status_regularidade_enum"]
+        }[]
+      }
       check_geocoding_alerts: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -4859,6 +5173,20 @@ export type Database = {
         Returns: {
           cleaned_executions: number
           reset_queue_items: number
+        }[]
+      }
+      consultar_certificado_publico: {
+        Args: { p_tipo: string; p_valor: string }
+        Returns: {
+          credenciado_nome: string
+          credenciado_tipo: string
+          emitido_em: string
+          encontrado: boolean
+          hash_verificacao: string
+          numero_certificado: string
+          situacao: string
+          status: string
+          valido_ate: string
         }[]
       }
       create_rollout_snapshot: {
@@ -4913,6 +5241,23 @@ export type Database = {
       }
       gerar_api_key_externa: {
         Args: { p_nome: string; p_quota_diaria?: number }
+        Returns: string
+      }
+      gerar_codigo_verificacao: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      gerar_hash_certificado: {
+        Args: {
+          p_credenciado_id: string
+          p_numero: string
+          p_status: string
+          p_timestamp: string
+        }
+        Returns: string
+      }
+      gerar_numero_certificado: {
+        Args: Record<PropertyKey, never>
         Returns: string
       }
       gerar_protocolo_inscricao: {
@@ -5040,6 +5385,10 @@ export type Database = {
         Args: { p_inscricao_id: string }
         Returns: string
       }
+      tabela_existe: {
+        Args: { p_schema: string; p_tabela: string }
+        Returns: boolean
+      }
       usuario_pertence_grupo: {
         Args: { p_grupo_id: string; p_usuario_id: string }
         Returns: boolean
@@ -5081,6 +5430,11 @@ export type Database = {
     }
     Enums: {
       app_role: "candidato" | "analista" | "gestor" | "admin"
+      status_regularidade_enum:
+        | "regular"
+        | "regular_ressalvas"
+        | "irregular"
+        | "inativo"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5209,6 +5563,12 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["candidato", "analista", "gestor", "admin"],
+      status_regularidade_enum: [
+        "regular",
+        "regular_ressalvas",
+        "irregular",
+        "inativo",
+      ],
     },
   },
 } as const
