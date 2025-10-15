@@ -157,6 +157,54 @@ export type Database = {
           },
         ]
       }
+      alertas_vencimento: {
+        Row: {
+          ativo: boolean | null
+          categoria: string | null
+          criado_em: string | null
+          dias_antecedencia: number[] | null
+          emails_adicionais: string[] | null
+          entidade_tipo: string
+          grupos_notificar: string[] | null
+          id: string
+          notificar_credenciado: boolean | null
+          notificar_gestores: boolean | null
+          prioridade: string | null
+          template_mensagem: string | null
+          template_titulo: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          categoria?: string | null
+          criado_em?: string | null
+          dias_antecedencia?: number[] | null
+          emails_adicionais?: string[] | null
+          entidade_tipo: string
+          grupos_notificar?: string[] | null
+          id?: string
+          notificar_credenciado?: boolean | null
+          notificar_gestores?: boolean | null
+          prioridade?: string | null
+          template_mensagem?: string | null
+          template_titulo?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          categoria?: string | null
+          criado_em?: string | null
+          dias_antecedencia?: number[] | null
+          emails_adicionais?: string[] | null
+          entidade_tipo?: string
+          grupos_notificar?: string[] | null
+          id?: string
+          notificar_credenciado?: boolean | null
+          notificar_gestores?: boolean | null
+          prioridade?: string | null
+          template_mensagem?: string | null
+          template_titulo?: string | null
+        }
+        Relationships: []
+      }
       analises: {
         Row: {
           analisado_em: string | null
@@ -855,6 +903,116 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "contract_templates"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      controle_prazos: {
+        Row: {
+          ativo: boolean | null
+          atualizado_em: string | null
+          bloqueio_automatico: boolean | null
+          credenciado_id: string | null
+          criado_em: string | null
+          data_emissao: string | null
+          data_renovacao: string | null
+          data_vencimento: string
+          dias_alerta_1: number | null
+          dias_alerta_2: number | null
+          dias_alerta_3: number | null
+          dias_para_vencer: number | null
+          entidade_id: string
+          entidade_nome: string | null
+          entidade_tipo: string
+          id: string
+          notificacoes_enviadas: number | null
+          observacoes: string | null
+          proxima_notificacao: string | null
+          renovado: boolean | null
+          renovavel: boolean | null
+          responsavel_id: string | null
+          status_atual: string | null
+          ultima_notificacao_em: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          atualizado_em?: string | null
+          bloqueio_automatico?: boolean | null
+          credenciado_id?: string | null
+          criado_em?: string | null
+          data_emissao?: string | null
+          data_renovacao?: string | null
+          data_vencimento: string
+          dias_alerta_1?: number | null
+          dias_alerta_2?: number | null
+          dias_alerta_3?: number | null
+          dias_para_vencer?: number | null
+          entidade_id: string
+          entidade_nome?: string | null
+          entidade_tipo: string
+          id?: string
+          notificacoes_enviadas?: number | null
+          observacoes?: string | null
+          proxima_notificacao?: string | null
+          renovado?: boolean | null
+          renovavel?: boolean | null
+          responsavel_id?: string | null
+          status_atual?: string | null
+          ultima_notificacao_em?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          atualizado_em?: string | null
+          bloqueio_automatico?: boolean | null
+          credenciado_id?: string | null
+          criado_em?: string | null
+          data_emissao?: string | null
+          data_renovacao?: string | null
+          data_vencimento?: string
+          dias_alerta_1?: number | null
+          dias_alerta_2?: number | null
+          dias_alerta_3?: number | null
+          dias_para_vencer?: number | null
+          entidade_id?: string
+          entidade_nome?: string | null
+          entidade_tipo?: string
+          id?: string
+          notificacoes_enviadas?: number | null
+          observacoes?: string | null
+          proxima_notificacao?: string | null
+          renovado?: boolean | null
+          renovavel?: boolean | null
+          responsavel_id?: string | null
+          status_atual?: string | null
+          ultima_notificacao_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "controle_prazos_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "controle_prazos_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "controle_prazos_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "controle_prazos_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
           },
         ]
       }
@@ -1792,6 +1950,64 @@ export type Database = {
             columns: ["credenciado_id"]
             isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      historico_vencimentos: {
+        Row: {
+          acao: string | null
+          acao_por: string | null
+          controle_prazo_id: string | null
+          criado_em: string | null
+          data_mudanca: string | null
+          detalhes: Json | null
+          id: string
+          status_anterior: string | null
+          status_novo: string
+        }
+        Insert: {
+          acao?: string | null
+          acao_por?: string | null
+          controle_prazo_id?: string | null
+          criado_em?: string | null
+          data_mudanca?: string | null
+          detalhes?: Json | null
+          id?: string
+          status_anterior?: string | null
+          status_novo: string
+        }
+        Update: {
+          acao?: string | null
+          acao_por?: string | null
+          controle_prazo_id?: string | null
+          criado_em?: string | null
+          data_mudanca?: string | null
+          detalhes?: Json | null
+          id?: string
+          status_anterior?: string | null
+          status_novo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_vencimentos_acao_por_fkey"
+            columns: ["acao_por"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+          {
+            foreignKeyName: "historico_vencimentos_controle_prazo_id_fkey"
+            columns: ["controle_prazo_id"]
+            isOneToOne: false
+            referencedRelation: "controle_prazos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_vencimentos_controle_prazo_id_fkey"
+            columns: ["controle_prazo_id"]
+            isOneToOne: false
+            referencedRelation: "v_prazos_completos"
             referencedColumns: ["id"]
           },
         ]
@@ -4218,6 +4434,23 @@ export type Database = {
           },
         ]
       }
+      v_dashboard_vencimentos: {
+        Row: {
+          atencao: number | null
+          criticos: number | null
+          total_prazos: number | null
+          total_validos: number | null
+          total_vencendo: number | null
+          total_vencidos: number | null
+          ultima_atualizacao: string | null
+          vencem_15_dias: number | null
+          vencem_30_dias: number | null
+          vencem_7_dias: number | null
+          vencidos_30_dias: number | null
+          vencidos_90_dias: number | null
+        }
+        Relationships: []
+      }
       v_grupos_com_membros: {
         Row: {
           ativo: boolean | null
@@ -4308,6 +4541,57 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_usuarios_com_grupos"
             referencedColumns: ["usuario_id"]
+          },
+        ]
+      }
+      v_prazos_completos: {
+        Row: {
+          ativo: boolean | null
+          atualizado_em: string | null
+          bloqueio_automatico: boolean | null
+          cor_status: string | null
+          credenciado_cpf: string | null
+          credenciado_id: string | null
+          credenciado_nome: string | null
+          criado_em: string | null
+          data_emissao: string | null
+          data_renovacao: string | null
+          data_vencimento: string | null
+          dias_para_vencer: number | null
+          entidade_id: string | null
+          entidade_nome: string | null
+          entidade_tipo: string | null
+          id: string | null
+          nivel_alerta: string | null
+          notificacoes_enviadas: number | null
+          observacoes: string | null
+          proxima_notificacao: string | null
+          renovado: boolean | null
+          renovavel: boolean | null
+          status_atual: string | null
+          ultima_notificacao_em: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "controle_prazos_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "controle_prazos_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "controle_prazos_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -4509,6 +4793,14 @@ export type Database = {
       }
     }
     Functions: {
+      atualizar_status_prazos: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          novos_alertas: number
+          novos_vencidos: number
+          total_atualizados: number
+        }[]
+      }
       buscar_documentos: {
         Args: {
           p_credenciado_id?: string
@@ -4684,6 +4976,13 @@ export type Database = {
         Args: { p_mensagem_id: string; p_usuario_id?: string }
         Returns: boolean
       }
+      migrar_prazos_existentes: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          erros: string[]
+          total_migrados: number
+        }[]
+      }
       normalize_address: {
         Args: { addr: string }
         Returns: string
@@ -4718,6 +5017,14 @@ export type Database = {
           status: string
           workflow_id: string
         }[]
+      }
+      renovar_prazo: {
+        Args: {
+          p_nova_data_vencimento: string
+          p_observacao?: string
+          p_prazo_id: string
+        }
+        Returns: Json
       }
       retry_orphan_workflows: {
         Args: Record<PropertyKey, never>

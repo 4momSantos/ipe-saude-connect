@@ -87,3 +87,6 @@ verify_jwt = true
 [functions.processar-alertas-prazos]
 verify_jwt = false
 
+[functions.atualizar-prazos-diario]
+verify_jwt = false
+
