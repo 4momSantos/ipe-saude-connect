@@ -85,7 +85,15 @@ export function GestaoGrupos() {
         .order('grupo_nome');
 
       if (error) throw error;
-      setGrupos(data || []);
+      
+      // Adicionar campos padrão para compatibilidade com a interface Grupo
+      const gruposCompletos = (data || []).map(grupo => ({
+        ...grupo,
+        permissoes: (grupo as any).permissoes || {},
+        cor_identificacao: (grupo as any).cor_identificacao || '#3b82f6'
+      })) as Grupo[];
+      
+      setGrupos(gruposCompletos);
     } catch (error: any) {
       toast({
         title: 'Erro ao carregar grupos',
