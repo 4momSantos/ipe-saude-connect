@@ -7,18 +7,52 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useConsultarPublico } from "@/hooks/useCertificadoRegularidade";
-import { CheckCircle, AlertTriangle, Clock, XCircle, Search } from "lucide-react";
+import { CheckCircle, AlertTriangle, Clock, XCircle, Search, Download, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function ValidarCertificado() {
   const { codigo: codigoUrl } = useParams();
   const [tipo, setTipo] = useState<'codigo' | 'numero'>('codigo');
   const [valor, setValor] = useState(codigoUrl || '');
+  const [downloadingCertId, setDownloadingCertId] = useState<string | null>(null);
   
   const { mutate: consultar, data, isPending, isSuccess } = useConsultarPublico();
 
   const handleConsultar = () => {
     if (!valor.trim()) return;
     consultar({ tipo, valor: valor.trim() });
+  };
+
+  const handleDownload = async (certificadoId: string, numeroCert: string) => {
+    try {
+      setDownloadingCertId(certificadoId);
+      
+      const { data: pdfData, error } = await supabase.functions.invoke('download-certificado', {
+        body: { certificadoId }
+      });
+
+      if (error) throw error;
+
+      if (pdfData instanceof Blob) {
+        const url = window.URL.createObjectURL(pdfData);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${numeroCert}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast.success('Certificado baixado com sucesso!');
+      } else {
+        throw new Error('Formato de resposta inválido');
+      }
+    } catch (error) {
+      console.error('Erro ao baixar certificado:', error);
+      toast.error('Erro ao baixar o certificado');
+    } finally {
+      setDownloadingCertId(null);
+    }
   };
 
   const renderResultado = () => {
@@ -103,6 +137,30 @@ export default function ValidarCertificado() {
                 Este certificado é válido e pode ser considerado autêntico.
               </AlertDescription>
             </Alert>
+          )}
+
+          {data.tem_pdf && data.certificado_id && (
+            <div className="pt-4 mt-4 border-t">
+              <Button 
+                variant="default" 
+                className="w-full"
+                size="lg"
+                onClick={() => handleDownload(data.certificado_id!, data.numero_certificado!)}
+                disabled={downloadingCertId === data.certificado_id}
+              >
+                {downloadingCertId === data.certificado_id ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Baixando PDF...
+                  </>
+                ) : (
+                  <>
+                    <Download className="mr-2 h-4 w-4" />
+                    Baixar Certificado (PDF)
+                  </>
+                )}
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
