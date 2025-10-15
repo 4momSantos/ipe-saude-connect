@@ -5184,14 +5184,15 @@ export type Database = {
       consultar_certificado_publico: {
         Args: { p_tipo: string; p_valor: string }
         Returns: {
-          credenciado_nome: string
-          credenciado_tipo: string
+          certificado_id: string
+          credenciado: Json
           emitido_em: string
           encontrado: boolean
           hash_verificacao: string
           numero_certificado: string
           situacao: string
           status: string
+          tem_pdf: boolean
           valido_ate: string
         }[]
       }

@@ -87,10 +87,26 @@ export const useHistoricoCertificados = (credenciadoId: string) => {
   });
 };
 
+export interface ConsultaPublicaResult {
+  encontrado: boolean;
+  status?: string;
+  numero_certificado?: string;
+  emitido_em?: string;
+  valido_ate?: string;
+  situacao?: string;
+  credenciado?: {
+    nome: string;
+    tipo: string;
+  };
+  hash_verificacao?: string;
+  certificado_id?: string;
+  tem_pdf?: boolean;
+}
+
 // Hook para consulta pública
 export const useConsultarPublico = () => {
   return useMutation({
-    mutationFn: async ({ tipo, valor }: { tipo: 'codigo' | 'numero'; valor: string }) => {
+    mutationFn: async ({ tipo, valor }: { tipo: 'codigo' | 'numero'; valor: string }): Promise<ConsultaPublicaResult> => {
       const { data, error } = await supabase.functions.invoke('consultar-certificado-publico', {
         body: { tipo, valor }
       });

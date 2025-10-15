@@ -31,8 +31,8 @@ serve(async (req) => {
     
     // Buscar dados do certificado
     const { data: cert, error: certError } = await supabase
-      .from('certificados')
-      .select('documento_url, numero_certificado')
+      .from('certificados_regularidade')
+      .select('url_pdf, numero_certificado')
       .eq('id', certificadoId)
       .single();
     
@@ -44,18 +44,18 @@ serve(async (req) => {
       );
     }
     
-    if (!cert.documento_url) {
-      console.error('[DOWNLOAD_CERTIFICADO] Certificado sem documento_url');
+    if (!cert.url_pdf) {
+      console.error('[DOWNLOAD_CERTIFICADO] Certificado sem url_pdf');
       return new Response(
         JSON.stringify({ error: 'PDF não disponível para este certificado' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    // Extrair path do arquivo (formato: https://....supabase.co/storage/v1/object/public/certificados/PATH)
-    const urlParts = cert.documento_url.split('/certificados/');
+    // Extrair path do arquivo (formato: https://....supabase.co/storage/v1/object/public/certificados-regularidade/PATH)
+    const urlParts = cert.url_pdf.split('/certificados-regularidade/');
     if (urlParts.length < 2) {
-      console.error('[DOWNLOAD_CERTIFICADO] URL inválida:', cert.documento_url);
+      console.error('[DOWNLOAD_CERTIFICADO] URL inválida:', cert.url_pdf);
       return new Response(
         JSON.stringify({ error: 'URL do certificado inválida' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -67,7 +67,7 @@ serve(async (req) => {
     
     // Baixar PDF do storage
     const { data: pdfData, error: downloadError } = await supabase.storage
-      .from('certificados')
+      .from('certificados-regularidade')
       .download(path);
     
     if (downloadError || !pdfData) {
