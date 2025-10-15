@@ -1,7 +1,7 @@
 project_id = "ncmofeencqpqhtguxmvy"
 
 [functions.diagnostic-assinafy]
-verify_jwt = false
+verify_jwt = true
 
 [functions.setup-assinafy-webhook]
 verify_jwt = true
@@ -13,7 +13,7 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.execute-workflow]
-verify_jwt = false
+verify_jwt = true
 
 [functions.continue-workflow]
 verify_jwt = true
@@ -22,16 +22,16 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.validate-crm]
-verify_jwt = false
+verify_jwt = true
 
 [functions.validate-cpf]
-verify_jwt = false
+verify_jwt = true
 
 [functions.validate-nit]
-verify_jwt = false
+verify_jwt = true
 
 [functions.validate-cnpj]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-signature-request]
 verify_jwt = true
@@ -43,7 +43,7 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.process-ocr]
-verify_jwt = false
+verify_jwt = true
 
 [functions.process-workflow-queue]
 verify_jwt = false
@@ -73,10 +73,10 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.get-mapbox-token]
-verify_jwt = false
+verify_jwt = true
 
 [functions.test-assinafy-full]
-verify_jwt = false
+verify_jwt = true
 
 [functions.validate-crm-cfm]
 verify_jwt = true
