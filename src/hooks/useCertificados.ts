@@ -32,10 +32,10 @@ export function useCertificados(credenciadoId?: string) {
   });
 
   const download = async () => {
-    if (!query.data?.id || !query.data?.documento_url) {
+    if (!query.data?.id) {
       toast({
         title: "Erro",
-        description: "Documento não disponível",
+        description: "Certificado não encontrado",
         variant: "destructive"
       });
       return;
