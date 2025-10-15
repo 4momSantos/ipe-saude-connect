@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, BarChart3, FileDown, Map, Activity, Layers } from "lucide-react";
-import { MapaRedeInterativo } from "@/components/analytics/MapaRedeInterativo";
-import { MapaCredenciados } from "@/components/analytics/MapaCredenciadosBasico";
+import { MapaUnificado } from "@/components/analytics/MapaUnificado";
 import { DashboardRelatorios } from "@/components/analytics/DashboardRelatorios";
 import { DimensionamentoRede } from "@/components/analytics/DimensionamentoRede";
 import { RelatoriosCustomizaveis } from "@/components/analytics/RelatoriosCustomizaveis";
@@ -61,7 +60,7 @@ export default function AnalisesRelatorios() {
 
         <TabsContent value="mapa" className="mt-6 space-y-6">
           <GeocodingManager />
-          <MapaCredenciados height="700px" />
+          <MapaUnificado modo="credenciados" height="700px" />
         </TabsContent>
 
         <TabsContent value="densidade" className="mt-6">

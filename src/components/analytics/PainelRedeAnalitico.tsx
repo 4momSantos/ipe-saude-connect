@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, BarChart3, Users, Star, TrendingUp, Activity } from "lucide-react";
-import { MapaRedeComScores } from "./MapaRedeComScores";
+import { MapaUnificado } from "./MapaUnificado";
 import { DashboardKPIsRede } from "./DashboardKPIsRede";
 import { ListaProfissionais } from "./ListaProfissionais";
 import { useEstatisticasRede } from "@/hooks/useRedeAnalitica";
@@ -96,7 +96,7 @@ export function PainelRedeAnalitico() {
         </TabsContent>
         
         <TabsContent value="mapa" className="mt-6">
-          <MapaRedeComScores />
+          <MapaUnificado modo="profissionais" showScores={true} height="600px" />
         </TabsContent>
         
         <TabsContent value="lista" className="mt-6">
