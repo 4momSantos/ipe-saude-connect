@@ -8,6 +8,7 @@ export interface Inscricao {
   status: string;
   motivo_rejeicao: string | null;
   is_rascunho: boolean;
+  protocolo: string | null;
 }
 
 export interface InscricaoData {
@@ -30,7 +31,7 @@ export function useInscricoes() {
       
       const { data, error } = await supabase
         .from('inscricoes_edital')
-        .select('id, edital_id, status, motivo_rejeicao, is_rascunho')
+        .select('id, edital_id, status, motivo_rejeicao, is_rascunho, protocolo')
         .eq('candidato_id', user.id);
       
       if (error) {
@@ -73,7 +74,7 @@ export function useInscricoes() {
             status: inscricaoData.status,
           })
           .eq('id', rascunhoExistente.id)
-          .select('id, edital_id, status, motivo_rejeicao, is_rascunho')
+          .select('id, edital_id, status, motivo_rejeicao, is_rascunho, protocolo')
           .single();
         
         if (error) throw error;
@@ -83,7 +84,7 @@ export function useInscricoes() {
         const { data, error } = await supabase
           .from('inscricoes_edital')
           .insert([inscricaoData])
-          .select('id, edital_id, status, motivo_rejeicao, is_rascunho')
+          .select('id, edital_id, status, motivo_rejeicao, is_rascunho, protocolo')
           .single();
         
         if (error) throw error;

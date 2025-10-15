@@ -1,7 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Calendar, Mail } from "lucide-react";
+import { CheckCircle2, Calendar, Mail, Copy } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 interface SuccessDialogProps {
   open: boolean;
@@ -33,10 +34,22 @@ export function SuccessDialog({
         </DialogHeader>
         
         <div className="space-y-4 py-4">
-          {/* Protocolo */}
+          {/* Protocolo com botão copiar */}
           <div className="bg-muted p-4 rounded-lg">
             <p className="text-sm text-muted-foreground mb-1">Protocolo:</p>
-            <p className="text-lg font-mono font-semibold">{protocolo}</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-lg font-mono font-semibold">{protocolo}</p>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(protocolo);
+                  toast.success('Protocolo copiado para área de transferência!');
+                }}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Data */}

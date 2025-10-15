@@ -13,13 +13,15 @@ import { InscricaoCard } from '@/components/inscricao/InscricaoCard';
 
 interface Inscricao {
   id: string;
+  edital_id: string;
+  candidato_id: string;
   status: string;
   created_at: string;
   updated_at: string;
   is_rascunho: boolean;
-  edital_id: string;
   workflow_execution_id: string | null;
   retry_count: number;
+  protocolo: string | null;
   editais: {
     titulo: string;
     numero_edital: string | null;

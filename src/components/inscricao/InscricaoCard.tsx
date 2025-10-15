@@ -5,16 +5,18 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { RefreshCw, AlertCircle, Eye, Upload, Loader2 } from 'lucide-react';
+import { RefreshCw, AlertCircle, Eye, Upload, Loader2, Copy } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface Inscricao {
   id: string;
   status: string;
   created_at: string;
   retry_count: number;
+  protocolo: string | null;
   editais: {
     titulo: string;
     numero_edital: string | null;
@@ -74,10 +76,31 @@ export function InscricaoCard({ inscricao, onRetry, onView }: InscricaoCardProps
     <Card className={isFailed ? 'border-amber-300 bg-amber-50/50 dark:bg-amber-950/20' : ''}>
       <CardHeader>
         <div className="flex items-start justify-between">
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <CardTitle className="text-lg">
               {inscricao.editais?.titulo || 'Edital não encontrado'}
             </CardTitle>
+            
+            {/* Protocolo */}
+            {inscricao.protocolo && (
+              <div className="flex items-center gap-2 text-sm">
+                <Badge variant="outline" className="font-mono">
+                  {inscricao.protocolo}
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2"
+                  onClick={() => {
+                    navigator.clipboard.writeText(inscricao.protocolo!);
+                    toast.success('Protocolo copiado!');
+                  }}
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
+            
             {ocrsPendentes > 0 && (
               <Badge variant="secondary" className="gap-1">
                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -144,9 +167,13 @@ export function InscricaoCard({ inscricao, onRetry, onView }: InscricaoCardProps
               Reenviar Inscrição
             </Button>
           )}
-          <Button variant="outline" onClick={onView} className="gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate(`/minhas-inscricoes/${inscricao.id}`)} 
+            className="gap-2"
+          >
             <Eye className="h-4 w-4" />
-            Acompanhar Processo
+            Ver Detalhes
           </Button>
         </div>
       </CardContent>
