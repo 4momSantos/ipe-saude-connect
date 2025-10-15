@@ -1,20 +1,42 @@
-import { useState } from 'react';
-import { Search, Filter, Download, Eye, X } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Search, Filter, Download, Eye, X, ArrowUpDown, FolderOpen } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useBuscarDocumentos, FiltrosBusca } from '@/hooks/useBuscarDocumentos';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { useBuscarDocumentos, FiltrosBusca, OrdenacaoTipo } from '@/hooks/useBuscarDocumentos';
+import { useTiposDocumentos } from '@/hooks/useTiposDocumentos';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export function BuscaDocumentos() {
   const [termo, setTermo] = useState('');
-  const [filtros, setFiltros] = useState<FiltrosBusca>({});
+  const [filtros, setFiltros] = useState<FiltrosBusca>({ 
+    ordenacao: 'relevancia',
+    agrupar_por: 'tipo' 
+  });
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   
   const { resultados, isLoading, tempoExecucao, buscar, limpar } = useBuscarDocumentos();
+  const { data: tiposDisponiveis = [] } = useTiposDocumentos();
+
+  // Agrupar resultados por tipo
+  const resultadosAgrupados = useMemo(() => {
+    if (filtros.agrupar_por !== 'tipo') {
+      return { 'Todos': resultados };
+    }
+
+    return resultados.reduce((grupos, doc) => {
+      const tipo = doc.tipo_documento || 'Sem tipo';
+      if (!grupos[tipo]) {
+        grupos[tipo] = [];
+      }
+      grupos[tipo].push(doc);
+      return grupos;
+    }, {} as Record<string, typeof resultados>);
+  }, [resultados, filtros.agrupar_por]);
 
   const handleBuscar = () => {
     if (!termo.trim()) {
@@ -26,7 +48,7 @@ export function BuscaDocumentos() {
 
   const handleLimpar = () => {
     setTermo('');
-    setFiltros({});
+    setFiltros({ ordenacao: 'relevancia', agrupar_por: 'tipo' });
     limpar();
   };
 
@@ -124,7 +146,7 @@ export function BuscaDocumentos() {
 
         {/* Filtros Avançados */}
         {mostrarFiltros && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 pt-4 border-t">
             <Select 
               value={filtros.status} 
               onValueChange={(v) => setFiltros({...filtros, status: v})}
@@ -137,6 +159,22 @@ export function BuscaDocumentos() {
                 <SelectItem value="validado">Validado</SelectItem>
                 <SelectItem value="aprovado">Aprovado</SelectItem>
                 <SelectItem value="rejeitado">Rejeitado</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select 
+              value={filtros.tipo_documento} 
+              onValueChange={(v) => setFiltros({...filtros, tipo_documento: v})}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Tipo de Documento" />
+              </SelectTrigger>
+              <SelectContent>
+                {tiposDisponiveis.map((tipo) => (
+                  <SelectItem key={tipo} value={tipo}>
+                    {tipo}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
@@ -157,69 +195,179 @@ export function BuscaDocumentos() {
         )}
       </Card>
 
+      {/* Controles de Ordenação e Agrupamento */}
+      {resultados.length > 0 && (
+        <Card className="p-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <h3 className="text-lg font-semibold">
+                {resultados.length} resultado{resultados.length !== 1 ? 's' : ''} encontrado{resultados.length !== 1 ? 's' : ''}
+              </h3>
+              <span className="text-sm text-muted-foreground">
+                {tempoExecucao}ms
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Select 
+                value={filtros.ordenacao || 'relevancia'} 
+                onValueChange={(v: OrdenacaoTipo) => {
+                  setFiltros({...filtros, ordenacao: v});
+                  if (termo) buscar(termo, {...filtros, ordenacao: v});
+                }}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <ArrowUpDown className="h-4 w-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="relevancia">Relevância</SelectItem>
+                  <SelectItem value="data_desc">Data (Mais recente)</SelectItem>
+                  <SelectItem value="data_asc">Data (Mais antiga)</SelectItem>
+                  <SelectItem value="nome_asc">Nome (A-Z)</SelectItem>
+                  <SelectItem value="tipo_asc">Tipo (A-Z)</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select 
+                value={filtros.agrupar_por || 'tipo'} 
+                onValueChange={(v: 'tipo' | 'nenhum') => setFiltros({...filtros, agrupar_por: v})}
+              >
+                <SelectTrigger className="w-[160px]">
+                  <FolderOpen className="h-4 w-4 mr-2" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="tipo">Agrupar por Tipo</SelectItem>
+                  <SelectItem value="nenhum">Sem agrupamento</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Resultados */}
       {resultados.length > 0 && (
         <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">
-              {resultados.length} resultado{resultados.length !== 1 ? 's' : ''} encontrado{resultados.length !== 1 ? 's' : ''}
-            </h3>
-            <span className="text-sm text-muted-foreground">
-              {tempoExecucao}ms
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            {resultados.map((doc) => (
-              <Card key={doc.id} className="p-4 hover:bg-accent/50 transition-colors">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 space-y-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-medium truncate">{doc.arquivo_nome}</h4>
-                      <Badge variant={getStatusBadgeVariant(doc.status)}>
-                        {doc.status}
-                      </Badge>
+          {filtros.agrupar_por === 'tipo' ? (
+            <Accordion type="multiple" defaultValue={Object.keys(resultadosAgrupados)} className="space-y-2">
+              {Object.entries(resultadosAgrupados).map(([tipo, docs]) => (
+                <AccordionItem key={tipo} value={tipo} className="border rounded-lg">
+                  <AccordionTrigger className="px-4 hover:no-underline hover:bg-accent/50">
+                    <div className="flex items-center gap-3">
+                      <FolderOpen className="h-5 w-5 text-primary" />
+                      <span className="font-semibold">{tipo}</span>
+                      <Badge variant="secondary">{docs.length}</Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {doc.tipo_documento} • {doc.credenciado_nome} {doc.credenciado_cpf && `(CPF: ${doc.credenciado_cpf})`}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(doc.created_at).toLocaleDateString('pt-BR', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
-                    {doc.snippet && (
-                      <p className="text-sm bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded mt-2 line-clamp-2">
-                        ...{doc.snippet}...
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4 space-y-3">
+                    {docs.map((doc) => (
+                      <Card key={doc.id} className="p-4 hover:bg-accent/50 transition-colors">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 space-y-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className="font-medium truncate">{doc.arquivo_nome}</h4>
+                              <Badge variant={getStatusBadgeVariant(doc.status)}>
+                                {doc.status}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {doc.credenciado_nome} {doc.credenciado_cpf && `(CPF: ${doc.credenciado_cpf})`}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(doc.created_at).toLocaleDateString('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                            {doc.snippet && (
+                              <p className="text-sm bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded mt-2 line-clamp-2">
+                                ...{doc.snippet}...
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex gap-2 flex-shrink-0">
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              onClick={() => visualizarDocumento(doc.arquivo_url, doc.arquivo_nome)}
+                              title="Visualizar documento"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              onClick={() => baixarDocumento(doc.arquivo_url, doc.arquivo_nome)}
+                              title="Baixar documento"
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          ) : (
+            <div className="space-y-3">
+              {resultados.map((doc) => (
+                <Card key={doc.id} className="p-4 hover:bg-accent/50 transition-colors">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 space-y-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="font-medium truncate">{doc.arquivo_nome}</h4>
+                        <Badge variant={getStatusBadgeVariant(doc.status)}>
+                          {doc.status}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {doc.tipo_documento} • {doc.credenciado_nome} {doc.credenciado_cpf && `(CPF: ${doc.credenciado_cpf})`}
                       </p>
-                    )}
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(doc.created_at).toLocaleDateString('pt-BR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                      {doc.snippet && (
+                        <p className="text-sm bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded mt-2 line-clamp-2">
+                          ...{doc.snippet}...
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        onClick={() => visualizarDocumento(doc.arquivo_url, doc.arquivo_nome)}
+                        title="Visualizar documento"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        onClick={() => baixarDocumento(doc.arquivo_url, doc.arquivo_nome)}
+                        title="Baixar documento"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex gap-2 flex-shrink-0">
-                    <Button 
-                      size="sm" 
-                      variant="ghost"
-                      onClick={() => visualizarDocumento(doc.arquivo_url, doc.arquivo_nome)}
-                      title="Visualizar documento"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="ghost"
-                      onClick={() => baixarDocumento(doc.arquivo_url, doc.arquivo_nome)}
-                      title="Baixar documento"
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
+                </Card>
+              ))}
+            </div>
+          )}
         </Card>
       )}
 

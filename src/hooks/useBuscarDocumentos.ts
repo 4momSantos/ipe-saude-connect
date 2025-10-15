@@ -2,12 +2,16 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+export type OrdenacaoTipo = 'relevancia' | 'data_desc' | 'data_asc' | 'nome_asc' | 'tipo_asc';
+
 export interface FiltrosBusca {
   status?: string;
   tipo_documento?: string;
   credenciado_id?: string;
   data_inicio?: string;
   data_fim?: string;
+  ordenacao?: OrdenacaoTipo;
+  agrupar_por?: 'tipo' | 'nenhum';
 }
 
 export interface ResultadoBusca {
@@ -29,6 +33,23 @@ export function useBuscarDocumentos() {
   const [isLoading, setIsLoading] = useState(false);
   const [tempoExecucao, setTempoExecucao] = useState<number>(0);
 
+  const ordenarResultados = (docs: ResultadoBusca[], tipo: OrdenacaoTipo): ResultadoBusca[] => {
+    const sorted = [...docs];
+    switch (tipo) {
+      case 'data_desc':
+        return sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      case 'data_asc':
+        return sorted.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      case 'nome_asc':
+        return sorted.sort((a, b) => a.arquivo_nome.localeCompare(b.arquivo_nome));
+      case 'tipo_asc':
+        return sorted.sort((a, b) => a.tipo_documento.localeCompare(b.tipo_documento));
+      case 'relevancia':
+      default:
+        return sorted.sort((a, b) => b.relevancia - a.relevancia);
+    }
+  };
+
   const buscar = async (termo: string, filtros: FiltrosBusca = {}) => {
     if (!termo.trim()) {
       toast.error('Digite um termo de busca');
@@ -43,7 +64,11 @@ export function useBuscarDocumentos() {
 
       if (error) throw error;
 
-      setResultados(data.data || []);
+      const docs = data.data || [];
+      const ordenacao = filtros.ordenacao || 'relevancia';
+      const docsOrdenados = ordenarResultados(docs, ordenacao);
+      
+      setResultados(docsOrdenados);
       setTempoExecucao(data.meta?.tempo_ms || 0);
       
       const total = data.meta?.total || 0;
