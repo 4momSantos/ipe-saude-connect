@@ -154,6 +154,7 @@ const App = () => (
                       </header>
                       <main className="flex-1 p-6 lg:p-8">
                         <Routes>
+                          <Route path="/" element={<Navigate to="/dashboard" replace />} />
                           <Route path="/dashboard" element={<Dashboard />} />
                           <Route path="/editais" element={<Editais />} />
                           <Route path="/editais/:id" element={<EditalDetail />} />

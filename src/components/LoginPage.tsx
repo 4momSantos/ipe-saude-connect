@@ -20,7 +20,7 @@ export default function LoginPage() {
     // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate("/");
+        navigate("/dashboard");
       }
     });
   }, [navigate]);
@@ -39,7 +39,7 @@ export default function LoginPage() {
 
       if (data.session) {
         toast.success("Login realizado com sucesso!");
-        navigate("/");
+        navigate("/dashboard");
       }
     } catch (error: any) {
       toast.error(error.message || "Erro ao fazer login");
@@ -71,7 +71,7 @@ export default function LoginPage() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/dashboard`,
         },
       });
 
@@ -79,7 +79,7 @@ export default function LoginPage() {
 
       if (data.session) {
         toast.success("Cadastro realizado com sucesso! Você foi registrado como candidato.");
-        navigate("/");
+        navigate("/dashboard");
       } else {
         toast.success("Cadastro realizado como candidato! Verifique seu email para confirmar.");
       }
