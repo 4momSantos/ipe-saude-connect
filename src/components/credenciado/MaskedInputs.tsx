@@ -31,7 +31,7 @@ export const CNPJInput = forwardRef<HTMLInputElement, Omit<MaskedInputProps, 'ma
 CNPJInput.displayName = "CNPJInput";
 
 export const TelefoneInput = forwardRef<HTMLInputElement, Omit<MaskedInputProps, 'mask'>>(
-  (props, ref) => <MaskedInput mask="(99) 99999-9999" placeholder="(00) 00000-0000" {...props} ref={ref} />
+  (props, ref) => <MaskedInput mask="(99) 9999-9999" placeholder="(00) 0000-0000" {...props} ref={ref} />
 );
 TelefoneInput.displayName = "TelefoneInput";
 
