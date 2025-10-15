@@ -47,6 +47,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { RoleGuard } from "@/components/RoleGuard";
 import { useUserRole, UserRole } from "@/hooks/useUserRole";
 import { NotificationBell } from "@/components/NotificationBell";
+import { NotificationCenter } from "@/components/NotificationCenter";
 import { cn } from "@/lib/utils";
 
 type Role = 'candidato' | 'analista' | 'gestor' | 'admin';
@@ -189,7 +190,12 @@ export function AppSidebar() {
                 </div>
               )}
             </div>
-            {!isCollapsed && <NotificationBell />}
+            {!isCollapsed && (
+              <div className="flex items-center gap-2">
+                <NotificationCenter />
+                <NotificationBell />
+              </div>
+            )}
           </div>
         </div>
 
