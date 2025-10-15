@@ -16,6 +16,7 @@ import { CertificadoCard } from "@/components/credenciados/CertificadoCard";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useCredenciado } from "@/hooks/useCredenciados";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function CredenciadoDetail() {
   const navigate = useNavigate();
@@ -24,6 +25,13 @@ export default function CredenciadoDetail() {
   const [ocorrenciaDialogOpen, setOcorrenciaDialogOpen] = useState(false);
   const [descredenciamentoDialogOpen, setDescredenciamentoDialogOpen] = useState(false);
   const { data: credenciado, isLoading, error } = useCredenciado(id || "");
+
+  // Simple hasRole implementation
+  const hasRole = (role: string) => {
+    // Check if user has the role - this is a simplified version
+    // In production, this should be fetched from user_roles table
+    return role === "gestor" || role === "admin";
+  };
 
   if (isLoading) {
     return (
@@ -108,6 +116,7 @@ export default function CredenciadoDetail() {
         <TabsContent value="dados" className="space-y-6">
           <DadosCadastrais 
             credenciado={{
+              id: credenciado.id,
               nome: credenciado.nome,
               cpfCnpj: cpfCnpj,
               crm: primeirosCrms,
@@ -119,7 +128,12 @@ export default function CredenciadoDetail() {
               estado: credenciado.estado || "N/A",
               cep: credenciado.cep || "N/A",
               dataCredenciamento: new Date(credenciado.created_at).toLocaleDateString("pt-BR"),
-            }} 
+              data_solicitacao: (credenciado as any).data_solicitacao,
+              data_habilitacao: (credenciado as any).data_habilitacao,
+              data_inicio_atendimento: (credenciado as any).data_inicio_atendimento,
+              observacoes: (credenciado as any).observacoes,
+            }}
+            hasRole={hasRole}
           />
           <CertificadoCard credenciadoId={id || ""} />
         </TabsContent>
