@@ -5,12 +5,14 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { DateInput } from '@/components/ui/date-input';
+import { CPFInput, RGInput, CRMInput } from '@/components/credenciado/MaskedInputs';
+import { cleanMask } from '@/utils/maskHelpers';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle2, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { useState } from 'react';
-import { validateCRM, validateCPFData, validateNIT, formatCPF } from '@/lib/validators';
+import { validateCRM, validateCPFData, validateNIT } from '@/lib/validators';
 import { toast } from 'sonner';
 import { useValidatedData } from '@/contexts/ValidatedDataContext';
 import type { CPFValidationData, CRMValidationData } from '@/lib/validators';
@@ -67,8 +69,9 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
     setBirthDateMismatch(false);
 
     try {
+      const cleanedCpf = cleanMask(cpf);
       const result = await validateCPFData(
-        cpf,
+        cleanedCpf,
         format(dataNascimento, 'yyyy-MM-dd'),
         cpfAbortControllerRef.current.signal
       );
@@ -130,7 +133,7 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
       
       try {
         const nitResult = await validateNIT(
-          cpf,
+          cleanedCpf,
           result.data.nome,
           format(dataNascimento, 'yyyy-MM-dd'),
           cpfAbortControllerRef.current.signal
@@ -180,7 +183,7 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
   };
 
   const handleValidateCRM = async () => {
-    const crm = form.getValues('crm');
+    const crm = cleanMask(form.getValues('crm'));
     const uf = form.getValues('uf_crm');
 
     if (!crm || !uf) {
@@ -265,12 +268,10 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
                 <FormLabel>CPF *</FormLabel>
                 <div className="space-y-2">
                   <FormControl>
-                    <Input
+                    <CPFInput
                       {...field}
-                      placeholder="000.000.000-00"
-                      maxLength={14}
                       onChange={(e) => {
-                        field.onChange(formatCPF(e.target.value));
+                        field.onChange(e.target.value);
                         setCpfState({ status: 'idle' });
                         setBirthDateMismatch(false);
                       }}
@@ -416,7 +417,7 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
               <FormItem>
                 <FormLabel>RG *</FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="00.000.000-0" />
+                  <RGInput {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -496,11 +497,10 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
                 <FormLabel>CRM *</FormLabel>
                 <div className="space-y-2">
                   <FormControl>
-                    <Input
+                    <CRMInput
                       {...field}
-                      placeholder="12345"
                       onChange={(e) => {
-                        field.onChange(e);
+                        field.onChange(e.target.value);
                         setCrmState({ status: 'idle' });
                       }}
                     />

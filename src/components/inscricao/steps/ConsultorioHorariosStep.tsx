@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TelefoneInput, CelularInput } from '@/components/credenciado/MaskedInputs';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Trash2, Clock, Sparkles } from 'lucide-react';
@@ -86,7 +87,7 @@ export function ConsultorioHorariosStep({ form, editalId }: ConsultorioHorariosS
                 <FormItem>
                   <FormLabel>Telefone *</FormLabel>
                   <FormControl>
-                    <Input placeholder="(51) 3000-0000" {...field} />
+                    <TelefoneInput {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -100,7 +101,7 @@ export function ConsultorioHorariosStep({ form, editalId }: ConsultorioHorariosS
                 <FormItem>
                   <FormLabel>Celular *</FormLabel>
                   <FormControl>
-                    <Input placeholder="(51) 99999-9999" {...field} />
+                    <CelularInput {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -151,7 +152,7 @@ export function ConsultorioHorariosStep({ form, editalId }: ConsultorioHorariosS
                 <FormItem>
                   <FormLabel>Telefone do Consultório *</FormLabel>
                   <FormControl>
-                    <Input placeholder="(51) 3000-0000" {...field} />
+                    <TelefoneInput {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

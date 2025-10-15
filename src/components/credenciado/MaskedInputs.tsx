@@ -49,3 +49,13 @@ export const CRMInput = forwardRef<HTMLInputElement, Omit<MaskedInputProps, 'mas
   (props, ref) => <MaskedInput mask="9999999" placeholder="0000000" {...props} ref={ref} />
 );
 CRMInput.displayName = "CRMInput";
+
+export const RGInput = forwardRef<HTMLInputElement, Omit<MaskedInputProps, 'mask'>>(
+  (props, ref) => <MaskedInput mask="99.999.999-*" placeholder="00.000.000-0" {...props} ref={ref} />
+);
+RGInput.displayName = "RGInput";
+
+export const CelularInput = forwardRef<HTMLInputElement, Omit<MaskedInputProps, 'mask'>>(
+  (props, ref) => <MaskedInput mask="(99) 99999-9999" placeholder="(00) 00000-0000" {...props} ref={ref} />
+);
+CelularInput.displayName = "CelularInput";

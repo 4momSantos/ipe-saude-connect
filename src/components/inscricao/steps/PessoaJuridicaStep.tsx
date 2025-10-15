@@ -18,6 +18,9 @@ import { CheckCircle2, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
 import { validateCNPJData } from '@/lib/validators';
 import { toast } from 'sonner';
+import { CNPJInput, CEPInput, TelefoneInput, CelularInput } from '@/components/credenciado/MaskedInputs';
+import { formatCNPJ, formatCEP, formatPhone } from '@/utils/formatters';
+import { cleanMask } from '@/utils/maskHelpers';
 
 interface PessoaJuridicaStepProps {
   form: UseFormReturn<InscricaoCompletaForm>;
@@ -31,7 +34,7 @@ export function PessoaJuridicaStep({ form }: PessoaJuridicaStepProps) {
   const handleValidateCNPJ = async () => {
     const cnpj = form.getValues('cnpj');
 
-    if (!cnpj) {
+    if (!cnpj || cleanMask(cnpj).length < 14) {
       toast.error('Por favor, insira o CNPJ');
       return;
     }
@@ -40,11 +43,13 @@ export function PessoaJuridicaStep({ form }: PessoaJuridicaStepProps) {
     setCnpjInactive(false);
 
     try {
-      const result = await validateCNPJData(cnpj);
+      const cleanedCnpj = cleanMask(cnpj);
+      const result = await validateCNPJData(cleanedCnpj);
 
       if (result.valid && result.data) {
         // Auto-preencher dados
         form.setValue('denominacao_social', result.data.razao_social, { shouldValidate: true });
+        form.setValue('cnpj', formatCNPJ(cleanedCnpj), { shouldValidate: true });
         
         // Preencher endereço
         if (result.data.endereco) {
@@ -54,15 +59,17 @@ export function PessoaJuridicaStep({ form }: PessoaJuridicaStepProps) {
           form.setValue('bairro', result.data.endereco.bairro || '', { shouldValidate: true });
           form.setValue('cidade', result.data.endereco.cidade || '', { shouldValidate: true });
           form.setValue('estado', result.data.endereco.estado || '', { shouldValidate: true });
-          form.setValue('cep', result.data.endereco.cep || '', { shouldValidate: true });
+          if (result.data.endereco.cep) {
+            form.setValue('cep', formatCEP(result.data.endereco.cep), { shouldValidate: true });
+          }
         }
 
         // Preencher telefones se disponíveis
         if (result.data.telefone_1) {
-          form.setValue('telefone', result.data.telefone_1, { shouldValidate: true });
+          form.setValue('telefone', formatPhone(result.data.telefone_1), { shouldValidate: true });
         }
         if (result.data.telefone_2 && !form.getValues('celular')) {
-          form.setValue('celular', result.data.telefone_2, { shouldValidate: true });
+          form.setValue('celular', formatPhone(result.data.telefone_2), { shouldValidate: true });
         }
         
         // Preencher email se disponível
@@ -111,21 +118,13 @@ export function PessoaJuridicaStep({ form }: PessoaJuridicaStepProps) {
               <FormLabel>CNPJ *</FormLabel>
               <div className="space-y-2">
                 <FormControl>
-                  <Input
-                    placeholder="00.000.000/0000-00"
+                  <CNPJInput
                     {...field}
                     onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, '');
-                      const formatted = value
-                        .replace(/(\d{2})(\d)/, '$1.$2')
-                        .replace(/(\d{3})(\d)/, '$1.$2')
-                        .replace(/(\d{3})(\d)/, '$1/$2')
-                        .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
-                      field.onChange(formatted);
+                      field.onChange(e.target.value);
                       setCnpjValidated(false);
                       setCnpjInactive(false);
                     }}
-                    maxLength={18}
                   />
                 </FormControl>
                 {cnpjValidated && (
@@ -335,16 +334,7 @@ export function PessoaJuridicaStep({ form }: PessoaJuridicaStepProps) {
                   <FormLabel>CEP *</FormLabel>
                   <div className="space-y-2">
                     <FormControl>
-                      <Input
-                        placeholder="90000-000"
-                        {...field}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, '');
-                          const formatted = value.replace(/(\d{5})(\d{1,3})$/, '$1-$2');
-                          field.onChange(formatted);
-                        }}
-                        maxLength={9}
-                      />
+                      <CEPInput {...field} />
                     </FormControl>
                     {cnpjValidated && field.value && (
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -374,7 +364,7 @@ export function PessoaJuridicaStep({ form }: PessoaJuridicaStepProps) {
                 <FormLabel>Telefone *</FormLabel>
                 <div className="space-y-2">
                   <FormControl>
-                    <Input placeholder="(51) 3000-0000" {...field} />
+                    <TelefoneInput {...field} />
                   </FormControl>
                   {cnpjValidated && field.value && (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -396,7 +386,7 @@ export function PessoaJuridicaStep({ form }: PessoaJuridicaStepProps) {
                 <FormLabel>Celular *</FormLabel>
                 <div className="space-y-2">
                   <FormControl>
-                    <Input placeholder="(51) 99999-9999" {...field} />
+                    <CelularInput {...field} />
                   </FormControl>
                   {cnpjValidated && field.value && (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">

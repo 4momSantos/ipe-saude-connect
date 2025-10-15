@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { cleanMask, validateCPFMask, validateCNPJMask, validatePhoneMask, validateCEPMask } from '@/utils/maskHelpers';
 
 // Validação de CPF
 const validateCPF = (cpf: string) => {
@@ -53,8 +54,8 @@ const validateCNPJ = (cnpj: string) => {
 export const dadosPessoaisSchema = z.object({
   cpf: z.string()
     .min(1, 'CPF é obrigatório')
-    .transform(val => val.replace(/\D/g, ''))
-    .refine(validateCPF, 'CPF inválido'),
+    .refine((val) => validateCPF(cleanMask(val)), 'CPF inválido')
+    .transform(cleanMask),
   data_nascimento: z.date({ required_error: 'Data de nascimento é obrigatória' })
     .refine((date) => {
       const today = new Date();
@@ -74,7 +75,9 @@ export const dadosPessoaisSchema = z.object({
   orgao_emissor: z.string().min(2, 'Órgão emissor é obrigatório'),
   sexo: z.enum(['M', 'F'], { required_error: 'Sexo é obrigatório' }),
   nit_pis_pasep: z.string().optional(),
-  crm: z.string().min(4, 'CRM deve ter no mínimo 4 caracteres'),
+  crm: z.string()
+    .min(1, 'CRM é obrigatório')
+    .transform(cleanMask),
   uf_crm: z.string().length(2, 'UF deve ter 2 caracteres'),
   instituicao_graduacao: z.string().optional(),
   ano_formatura: z.number().optional(),
@@ -83,8 +86,8 @@ export const dadosPessoaisSchema = z.object({
 export const pessoaJuridicaSchema = z.object({
   cnpj: z.string()
     .min(1, 'CNPJ é obrigatório')
-    .transform(val => val.replace(/\D/g, ''))
-    .refine(validateCNPJ, 'CNPJ inválido'),
+    .refine((val) => validateCNPJ(cleanMask(val)), 'CNPJ inválido')
+    .transform(cleanMask),
   denominacao_social: z.string().min(3, 'Denominação social é obrigatória'),
   logradouro: z.string().min(3, 'Logradouro é obrigatório'),
   numero: z.string().min(1, 'Número é obrigatório'),
@@ -92,9 +95,18 @@ export const pessoaJuridicaSchema = z.object({
   bairro: z.string().min(2, 'Bairro é obrigatório'),
   cidade: z.string().min(2, 'Cidade é obrigatória'),
   estado: z.string().length(2, 'UF deve ter 2 caracteres'),
-  cep: z.string().regex(/^\d{5}-?\d{3}$/, 'CEP inválido'),
-  telefone: z.string().min(10, 'Telefone é obrigatório'),
-  celular: z.string().min(10, 'Celular é obrigatório'),
+  cep: z.string()
+    .min(1, 'CEP é obrigatório')
+    .refine(validateCEPMask, 'CEP inválido')
+    .transform(cleanMask),
+  telefone: z.string()
+    .min(1, 'Telefone é obrigatório')
+    .refine(validatePhoneMask, 'Telefone inválido')
+    .transform(cleanMask),
+  celular: z.string()
+    .min(1, 'Celular é obrigatório')
+    .refine((val) => cleanMask(val).length === 11, 'Celular deve ter 11 dígitos')
+    .transform(cleanMask),
   banco_agencia: z.string().min(3, 'Agência Banrisul é obrigatória'),
   banco_conta: z.string().min(3, 'Conta Banrisul é obrigatória'),
   optante_simples: z.boolean(),
@@ -103,8 +115,14 @@ export const pessoaJuridicaSchema = z.object({
 
 export const enderecoCorrespondenciaSchema = z.object({
   endereco_correspondencia: z.string().min(5, 'Endereço é obrigatório'),
-  telefone_correspondencia: z.string().min(10, 'Telefone é obrigatório'),
-  celular_correspondencia: z.string().min(10, 'Celular é obrigatório'),
+  telefone_correspondencia: z.string()
+    .min(1, 'Telefone é obrigatório')
+    .refine(validatePhoneMask, 'Telefone inválido')
+    .transform(cleanMask),
+  celular_correspondencia: z.string()
+    .min(1, 'Celular é obrigatório')
+    .refine((val) => cleanMask(val).length === 11, 'Celular deve ter 11 dígitos')
+    .transform(cleanMask),
   email_correspondencia: z.string().email('Email inválido'),
 });
 
@@ -121,7 +139,10 @@ export const consultorioHorariosSchema = z.object({
   quantidade_consultas_minima: z.number().min(1, 'Mínimo 1 consulta'),
   atendimento_hora_marcada: z.boolean(),
   endereco_consultorio: z.string().min(5, 'Endereço do consultório é obrigatório'),
-  telefone_consultorio: z.string().min(10, 'Telefone é obrigatório'),
+  telefone_consultorio: z.string()
+    .min(1, 'Telefone é obrigatório')
+    .refine(validatePhoneMask, 'Telefone inválido')
+    .transform(cleanMask),
   ramal: z.string().optional(),
   horarios: z.array(horarioAtendimento).min(1, 'Pelo menos um horário de atendimento é obrigatório'),
 });
