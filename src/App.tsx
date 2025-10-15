@@ -53,6 +53,8 @@ import GerenciarModelosJustificativa from "./pages/GerenciarModelosJustificativa
 import MeusDadosLGPD from "./pages/MeusDadosLGPD";
 import TesteAssinafy from "./pages/TesteAssinafy";
 import Prazos from "./pages/Prazos";
+import RegularidadeCadastral from "./pages/RegularidadeCadastral";
+import ValidarCertificado from "./pages/ValidarCertificado";
 const BuscaDocumentos = lazy(() => import("./pages/BuscaDocumentos"));
 import DebugFluxoCredenciamento from "./pages/admin/DebugFluxoCredenciamento";
 import ProcessarContratosOrfaos from "./pages/admin/ProcessarContratosOrfaos";
@@ -124,6 +126,8 @@ const App = () => (
         <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/verificar-certificado/:numero" element={<VerificarCertificado />} />
+            <Route path="/validar-certificado" element={<ValidarCertificado />} />
+            <Route path="/validar-certificado/:codigo" element={<ValidarCertificado />} />
             <Route
               path="/*"
               element={
@@ -172,6 +176,7 @@ const App = () => (
                           <Route path="/credenciados/:id" element={<CredenciadoDetail />} />
                           <Route path="/credenciados/:id/situacao" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin', 'analista']}><SituacaoCadastral /></RoleProtectedRoute>} />
                           <Route path="/prazos" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin', 'analista']}><Prazos /></RoleProtectedRoute>} />
+                          <Route path="/credenciados/:id/regularidade" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin', 'analista']}><RegularidadeCadastral /></RoleProtectedRoute>} />
                           <Route path="/busca-documentos" element={<RoleProtectedRoute requiredRoles={['analista', 'gestor', 'admin']}><Suspense fallback={<div>Carregando...</div>}><BuscaDocumentos /></Suspense></RoleProtectedRoute>} />
                           <Route path="/contratos" element={<RoleProtectedRoute requiredRoles={['analista', 'gestor', 'admin']}><Contratos /></RoleProtectedRoute>} />
                           <Route path="/fluxo-credenciamento/:inscricaoId" element={<FluxoCredenciamentoPage />} />

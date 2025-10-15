@@ -90,3 +90,9 @@ verify_jwt = false
 [functions.atualizar-prazos-diario]
 verify_jwt = false
 
+[functions.emitir-certificado-regularidade]
+verify_jwt = true
+
+[functions.consultar-certificado-publico]
+verify_jwt = false
+
