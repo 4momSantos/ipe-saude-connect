@@ -37,6 +37,7 @@ type StatusType = "em_analise" | "aguardando_analise" | "aprovado" | "pendente" 
 interface Processo {
   id: string;
   protocolo: string;
+  numeroEdital: string;
   nome: string;
   especialidade: string;
   dataSubmissao: string;
@@ -87,6 +88,7 @@ export default function Analises() {
           dados_inscricao,
           analisado_por,
           workflow_execution_id,
+          protocolo,
           editais (
             titulo,
             numero_edital,
@@ -144,7 +146,8 @@ export default function Analises() {
           
           return {
             id: inscricao.id,
-            protocolo: inscricao.editais?.numero_edital || `INS-${inscricao.id.substring(0, 8)}`,
+            protocolo: inscricao.protocolo || `IPE-TEMP-${inscricao.id.substring(0, 8)}`,
+            numeroEdital: inscricao.editais?.numero_edital || 'N/A',
             nome,
             especialidade: especialidadesNomes.join(', ') || inscricao.editais?.especialidade || "Não informada",
             dataSubmissao: inscricao.created_at,
@@ -180,7 +183,8 @@ export default function Analises() {
     const matchBusca =
       busca === "" ||
       processo.nome.toLowerCase().includes(busca.toLowerCase()) ||
-      processo.protocolo.includes(busca);
+      processo.protocolo.toLowerCase().includes(busca.toLowerCase()) ||
+      processo.numeroEdital.toLowerCase().includes(busca.toLowerCase());
     return matchStatus && matchEspecialidade && matchBusca;
   });
 
@@ -296,7 +300,7 @@ export default function Analises() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por nome ou protocolo..."
+                  placeholder="Buscar por nome, protocolo ou edital..."
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
                   className="pl-10 bg-background"
@@ -338,7 +342,8 @@ export default function Analises() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                  <TableHead>Protocolo</TableHead>
+                    <TableHead>Protocolo</TableHead>
+                    <TableHead>Edital</TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>Especialidade</TableHead>
                     <TableHead>Data Submissão</TableHead>
@@ -384,6 +389,7 @@ export default function Analises() {
                       onClick={() => setProcessoSelecionado(processo)}
                     >
                       <TableCell className="font-mono text-sm">{processo.protocolo}</TableCell>
+                      <TableCell className="text-sm">{processo.numeroEdital}</TableCell>
                       <TableCell className="font-medium">{processo.nome}</TableCell>
                       <TableCell>{processo.especialidade}</TableCell>
                       <TableCell>

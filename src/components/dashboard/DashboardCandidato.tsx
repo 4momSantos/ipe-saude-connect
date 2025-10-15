@@ -2,16 +2,20 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { MetricCard } from "@/components/MetricCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Clock, CheckCircle, XCircle } from "lucide-react";
+import { FileText, Clock, CheckCircle, XCircle, Copy } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { format } from "date-fns";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface Inscricao {
   id: string;
   status: string;
   created_at: string;
+  protocolo?: string;
   editais: {
     titulo: string;
     especialidade: string | null;
@@ -37,6 +41,7 @@ export function DashboardCandidato() {
           id,
           status,
           created_at,
+          protocolo,
           editais (titulo, especialidade)
         `)
         .eq('candidato_id', user.id)
@@ -80,6 +85,43 @@ export function DashboardCandidato() {
         <h1 className="text-3xl font-bold text-foreground">Minhas Inscrições</h1>
         <p className="text-muted-foreground">Acompanhe o status das suas candidaturas</p>
       </div>
+
+      {/* Card de Protocolos */}
+      {inscricoes.length > 0 && inscricoes.slice(0, 3).some(i => i.protocolo) && (
+        <Card className="border-2 border-primary/20 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Seus Protocolos de Inscrição
+            </CardTitle>
+            <CardDescription>Números de protocolo para acompanhamento</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {inscricoes.slice(0, 3).map(insc => insc.protocolo && (
+                <div key={insc.id} className="flex items-center justify-between p-3 border rounded-lg bg-background">
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">{insc.editais?.titulo}</p>
+                    <Badge variant="outline" className="font-mono mt-1">
+                      {insc.protocolo}
+                    </Badge>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(insc.protocolo!);
+                      toast.success('Protocolo copiado!');
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
