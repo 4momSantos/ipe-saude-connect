@@ -736,15 +736,7 @@ export type Database = {
           tipo_consulta?: string
           user_agent?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "certificados_consultas_publicas_certificado_id_fkey"
-            columns: ["certificado_id"]
-            isOneToOne: false
-            referencedRelation: "certificados_regularidade"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       certificados_historico: {
         Row: {
@@ -909,6 +901,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "certificados_regularidade_cancelado_por_fkey"
+            columns: ["cancelado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "certificados_regularidade_credenciado_id_fkey"
             columns: ["credenciado_id"]
             isOneToOne: false
@@ -934,6 +933,13 @@ export type Database = {
             columns: ["credenciado_id"]
             isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificados_regularidade_emitido_por_fkey"
+            columns: ["emitido_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
