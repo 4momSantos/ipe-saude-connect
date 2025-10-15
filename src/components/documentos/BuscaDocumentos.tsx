@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Search, Filter, Download, Eye, X, ArrowUpDown, FolderOpen, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -16,12 +16,17 @@ import { DocumentoItem } from './DocumentoItem';
 export function BuscaDocumentos() {
   const [termo, setTermo] = useState('');
   const [filtros, setFiltros] = useState<FiltrosBusca>({ 
-    ordenacao: 'relevancia',
+    ordenacao: 'data_desc',
     agrupar_por: 'credenciado' 
   });
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   
   const { resultados, credenciadosAgrupados, isLoading, tempoExecucao, buscar, limpar } = useBuscarDocumentos();
+
+  // Busca inicial ao carregar - mostra todos os documentos
+  useEffect(() => {
+    buscar('', { ...filtros, ordenacao: 'data_desc' });
+  }, []);
   const { data: tiposDisponiveis = [] } = useTiposDocumentos();
 
   // Agrupar resultados por tipo
@@ -41,10 +46,6 @@ export function BuscaDocumentos() {
   }, [resultados, filtros.agrupar_por]);
 
   const handleBuscar = () => {
-    if (!termo.trim()) {
-      toast.error('Digite um termo de busca');
-      return;
-    }
     buscar(termo, filtros);
   };
 
@@ -320,12 +321,14 @@ export function BuscaDocumentos() {
       )}
 
       {/* Estado vazio */}
-      {!isLoading && resultados.length === 0 && termo && (
+      {!isLoading && resultados.length === 0 && (
         <Card className="p-12 text-center">
           <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Nenhum documento encontrado</h3>
+          <h3 className="text-lg font-semibold mb-2">
+            {termo ? 'Nenhum documento encontrado' : 'Nenhum documento disponível'}
+          </h3>
           <p className="text-sm text-muted-foreground">
-            Tente ajustar os termos de busca ou os filtros
+            {termo ? 'Tente ajustar os termos de busca ou os filtros' : 'Não há documentos cadastrados no sistema'}
           </p>
         </Card>
       )}
