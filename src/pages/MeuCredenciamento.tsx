@@ -200,7 +200,7 @@ export default function MeuCredenciamento() {
             </CardHeader>
             <CardContent>
               <Button 
-                onClick={() => gerarExtrato.mutate()}
+                onClick={() => gerarExtrato.mutate(undefined)}
                 disabled={gerarExtrato.isPending}
                 variant="outline"
                 className="w-full"
@@ -235,7 +235,7 @@ export default function MeuCredenciamento() {
             </CardHeader>
             <CardContent>
               <Button 
-                onClick={() => gerarDeclaracao.mutate()}
+                onClick={() => gerarDeclaracao.mutate(undefined)}
                 disabled={gerarDeclaracao.isPending}
                 variant="outline"
                 className="w-full"

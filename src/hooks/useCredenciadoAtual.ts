@@ -15,7 +15,9 @@ export function useCredenciadoAtual() {
           nome,
           cpf,
           cnpj,
+          email,
           status,
+          created_at,
           inscricao_id,
           inscricoes_edital!inner(candidato_id)
         `)
