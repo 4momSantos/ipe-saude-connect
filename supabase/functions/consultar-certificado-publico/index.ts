@@ -62,18 +62,19 @@ serve(async (req) => {
 
     console.log(`[CONSULTA_PUBLICA] Tipo: ${tipo}, Valor: ${valor}`);
 
-    // Chamar função SQL
-    const { data, error } = await supabase
+    // Chamar função SQL (retorna array, pega primeiro elemento)
+    const { data: resultArray, error } = await supabase
       .rpc('consultar_certificado_publico', {
         p_tipo: tipo,
         p_valor: valor.toUpperCase()
-      })
-      .single();
+      });
 
     if (error) {
       console.error('[CONSULTA_PUBLICA] Erro:', error);
       throw error;
     }
+
+    const data = resultArray?.[0] || null;
 
     // Registrar log
     const userAgent = req.headers.get('user-agent');
