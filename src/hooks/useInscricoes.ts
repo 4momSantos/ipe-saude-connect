@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { cleanInscricaoData } from '@/utils/cleanInscricaoData';
 
 export interface Inscricao {
   id: string;
@@ -54,6 +55,10 @@ export function useInscricoes() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
+      // ✅ Limpar máscaras dos dados antes de salvar
+      const dadosLimpos = cleanInscricaoData(inscricaoData.dados_inscricao);
+      console.log('[useInscricoes] Dados limpos (sem máscaras):', dadosLimpos);
+
       // Buscar rascunho existente
       const { data: rascunhoExistente } = await supabase
         .from('inscricoes_edital')
@@ -69,7 +74,7 @@ export function useInscricoes() {
         const { data, error } = await supabase
           .from('inscricoes_edital')
           .update({
-            dados_inscricao: inscricaoData.dados_inscricao,
+            dados_inscricao: dadosLimpos,
             is_rascunho: false,
             status: inscricaoData.status,
           })
@@ -83,7 +88,10 @@ export function useInscricoes() {
         // Criar nova inscrição
         const { data, error } = await supabase
           .from('inscricoes_edital')
-          .insert([inscricaoData])
+          .insert([{
+            ...inscricaoData,
+            dados_inscricao: dadosLimpos,
+          }])
           .select('id, edital_id, status, motivo_rejeicao, is_rascunho, protocolo')
           .single();
         
