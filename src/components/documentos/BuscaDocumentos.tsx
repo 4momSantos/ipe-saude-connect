@@ -67,7 +67,18 @@ export function BuscaDocumentos() {
       if (error) throw error;
       
       if (data?.signedUrl) {
-        window.open(data.signedUrl, '_blank');
+        // Tentar abrir em nova aba
+        const newWindow = window.open(data.signedUrl, '_blank');
+        
+        // Se bloqueado por popup blocker ou extensão, fazer download automaticamente
+        if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+          toast.info('Popup bloqueado. Iniciando download...', {
+            description: 'Desative bloqueadores de popup ou extensões de privacidade para visualizar diretamente'
+          });
+          
+          // Fazer download como alternativa
+          await baixarDocumento(arquivoUrl, nome);
+        }
       }
     } catch (error: any) {
       console.error('Erro ao visualizar documento:', error);
