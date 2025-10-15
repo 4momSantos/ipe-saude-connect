@@ -371,9 +371,9 @@ export function DocumentosAnalistaView({ inscricaoId }: DocumentosAnalistaViewPr
               onClick={handleAprovarInscricao}
               disabled={isAnalisando || isGerandoContrato}
             >
-              {isAnalisando || isGerandoContrato ? 'Processando...' : 'Confirmar Aprovação'}
+            {isAnalisando || isGerandoContrato ? 'Processando...' : 'Confirmar Aprovação'}
             </AlertDialogAction>
-            </AlertDialogFooter>
+          </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
 
