@@ -9,6 +9,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Menu } from "lucide-react";
 import { SidebarWidthObserver } from "@/components/SidebarWidthObserver";
+import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Inscricoes from "./pages/Inscricoes";
 import DocumentosRejeitados from "./pages/DocumentosRejeitados";
@@ -55,6 +56,7 @@ import TesteAssinafy from "./pages/TesteAssinafy";
 import Prazos from "./pages/Prazos";
 import RegularidadeCadastral from "./pages/RegularidadeCadastral";
 import ValidarCertificado from "./pages/ValidarCertificado";
+import TesteCertificados from "./pages/TesteCertificados";
 const BuscaDocumentos = lazy(() => import("./pages/BuscaDocumentos"));
 import DebugFluxoCredenciamento from "./pages/admin/DebugFluxoCredenciamento";
 import ProcessarContratosOrfaos from "./pages/admin/ProcessarContratosOrfaos";
@@ -124,10 +126,14 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+            <Route path="/" element={<Index />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/verificar-certificado/:numero" element={<VerificarCertificado />} />
             <Route path="/validar-certificado" element={<ValidarCertificado />} />
             <Route path="/validar-certificado/:codigo" element={<ValidarCertificado />} />
+            {import.meta.env.DEV && (
+              <Route path="/teste-certificados" element={<RoleProtectedRoute requiredRoles={['admin', 'gestor']}><TesteCertificados /></RoleProtectedRoute>} />
+            )}
             <Route
               path="/*"
               element={
@@ -147,7 +153,7 @@ const App = () => (
                       </header>
                       <main className="flex-1 p-6 lg:p-8">
                         <Routes>
-                          <Route path="/" element={<Dashboard />} />
+                          <Route path="/dashboard" element={<Dashboard />} />
                           <Route path="/editais" element={<Editais />} />
                           <Route path="/editais/:id" element={<EditalDetail />} />
                           <Route path="/editais/criar" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><CriarEdital /></RoleProtectedRoute>} />
@@ -176,6 +182,7 @@ const App = () => (
                           <Route path="/credenciados/:id" element={<CredenciadoDetail />} />
                           <Route path="/credenciados/:id/situacao" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin', 'analista']}><SituacaoCadastral /></RoleProtectedRoute>} />
                           <Route path="/prazos" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin', 'analista']}><Prazos /></RoleProtectedRoute>} />
+                          <Route path="/meu-certificado" element={<RegularidadeCadastral />} />
                           <Route path="/credenciados/:id/regularidade" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin', 'analista']}><RegularidadeCadastral /></RoleProtectedRoute>} />
                           <Route path="/busca-documentos" element={<RoleProtectedRoute requiredRoles={['analista', 'gestor', 'admin']}><Suspense fallback={<div>Carregando...</div>}><BuscaDocumentos /></Suspense></RoleProtectedRoute>} />
                           <Route path="/contratos" element={<RoleProtectedRoute requiredRoles={['analista', 'gestor', 'admin']}><Contratos /></RoleProtectedRoute>} />

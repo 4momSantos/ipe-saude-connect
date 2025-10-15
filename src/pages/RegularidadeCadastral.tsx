@@ -3,17 +3,21 @@ import { useParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useStatusRegularidade, useEmitirCertificado, useHistoricoCertificados } from "@/hooks/useCertificadoRegularidade";
+import { useCredenciadoAtual } from "@/hooks/useCredenciadoAtual";
 import { ModalVisualizarPendencias } from "@/components/ModalVisualizarPendencias";
-import { FileText, Calendar, AlertTriangle, CheckCircle, FileCheck, Download, ExternalLink } from "lucide-react";
+import { FileText, Calendar, AlertTriangle, CheckCircle, FileCheck, Download, ExternalLink, AlertCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export default function RegularidadeCadastral() {
-  const { id } = useParams();
-  const credenciadoId = id || "";
+  const { id: idParam } = useParams();
+  const { data: credenciadoAtual, isLoading: loadingCredenciado, error: errorCredenciado } = useCredenciadoAtual();
+  
+  const credenciadoId = idParam || credenciadoAtual?.id || "";
+  const isGestor = !!idParam;
   
   const [modalPendenciasOpen, setModalPendenciasOpen] = useState(false);
   
@@ -24,6 +28,37 @@ export default function RegularidadeCadastral() {
   const handleEmitir = (forcar = false) => {
     emitir({ credenciadoId, forcarEmissao: forcar });
   };
+
+  if (!idParam && loadingCredenciado) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  if (!idParam && errorCredenciado) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Credenciado não encontrado</AlertTitle>
+        <AlertDescription>
+          Você não está vinculado a nenhum credenciamento. Entre em contato com o suporte.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (!credenciadoId) {
+    return (
+      <Alert variant="destructive">
+        <AlertDescription>
+          ID do credenciado não encontrado.
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   if (loadingStatus) {
     return (
