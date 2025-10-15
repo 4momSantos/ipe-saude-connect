@@ -1350,6 +1350,135 @@ export type Database = {
           },
         ]
       }
+      credenciado_servicos: {
+        Row: {
+          aceita_sus: boolean | null
+          created_at: string | null
+          created_by: string | null
+          credenciado_id: string
+          dias_atendimento: string[] | null
+          disponivel: boolean | null
+          disponivel_online: boolean | null
+          horario_fim: string | null
+          horario_inicio: string | null
+          id: string
+          local_atendimento: string | null
+          observacoes: string | null
+          preco_base: number | null
+          preco_convenio: number | null
+          preco_particular: number | null
+          prioridade: number | null
+          procedimento_id: string
+          profissional_id: string | null
+          requisitos: string | null
+          tempo_espera_medio: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          aceita_sus?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          credenciado_id: string
+          dias_atendimento?: string[] | null
+          disponivel?: boolean | null
+          disponivel_online?: boolean | null
+          horario_fim?: string | null
+          horario_inicio?: string | null
+          id?: string
+          local_atendimento?: string | null
+          observacoes?: string | null
+          preco_base?: number | null
+          preco_convenio?: number | null
+          preco_particular?: number | null
+          prioridade?: number | null
+          procedimento_id: string
+          profissional_id?: string | null
+          requisitos?: string | null
+          tempo_espera_medio?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          aceita_sus?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          credenciado_id?: string
+          dias_atendimento?: string[] | null
+          disponivel?: boolean | null
+          disponivel_online?: boolean | null
+          horario_fim?: string | null
+          horario_inicio?: string | null
+          id?: string
+          local_atendimento?: string | null
+          observacoes?: string | null
+          preco_base?: number | null
+          preco_convenio?: number | null
+          preco_particular?: number | null
+          prioridade?: number | null
+          procedimento_id?: string
+          profissional_id?: string | null
+          requisitos?: string | null
+          tempo_espera_medio?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credenciado_servicos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+          {
+            foreignKeyName: "credenciado_servicos_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credenciado_servicos_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "credenciado_servicos_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "credenciado_servicos_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credenciado_servicos_procedimento_id_fkey"
+            columns: ["procedimento_id"]
+            isOneToOne: false
+            referencedRelation: "mv_catalogo_servicos"
+            referencedColumns: ["procedimento_id"]
+          },
+          {
+            foreignKeyName: "credenciado_servicos_procedimento_id_fkey"
+            columns: ["procedimento_id"]
+            isOneToOne: false
+            referencedRelation: "procedimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credenciado_servicos_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "profissionais_credenciados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credenciados: {
         Row: {
           categoria_id: string | null
@@ -3137,6 +3266,69 @@ export type Database = {
             columns: ["origem_documento_id"]
             isOneToOne: false
             referencedRelation: "inscricao_documentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      procedimentos: {
+        Row: {
+          ativo: boolean | null
+          categoria: string | null
+          codigo_tuss: string | null
+          complexidade: string | null
+          created_at: string | null
+          created_by: string | null
+          descricao: string | null
+          duracao_media: number | null
+          especialidade_id: string | null
+          id: string
+          nome: string
+          tipo: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          categoria?: string | null
+          codigo_tuss?: string | null
+          complexidade?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          duracao_media?: number | null
+          especialidade_id?: string | null
+          id?: string
+          nome: string
+          tipo?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          categoria?: string | null
+          codigo_tuss?: string | null
+          complexidade?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          duracao_media?: number | null
+          especialidade_id?: string | null
+          id?: string
+          nome?: string
+          tipo?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "procedimentos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+          {
+            foreignKeyName: "procedimentos_especialidade_id_fkey"
+            columns: ["especialidade_id"]
+            isOneToOne: false
+            referencedRelation: "especialidades_medicas"
             referencedColumns: ["id"]
           },
         ]
@@ -4939,6 +5131,54 @@ export type Database = {
           },
         ]
       }
+      mv_catalogo_servicos: {
+        Row: {
+          aceita_sus: boolean | null
+          categoria: string | null
+          cidade: string | null
+          credenciado_id: string | null
+          credenciado_nome: string | null
+          disponivel: boolean | null
+          disponivel_online: boolean | null
+          especialidade_nome: string | null
+          estado: string | null
+          id: string | null
+          preco_base: number | null
+          procedimento_id: string | null
+          procedimento_nome: string | null
+          search_vector: unknown | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credenciado_servicos_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credenciado_servicos_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "credenciado_servicos_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "credenciado_servicos_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_dados_regularidade: {
         Row: {
           contratos: Json | null
@@ -5358,6 +5598,42 @@ export type Database = {
         }
         Returns: Database["public"]["CompositeTypes"]["documento_busca_resultado"][]
       }
+      buscar_servicos_rede: {
+        Args: {
+          p_aceita_sus?: boolean
+          p_categoria?: string
+          p_cidade?: string
+          p_disponivel_online?: boolean
+          p_especialidade?: string
+          p_estado?: string
+          p_preco_maximo?: number
+          p_procedimento?: string
+        }
+        Returns: {
+          aceita_sus: boolean
+          categoria: string
+          cidade: string
+          credenciado_cnpj: string
+          credenciado_endereco: string
+          credenciado_id: string
+          credenciado_nome: string
+          disponivel_online: boolean
+          especialidade: string
+          estado: string
+          latitude: number
+          local_atendimento: string
+          longitude: number
+          observacoes: string
+          preco_base: number
+          preco_particular: number
+          procedimento: string
+          procedimento_codigo: string
+          profissional_crm: string
+          profissional_nome: string
+          servico_id: string
+          tempo_espera_medio: number
+        }[]
+      }
       buscar_usuarios_para_mencao: {
         Args: { p_inscricao_id: string; p_termo?: string }
         Returns: {
@@ -5533,6 +5809,35 @@ export type Database = {
           nome: string
         }[]
       }
+      get_servicos_por_credenciado: {
+        Args: { p_credenciado_id: string }
+        Returns: {
+          aceita_sus: boolean
+          credenciado_id: string
+          credenciado_nome: string
+          dias_atendimento: string[]
+          disponivel: boolean
+          disponivel_online: boolean
+          especialidade_id: string
+          especialidade_nome: string
+          horario_fim: string
+          horario_inicio: string
+          local_atendimento: string
+          observacoes: string
+          preco_base: number
+          preco_convenio: number
+          preco_particular: number
+          procedimento_categoria: string
+          procedimento_codigo: string
+          procedimento_id: string
+          procedimento_nome: string
+          profissional_crm: string
+          profissional_id: string
+          profissional_nome: string
+          servico_id: string
+          tempo_espera_medio: number
+        }[]
+      }
       get_user_roles: {
         Args: { _user_id: string }
         Returns: {
@@ -5612,6 +5917,10 @@ export type Database = {
           status: string
           workflow_id: string
         }[]
+      }
+      refresh_catalogo_servicos: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       relatorio_media_mediana_credenciados: {
         Args: {
