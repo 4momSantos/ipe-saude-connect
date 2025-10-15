@@ -129,72 +129,68 @@ export function DocumentosAnalistaView({ inscricaoId }: DocumentosAnalistaViewPr
 
   return (
     <>
-      <div className="space-y-4">
-        {/* Painel de Decisão da Inscrição */}
-        <Card className="border-2 border-primary/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ClipboardCheck className="h-5 w-5" />
-              Decisão da Inscrição
-            </CardTitle>
-            <CardDescription>
-              Após analisar todos os documentos, aprove ou rejeite a inscrição completa
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="flex-1 text-sm">
-                <div className="flex justify-between mb-1">
-                  <span className="text-muted-foreground">Documentos validados:</span>
-                  <span className="font-medium">
-                    {documentos.filter(d => d.status === 'validado').length} / {documentos.length}
-                  </span>
+      <Tabs defaultValue="documentos" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="documentos">Documentos</TabsTrigger>
+          <TabsTrigger value="decisoes">Histórico de Decisões ({historico.length})</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="documentos" className="space-y-4">
+          {/* Painel de Decisão da Inscrição */}
+          <Card className="border-2 border-primary/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ClipboardCheck className="h-5 w-5" />
+                Decisão da Inscrição
+              </CardTitle>
+              <CardDescription>
+                Registre uma decisão formal com justificativa obrigatória
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-yellow-600">{todosPendentes}</p>
+                  <p className="text-sm text-muted-foreground">Pendentes</p>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Documentos pendentes:</span>
-                  <span className="font-medium">{todosPendentes}</span>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-green-600">{documentos.filter(d => d.status === 'validado').length}</p>
+                  <p className="text-sm text-muted-foreground">Validados</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-red-600">{documentos.filter(d => d.status === 'rejeitado').length}</p>
+                  <p className="text-sm text-muted-foreground">Rejeitados</p>
                 </div>
               </div>
-            </div>
 
-            {algumRejeitado && (
-              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
-                ⚠️ Há documentos rejeitados. Rejeite a inscrição ou solicite correção.
-              </div>
-            )}
+              {algumRejeitado && (
+                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
+                  ⚠️ Há documentos rejeitados. Considere rejeitar ou solicitar correção.
+                </div>
+              )}
 
-            {todosValidados && (
-              <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-sm text-green-700 dark:text-green-400">
-                ✅ Todos os documentos foram validados! Você pode aprovar a inscrição.
-              </div>
-            )}
+              {todosValidados && (
+                <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-sm text-green-700 dark:text-green-400">
+                  ✅ Todos os documentos foram validados!
+                </div>
+              )}
 
-            <Separator />
+              <Separator />
 
-            <div className="flex gap-2">
-              <Button
-                onClick={() => setRejeitarDialogOpen(true)}
-                variant="destructive"
-                className="flex-1"
-                disabled={isAnalisando || isGerandoContrato}
+              <Button 
+                onClick={() => setDecisaoDialogOpen(true)}
+                variant="default"
+                className="w-full"
+                size="lg"
               >
-                <ThumbsDown className="h-4 w-4 mr-2" />
-                Rejeitar Inscrição
+                <ClipboardCheck className="w-5 h-5 mr-2" />
+                Registrar Decisão com Justificativa
               </Button>
-              <Button
-                onClick={() => setAprovarDialogOpen(true)}
-                className="flex-1"
-                disabled={!todosValidados || isAnalisando || isGerandoContrato}
-              >
-                <ThumbsUp className="h-4 w-4 mr-2" />
-                {isGerandoContrato ? 'Gerando Contrato...' : 'Aprovar Inscrição'}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Documentos para Análise</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Documentos para Análise</h3>
           <Badge variant="outline">
             {todosPendentes} pendentes
           </Badge>
@@ -264,7 +260,29 @@ export function DocumentosAnalistaView({ inscricaoId }: DocumentosAnalistaViewPr
             </CardContent>
           </Card>
         ))}
-      </div>
+        </TabsContent>
+
+        <TabsContent value="decisoes">
+          <Card>
+            <CardHeader>
+              <CardTitle>Histórico de Decisões</CardTitle>
+              <CardDescription>Timeline de todas as decisões registradas</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <HistoricoDecisoes decisoes={historico} isLoading={isLoadingHistorico} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <DecisaoDialog
+        open={decisaoDialogOpen}
+        onOpenChange={setDecisaoDialogOpen}
+        inscricaoId={inscricaoId}
+        analiseId={documentos[0]?.inscricao_id || inscricaoId}
+        dadosInscricao={{}}
+        documentos={documentos || []}
+      />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
@@ -355,33 +373,9 @@ export function DocumentosAnalistaView({ inscricaoId }: DocumentosAnalistaViewPr
             >
               {isAnalisando || isGerandoContrato ? 'Processando...' : 'Confirmar Aprovação'}
             </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-        </TabsContent>
-
-        <TabsContent value="decisoes">
-          <Card>
-            <CardHeader>
-              <CardTitle>Histórico de Decisões</CardTitle>
-              <CardDescription>Timeline de todas as decisões registradas</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <HistoricoDecisoes decisoes={historico} isLoading={isLoadingHistorico} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      <DecisaoDialog
-        open={decisaoDialogOpen}
-        onOpenChange={setDecisaoDialogOpen}
-        inscricaoId={inscricaoId}
-        analiseId={documentos[0]?.inscricao_id || inscricaoId}
-        dadosInscricao={{}}
-        documentos={documentos || []}
-      />
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
       {/* Dialog de Rejeição */}
       <AlertDialog open={rejeitarDialogOpen} onOpenChange={setRejeitarDialogOpen}>
