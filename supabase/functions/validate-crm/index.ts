@@ -26,7 +26,15 @@ serve(async (req) => {
 
   try {
     // Validação rigorosa de entrada
-    const body = await req.json().catch(() => null);
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Body JSON inválido' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     if (!body || typeof body !== 'object') {
       return new Response(
