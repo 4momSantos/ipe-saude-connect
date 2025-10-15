@@ -5117,22 +5117,10 @@ export type Database = {
           p_data_inicio?: string
           p_limit?: number
           p_status?: string
-          p_termo: string
+          p_termo?: string
           p_tipo_documento?: string
         }
-        Returns: {
-          arquivo_nome: string
-          arquivo_url: string
-          created_at: string
-          credenciado_cpf: string
-          credenciado_nome: string
-          id: string
-          inscricao_id: string
-          relevancia: number
-          snippet: string
-          status: string
-          tipo_documento: string
-        }[]
+        Returns: Database["public"]["CompositeTypes"]["documento_busca_resultado"][]
       }
       buscar_usuarios_para_mencao: {
         Args: { p_inscricao_id: string; p_termo?: string }
@@ -5463,7 +5451,19 @@ export type Database = {
         | "inativo"
     }
     CompositeTypes: {
-      [_ in never]: never
+      documento_busca_resultado: {
+        id: string | null
+        inscricao_id: string | null
+        tipo_documento: string | null
+        arquivo_nome: string | null
+        arquivo_url: string | null
+        status: string | null
+        created_at: string | null
+        credenciado_nome: string | null
+        credenciado_cpf: string | null
+        relevancia: number | null
+        snippet: string | null
+      }
     }
   }
 }
