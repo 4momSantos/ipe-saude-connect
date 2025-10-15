@@ -3433,6 +3433,7 @@ export type Database = {
           inscricao_id: string | null
           is_read: boolean | null
           lido_por: Json | null
+          manifestacao_metadata: Json | null
           mencoes: string[] | null
           mensagem: string | null
           mensagem_html: string | null
@@ -3463,6 +3464,7 @@ export type Database = {
           inscricao_id?: string | null
           is_read?: boolean | null
           lido_por?: Json | null
+          manifestacao_metadata?: Json | null
           mencoes?: string[] | null
           mensagem?: string | null
           mensagem_html?: string | null
@@ -3493,6 +3495,7 @@ export type Database = {
           inscricao_id?: string | null
           is_read?: boolean | null
           lido_por?: Json | null
+          manifestacao_metadata?: Json | null
           mencoes?: string[] | null
           mensagem?: string | null
           mensagem_html?: string | null

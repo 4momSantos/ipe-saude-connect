@@ -18,9 +18,14 @@ import {
   AtSign,
   X,
   File,
-  Loader2
+  Loader2,
+  FileText,
+  CheckCircle,
+  FileSignature,
+  ClipboardList
 } from 'lucide-react';
 import { AttachmentPreview } from './AttachmentPreview';
+import { ManifestationForm } from './ManifestationForm';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -83,10 +88,12 @@ export function ChatWorkflow({ inscricaoId, executionId, etapaAtual, usuarioPape
   
   // Form state
   const [novaMensagem, setNovaMensagem] = useState('');
-  const [tipoMensagem, setTipoMensagem] = useState<'comentario' | 'nota_interna' | 'solicitacao'>('comentario');
+  const [tipoMensagem, setTipoMensagem] = useState<'comentario' | 'nota_interna' | 'solicitacao' | 'parecer' | 'decisao' | 'justificativa' | 'observacao_formal'>('comentario');
   const [privada, setPrivada] = useState(false);
   const [emRespostaA, setEmRespostaA] = useState<string | null>(null);
   const [anexos, setAnexos] = useState<File[]>([]);
+  const [mostrarFormularioAvancado, setMostrarFormularioAvancado] = useState(false);
+  const [tipoManifestacao, setTipoManifestacao] = useState<'parecer' | 'decisao' | 'justificativa' | 'observacao_formal' | null>(null);
   
   // Menções
   const [mostrandoMencoes, setMostrandoMencoes] = useState(false);
@@ -317,7 +324,8 @@ export function ChatWorkflow({ inscricaoId, executionId, etapaAtual, usuarioPape
         mencoes: mencoes,
         visivel_para: visivel_para,
         privada: privada,
-        em_resposta_a: emRespostaA || null
+        em_resposta_a: emRespostaA || null,
+        manifestacao_metadata: {} // Será preenchido pelo ManifestationForm se aplicável
       };
 
       const { data, error } = await supabase
@@ -436,19 +444,58 @@ export function ChatWorkflow({ inscricaoId, executionId, etapaAtual, usuarioPape
 
           {/* Badge de tipo */}
           {mensagem.tipo !== 'comentario' && (
-            <Badge
-              variant={mensagem.tipo === 'nota_interna' ? 'secondary' : 'default'}
-              className="mb-2"
-            >
-              {mensagem.tipo === 'nota_interna' && <EyeOff className="w-3 h-3 mr-1" />}
-              {mensagem.tipo === 'nota_interna' ? 'Nota Interna' : 'Solicitação'}
-            </Badge>
+            <div className="mb-2 flex items-center gap-2">
+              <Badge
+                variant={
+                  ['parecer', 'decisao', 'justificativa', 'observacao_formal'].includes(mensagem.tipo)
+                    ? 'default'
+                    : mensagem.tipo === 'nota_interna'
+                    ? 'secondary'
+                    : 'default'
+                }
+                className={
+                  mensagem.tipo === 'parecer'
+                    ? 'bg-blue-100 text-blue-800 border-blue-300'
+                    : mensagem.tipo === 'decisao'
+                    ? 'bg-green-100 text-green-800 border-green-300'
+                    : mensagem.tipo === 'justificativa'
+                    ? 'bg-orange-100 text-orange-800 border-orange-300'
+                    : mensagem.tipo === 'observacao_formal'
+                    ? 'bg-purple-100 text-purple-800 border-purple-300'
+                    : ''
+                }
+              >
+                {mensagem.tipo === 'parecer' && <FileText className="w-3 h-3 mr-1" />}
+                {mensagem.tipo === 'decisao' && <CheckCircle className="w-3 h-3 mr-1" />}
+                {mensagem.tipo === 'justificativa' && <FileSignature className="w-3 h-3 mr-1" />}
+                {mensagem.tipo === 'observacao_formal' && <ClipboardList className="w-3 h-3 mr-1" />}
+                {mensagem.tipo === 'nota_interna' && <EyeOff className="w-3 h-3 mr-1" />}
+                {mensagem.tipo === 'parecer'
+                  ? 'Parecer Técnico'
+                  : mensagem.tipo === 'decisao'
+                  ? 'Decisão'
+                  : mensagem.tipo === 'justificativa'
+                  ? 'Justificativa'
+                  : mensagem.tipo === 'observacao_formal'
+                  ? 'Observação Formal'
+                  : mensagem.tipo === 'nota_interna'
+                  ? 'Nota Interna'
+                  : 'Solicitação'}
+              </Badge>
+              {['parecer', 'decisao', 'justificativa', 'observacao_formal'].includes(mensagem.tipo) && (
+                <Badge variant="outline" className="text-xs">
+                  Manifestação Formal
+                </Badge>
+              )}
+            </div>
           )}
 
           {/* Balão da mensagem */}
           <Card
             className={`p-3 ${
-              ehAutor
+              ['parecer', 'decisao', 'justificativa', 'observacao_formal'].includes(mensagem.tipo)
+                ? 'border-l-4 border-l-primary bg-primary/5'
+                : ehAutor
                 ? 'bg-primary text-primary-foreground'
                 : mensagem.tipo === 'nota_interna'
                 ? 'bg-yellow-50 border-yellow-200'
@@ -593,6 +640,56 @@ export function ChatWorkflow({ inscricaoId, executionId, etapaAtual, usuarioPape
         </div>
       )}
 
+      {/* Formulário de Manifestação Formal */}
+      {mostrarFormularioAvancado && tipoManifestacao && (
+        <div className="px-4 pt-4">
+          <ManifestationForm
+            tipoManifestation={tipoManifestacao}
+            onSubmit={async (data) => {
+              setNovaMensagem(data.conteudo);
+              
+              // Enviar com metadata
+              const insertData: any = {
+                inscricao_id: inscricaoId,
+                execution_id: executionId || null,
+                etapa_id: etapaAtual || null,
+                sender_id: currentUser.id,
+                usuario_nome: currentUser.nome || currentUser.email,
+                usuario_email: currentUser.email || '',
+                usuario_papel: usuarioPapel,
+                sender_type: mapearSenderType(usuarioPapel),
+                tipo: tipoManifestacao,
+                content: data.conteudo,
+                mensagem: data.conteudo,
+                mensagem_html: data.conteudo,
+                mencoes: [],
+                visivel_para: ['todos'],
+                privada: false,
+                manifestacao_metadata: data.metadata
+              };
+
+              const { error } = await supabase
+                .from('workflow_messages')
+                .insert(insertData);
+
+              if (error) {
+                toast.error('Erro ao registrar manifestação');
+              } else {
+                toast.success('Manifestação registrada com sucesso');
+                setMostrarFormularioAvancado(false);
+                setTipoManifestacao(null);
+                setNovaMensagem('');
+              }
+            }}
+            onCancel={() => {
+              setMostrarFormularioAvancado(false);
+              setTipoManifestacao(null);
+            }}
+            sending={enviando}
+          />
+        </div>
+      )}
+
       {/* Input de nova mensagem */}
       <div className="p-4 border-t">
         <div className="relative">
@@ -709,6 +806,52 @@ export function ChatWorkflow({ inscricaoId, executionId, etapaAtual, usuarioPape
                 {privada ? <EyeOff className="w-4 h-4 mr-1" /> : <Eye className="w-4 h-4 mr-1" />}
                 {privada ? 'Privada' : 'Pública'}
               </Button>
+            )}
+
+            {/* Botões de Manifestações Formais */}
+            {(usuarioPapel === 'gestor' || usuarioPapel === 'admin' || usuarioPapel === 'analista') && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <FileText className="w-4 h-4 mr-1" />
+                    Manifestação Formal
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem onClick={() => {
+                    setTipoManifestacao('parecer');
+                    setTipoMensagem('parecer');
+                    setMostrarFormularioAvancado(true);
+                  }}>
+                    <FileText className="w-4 h-4 mr-2 text-blue-600" />
+                    Parecer Técnico
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {
+                    setTipoManifestacao('decisao');
+                    setTipoMensagem('decisao');
+                    setMostrarFormularioAvancado(true);
+                  }}>
+                    <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                    Decisão
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {
+                    setTipoManifestacao('justificativa');
+                    setTipoMensagem('justificativa');
+                    setMostrarFormularioAvancado(true);
+                  }}>
+                    <FileSignature className="w-4 h-4 mr-2 text-orange-600" />
+                    Justificativa
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {
+                    setTipoManifestacao('observacao_formal');
+                    setTipoMensagem('observacao_formal');
+                    setMostrarFormularioAvancado(true);
+                  }}>
+                    <ClipboardList className="w-4 h-4 mr-2 text-purple-600" />
+                    Observação Formal
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
 

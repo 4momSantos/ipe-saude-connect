@@ -38,6 +38,7 @@ import ContractTemplates from "./pages/ContractTemplates";
 import ContractTemplateEditor from "./pages/ContractTemplateEditor";
 import WorkflowExecutions from "./pages/WorkflowExecutions";
 import WorkflowMonitoring from "./pages/WorkflowMonitoring";
+import RelatorioManifestacoes from "./pages/RelatorioManifestacoes";
 import Contratos from "./pages/Contratos";
 import VerificarCertificado from "./pages/VerificarCertificado";
 import MonitorFluxo from "./pages/MonitorFluxo";
@@ -175,6 +176,7 @@ const App = () => (
                           <Route path="/contratos/templates/editor/:id" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><ContractTemplateEditor /></RoleProtectedRoute>} />
                           <Route path="/workflows" element={<Workflows />} />
                           <Route path="/workflow-editor" element={<WorkflowEditor />} />
+                          <Route path="/manifestacoes" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin', 'analista']}><RelatorioManifestacoes /></RoleProtectedRoute>} />
                           <Route path="/teste-ocr" element={<TesteOCR />} />
                           <Route path="/formularios" element={<FormulariosEtapas />} />
                           <Route path="/templates-formularios" element={<TemplatesFormularios />} />
