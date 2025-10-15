@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, Download, Filter, MapPin, Users, Activity, Layers } from "lucide-react";
+import { Search, Download, Filter, MapPin, Users, Activity, Layers, X } from "lucide-react";
+import { FiltrosAvancadosMap } from "./FiltrosAvancadosMap";
 import type { FiltrosMap } from "./MapaUnificado";
 
 interface MapSidebarProps {
@@ -38,6 +39,27 @@ export function MapSidebar({
   markers,
 }: MapSidebarProps) {
   const [showFilters, setShowFilters] = useState(false);
+
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filtros.status?.length) count += filtros.status.length;
+    if (filtros.tipoProfissional?.length) count += filtros.tipoProfissional.length;
+    if (filtros.especialidades?.length) count += filtros.especialidades.length;
+    if (filtros.ufCrm?.length) count += filtros.ufCrm.length;
+    if (filtros.estados?.length) count += filtros.estados.length;
+    if (filtros.cidades?.length) count += filtros.cidades.length;
+    if (filtros.scoreMinimo !== undefined) count++;
+    if (filtros.scoreMaximo !== undefined) count++;
+    if (filtros.atendimentosMinimo !== undefined) count++;
+    if (filtros.atendimentosMaximo !== undefined) count++;
+    if (filtros.produtividade) count++;
+    if (filtros.avaliacaoMinima !== undefined) count++;
+    if (filtros.notaQualidadeMin !== undefined) count++;
+    if (filtros.notaExperienciaMin !== undefined) count++;
+    if (filtros.apenasAvaliados) count++;
+    if (filtros.raioKm) count++;
+    return count;
+  }, [filtros]);
 
   const handleExportCSV = () => {
     if (!markers.length) return;
@@ -184,6 +206,88 @@ export function MapSidebar({
         </CardContent>
       </Card>
 
+      {/* Filtros Ativos */}
+      {activeFiltersCount > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm">Filtros Ativos</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onFiltrosChange({})}
+              >
+                Limpar Todos
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {filtros.status?.map(status => (
+                <Badge key={status} variant="secondary" className="gap-1">
+                  {status}
+                  <X className="h-3 w-3 cursor-pointer" onClick={() => {
+                    onFiltrosChange({
+                      ...filtros,
+                      status: filtros.status?.filter(s => s !== status)
+                    });
+                  }} />
+                </Badge>
+              ))}
+              {filtros.especialidades?.map(esp => (
+                <Badge key={esp} variant="secondary" className="gap-1">
+                  {esp}
+                  <X className="h-3 w-3 cursor-pointer" onClick={() => {
+                    onFiltrosChange({
+                      ...filtros,
+                      especialidades: filtros.especialidades?.filter(e => e !== esp)
+                    });
+                  }} />
+                </Badge>
+              ))}
+              {filtros.estados?.map(estado => (
+                <Badge key={estado} variant="secondary" className="gap-1">
+                  {estado}
+                  <X className="h-3 w-3 cursor-pointer" onClick={() => {
+                    onFiltrosChange({
+                      ...filtros,
+                      estados: filtros.estados?.filter(e => e !== estado)
+                    });
+                  }} />
+                </Badge>
+              ))}
+              {filtros.cidades?.map(cidade => (
+                <Badge key={cidade} variant="secondary" className="gap-1">
+                  {cidade}
+                  <X className="h-3 w-3 cursor-pointer" onClick={() => {
+                    onFiltrosChange({
+                      ...filtros,
+                      cidades: filtros.cidades?.filter(c => c !== cidade)
+                    });
+                  }} />
+                </Badge>
+              ))}
+              {filtros.scoreMinimo !== undefined && (
+                <Badge variant="secondary" className="gap-1">
+                  Score ≥ {filtros.scoreMinimo}
+                  <X className="h-3 w-3 cursor-pointer" onClick={() => {
+                    onFiltrosChange({ ...filtros, scoreMinimo: undefined });
+                  }} />
+                </Badge>
+              )}
+              {filtros.avaliacaoMinima !== undefined && (
+                <Badge variant="secondary" className="gap-1">
+                  Avaliação ≥ {filtros.avaliacaoMinima}⭐
+                  <X className="h-3 w-3 cursor-pointer" onClick={() => {
+                    onFiltrosChange({ ...filtros, avaliacaoMinima: undefined });
+                  }} />
+                </Badge>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Filtros Avançados */}
       <Card>
         <CardHeader className="pb-3">
@@ -191,6 +295,9 @@ export function MapSidebar({
             <CardTitle className="text-sm flex items-center gap-2">
               <Filter className="h-4 w-4" />
               Filtros Avançados
+              {activeFiltersCount > 0 && (
+                <Badge variant="default">{activeFiltersCount}</Badge>
+              )}
             </CardTitle>
             <Button
               variant="ghost"
@@ -202,30 +309,8 @@ export function MapSidebar({
           </div>
         </CardHeader>
         {showFilters && (
-          <CardContent className="space-y-3">
-            <div>
-              <Label className="text-xs">Score Mínimo</Label>
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                placeholder="0-100"
-                value={filtros.scoreMinimo || ""}
-                onChange={(e) =>
-                  onFiltrosChange({ ...filtros, scoreMinimo: Number(e.target.value) || undefined })
-                }
-                className="h-8 mt-1"
-              />
-            </div>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onFiltrosChange({})}
-              className="w-full"
-            >
-              Limpar Filtros
-            </Button>
+          <CardContent>
+            <FiltrosAvancadosMap filtros={filtros} onChange={onFiltrosChange} />
           </CardContent>
         )}
       </Card>

@@ -11,12 +11,36 @@ import { toast } from "sonner";
 export type MapMode = 'credenciados' | 'profissionais' | 'densidade' | 'hibrido';
 
 export interface FiltrosMap {
+  // Busca e Perfil
   busca?: string;
+  status?: ('Ativo' | 'Inativo' | 'Suspenso')[];
+  tipoProfissional?: ('principal' | 'secundario')[];
+  
+  // Especialidade e CRM
   especialidades?: string[];
+  ufCrm?: string[];
+  
+  // Geográfico
   estados?: string[];
   cidades?: string[];
+  zonaId?: string;
+  raioKm?: number;
+  
+  // Performance e Scores
   scoreMinimo?: number;
-  cidade?: string;
+  scoreMaximo?: number;
+  atendimentosMinimo?: number;
+  atendimentosMaximo?: number;
+  produtividade?: 'alta' | 'media' | 'baixa';
+  
+  // Avaliação
+  avaliacaoMinima?: number;
+  notaQualidadeMin?: number;
+  notaExperienciaMin?: number;
+  apenasAvaliados?: boolean;
+  
+  // Temporal
+  periodoAnalise?: 'mes_atual' | 'trimestre' | 'semestre' | 'ano';
 }
 
 export interface MapaUnificadoProps {
