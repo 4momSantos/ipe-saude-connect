@@ -32,6 +32,14 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 
+// Mapeia papel do usuário para sender_type válido no banco
+const mapearSenderType = (papel: string): 'analista' | 'candidato' | 'sistema' => {
+  if (papel === 'analista' || papel === 'gestor' || papel === 'admin') {
+    return 'analista';
+  }
+  return 'candidato';
+};
+
 interface Mensagem {
   id: string;
   usuario_id: string;
@@ -298,7 +306,7 @@ export function ChatWorkflow({ inscricaoId, executionId, etapaAtual, usuarioPape
         usuario_nome: profile?.nome || user.email,
         usuario_email: user.email || '',
         usuario_papel: usuarioPapel,
-        sender_type: usuarioPapel,
+        sender_type: mapearSenderType(usuarioPapel),
         tipo: tipoMensagem,
         content: novaMensagem,
         mensagem: novaMensagem,

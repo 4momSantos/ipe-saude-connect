@@ -2,6 +2,14 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+// Mapeia papel do usuário para sender_type válido no banco
+const mapearSenderType = (papel: string): 'analista' | 'candidato' | 'sistema' => {
+  if (papel === 'analista' || papel === 'gestor' || papel === 'admin') {
+    return 'analista';
+  }
+  return 'candidato';
+};
+
 interface Message {
   id: string;
   sender_id: string;
@@ -233,7 +241,7 @@ export function useWorkflowMessages({
         execution_id: executionId || null,
         inscricao_id: inscricaoId,
         sender_id: currentUserId,
-        sender_type: currentUserType,
+        sender_type: mapearSenderType(currentUserType),
         content: content.trim(),
         mensagem: content.trim(),
         tipo: 'comentario',
