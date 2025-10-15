@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, FileText, Clock, UserCheck, DollarSign, History } from "lucide-react";
+import { ArrowLeft, Loader2, FileText, Clock, UserCheck, DollarSign, History, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DadosCadastrais } from "@/components/credenciados/DadosCadastrais";
@@ -12,6 +12,7 @@ import { HistoricoAvaliacoes } from "@/components/credenciados/HistoricoAvaliaco
 import { CredenciadoSuspensao } from "@/components/credenciados/CredenciadoSuspensao";
 import { RegistrarOcorrencia } from "@/components/credenciados/RegistrarOcorrencia";
 import { ProgramarDescredenciamento } from "@/components/credenciados/ProgramarDescredenciamento";
+import { AlteracaoStatusDialog } from "@/components/credenciado/AlteracaoStatusDialog";
 import { CertificadoCard } from "@/components/credenciados/CertificadoCard";
 import { ProfissionaisCredenciado } from "@/components/credenciados/ProfissionaisCredenciado";
 import { ServicosCredenciado } from "@/components/credenciados/ServicosCredenciado";
@@ -28,6 +29,7 @@ export default function CredenciadoDetail() {
   const [activeTab, setActiveTab] = useState("dados");
   const [ocorrenciaDialogOpen, setOcorrenciaDialogOpen] = useState(false);
   const [descredenciamentoDialogOpen, setDescredenciamentoDialogOpen] = useState(false);
+  const [alteracaoStatusDialogOpen, setAlteracaoStatusDialogOpen] = useState(false);
   const { data: credenciado, isLoading, error } = useCredenciado(id || "");
 
   // Simple hasRole implementation
@@ -95,6 +97,10 @@ export default function CredenciadoDetail() {
           </div>
         </div>
         <div className="flex gap-2">
+          <Button onClick={() => setAlteracaoStatusDialogOpen(true)} variant="default">
+            <Edit className="mr-2 h-4 w-4" />
+            Alterar Status
+          </Button>
           <Button onClick={() => setOcorrenciaDialogOpen(true)} variant="outline">
             <FileText className="mr-2 h-4 w-4" />
             Registrar Ocorrência
@@ -209,6 +215,16 @@ export default function CredenciadoDetail() {
       </Tabs>
 
       {/* Dialogs */}
+      <AlteracaoStatusDialog
+        credenciadoId={id || ""}
+        credenciadoNome={credenciado.nome}
+        statusAtual={credenciado.status}
+        open={alteracaoStatusDialogOpen}
+        onClose={() => setAlteracaoStatusDialogOpen(false)}
+        onSuccess={() => {
+          // Refetch credenciado data
+        }}
+      />
       <RegistrarOcorrencia
         credenciadoId={id || ""}
         open={ocorrenciaDialogOpen}
