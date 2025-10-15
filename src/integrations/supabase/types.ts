@@ -66,6 +66,13 @@ export type Database = {
             foreignKeyName: "acoes_prazos_credenciado_id_fkey"
             columns: ["credenciado_id"]
             isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "acoes_prazos_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
             referencedColumns: ["id"]
           },
@@ -126,6 +133,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "credenciados"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alertas_enviados_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
           },
           {
             foreignKeyName: "alertas_enviados_credenciado_id_fkey"
@@ -495,6 +509,13 @@ export type Database = {
             foreignKeyName: "avaliacoes_prestadores_credenciado_id_fkey"
             columns: ["credenciado_id"]
             isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_prestadores_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
             referencedColumns: ["id"]
           },
@@ -596,6 +617,13 @@ export type Database = {
             foreignKeyName: "certificados_credenciado_id_fkey"
             columns: ["credenciado_id"]
             isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "certificados_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
             referencedColumns: ["id"]
           },
@@ -649,6 +677,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "credenciados"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificados_historico_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
           },
           {
             foreignKeyName: "certificados_historico_credenciado_id_fkey"
@@ -863,6 +898,13 @@ export type Database = {
             foreignKeyName: "credenciado_crms_credenciado_id_fkey"
             columns: ["credenciado_id"]
             isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "credenciado_crms_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
             referencedColumns: ["id"]
           },
@@ -910,6 +952,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "credenciados"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credenciado_historico_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
           },
           {
             foreignKeyName: "credenciado_historico_credenciado_id_fkey"
@@ -1568,6 +1617,44 @@ export type Database = {
           },
         ]
       }
+      historico_buscas: {
+        Row: {
+          created_at: string | null
+          filtros: Json | null
+          id: string
+          tempo_execucao_ms: number | null
+          termo_busca: string
+          total_resultados: number | null
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          filtros?: Json | null
+          id?: string
+          tempo_execucao_ms?: number | null
+          termo_busca: string
+          total_resultados?: number | null
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          filtros?: Json | null
+          id?: string
+          tempo_execucao_ms?: number | null
+          termo_busca?: string
+          total_resultados?: number | null
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_buscas_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
+      }
       historico_categorizacao: {
         Row: {
           alterado_por: string | null
@@ -1629,6 +1716,13 @@ export type Database = {
             foreignKeyName: "historico_categorizacao_credenciado_id_fkey"
             columns: ["credenciado_id"]
             isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "historico_categorizacao_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
             referencedColumns: ["id"]
           },
@@ -1685,6 +1779,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "credenciados"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_status_credenciado_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
           },
           {
             foreignKeyName: "historico_status_credenciado_credenciado_id_fkey"
@@ -1826,6 +1927,13 @@ export type Database = {
             foreignKeyName: "inscricao_documentos_parent_document_id_fkey"
             columns: ["parent_document_id"]
             isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inscricao_documentos_parent_document_id_fkey"
+            columns: ["parent_document_id"]
+            isOneToOne: false
             referencedRelation: "inscricao_documentos"
             referencedColumns: ["id"]
           },
@@ -1947,6 +2055,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_usuarios_com_grupos"
             referencedColumns: ["usuario_id"]
+          },
+          {
+            foreignKeyName: "inscricao_validacoes_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "inscricao_validacoes_documento_id_fkey"
@@ -2194,6 +2309,13 @@ export type Database = {
             foreignKeyName: "logs_regras_suspensao_credenciado_id_fkey"
             columns: ["credenciado_id"]
             isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "logs_regras_suspensao_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
             referencedColumns: ["id"]
           },
@@ -2311,6 +2433,13 @@ export type Database = {
             foreignKeyName: "ocorrencias_prestadores_credenciado_id_fkey"
             columns: ["credenciado_id"]
             isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "ocorrencias_prestadores_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
             referencedColumns: ["id"]
           },
@@ -2369,7 +2498,21 @@ export type Database = {
             foreignKeyName: "prazos_credenciamento_credenciado_id_fkey"
             columns: ["credenciado_id"]
             isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "prazos_credenciamento_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prazos_credenciamento_origem_documento_id_fkey"
+            columns: ["origem_documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_completos"
             referencedColumns: ["id"]
           },
           {
@@ -2705,6 +2848,13 @@ export type Database = {
             foreignKeyName: "sancoes_prestadores_credenciado_id_fkey"
             columns: ["credenciado_id"]
             isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "sancoes_prestadores_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
             referencedColumns: ["id"]
           },
@@ -2860,6 +3010,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "credenciados"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_alteracao_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
           },
           {
             foreignKeyName: "solicitacoes_alteracao_credenciado_id_fkey"
@@ -4027,6 +4184,40 @@ export type Database = {
       }
     }
     Views: {
+      documentos_completos: {
+        Row: {
+          arquivo_nome: string | null
+          arquivo_url: string | null
+          created_at: string | null
+          credenciado_cnpj: string | null
+          credenciado_cpf: string | null
+          credenciado_id: string | null
+          credenciado_nome: string | null
+          id: string | null
+          inscricao_id: string | null
+          ocr_confidence: number | null
+          ocr_resultado: Json | null
+          status: string | null
+          texto_busca: string | null
+          tipo_documento: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inscricao_documentos_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: false
+            referencedRelation: "inscricoes_edital"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inscricao_documentos_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: false
+            referencedRelation: "view_inscricoes_validacao_pendente"
+            referencedColumns: ["inscricao_id"]
+          },
+        ]
+      }
       v_grupos_com_membros: {
         Row: {
           ativo: boolean | null
@@ -4318,6 +4509,30 @@ export type Database = {
       }
     }
     Functions: {
+      buscar_documentos: {
+        Args: {
+          p_credenciado_id?: string
+          p_data_fim?: string
+          p_data_inicio?: string
+          p_limit?: number
+          p_status?: string
+          p_termo: string
+          p_tipo_documento?: string
+        }
+        Returns: {
+          arquivo_nome: string
+          arquivo_url: string
+          created_at: string
+          credenciado_cpf: string
+          credenciado_nome: string
+          id: string
+          inscricao_id: string
+          relevancia: number
+          snippet: string
+          status: string
+          tipo_documento: string
+        }[]
+      }
       buscar_usuarios_para_mencao: {
         Args: { p_inscricao_id: string; p_termo?: string }
         Returns: {
