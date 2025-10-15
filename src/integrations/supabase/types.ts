@@ -2368,6 +2368,65 @@ export type Database = {
           },
         ]
       }
+      indicadores_profissionais: {
+        Row: {
+          atendimentos: number | null
+          atendimentos_meta: number | null
+          avaliacao_media: number | null
+          created_at: string | null
+          horas_trabalhadas: number | null
+          id: string
+          mes_referencia: string
+          observacoes: string | null
+          procedimentos_realizados: number | null
+          profissional_id: string
+          taxa_comparecimento: number | null
+          tempo_medio_atendimento: number | null
+          total_avaliacoes: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          atendimentos?: number | null
+          atendimentos_meta?: number | null
+          avaliacao_media?: number | null
+          created_at?: string | null
+          horas_trabalhadas?: number | null
+          id?: string
+          mes_referencia: string
+          observacoes?: string | null
+          procedimentos_realizados?: number | null
+          profissional_id: string
+          taxa_comparecimento?: number | null
+          tempo_medio_atendimento?: number | null
+          total_avaliacoes?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          atendimentos?: number | null
+          atendimentos_meta?: number | null
+          avaliacao_media?: number | null
+          created_at?: string | null
+          horas_trabalhadas?: number | null
+          id?: string
+          mes_referencia?: string
+          observacoes?: string | null
+          procedimentos_realizados?: number | null
+          profissional_id?: string
+          taxa_comparecimento?: number | null
+          tempo_medio_atendimento?: number | null
+          total_avaliacoes?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "indicadores_profissionais_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "profissionais_credenciados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inscricao_documentos: {
         Row: {
           analisado_em: string | null
@@ -3162,6 +3221,99 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "v_usuarios_com_grupos"
             referencedColumns: ["usuario_id"]
+          },
+        ]
+      }
+      profissionais_credenciados: {
+        Row: {
+          ativo: boolean | null
+          cpf: string | null
+          created_at: string | null
+          credenciado_id: string
+          crm: string
+          data_desvinculo: string | null
+          data_vinculo: string | null
+          email: string | null
+          especialidade: string
+          especialidade_id: string | null
+          id: string
+          nome: string
+          principal: boolean | null
+          telefone: string | null
+          uf_crm: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          cpf?: string | null
+          created_at?: string | null
+          credenciado_id: string
+          crm: string
+          data_desvinculo?: string | null
+          data_vinculo?: string | null
+          email?: string | null
+          especialidade: string
+          especialidade_id?: string | null
+          id?: string
+          nome: string
+          principal?: boolean | null
+          telefone?: string | null
+          uf_crm: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          cpf?: string | null
+          created_at?: string | null
+          credenciado_id?: string
+          crm?: string
+          data_desvinculo?: string | null
+          data_vinculo?: string | null
+          email?: string | null
+          especialidade?: string
+          especialidade_id?: string | null
+          id?: string
+          nome?: string
+          principal?: boolean | null
+          telefone?: string | null
+          uf_crm?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profissionais_credenciados_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profissionais_credenciados_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "profissionais_credenciados_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "profissionais_credenciados_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profissionais_credenciados_especialidade_id_fkey"
+            columns: ["especialidade_id"]
+            isOneToOne: false
+            referencedRelation: "especialidades_medicas"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -5459,6 +5611,53 @@ export type Database = {
           queue_id: string
           status: string
           workflow_id: string
+        }[]
+      }
+      relatorio_media_mediana_credenciados: {
+        Args: {
+          p_cidade?: string
+          p_estado?: string
+          p_mes_referencia?: string
+        }
+        Returns: {
+          cidade: string
+          cnpj: string
+          credenciado_id: string
+          estado: string
+          media_avaliacao_rede: number
+          media_produtividade_rede: number
+          mediana_avaliacao_rede: number
+          mediana_produtividade_rede: number
+          nome_credenciado: string
+          score_rede: number
+          total_profissionais: number
+        }[]
+      }
+      relatorio_media_mediana_profissionais: {
+        Args: {
+          p_credenciado_id?: string
+          p_especialidade?: string
+          p_estado?: string
+          p_mes_referencia?: string
+        }
+        Returns: {
+          cidade: string
+          credenciado_id: string
+          crm: string
+          especialidade: string
+          estado: string
+          media_avaliacao: number
+          media_horas: number
+          media_produtividade: number
+          mediana_avaliacao: number
+          mediana_produtividade: number
+          nome_credenciado: string
+          nome_profissional: string
+          profissional_id: string
+          score_composto: number
+          tipo_vinculo: string
+          total_avaliacoes: number
+          uf_crm: string
         }[]
       }
       renovar_prazo: {
