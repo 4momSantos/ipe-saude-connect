@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { FluxoCredenciamento } from "@/components/credenciamento/FluxoCredenciamento";
 import { InscricaoWizard } from "@/components/inscricao/InscricaoWizard";
 import { RascunhoDialog } from "@/components/inscricao/RascunhoDialog";
+import { SuccessDialog } from "@/components/inscricao/SuccessDialog";
 import { InscricaoCompletaForm } from "@/lib/inscricao-validation";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useNavigate } from "react-router-dom";
@@ -79,6 +80,12 @@ export default function Editais() {
   const [loading, setLoading] = useState(true);
   const [isReloading, setIsReloading] = useState(false);
   const [loadingEditalId, setLoadingEditalId] = useState<string | null>(null);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [successData, setSuccessData] = useState<{
+    protocolo: string;
+    dataEnvio: Date;
+    emailCandidato: string;
+  } | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEspecialidades, setSelectedEspecialidades] = useState<string[]>([]);
   const { isGestor, isAdmin, isCandidato } = useUserRole();
@@ -439,8 +446,14 @@ export default function Editais() {
         }
       }
 
-      // ✅ Fechar dialog imediatamente (React Query cuida da sincronização)
+      // ✅ Fechar dialog de inscrição e abrir dialog de sucesso
       setInscricaoEdital(null);
+      setShowSuccessDialog(true);
+      setSuccessData({
+        protocolo: inscricaoResult.protocolo || 'N/A',
+        dataEnvio: new Date(),
+        emailCandidato: data.email,
+      });
 
       console.log('=== SUBMIT CONCLUÍDO - Cache será invalidado automaticamente ===');
     } catch (error: any) {
@@ -911,6 +924,25 @@ export default function Editais() {
           lastSaved={rascunhoData.lastSaved}
           onContinue={handleContinueRascunho}
           onStartNew={handleStartNewInscricao}
+        />
+      )}
+
+      {/* Dialog de sucesso */}
+      {successData && (
+        <SuccessDialog
+          open={showSuccessDialog}
+          onOpenChange={setShowSuccessDialog}
+          protocolo={successData.protocolo}
+          dataEnvio={successData.dataEnvio}
+          emailCandidato={successData.emailCandidato}
+          onAcompanhar={() => {
+            setShowSuccessDialog(false);
+            navigate('/minhas-inscricoes');
+          }}
+          onNovaInscricao={() => {
+            setShowSuccessDialog(false);
+            setSuccessData(null);
+          }}
         />
       )}
     </>
