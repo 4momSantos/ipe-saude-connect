@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, Filter, Download, Eye, X, ArrowUpDown, FolderOpen } from 'lucide-react';
+import { Search, Filter, Download, Eye, X, ArrowUpDown, FolderOpen, Users } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,16 +10,18 @@ import { useBuscarDocumentos, FiltrosBusca, OrdenacaoTipo } from '@/hooks/useBus
 import { useTiposDocumentos } from '@/hooks/useTiposDocumentos';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { CredenciadoCard } from './CredenciadoCard';
+import { DocumentoItem } from './DocumentoItem';
 
 export function BuscaDocumentos() {
   const [termo, setTermo] = useState('');
   const [filtros, setFiltros] = useState<FiltrosBusca>({ 
     ordenacao: 'relevancia',
-    agrupar_por: 'tipo' 
+    agrupar_por: 'credenciado' 
   });
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   
-  const { resultados, isLoading, tempoExecucao, buscar, limpar } = useBuscarDocumentos();
+  const { resultados, credenciadosAgrupados, isLoading, tempoExecucao, buscar, limpar } = useBuscarDocumentos();
   const { data: tiposDisponiveis = [] } = useTiposDocumentos();
 
   // Agrupar resultados por tipo
@@ -48,7 +50,7 @@ export function BuscaDocumentos() {
 
   const handleLimpar = () => {
     setTermo('');
-    setFiltros({ ordenacao: 'relevancia', agrupar_por: 'tipo' });
+    setFiltros({ ordenacao: 'relevancia', agrupar_por: 'credenciado' });
     limpar();
   };
 
@@ -230,15 +232,26 @@ export function BuscaDocumentos() {
               </Select>
 
               <Select 
-                value={filtros.agrupar_por || 'tipo'} 
-                onValueChange={(v: 'tipo' | 'nenhum') => setFiltros({...filtros, agrupar_por: v})}
+                value={filtros.agrupar_por || 'credenciado'} 
+                onValueChange={(v: 'tipo' | 'nenhum' | 'credenciado') => setFiltros({...filtros, agrupar_por: v})}
               >
-                <SelectTrigger className="w-[160px]">
+                <SelectTrigger className="w-[200px]">
                   <FolderOpen className="h-4 w-4 mr-2" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="tipo">Agrupar por Tipo</SelectItem>
+                  <SelectItem value="credenciado">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      <span>Agrupar por Credenciado</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="tipo">
+                    <div className="flex items-center gap-2">
+                      <FolderOpen className="h-4 w-4" />
+                      <span>Agrupar por Tipo</span>
+                    </div>
+                  </SelectItem>
                   <SelectItem value="nenhum">Sem agrupamento</SelectItem>
                 </SelectContent>
               </Select>
@@ -249,126 +262,61 @@ export function BuscaDocumentos() {
 
       {/* Resultados */}
       {resultados.length > 0 && (
-        <Card className="p-6">
-          {filtros.agrupar_por === 'tipo' ? (
-            <Accordion type="multiple" defaultValue={Object.keys(resultadosAgrupados)} className="space-y-2">
-              {Object.entries(resultadosAgrupados).map(([tipo, docs]) => (
-                <AccordionItem key={tipo} value={tipo} className="border rounded-lg">
-                  <AccordionTrigger className="px-4 hover:no-underline hover:bg-accent/50">
-                    <div className="flex items-center gap-3">
-                      <FolderOpen className="h-5 w-5 text-primary" />
-                      <span className="font-semibold">{tipo}</span>
-                      <Badge variant="secondary">{docs.length}</Badge>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-4 space-y-3">
-                    {docs.map((doc) => (
-                      <Card key={doc.id} className="p-4 hover:bg-accent/50 transition-colors">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 space-y-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h4 className="font-medium truncate">{doc.arquivo_nome}</h4>
-                              <Badge variant={getStatusBadgeVariant(doc.status)}>
-                                {doc.status}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              {doc.credenciado_nome} {doc.credenciado_cpf && `(CPF: ${doc.credenciado_cpf})`}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(doc.created_at).toLocaleDateString('pt-BR', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </p>
-                            {doc.snippet && (
-                              <p className="text-sm bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded mt-2 line-clamp-2">
-                                ...{doc.snippet}...
-                              </p>
-                            )}
-                          </div>
-                          <div className="flex gap-2 flex-shrink-0">
-                            <Button 
-                              size="sm" 
-                              variant="ghost"
-                              onClick={() => visualizarDocumento(doc.arquivo_url, doc.arquivo_nome)}
-                              title="Visualizar documento"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="ghost"
-                              onClick={() => baixarDocumento(doc.arquivo_url, doc.arquivo_nome)}
-                              title="Baixar documento"
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          ) : (
-            <div className="space-y-3">
-              {resultados.map((doc) => (
-                <Card key={doc.id} className="p-4 hover:bg-accent/50 transition-colors">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 space-y-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="font-medium truncate">{doc.arquivo_nome}</h4>
-                        <Badge variant={getStatusBadgeVariant(doc.status)}>
-                          {doc.status}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {doc.tipo_documento} • {doc.credenciado_nome} {doc.credenciado_cpf && `(CPF: ${doc.credenciado_cpf})`}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(doc.created_at).toLocaleDateString('pt-BR', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                      {doc.snippet && (
-                        <p className="text-sm bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded mt-2 line-clamp-2">
-                          ...{doc.snippet}...
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex gap-2 flex-shrink-0">
-                      <Button 
-                        size="sm" 
-                        variant="ghost"
-                        onClick={() => visualizarDocumento(doc.arquivo_url, doc.arquivo_nome)}
-                        title="Visualizar documento"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="ghost"
-                        onClick={() => baixarDocumento(doc.arquivo_url, doc.arquivo_nome)}
-                        title="Baixar documento"
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
+        <>
+          {filtros.agrupar_por === 'credenciado' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {credenciadosAgrupados.map((credenciado) => (
+                <CredenciadoCard
+                  key={`${credenciado.credenciado_cpf}-${credenciado.credenciado_nome}`}
+                  credenciadoNome={credenciado.credenciado_nome}
+                  credenciadoCpf={credenciado.credenciado_cpf}
+                  documentos={credenciado.documentos}
+                  onVisualizar={visualizarDocumento}
+                  onBaixar={baixarDocumento}
+                />
               ))}
             </div>
+          ) : filtros.agrupar_por === 'tipo' ? (
+            <Card className="p-6">
+              <Accordion type="multiple" defaultValue={Object.keys(resultadosAgrupados)} className="space-y-2">
+                {Object.entries(resultadosAgrupados).map(([tipo, docs]) => (
+                  <AccordionItem key={tipo} value={tipo} className="border rounded-lg">
+                    <AccordionTrigger className="px-4 hover:no-underline hover:bg-accent/50">
+                      <div className="flex items-center gap-3">
+                        <FolderOpen className="h-5 w-5 text-primary" />
+                        <span className="font-semibold">{tipo}</span>
+                        <Badge variant="secondary">{docs.length}</Badge>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4 space-y-3">
+                      {docs.map((doc) => (
+                        <DocumentoItem
+                          key={doc.id}
+                          documento={doc}
+                          onVisualizar={visualizarDocumento}
+                          onBaixar={baixarDocumento}
+                        />
+                      ))}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </Card>
+          ) : (
+            <Card className="p-6">
+              <div className="space-y-3">
+                {resultados.map((doc) => (
+                  <DocumentoItem
+                    key={doc.id}
+                    documento={doc}
+                    onVisualizar={visualizarDocumento}
+                    onBaixar={baixarDocumento}
+                  />
+                ))}
+              </div>
+            </Card>
           )}
-        </Card>
+        </>
       )}
 
       {/* Estado vazio */}

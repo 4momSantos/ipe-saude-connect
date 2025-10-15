@@ -11,7 +11,7 @@ export interface FiltrosBusca {
   data_inicio?: string;
   data_fim?: string;
   ordenacao?: OrdenacaoTipo;
-  agrupar_por?: 'tipo' | 'nenhum';
+  agrupar_por?: 'tipo' | 'nenhum' | 'credenciado';
 }
 
 export interface ResultadoBusca {
@@ -28,8 +28,16 @@ export interface ResultadoBusca {
   snippet: string;
 }
 
+export interface CredenciadoAgrupado {
+  credenciado_nome: string;
+  credenciado_cpf: string;
+  total_documentos: number;
+  documentos: ResultadoBusca[];
+}
+
 export function useBuscarDocumentos() {
   const [resultados, setResultados] = useState<ResultadoBusca[]>([]);
+  const [credenciadosAgrupados, setCredenciadosAgrupados] = useState<CredenciadoAgrupado[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [tempoExecucao, setTempoExecucao] = useState<number>(0);
 
@@ -48,6 +56,27 @@ export function useBuscarDocumentos() {
       default:
         return sorted.sort((a, b) => b.relevancia - a.relevancia);
     }
+  };
+
+  const agruparPorCredenciado = (docs: ResultadoBusca[]): CredenciadoAgrupado[] => {
+    const grupos = docs.reduce((acc, doc) => {
+      const chave = `${doc.credenciado_cpf || 'sem-cpf'}_${doc.credenciado_nome}`;
+      if (!acc[chave]) {
+        acc[chave] = {
+          credenciado_nome: doc.credenciado_nome,
+          credenciado_cpf: doc.credenciado_cpf,
+          total_documentos: 0,
+          documentos: []
+        };
+      }
+      acc[chave].documentos.push(doc);
+      acc[chave].total_documentos++;
+      return acc;
+    }, {} as Record<string, CredenciadoAgrupado>);
+
+    return Object.values(grupos).sort((a, b) => 
+      a.credenciado_nome.localeCompare(b.credenciado_nome)
+    );
   };
 
   const buscar = async (termo: string, filtros: FiltrosBusca = {}) => {
@@ -69,6 +98,14 @@ export function useBuscarDocumentos() {
       const docsOrdenados = ordenarResultados(docs, ordenacao);
       
       setResultados(docsOrdenados);
+      
+      // Agrupar por credenciado se solicitado
+      if (filtros.agrupar_por === 'credenciado') {
+        setCredenciadosAgrupados(agruparPorCredenciado(docsOrdenados));
+      } else {
+        setCredenciadosAgrupados([]);
+      }
+      
       setTempoExecucao(data.meta?.tempo_ms || 0);
       
       const total = data.meta?.total || 0;
@@ -84,8 +121,9 @@ export function useBuscarDocumentos() {
 
   const limpar = () => {
     setResultados([]);
+    setCredenciadosAgrupados([]);
     setTempoExecucao(0);
   };
 
-  return { resultados, isLoading, tempoExecucao, buscar, limpar };
+  return { resultados, credenciadosAgrupados, isLoading, tempoExecucao, buscar, limpar };
 }
