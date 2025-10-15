@@ -15,6 +15,7 @@ import { ProgramarDescredenciamento } from "@/components/credenciados/ProgramarD
 import { CertificadoCard } from "@/components/credenciados/CertificadoCard";
 import { ProfissionaisCredenciado } from "@/components/credenciados/ProfissionaisCredenciado";
 import { ServicosCredenciado } from "@/components/credenciados/ServicosCredenciado";
+import { CategoriasCredenciadoSection } from "@/components/credenciados/CategoriasCredenciadoSection";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useCredenciado } from "@/hooks/useCredenciados";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -147,6 +148,9 @@ export default function CredenciadoDetail() {
             }}
             hasRole={hasRole}
           />
+          {credenciado.cnpj && (
+            <CategoriasCredenciadoSection credenciadoId={id || ""} />
+          )}
           <CertificadoCard credenciadoId={id || ""} />
         </TabsContent>
 

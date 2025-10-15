@@ -590,6 +590,36 @@ export type Database = {
           },
         ]
       }
+      categorias_estabelecimentos: {
+        Row: {
+          ativo: boolean | null
+          atualizado_em: string | null
+          codigo: string | null
+          criado_em: string | null
+          descricao: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          atualizado_em?: string | null
+          codigo?: string | null
+          criado_em?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+        }
+        Update: {
+          ativo?: boolean | null
+          atualizado_em?: string | null
+          codigo?: string | null
+          criado_em?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
       categorias_prestadores: {
         Row: {
           ativo: boolean | null
@@ -1222,6 +1252,66 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_usuarios_com_grupos"
             referencedColumns: ["usuario_id"]
+          },
+        ]
+      }
+      credenciado_categorias: {
+        Row: {
+          categoria_id: string
+          credenciado_id: string
+          criado_em: string | null
+          id: string
+          principal: boolean | null
+        }
+        Insert: {
+          categoria_id: string
+          credenciado_id: string
+          criado_em?: string | null
+          id?: string
+          principal?: boolean | null
+        }
+        Update: {
+          categoria_id?: string
+          credenciado_id?: string
+          criado_em?: string | null
+          id?: string
+          principal?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credenciado_categorias_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_estabelecimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credenciado_categorias_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credenciado_categorias_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "credenciado_categorias_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "credenciado_categorias_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -5595,6 +5685,20 @@ export type Database = {
           total_atualizados: number
         }[]
       }
+      buscar_credenciados_por_categoria: {
+        Args: { p_categoria?: string; p_cidade?: string; p_estado?: string }
+        Returns: {
+          categoria: string
+          categoria_codigo: string
+          cidade: string
+          cnpj: string
+          credenciado_id: string
+          estado: string
+          latitude: number
+          longitude: number
+          nome: string
+        }[]
+      }
       buscar_documentos: {
         Args: {
           p_credenciado_id?: string
@@ -5798,6 +5902,15 @@ export type Database = {
       gerar_protocolo_inscricao: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_categorias_por_credenciado: {
+        Args: { p_credenciado_id: string }
+        Returns: {
+          categoria_codigo: string
+          categoria_id: string
+          categoria_nome: string
+          principal: boolean
+        }[]
       }
       get_contratos_sem_signature_request: {
         Args: Record<PropertyKey, never>
