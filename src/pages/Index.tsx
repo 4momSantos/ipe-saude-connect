@@ -1,3 +1,4 @@
+// Landing page with certificate validation
 import HeroSection from "@/components/landing/HeroSection";
 import { ConsultaCertificado } from "@/components/landing/ConsultaCertificado";
 import BeneficiosSection from "@/components/landing/BeneficiosSection";
