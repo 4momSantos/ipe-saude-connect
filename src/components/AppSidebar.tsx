@@ -24,7 +24,8 @@ import {
   ShieldCheck,
   FileCode,
   TestTube2,
-  MapPin
+  MapPin,
+  CalendarClock
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -73,6 +74,7 @@ const mainMenuItems: MenuItem[] = [
   { title: "Inscrições", url: "/inscricoes", icon: ClipboardList, roles: ['analista', 'gestor', 'admin'] as const },
   { title: "Análises", url: "/analises", icon: ClipboardCheck, roles: ['analista', 'gestor', 'admin'] as const },
   { title: "Credenciados", url: "/credenciados", icon: Users, roles: ['gestor', 'admin'] as const },
+  { title: "Controle de Prazos", url: "/prazos", icon: CalendarClock, roles: ['analista', 'gestor', 'admin'] as const },
   { 
     title: "Contratos", 
     url: "/contratos", 

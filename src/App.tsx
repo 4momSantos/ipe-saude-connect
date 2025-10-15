@@ -51,6 +51,7 @@ import GerenciarAPIKeys from "./pages/GerenciarAPIKeys";
 import GerenciarModelosJustificativa from "./pages/GerenciarModelosJustificativa";
 import MeusDadosLGPD from "./pages/MeusDadosLGPD";
 import TesteAssinafy from "./pages/TesteAssinafy";
+import Prazos from "./pages/Prazos";
 import DebugFluxoCredenciamento from "./pages/admin/DebugFluxoCredenciamento";
 import ProcessarContratosOrfaos from "./pages/admin/ProcessarContratosOrfaos";
 import AuditoriaLogs from "./pages/admin/AuditoriaLogs";
@@ -168,6 +169,7 @@ const App = () => (
                           <Route path="/credenciados" element={<Credenciados />} />
                           <Route path="/credenciados/:id" element={<CredenciadoDetail />} />
                           <Route path="/credenciados/:id/situacao" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin', 'analista']}><SituacaoCadastral /></RoleProtectedRoute>} />
+                          <Route path="/prazos" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin', 'analista']}><Prazos /></RoleProtectedRoute>} />
                           <Route path="/contratos" element={<RoleProtectedRoute requiredRoles={['analista', 'gestor', 'admin']}><Contratos /></RoleProtectedRoute>} />
                           <Route path="/fluxo-credenciamento/:inscricaoId" element={<FluxoCredenciamentoPage />} />
                           <Route path="/monitor-fluxo" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><MonitorFluxo /></RoleProtectedRoute>} />

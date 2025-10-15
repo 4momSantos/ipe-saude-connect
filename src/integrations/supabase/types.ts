@@ -14,6 +14,77 @@ export type Database = {
   }
   public: {
     Tables: {
+      acoes_prazos: {
+        Row: {
+          created_at: string | null
+          credenciado_id: string
+          data_anterior: string | null
+          data_nova: string | null
+          executado_por: string | null
+          executado_por_nome: string | null
+          id: string
+          justificativa: string | null
+          metadata: Json | null
+          prazo_id: string
+          tipo_acao: string
+        }
+        Insert: {
+          created_at?: string | null
+          credenciado_id: string
+          data_anterior?: string | null
+          data_nova?: string | null
+          executado_por?: string | null
+          executado_por_nome?: string | null
+          id?: string
+          justificativa?: string | null
+          metadata?: Json | null
+          prazo_id: string
+          tipo_acao: string
+        }
+        Update: {
+          created_at?: string | null
+          credenciado_id?: string
+          data_anterior?: string | null
+          data_nova?: string | null
+          executado_por?: string | null
+          executado_por_nome?: string | null
+          id?: string
+          justificativa?: string | null
+          metadata?: Json | null
+          prazo_id?: string
+          tipo_acao?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acoes_prazos_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acoes_prazos_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acoes_prazos_executado_por_fkey"
+            columns: ["executado_por"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+          {
+            foreignKeyName: "acoes_prazos_prazo_id_fkey"
+            columns: ["prazo_id"]
+            isOneToOne: false
+            referencedRelation: "prazos_credenciamento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alertas_enviados: {
         Row: {
           credenciado_id: string
