@@ -390,6 +390,24 @@ Deno.serve(async (req) => {
       .getPublicUrl(fileName);
     
     console.log('[GERAR_CERTIFICADO] URL pública:', publicUrl);
+    
+    // HOTFIX #2: Validar que o arquivo está realmente acessível
+    console.log('[GERAR_CERTIFICADO] Validando upload...');
+    const validationResponse = await fetch(publicUrl, { method: 'HEAD' });
+    if (!validationResponse.ok) {
+      console.error('[GERAR_CERTIFICADO] ❌ Arquivo não acessível:', {
+        url: publicUrl,
+        status: validationResponse.status
+      });
+      throw new Error(`Upload não validado: arquivo não acessível (${validationResponse.status})`);
+    }
+    
+    const contentLength = validationResponse.headers.get('content-length');
+    console.log('[GERAR_CERTIFICADO] ✅ Upload validado:', {
+      url: publicUrl,
+      size: contentLength,
+      contentType: validationResponse.headers.get('content-type')
+    });
 
     // === SALVAR NO BANCO COM documento_url ===
     let certificadoSalvo: any;

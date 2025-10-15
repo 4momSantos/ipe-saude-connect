@@ -12,6 +12,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { PDFDocument, StandardFonts, rgb } from 'https://esm.sh/pdf-lib@1.17.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -291,36 +292,176 @@ function gerarQRCodeURL(numeroCertificado: string, supabaseUrl: string): string 
 }
 
 /**
- * Converte HTML em PDF usando Puppeteer (ou alternativa leve)
- * Para esta implementação, vamos usar uma API externa temporariamente
+ * Converte dados do certificado em PDF usando pdf-lib (HOTFIX #1)
+ * Substituiu API externa não confiável por biblioteca local
  */
-async function htmlToPDF(html: string): Promise<Uint8Array> {
-  // Usando API pública para converter HTML em PDF
-  // Em produção, considere usar Puppeteer ou biblioteca própria
-  const response = await fetch('https://api.html2pdf.app/v1/generate', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      html,
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: '0',
-        right: '0',
-        bottom: '0',
-        left: '0'
-      }
-    })
-  });
-
-  if (!response.ok) {
-    throw new Error(`Erro ao gerar PDF: ${response.statusText}`);
+async function gerarPDFCertificado(data: CertificadoData, qrCodeUrl: string): Promise<Uint8Array> {
+  console.log('[PDF] Iniciando geração com pdf-lib');
+  
+  // Baixar QR Code
+  const qrResponse = await fetch(qrCodeUrl);
+  if (!qrResponse.ok) {
+    throw new Error(`Erro ao baixar QR Code: ${qrResponse.statusText}`);
   }
-
-  const arrayBuffer = await response.arrayBuffer();
-  return new Uint8Array(arrayBuffer);
+  const qrArrayBuffer = await qrResponse.arrayBuffer();
+  
+  // Criar documento PDF
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([595, 842]); // A4 portrait
+  const { width, height } = page.getSize();
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  
+  const margin = 60;
+  const blue = rgb(0.2, 0.47, 0.85);
+  const gray = rgb(0.17, 0.24, 0.31);
+  
+  // Borda decorativa
+  page.drawRectangle({
+    x: margin,
+    y: margin,
+    width: width - 2 * margin,
+    height: height - 2 * margin,
+    borderColor: blue,
+    borderWidth: 3,
+  });
+  
+  // Título
+  let y = height - 100;
+  page.drawText('CERTIFICADO DE CREDENCIAMENTO', {
+    x: width / 2 - 180,
+    y,
+    size: 20,
+    font: fontBold,
+    color: blue,
+  });
+  
+  // Linha
+  y -= 15;
+  page.drawLine({
+    start: { x: margin + 40, y },
+    end: { x: width - margin - 40, y },
+    thickness: 2,
+    color: blue,
+  });
+  
+  // Conteúdo
+  y -= 50;
+  page.drawText('Certificamos que:', {
+    x: width / 2 - 70,
+    y,
+    size: 14,
+    font: font,
+    color: gray,
+  });
+  
+  y -= 40;
+  page.drawText(data.credenciado_nome, {
+    x: width / 2 - (data.credenciado_nome.length * 4),
+    y,
+    size: 18,
+    font: fontBold,
+    color: gray,
+  });
+  
+  y -= 30;
+  page.drawText(`CPF: ${data.credenciado_cpf}`, {
+    x: width / 2 - 60,
+    y,
+    size: 12,
+    font: font,
+    color: gray,
+  });
+  
+  y -= 30;
+  page.drawText('Especialidade(s):', {
+    x: width / 2 - 60,
+    y,
+    size: 12,
+    font: font,
+    color: gray,
+  });
+  
+  y -= 20;
+  const especialidadesText = data.especialidades.join(', ');
+  page.drawText(especialidadesText, {
+    x: width / 2 - (especialidadesText.length * 2.5),
+    y,
+    size: 11,
+    font: fontBold,
+    color: gray,
+  });
+  
+  y -= 30;
+  page.drawText('Está devidamente credenciado(a) junto à nossa instituição,', {
+    x: width / 2 - 200,
+    y,
+    size: 11,
+    font: font,
+    color: gray,
+  });
+  
+  y -= 15;
+  page.drawText('com todos os requisitos necessários atendidos.', {
+    x: width / 2 - 170,
+    y,
+    size: 11,
+    font: font,
+    color: gray,
+  });
+  
+  // Datas
+  y -= 40;
+  const emitidoEm = new Date(data.data_emissao).toLocaleDateString('pt-BR');
+  const validoAte = new Date(data.valido_ate).toLocaleDateString('pt-BR');
+  
+  page.drawText(`Emitido em: ${emitidoEm}`, {
+    x: margin + 40,
+    y,
+    size: 10,
+    font: font,
+    color: rgb(0.4, 0.4, 0.4),
+  });
+  
+  page.drawText(`Válido até: ${validoAte}`, {
+    x: width - margin - 140,
+    y,
+    size: 10,
+    font: font,
+    color: rgb(0.4, 0.4, 0.4),
+  });
+  
+  // QR Code
+  const qrImage = await pdfDoc.embedPng(qrArrayBuffer);
+  const qrSize = 100;
+  page.drawImage(qrImage, {
+    x: width - margin - qrSize - 20,
+    y: margin + 100,
+    width: qrSize,
+    height: qrSize,
+  });
+  
+  page.drawText('Verificar autenticidade', {
+    x: width - margin - qrSize - 5,
+    y: margin + 90,
+    size: 8,
+    font: font,
+    color: gray,
+  });
+  
+  // Número do certificado
+  page.drawText(`Nº ${data.numero_certificado}`, {
+    x: width / 2 - 70,
+    y: margin + 20,
+    size: 11,
+    font: fontBold,
+    color: blue,
+  });
+  
+  const pdfBytes = await pdfDoc.save();
+  console.log('[PDF] PDF gerado com sucesso, tamanho:', pdfBytes.length);
+  
+  return new Uint8Array(pdfBytes);
 }
 
 serve(async (req) => {
@@ -414,16 +555,14 @@ serve(async (req) => {
     // Gerar QR Code
     const qrCodeUrl = gerarQRCodeURL(numeroCertificado, supabaseUrl);
 
-    // Gerar HTML
-    const certificadoHTML = gerarCertificadoHTML(certificadoData, qrCodeUrl);
-
-    // Converter HTML para PDF
+    // Gerar PDF usando pdf-lib (HOTFIX #1)
     console.log(JSON.stringify({
       timestamp: new Date().toISOString(),
-      event: 'generating_pdf'
+      event: 'generating_pdf',
+      method: 'pdf-lib'
     }));
 
-    const pdfBytes = await htmlToPDF(certificadoHTML);
+    const pdfBytes = await gerarPDFCertificado(certificadoData, qrCodeUrl);
 
     console.log(JSON.stringify({
       timestamp: new Date().toISOString(),
