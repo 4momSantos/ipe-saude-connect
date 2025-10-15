@@ -199,8 +199,9 @@ export interface DatabaseConfig {
 }
 
 export interface ApprovalConfig {
-  assignmentType: "all" | "specific";
+  assignmentType: "all" | "specific" | "groups" | "mixed";
   assignedAnalysts?: string[];
+  assignedGroups?: string[];
 }
 
 export interface ConditionConfig {

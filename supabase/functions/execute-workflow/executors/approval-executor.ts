@@ -56,9 +56,38 @@ export class ApprovalExecutor implements NodeExecutor {
       
       assignedAnalysts = allAnalysts?.map((a: { user_id: string }) => a.user_id) || [];
       console.log('[APPROVAL_EXECUTOR] Aprovação atribuída a todos os analistas:', assignedAnalysts.length);
-    } else if (approvalConfig.assignedAnalysts && approvalConfig.assignedAnalysts.length > 0) {
-      assignedAnalysts = approvalConfig.assignedAnalysts;
+      
+    } else if (approvalConfig.assignmentType === "specific") {
+      // Analistas específicos
+      assignedAnalysts = approvalConfig.assignedAnalysts || [];
       console.log('[APPROVAL_EXECUTOR] Aprovação atribuída a analistas específicos:', assignedAnalysts.length);
+      
+    } else if (approvalConfig.assignmentType === "groups") {
+      // Buscar membros dos grupos selecionados
+      const { data: groupMembers } = await supabaseClient
+        .from("membros_grupos")
+        .select("user_id")
+        .in("grupo_id", approvalConfig.assignedGroups || [])
+        .eq("ativo", true);
+      
+      assignedAnalysts = [...new Set(groupMembers?.map((m: { user_id: string }) => m.user_id) || [])];
+      console.log('[APPROVAL_EXECUTOR] Aprovação atribuída a membros de grupos:', assignedAnalysts.length, 'usuários únicos');
+      
+    } else if (approvalConfig.assignmentType === "mixed") {
+      // Combinar analistas + membros de grupos
+      const directAnalysts = approvalConfig.assignedAnalysts || [];
+      
+      const { data: groupMembers } = await supabaseClient
+        .from("membros_grupos")
+        .select("user_id")
+        .in("grupo_id", approvalConfig.assignedGroups || [])
+        .eq("ativo", true);
+      
+      const groupAnalysts = groupMembers?.map((m: { user_id: string }) => m.user_id) || [];
+      
+      // Remover duplicatas
+      assignedAnalysts = [...new Set([...directAnalysts, ...groupAnalysts])];
+      console.log('[APPROVAL_EXECUTOR] Aprovação atribuída via modo misto:', assignedAnalysts.length, 'usuários únicos');
     }
     
     return assignedAnalysts;
