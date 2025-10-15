@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAdicionarProfissional, type Profissional } from "@/hooks/useProfissionais";
+import { useEspecialidades } from "@/hooks/useEspecialidades";
 import { Loader2 } from "lucide-react";
 
 interface AdicionarProfissionalDialogProps {
@@ -19,6 +21,7 @@ export function AdicionarProfissionalDialog({
   credenciadoId,
 }: AdicionarProfissionalDialogProps) {
   const { mutateAsync: adicionar, isPending } = useAdicionarProfissional();
+  const { data: especialidades } = useEspecialidades();
   
   const [formData, setFormData] = useState<Partial<Profissional>>({
     nome: "",
@@ -28,6 +31,9 @@ export function AdicionarProfissionalDialog({
     email: "",
     telefone: "",
     celular: "",
+    crm: "",
+    uf_crm: "",
+    especialidade: "",
     principal: false,
   });
 
@@ -50,6 +56,9 @@ export function AdicionarProfissionalDialog({
         email: "",
         telefone: "",
         celular: "",
+        crm: "",
+        uf_crm: "",
+        especialidade: "",
         principal: false,
       });
       
@@ -101,6 +110,79 @@ export function AdicionarProfissionalDialog({
                 onChange={(e) => setFormData({ ...formData, rg: e.target.value })}
                 placeholder="0000000-0"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="crm">CRM *</Label>
+              <Input
+                id="crm"
+                value={formData.crm}
+                onChange={(e) => setFormData({ ...formData, crm: e.target.value })}
+                required
+                placeholder="000000"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="uf_crm">UF CRM *</Label>
+              <Select
+                value={formData.uf_crm}
+                onValueChange={(value) => setFormData({ ...formData, uf_crm: value })}
+                required
+              >
+                <SelectTrigger id="uf_crm">
+                  <SelectValue placeholder="Selecione o estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="AC">AC</SelectItem>
+                  <SelectItem value="AL">AL</SelectItem>
+                  <SelectItem value="AP">AP</SelectItem>
+                  <SelectItem value="AM">AM</SelectItem>
+                  <SelectItem value="BA">BA</SelectItem>
+                  <SelectItem value="CE">CE</SelectItem>
+                  <SelectItem value="DF">DF</SelectItem>
+                  <SelectItem value="ES">ES</SelectItem>
+                  <SelectItem value="GO">GO</SelectItem>
+                  <SelectItem value="MA">MA</SelectItem>
+                  <SelectItem value="MT">MT</SelectItem>
+                  <SelectItem value="MS">MS</SelectItem>
+                  <SelectItem value="MG">MG</SelectItem>
+                  <SelectItem value="PA">PA</SelectItem>
+                  <SelectItem value="PB">PB</SelectItem>
+                  <SelectItem value="PR">PR</SelectItem>
+                  <SelectItem value="PE">PE</SelectItem>
+                  <SelectItem value="PI">PI</SelectItem>
+                  <SelectItem value="RJ">RJ</SelectItem>
+                  <SelectItem value="RN">RN</SelectItem>
+                  <SelectItem value="RS">RS</SelectItem>
+                  <SelectItem value="RO">RO</SelectItem>
+                  <SelectItem value="RR">RR</SelectItem>
+                  <SelectItem value="SC">SC</SelectItem>
+                  <SelectItem value="SP">SP</SelectItem>
+                  <SelectItem value="SE">SE</SelectItem>
+                  <SelectItem value="TO">TO</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="especialidade">Especialidade *</Label>
+              <Select
+                value={formData.especialidade}
+                onValueChange={(value) => setFormData({ ...formData, especialidade: value })}
+                required
+              >
+                <SelectTrigger id="especialidade">
+                  <SelectValue placeholder="Selecione a especialidade" />
+                </SelectTrigger>
+                <SelectContent>
+                  {especialidades?.map((esp) => (
+                    <SelectItem key={esp.id} value={esp.nome}>
+                      {esp.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">

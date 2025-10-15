@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export interface Profissional {
-  id: string;
-  credenciado_id: string;
+  id?: string;
+  credenciado_id?: string;
   nome: string;
   cpf: string;
   rg?: string;
@@ -12,8 +12,11 @@ export interface Profissional {
   email?: string;
   telefone?: string;
   celular?: string;
-  ativo: boolean;
-  principal: boolean;
+  crm?: string;
+  uf_crm?: string;
+  especialidade?: string;
+  ativo?: boolean;
+  principal?: boolean;
   created_at?: string;
   updated_at?: string;
   credenciado_crms?: Array<{

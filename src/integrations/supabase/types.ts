@@ -3419,11 +3419,13 @@ export type Database = {
       profissionais_credenciados: {
         Row: {
           ativo: boolean | null
+          celular: string | null
           cpf: string | null
           created_at: string | null
           credenciado_id: string
           crm: string
           data_desvinculo: string | null
+          data_nascimento: string | null
           data_vinculo: string | null
           email: string | null
           especialidade: string
@@ -3431,17 +3433,20 @@ export type Database = {
           id: string
           nome: string
           principal: boolean | null
+          rg: string | null
           telefone: string | null
           uf_crm: string
           updated_at: string | null
         }
         Insert: {
           ativo?: boolean | null
+          celular?: string | null
           cpf?: string | null
           created_at?: string | null
           credenciado_id: string
           crm: string
           data_desvinculo?: string | null
+          data_nascimento?: string | null
           data_vinculo?: string | null
           email?: string | null
           especialidade: string
@@ -3449,17 +3454,20 @@ export type Database = {
           id?: string
           nome: string
           principal?: boolean | null
+          rg?: string | null
           telefone?: string | null
           uf_crm: string
           updated_at?: string | null
         }
         Update: {
           ativo?: boolean | null
+          celular?: string | null
           cpf?: string | null
           created_at?: string | null
           credenciado_id?: string
           crm?: string
           data_desvinculo?: string | null
+          data_nascimento?: string | null
           data_vinculo?: string | null
           email?: string | null
           especialidade?: string
@@ -3467,6 +3475,7 @@ export type Database = {
           id?: string
           nome?: string
           principal?: boolean | null
+          rg?: string | null
           telefone?: string | null
           uf_crm?: string
           updated_at?: string | null
