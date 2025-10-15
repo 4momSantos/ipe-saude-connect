@@ -2330,6 +2330,7 @@ export type Database = {
           data_vencimento: string
           id: string
           observacoes: string | null
+          origem_documento_id: string | null
           status: string
           tipo_prazo: string
           updated_at: string | null
@@ -2340,6 +2341,7 @@ export type Database = {
           data_vencimento: string
           id?: string
           observacoes?: string | null
+          origem_documento_id?: string | null
           status?: string
           tipo_prazo: string
           updated_at?: string | null
@@ -2350,6 +2352,7 @@ export type Database = {
           data_vencimento?: string
           id?: string
           observacoes?: string | null
+          origem_documento_id?: string | null
           status?: string
           tipo_prazo?: string
           updated_at?: string | null
@@ -2367,6 +2370,13 @@ export type Database = {
             columns: ["credenciado_id"]
             isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prazos_credenciamento_origem_documento_id_fkey"
+            columns: ["origem_documento_id"]
+            isOneToOne: false
+            referencedRelation: "inscricao_documentos"
             referencedColumns: ["id"]
           },
         ]

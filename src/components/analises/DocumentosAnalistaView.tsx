@@ -2,8 +2,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useState } from 'react';
-import { FileText, CheckCircle2, XCircle, AlertCircle, Download, Eye, ThumbsUp, ThumbsDown, ClipboardCheck } from 'lucide-react';
+import { FileText, CheckCircle2, XCircle, AlertCircle, Download, Eye, ThumbsUp, ThumbsDown, ClipboardCheck, Calendar } from 'lucide-react';
 import { useInscricaoDocumentos, InscricaoDocumento } from '@/hooks/useInscricaoDocumentos';
 import { useAnalisarInscricao } from '@/hooks/useAnalisarInscricao';
 import { useGerarContrato } from '@/hooks/useGerarContrato';
@@ -35,6 +37,7 @@ export function DocumentosAnalistaView({ inscricaoId }: DocumentosAnalistaViewPr
   
   const [documentoSelecionado, setDocumentoSelecionado] = useState<InscricaoDocumento | null>(null);
   const [observacoes, setObservacoes] = useState('');
+  const [dataValidade, setDataValidade] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [decisaoDialogOpen, setDecisaoDialogOpen] = useState(false);
   const { data: historico = [], isLoading: isLoadingHistorico } = useHistoricoDecisoes(inscricaoId);
@@ -60,9 +63,11 @@ export function DocumentosAnalistaView({ inscricaoId }: DocumentosAnalistaViewPr
       documentoId,
       status: 'validado',
       observacoes: observacoes || undefined,
+      dataValidade: dataValidade || undefined,
     });
     setDialogOpen(false);
     setObservacoes('');
+    setDataValidade('');
   };
 
   const handleRejeitar = async (documentoId: string) => {
@@ -82,6 +87,10 @@ export function DocumentosAnalistaView({ inscricaoId }: DocumentosAnalistaViewPr
   const visualizarDocumento = (doc: InscricaoDocumento) => {
     setDocumentoSelecionado(doc);
     setObservacoes(doc.observacoes || '');
+    // Pré-preencher data de validade do OCR se existir
+    const ocrResult = doc.ocr_resultado as Record<string, any> | null;
+    const ocrDataValidade = ocrResult?.dataValidade as string | undefined;
+    setDataValidade(ocrDataValidade || '');
     setDialogOpen(true);
   };
 
@@ -306,6 +315,24 @@ export function DocumentosAnalistaView({ inscricaoId }: DocumentosAnalistaViewPr
                     </div>
                   </div>
                 )}
+
+                <div>
+                  <Label htmlFor="data-validade" className="text-sm font-semibold flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Data de Validade do Documento
+                  </Label>
+                  <Input
+                    id="data-validade"
+                    type="date"
+                    value={dataValidade}
+                    onChange={(e) => setDataValidade(e.target.value)}
+                    className="mt-2"
+                    placeholder="AAAA-MM-DD"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {dataValidade ? '✓ Será usado para controle de prazo' : 'Informe a data de vencimento para ativar controle de prazo'}
+                  </p>
+                </div>
 
                 <div>
                   <h4 className="text-sm font-semibold mb-2">Observações</h4>

@@ -105,22 +105,42 @@ export function useInscricaoDocumentos(inscricaoId?: string) {
       documentoId,
       status,
       observacoes,
+      dataValidade,
     }: {
       documentoId: string;
       status: 'validado' | 'rejeitado' | 'pendente';
       observacoes?: string;
+      dataValidade?: string;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
+      // Se dataValidade foi fornecida manualmente, atualizar OCR
+      const updateData: any = {
+        status,
+        observacoes,
+        analisado_por: user.id,
+        analisado_em: new Date().toISOString(),
+      };
+
+      if (dataValidade) {
+        // Buscar documento para mesclar com OCR existente
+        const { data: doc } = await supabase
+          .from('inscricao_documentos')
+          .select('ocr_resultado')
+          .eq('id', documentoId)
+          .single();
+
+        const ocrAtual = (doc?.ocr_resultado || {}) as Record<string, any>;
+        updateData.ocr_resultado = {
+          ...ocrAtual,
+          dataValidade,
+        };
+      }
+
       const { data, error } = await supabase
         .from('inscricao_documentos')
-        .update({
-          status,
-          observacoes,
-          analisado_por: user.id,
-          analisado_em: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', documentoId)
         .select()
         .single();
