@@ -115,6 +115,25 @@ serve(async (req) => {
     const path = urlParts[1];
     console.log('[DOWNLOAD_CERTIFICADO] Baixando PDF do bucket NOVO (certificados-regularidade):', path);
     
+    // Verificar se o arquivo existe primeiro
+    const { data: fileCheck, error: checkError } = await supabase.storage
+      .from('certificados-regularidade')
+      .list('', { 
+        limit: 1,
+        search: path 
+      });
+    
+    if (checkError || !fileCheck || fileCheck.length === 0) {
+      console.error('[DOWNLOAD_CERTIFICADO] Arquivo não encontrado no storage:', path, checkError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'PDF não foi gerado ainda. Por favor, aguarde a geração do certificado.',
+          missing_file: true
+        }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     // Baixar PDF do storage
     const { data: pdfData, error: downloadError } = await supabase.storage
       .from('certificados-regularidade')
@@ -123,7 +142,10 @@ serve(async (req) => {
     if (downloadError || !pdfData) {
       console.error('[DOWNLOAD_CERTIFICADO] Erro ao baixar PDF:', downloadError);
       return new Response(
-        JSON.stringify({ error: 'Erro ao baixar PDF do storage' }),
+        JSON.stringify({ 
+          error: 'Erro ao baixar PDF do storage. O arquivo pode ter sido removido.',
+          storage_error: true 
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
