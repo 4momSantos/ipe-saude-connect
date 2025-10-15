@@ -16,14 +16,15 @@ import { useNavigate } from 'react-router-dom';
 
 interface Notificacao {
   id: string;
-  tipo: string;
-  titulo: string;
-  descricao: string;
-  link: string;
-  lida: boolean;
-  prioridade: string;
-  criado_em: string;
-  dados: any;
+  type: string;
+  title: string;
+  message: string | null;
+  related_type: string | null;
+  related_id: string | null;
+  is_read: boolean;
+  read_at: string | null;
+  created_at: string;
+  user_id: string;
 }
 
 export function NotificationCenter() {
@@ -47,16 +48,16 @@ export function NotificationCenter() {
       if (!user) return;
 
       const { data, error } = await supabase
-        .from('notificacoes' as any)
+        .from('app_notifications')
         .select('*')
-        .eq('usuario_id', user.id)
-        .eq('arquivada', false)
-        .order('criado_em', { ascending: false })
+        .eq('user_id', user.id)
+        .eq('is_read', false)
+        .order('created_at', { ascending: false })
         .limit(20);
 
       if (error) throw error;
 
-      setNotificacoes((data as any) || []);
+      setNotificacoes(data || []);
       setTotalNaoLidas((data as any)?.filter((n: any) => !n.lida).length || 0);
     } catch (error: any) {
       console.error('Erro ao carregar notificações:', error);
@@ -88,8 +89,8 @@ export function NotificationCenter() {
             
             // Mostrar toast
             const notif = payload.new as Notificacao;
-            toast(notif.titulo, {
-              description: notif.descricao
+            toast(notif.title, {
+              description: notif.message || undefined
             });
           }
         )
@@ -111,11 +112,11 @@ export function NotificationCenter() {
   const marcarComoLida = async (notificacaoId: string) => {
     try {
       const { error } = await supabase
-        .from('notificacoes' as any)
+        .from('app_notifications')
         .update({ 
-          lida: true,
-          lida_em: new Date().toISOString()
-        } as any)
+          is_read: true,
+          read_at: new Date().toISOString()
+        })
         .eq('id', notificacaoId);
 
       if (error) throw error;
@@ -131,13 +132,13 @@ export function NotificationCenter() {
       if (!user) return;
 
       const { error } = await supabase
-        .from('notificacoes' as any)
+        .from('app_notifications')
         .update({ 
-          lida: true,
-          lida_em: new Date().toISOString()
-        } as any)
-        .eq('usuario_id', user.id)
-        .eq('lida', false);
+          is_read: true,
+          read_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id)
+        .eq('is_read', false);
 
       if (error) throw error;
       carregarNotificacoes();
@@ -150,9 +151,10 @@ export function NotificationCenter() {
 
   const arquivarNotificacao = async (notificacaoId: string) => {
     try {
+      // Como app_notifications não tem campo 'arquivada', vamos apenas marcar como lida
       const { error } = await supabase
-        .from('notificacoes' as any)
-        .update({ arquivada: true } as any)
+        .from('app_notifications')
+        .update({ is_read: true })
         .eq('id', notificacaoId);
 
       if (error) throw error;
@@ -163,13 +165,23 @@ export function NotificationCenter() {
   };
 
   const abrirNotificacao = (notificacao: Notificacao) => {
-    if (!notificacao.lida) {
+    if (!notificacao.is_read) {
       marcarComoLida(notificacao.id);
     }
     
-    if (notificacao.link) {
+    if (notificacao.related_type && notificacao.related_id) {
       setAberto(false);
-      navigate(notificacao.link);
+      // Navegar baseado no tipo
+      switch (notificacao.related_type) {
+        case 'inscricao':
+          navigate(`/inscricoes/${notificacao.related_id}`);
+          break;
+        case 'documento':
+          navigate(`/documentos/${notificacao.related_id}`);
+          break;
+        default:
+          break;
+      }
     }
   };
 
@@ -239,19 +251,19 @@ export function NotificationCenter() {
               <div
                 key={notif.id}
                 className={`p-4 border-b hover:bg-muted cursor-pointer ${
-                  !notif.lida ? 'bg-blue-50 dark:bg-blue-950/20' : ''
+                  !notif.is_read ? 'bg-blue-50 dark:bg-blue-950/20' : ''
                 }`}
                 onClick={() => abrirNotificacao(notif)}
               >
                 <div className="flex gap-3">
                   <div className="flex-shrink-0 mt-1">
-                    {getIcone(notif.tipo)}
+                    {getIcone(notif.type)}
                   </div>
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start gap-2">
-                      <h4 className={`text-sm font-medium ${!notif.lida ? 'text-blue-600 dark:text-blue-400' : ''}`}>
-                        {notif.titulo}
+                      <h4 className={`text-sm font-medium ${!notif.is_read ? 'text-blue-600 dark:text-blue-400' : ''}`}>
+                        {notif.title}
                       </h4>
                       <Button
                         variant="ghost"
@@ -266,27 +278,27 @@ export function NotificationCenter() {
                       </Button>
                     </div>
                     
-                    {notif.descricao && (
+                    {notif.message && (
                       <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                        {notif.descricao}
+                        {notif.message}
                       </p>
                     )}
                     
                     <div className="flex items-center gap-2 mt-2">
                       <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(notif.criado_em), {
+                        {formatDistanceToNow(new Date(notif.created_at), {
                           addSuffix: true,
                           locale: ptBR
                         })}
                       </span>
                       
-                      {notif.prioridade === 'urgente' && (
+                      {notif.type === 'error' && (
                         <Badge variant="destructive" className="text-xs">
                           Urgente
                         </Badge>
                       )}
                       
-                      {!notif.lida && (
+                      {!notif.is_read && (
                         <div className="w-2 h-2 rounded-full bg-blue-500" />
                       )}
                     </div>
