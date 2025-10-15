@@ -162,7 +162,102 @@ export function TesteAssinatura() {
     }
   };
   return <div className="space-y-6">
-      
+      {/* Formulário de Configuração */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <TestTube className="h-5 w-5 text-primary" />
+            <CardTitle>Teste de Assinatura Eletrônica</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Seletor de Edital */}
+          <div className="space-y-2">
+            <Label htmlFor="edital-select">Edital</Label>
+            <Select value={selectedEdital} onValueChange={setSelectedEdital}>
+              <SelectTrigger id="edital-select">
+                <SelectValue placeholder="Selecione um edital" />
+              </SelectTrigger>
+              <SelectContent>
+                {editais?.map((edital) => (
+                  <SelectItem key={edital.id} value={edital.id}>
+                    {edital.numero_edital} - {edital.titulo}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Seletor de Candidato (opcional) */}
+          <div className="space-y-2">
+            <Label htmlFor="candidato-select">Candidato (opcional)</Label>
+            <Select value={selectedCandidatoId} onValueChange={setSelectedCandidatoId}>
+              <SelectTrigger id="candidato-select">
+                <SelectValue placeholder="Usar meu usuário" />
+              </SelectTrigger>
+              <SelectContent>
+                {candidatos?.map((candidato) => (
+                  <SelectItem key={candidato.id} value={candidato.id}>
+                    {candidato.nome} ({candidato.email})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Se não selecionar, será usado seu próprio usuário
+            </p>
+          </div>
+
+          {/* Email do Signatário */}
+          <div className="space-y-2">
+            <Label htmlFor="email-signatario">Email para Receber Assinatura</Label>
+            <Input
+              id="email-signatario"
+              type="email"
+              placeholder="seu-email@exemplo.com"
+              value={emailSignatario}
+              onChange={(e) => setEmailSignatario(e.target.value)}
+              disabled={isLoading}
+            />
+            <p className="text-xs text-muted-foreground">
+              Digite o email que receberá o link de assinatura do Assinafy
+            </p>
+          </div>
+
+          <Separator />
+
+          {/* Botão de Teste */}
+          <Button
+            onClick={handleTestarRapido}
+            disabled={isLoading || !selectedEdital || !emailSignatario}
+            className="w-full gap-2"
+            size="lg"
+          >
+            {isLoading ? (
+              <>
+                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                Gerando contrato...
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4" />
+                Gerar Contrato e Enviar para Assinatura
+              </>
+            )}
+          </Button>
+
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-xs">
+              <strong>Como funciona:</strong><br />
+              1. Cria uma inscrição de teste aprovada<br />
+              2. Gera o contrato automaticamente<br />
+              3. Envia para o Assinafy<br />
+              4. Email com link de assinatura é enviado
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
 
       {/* Resultado do Teste */}
       {testResult && <Card className={testResult.success ? "border-green-500/50 bg-green-500/5" : "border-red-500/50 bg-red-500/5"}>
