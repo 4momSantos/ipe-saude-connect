@@ -178,20 +178,7 @@ serve(async (req) => {
     const pdfBytes = doc.output("arraybuffer");
     const fileName = `certificado-${certificado.numero_certificado}.pdf`;
 
-    // Verificar se bucket existe antes de fazer upload
-    const { data: buckets, error: bucketError } = await supabase
-      .storage
-      .listBuckets();
-
-    const bucketExists = buckets?.some(b => b.id === 'certificados-regularidade');
-
-    if (!bucketExists) {
-      console.error('[GERAR_PDF] ⚠️ Bucket não encontrado! Buckets disponíveis:', 
-        buckets?.map(b => ({ id: b.id, public: b.public })));
-      throw new Error('Bucket certificados-regularidade não existe neste ambiente');
-    }
-
-    console.log('[GERAR_PDF] Fazendo upload para storage:', fileName, `(${pdfBytes.byteLength} bytes)`);
+    console.log('[GERAR_PDF] Fazendo upload para storage:', fileName);
 
     // Upload para storage
     const { error: uploadError } = await supabase
@@ -203,19 +190,11 @@ serve(async (req) => {
       });
 
     if (uploadError) {
-      console.error('[GERAR_PDF] Erro no upload:', {
+      console.error('[GERAR_PDF] ❌ Erro no upload:', {
         message: uploadError.message,
-        statusCode: (uploadError as any).statusCode,
         bucket: 'certificados-regularidade',
-        fileName: fileName,
-        fileSize: pdfBytes.byteLength
+        fileName: fileName
       });
-      
-      // Listar buckets disponíveis para diagnóstico
-      const { data: availableBuckets } = await supabase.storage.listBuckets();
-      console.error('[GERAR_PDF] Buckets disponíveis:', 
-        availableBuckets?.map(b => ({ id: b.id, public: b.public })));
-      
       throw new Error(`Erro ao fazer upload do PDF: ${uploadError.message}`);
     }
 
