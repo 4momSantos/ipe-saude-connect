@@ -70,12 +70,13 @@ export function useBuscarDocumentos() {
 
   const agruparPorCredenciado = (docs: ResultadoBusca[]): CredenciadoAgrupado[] => {
     const grupos = docs.reduce((acc, doc) => {
-      const chave = doc.credenciado_id;
+      // Usar credenciado_id como chave única, com fallback
+      const chave = doc.credenciado_id || `fallback_${doc.credenciado_cpf || 'sem-cpf'}_${doc.credenciado_nome}`;
       if (!acc[chave]) {
         acc[chave] = {
-          credenciado_id: doc.credenciado_id,
-          credenciado_nome: doc.credenciado_nome,
-          credenciado_cpf: doc.credenciado_cpf,
+          credenciado_id: doc.credenciado_id || '',
+          credenciado_nome: doc.credenciado_nome || 'Nome não disponível',
+          credenciado_cpf: doc.credenciado_cpf || '',
           total_documentos: 0,
           documentos: []
         };
