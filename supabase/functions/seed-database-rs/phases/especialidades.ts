@@ -9,18 +9,18 @@ interface SeedResult {
 }
 
 const especialidadesPrioritarias = [
-  { codigo: 'CARDIO', nome: 'Cardiologia', area: 'Clínica Médica' },
-  { codigo: 'ORTOP', nome: 'Ortopedia', area: 'Cirurgia' },
-  { codigo: 'PEDIATR', nome: 'Pediatria', area: 'Pediatria' },
-  { codigo: 'GINECO', nome: 'Ginecologia e Obstetrícia', area: 'Ginecologia' },
-  { codigo: 'NEURO', nome: 'Neurologia', area: 'Clínica Médica' },
-  { codigo: 'OFTALMO', nome: 'Oftalmologia', area: 'Especialidades Cirúrgicas' },
-  { codigo: 'DERMAT', nome: 'Dermatologia', area: 'Clínica Médica' },
-  { codigo: 'PSIQ', nome: 'Psiquiatria', area: 'Saúde Mental' },
-  { codigo: 'ENDOCR', nome: 'Endocrinologia', area: 'Clínica Médica' },
-  { codigo: 'GASTRO', nome: 'Gastroenterologia', area: 'Clínica Médica' },
-  { codigo: 'UROLOGO', nome: 'Urologia', area: 'Cirurgia' },
-  { codigo: 'OTORRIN', nome: 'Otorrinolaringologia', area: 'Especialidades Cirúrgicas' }
+  { codigo: 'CARDIO', nome: 'Cardiologia' },
+  { codigo: 'ORTOP', nome: 'Ortopedia' },
+  { codigo: 'PEDIATR', nome: 'Pediatria' },
+  { codigo: 'GINECO', nome: 'Ginecologia e Obstetrícia' },
+  { codigo: 'NEURO', nome: 'Neurologia' },
+  { codigo: 'OFTALMO', nome: 'Oftalmologia' },
+  { codigo: 'DERMAT', nome: 'Dermatologia' },
+  { codigo: 'PSIQ', nome: 'Psiquiatria' },
+  { codigo: 'ENDOCR', nome: 'Endocrinologia' },
+  { codigo: 'GASTRO', nome: 'Gastroenterologia' },
+  { codigo: 'UROLOGO', nome: 'Urologia' },
+  { codigo: 'OTORRIN', nome: 'Otorrinolaringologia' }
 ];
 
 export async function seedEspecialidades(
@@ -71,8 +71,7 @@ export async function seedEspecialidades(
       .insert(especialidadesToCreate.map(esp => ({
         codigo: esp.codigo,
         nome: esp.nome,
-        area: esp.area,
-        ativo: true
+        ativa: true
       })))
       .select();
 
