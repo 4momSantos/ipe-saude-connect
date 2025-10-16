@@ -89,16 +89,11 @@ export function useBuscarDocumentos() {
   };
 
   const buscar = async (termo: string, filtros: FiltrosBusca = {}, opcoes?: { incluirPrazos?: boolean; incluirOCR?: boolean }) => {
-    if (!termo.trim()) {
-      toast.error('Digite um termo de busca');
-      return;
-    }
-
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('buscar-documentos', {
         body: { 
-          termo, 
+          termo: termo || null,
           ...filtros,
           incluir_prazos: opcoes?.incluirPrazos ?? false,
           incluir_ocr: opcoes?.incluirOCR ?? false
@@ -108,7 +103,7 @@ export function useBuscarDocumentos() {
       if (error) throw error;
 
       const docs = data.data || [];
-      const ordenacao = filtros.ordenacao || 'relevancia';
+      const ordenacao = filtros.ordenacao || 'data_desc';
       const docsOrdenados = ordenarResultados(docs, ordenacao);
       
       setResultados(docsOrdenados);
@@ -123,11 +118,16 @@ export function useBuscarDocumentos() {
       setTempoExecucao(data.meta?.tempo_ms || 0);
       
       const total = data.meta?.total || 0;
-      toast.success(`${total} documento${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`);
+      
+      // Só mostrar toast de sucesso se foi uma busca explícita (com termo)
+      if (termo.trim()) {
+        toast.success(`${total} documento${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`);
+      }
     } catch (error: any) {
       console.error('Erro ao buscar documentos:', error);
       toast.error('Erro na busca: ' + error.message);
       setResultados([]);
+      setCredenciadosAgrupados([]);
     } finally {
       setIsLoading(false);
     }
