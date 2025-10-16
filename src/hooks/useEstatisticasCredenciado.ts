@@ -1,21 +1,25 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { EstatisticasCredenciado } from '@/types/avaliacoes';
 
 export function useEstatisticasCredenciado(credenciadoId: string) {
-  return useQuery({
+  return useQuery<EstatisticasCredenciado>({
     queryKey: ['estatisticas-credenciado', credenciadoId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const response = await (supabase as any)
         .from('estatisticas_credenciado')
         .select('*')
         .eq('credenciado_id', credenciadoId)
         .maybeSingle();
+      
+      const { data, error } = response;
 
       if (error) throw error;
 
       // Se não existe estatísticas ainda, retornar valores padrão
       if (!data) {
         return {
+          id: '',
           credenciado_id: credenciadoId,
           nota_media_publica: null,
           total_avaliacoes_publicas: 0,
@@ -30,10 +34,11 @@ export function useEstatisticasCredenciado(credenciadoId: string) {
           ranking_regiao: null,
           badges: [],
           atualizado_em: null,
+          created_at: new Date().toISOString(),
         };
       }
 
-      return data;
+      return data as EstatisticasCredenciado;
     },
     enabled: !!credenciadoId,
     staleTime: 5 * 60 * 1000, // 5 minutos
@@ -41,23 +46,23 @@ export function useEstatisticasCredenciado(credenciadoId: string) {
 }
 
 export function useTopCredenciados(limite: number = 10) {
-  return useQuery({
+  return useQuery<any[]>({
     queryKey: ['top-credenciados', limite],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const response = await (supabase as any)
         .from('estatisticas_credenciado')
         .select(`
           *,
           credenciados(
             id,
-            nome,
-            foto,
-            especialidade_principal
+            nome
           )
         `)
         .gte('total_avaliacoes_publicas', 5)
         .order('nota_media_publica', { ascending: false })
         .limit(limite);
+      
+      const { data, error } = response;
 
       if (error) throw error;
       return data || [];

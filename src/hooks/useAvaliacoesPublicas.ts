@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tansta
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { AvaliacaoPublicaForm, RespostaAvaliacaoForm } from '@/schemas/avaliacaoPublicaSchema';
+import type { AvaliacaoPublica } from '@/types/avaliacoes';
 
 interface FiltrosAvaliacao {
   nota_minima?: number;
@@ -13,54 +14,34 @@ export function useAvaliacoesPublicas(
   filtros?: FiltrosAvaliacao,
   pageSize: number = 10
 ) {
-  return useInfiniteQuery({
+  return useInfiniteQuery<{
+    avaliacoes: AvaliacaoPublica[];
+    nextPage?: number;
+    count: number;
+  }>({
     queryKey: ['avaliacoes-publicas', credenciadoId, filtros],
     queryFn: async ({ pageParam = 0 }) => {
-      let query = supabase
+      const from = (pageParam as number) * pageSize;
+      const to = from + pageSize - 1;
+      
+      const response = await (supabase as any)
         .from('avaliacoes_publicas')
         .select(`
           *,
           credenciados(nome)
         `, { count: 'exact' })
         .eq('credenciado_id', credenciadoId)
-        .eq('status', 'aprovada');
+        .eq('status', 'aprovada')
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
-      // Aplicar filtros
-      if (filtros?.nota_minima) {
-        query = query.gte('nota_estrelas', filtros.nota_minima);
-      }
-
-      // Ordenação
-      switch (filtros?.ordenacao) {
-        case 'recentes':
-          query = query.order('created_at', { ascending: false });
-          break;
-        case 'maiores_notas':
-          query = query.order('nota_estrelas', { ascending: false });
-          break;
-        case 'menores_notas':
-          query = query.order('nota_estrelas', { ascending: true });
-          break;
-        case 'relevantes':
-        default:
-          // Relevantes = mais recentes com maior peso para verificados
-          query = query.order('avaliador_verificado', { ascending: false })
-                      .order('created_at', { ascending: false });
-          break;
-      }
-
-      // Paginação
-      const from = pageParam * pageSize;
-      const to = from + pageSize - 1;
-      query = query.range(from, to);
-
-      const { data, error, count } = await query;
+      const { data, error, count } = response;
 
       if (error) throw error;
 
       return {
-        avaliacoes: data || [],
-        nextPage: data && data.length === pageSize ? pageParam + 1 : undefined,
+        avaliacoes: (data as AvaliacaoPublica[]) || [],
+        nextPage: data && data.length === pageSize ? (pageParam as number) + 1 : undefined,
         count: count || 0,
       };
     },
@@ -132,10 +113,12 @@ export function useResponderAvaliacao() {
 }
 
 export function useAvaliacoesPendentes(credenciadoId?: string) {
-  return useQuery({
+  return useQuery<AvaliacaoPublica[]>({
     queryKey: ['avaliacoes-pendentes', credenciadoId],
     queryFn: async () => {
-      let query = supabase
+      if (!credenciadoId) return [];
+      
+      const response = await (supabase as any)
         .from('avaliacoes_publicas')
         .select(`
           *,
@@ -143,16 +126,13 @@ export function useAvaliacoesPendentes(credenciadoId?: string) {
         `)
         .eq('status', 'aprovada')
         .is('resposta_profissional', null)
+        .eq('credenciado_id', credenciadoId)
         .order('created_at', { ascending: false });
 
-      if (credenciadoId) {
-        query = query.eq('credenciado_id', credenciadoId);
-      }
-
-      const { data, error } = await query;
+      const { data, error } = response;
 
       if (error) throw error;
-      return data || [];
+      return (data as AvaliacaoPublica[]) || [];
     },
     enabled: !!credenciadoId,
   });

@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Stars } from './Stars';
 import { useEstatisticasCredenciado } from '@/hooks/useEstatisticasCredenciado';
 import { cn } from '@/lib/utils';
+import type { EstatisticasCredenciado } from '@/types/avaliacoes';
 
 interface EstatisticasAvaliacaoProps {
   credenciadoId: string;

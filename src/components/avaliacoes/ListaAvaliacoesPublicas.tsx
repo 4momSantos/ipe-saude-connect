@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Stars } from './Stars';
 import { useAvaliacoesPublicas } from '@/hooks/useAvaliacoesPublicas';
+import type { AvaliacaoPublica } from '@/types/avaliacoes';
 
 interface ListaAvaliacoesPublicasProps {
   credenciadoId: string;
