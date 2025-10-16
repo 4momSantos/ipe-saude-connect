@@ -130,13 +130,18 @@ export const useConsultarPublico = () => {
 export const useConsultarPorCredenciado = () => {
   return useMutation({
     mutationFn: async (identificador: string): Promise<ConsultaPublicaResult> => {
-      const { data, error } = await supabase
+      const { data: resultArray, error } = await supabase
         .rpc('consultar_certificado_por_credenciado', { 
           p_identificador: identificador 
-        })
-        .single();
+        });
 
       if (error) throw error;
+      
+      const data = resultArray?.[0] || null;
+      
+      if (!data) {
+        throw new Error('Certificado não encontrado');
+      }
       
       // Garantir que credenciado é um objeto
       const credenciadoData = typeof data.credenciado === 'string' 
