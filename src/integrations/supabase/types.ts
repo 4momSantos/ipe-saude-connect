@@ -5588,17 +5588,33 @@ export type Database = {
         Returns: Database["public"]["CompositeTypes"]["documento_busca_resultado"][]
       }
       buscar_documentos_completos: {
-        Args: {
-          p_credenciado_id?: string
-          p_data_fim?: string
-          p_data_inicio?: string
-          p_incluir_ocr?: boolean
-          p_incluir_prazos?: boolean
-          p_limit?: number
-          p_status?: string
-          p_termo?: string
-          p_tipo_documento?: string
-        }
+        Args:
+          | {
+              p_apenas_com_numero?: boolean
+              p_apenas_habilitados?: boolean
+              p_credenciado_id?: string
+              p_data_fim?: string
+              p_data_inicio?: string
+              p_incluir_nao_credenciados?: boolean
+              p_incluir_ocr?: boolean
+              p_incluir_prazos?: boolean
+              p_limit?: number
+              p_status?: string
+              p_status_credenciado?: string
+              p_termo?: string
+              p_tipo_documento?: string
+            }
+          | {
+              p_credenciado_id?: string
+              p_data_fim?: string
+              p_data_inicio?: string
+              p_incluir_ocr?: boolean
+              p_incluir_prazos?: boolean
+              p_limit?: number
+              p_status?: string
+              p_termo?: string
+              p_tipo_documento?: string
+            }
         Returns: {
           arquivo_nome: string
           arquivo_url: string
@@ -5606,17 +5622,15 @@ export type Database = {
           credenciado_cpf: string
           credenciado_id: string
           credenciado_nome: string
-          data_vencimento: string
-          dias_para_vencer: number
+          credenciado_numero: string
+          credenciado_status: string
+          data_habilitacao: string
           id: string
           inscricao_id: string
-          ocr_confidence: number
-          ocr_processado: boolean
+          is_credenciado: boolean
           ocr_resultado: Json
-          relevancia: number
-          snippet: string
+          prazos: Json
           status: string
-          status_prazo: string
           tipo_documento: string
         }[]
       }

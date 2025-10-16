@@ -12,6 +12,10 @@ export interface FiltrosBusca {
   data_fim?: string;
   ordenacao?: OrdenacaoTipo;
   agrupar_por?: 'tipo' | 'nenhum' | 'credenciado';
+  status_credenciado?: string;
+  apenas_habilitados?: boolean;
+  apenas_com_numero?: boolean;
+  incluir_nao_credenciados?: boolean;
 }
 
 export interface ResultadoBusca {
@@ -25,6 +29,10 @@ export interface ResultadoBusca {
   credenciado_nome: string;
   credenciado_cpf: string;
   credenciado_id: string;
+  credenciado_status: string;
+  credenciado_numero: string;
+  data_habilitacao: string | null;
+  is_credenciado: boolean;
   relevancia: number;
   snippet: string;
   // Campos de prazo
@@ -99,7 +107,11 @@ export function useBuscarDocumentos() {
           termo: termo || null,
           ...filtros,
           incluir_prazos: opcoes?.incluirPrazos ?? false,
-          incluir_ocr: opcoes?.incluirOCR ?? false
+          incluir_ocr: opcoes?.incluirOCR ?? false,
+          status_credenciado: filtros.status_credenciado || null,
+          apenas_habilitados: filtros.apenas_habilitados ?? null,
+          apenas_com_numero: filtros.apenas_com_numero ?? null,
+          incluir_nao_credenciados: filtros.incluir_nao_credenciados ?? false
         }
       });
 

@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useBuscarDocumentos, FiltrosBusca, OrdenacaoTipo, ResultadoBusca } from '@/hooks/useBuscarDocumentos';
 import { useTiposDocumentos } from '@/hooks/useTiposDocumentos';
@@ -179,51 +181,97 @@ export function BuscaDocumentos({
 
         {/* Filtros Avançados */}
         {mostrarFiltros && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4 pt-4 border-t">
-            <Select 
-              value={filtros.status} 
-              onValueChange={(v) => setFiltros({...filtros, status: v})}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pendente">Pendente</SelectItem>
-                <SelectItem value="validado">Validado</SelectItem>
-                <SelectItem value="aprovado">Aprovado</SelectItem>
-                <SelectItem value="rejeitado">Rejeitado</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="space-y-4 mt-4 pt-4 border-t">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Select 
+                value={filtros.status} 
+                onValueChange={(v) => setFiltros({...filtros, status: v})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Status do Documento" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pendente">Pendente</SelectItem>
+                  <SelectItem value="validado">Validado</SelectItem>
+                  <SelectItem value="aprovado">Aprovado</SelectItem>
+                  <SelectItem value="rejeitado">Rejeitado</SelectItem>
+                </SelectContent>
+              </Select>
 
-            <Select 
-              value={filtros.tipo_documento} 
-              onValueChange={(v) => setFiltros({...filtros, tipo_documento: v})}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Tipo de Documento" />
-              </SelectTrigger>
-              <SelectContent>
-                {tiposDisponiveis.map((tipo) => (
-                  <SelectItem key={tipo} value={tipo}>
-                    {tipo}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <Select 
+                value={filtros.status_credenciado} 
+                onValueChange={(v) => setFiltros({...filtros, status_credenciado: v})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Status do Credenciado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Ativo">Ativo</SelectItem>
+                  <SelectItem value="Suspenso">Suspenso</SelectItem>
+                  <SelectItem value="Descredenciado">Descredenciado</SelectItem>
+                  <SelectItem value="Não Credenciado">Não Credenciado</SelectItem>
+                </SelectContent>
+              </Select>
 
-            <Input
-              type="date"
-              placeholder="Data Início"
-              value={filtros.data_inicio || ''}
-              onChange={(e) => setFiltros({...filtros, data_inicio: e.target.value})}
-            />
+              <Select 
+                value={filtros.tipo_documento} 
+                onValueChange={(v) => setFiltros({...filtros, tipo_documento: v})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Tipo de Documento" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tiposDisponiveis.map((tipo) => (
+                    <SelectItem key={tipo} value={tipo}>
+                      {tipo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-            <Input
-              type="date"
-              placeholder="Data Fim"
-              value={filtros.data_fim || ''}
-              onChange={(e) => setFiltros({...filtros, data_fim: e.target.value})}
-            />
+              <Input
+                type="date"
+                placeholder="Data Início"
+                value={filtros.data_inicio || ''}
+                onChange={(e) => setFiltros({...filtros, data_inicio: e.target.value})}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Input
+                type="date"
+                placeholder="Data Fim"
+                value={filtros.data_fim || ''}
+                onChange={(e) => setFiltros({...filtros, data_fim: e.target.value})}
+              />
+
+              <div className="flex items-center justify-between space-x-2 px-3 py-2 border rounded-md">
+                <Label htmlFor="apenas-habilitados" className="cursor-pointer">Apenas habilitados</Label>
+                <Switch
+                  id="apenas-habilitados"
+                  checked={filtros.apenas_habilitados ?? false}
+                  onCheckedChange={(checked) => setFiltros({ ...filtros, apenas_habilitados: checked ? true : undefined })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between space-x-2 px-3 py-2 border rounded-md">
+                <Label htmlFor="apenas-com-numero" className="cursor-pointer">Apenas com número</Label>
+                <Switch
+                  id="apenas-com-numero"
+                  checked={filtros.apenas_com_numero ?? false}
+                  onCheckedChange={(checked) => setFiltros({ ...filtros, apenas_com_numero: checked ? true : undefined })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between space-x-2 px-3 py-2 border rounded-md">
+                <Label htmlFor="incluir-nao-credenciados" className="cursor-pointer">Incluir não credenciados</Label>
+                <Switch
+                  id="incluir-nao-credenciados"
+                  checked={filtros.incluir_nao_credenciados ?? false}
+                  onCheckedChange={(checked) => setFiltros({ ...filtros, incluir_nao_credenciados: checked })}
+                />
+              </div>
+            </div>
           </div>
         )}
       </Card>
