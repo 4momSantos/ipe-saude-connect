@@ -97,61 +97,114 @@ async function getPDFBytes(metadata: any): Promise<Uint8Array> {
       }
       const arrayBuffer = await response.arrayBuffer();
       return new Uint8Array(arrayBuffer);
-      const width = testLine.length * (fontSize * 0.5);
+    }
+    
+    throw new Error('PDF não disponível: nem base64 nem URL encontrados');
+    
+  } catch (error) {
+    console.error(JSON.stringify({
+      level: "error",
+      action: "pdf_bytes_fetch_failed",
+      error: error instanceof Error ? error.message : "Unknown"
+    }));
+    throw error;
+  }
+}
+
+/**
+ * Converte HTML em PDF usando pdf-lib
+ * Solução simples e confiável sem dependências externas
+ */
+async function htmlToPDF(html: string, numeroContrato: string): Promise<Uint8Array> {
+  console.log(JSON.stringify({
+    level: "info",
+    action: "html_to_pdf_start",
+    numeroContrato,
+    htmlLength: html.length
+  }));
+
+  try {
+    // Criar PDF básico usando pdf-lib
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([595.28, 841.89]); // A4
+    const { width, height } = page.getSize();
+    
+    const fontSize = 11;
+    const margin = 50;
+    const lineHeight = fontSize * 1.5;
+    const maxWidth = width - (2 * margin);
+
+    // Remover tags HTML básicas e quebrar em linhas
+    const cleanText = html
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const words = cleanText.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
+
+    // Quebrar texto em linhas que cabem na largura
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const testWidth = testLine.length * (fontSize * 0.5); // Estimativa aproximada
       
-      if (width < maxWidth) {
+      if (testWidth < maxWidth) {
         currentLine = testLine;
       } else {
-        lines.push(currentLine);
+        if (currentLine) lines.push(currentLine);
         currentLine = word;
       }
     }
     if (currentLine) lines.push(currentLine);
-    
+
     // Adicionar título
-    page.drawText(`CONTRATO DE CREDENCIAMENTO - ${contratoNumero}`, {
+    page.drawText(`CONTRATO - ${numeroContrato}`, {
       x: margin,
-      y: page.getHeight() - margin,
+      y: height - margin,
       size: 14,
       color: rgb(0, 0, 0),
     });
-    
+
     // Adicionar conteúdo
-    let yPosition = page.getHeight() - margin - 30;
+    let yPosition = height - margin - 30;
     let currentPage = page;
-    
+
     for (const line of lines) {
-      if (yPosition < margin) {
+      // Verificar se precisa de nova página
+      if (yPosition < margin + 20) {
         currentPage = pdfDoc.addPage([595.28, 841.89]);
         yPosition = currentPage.getHeight() - margin;
       }
-      
+
       currentPage.drawText(line, {
         x: margin,
         y: yPosition,
         size: fontSize,
         color: rgb(0, 0, 0),
       });
-      
+
       yPosition -= lineHeight;
     }
-    
+
     const pdfBytes = await pdfDoc.save();
-    console.log(JSON.stringify({ 
-      level: "info", 
-      action: "pdf_generated", 
-      bytes: pdfBytes.length 
+    
+    console.log(JSON.stringify({
+      level: "info",
+      action: "html_to_pdf_complete",
+      pdfSize: pdfBytes.length,
+      pages: pdfDoc.getPageCount()
     }));
-    
+
     return pdfBytes;
-    
+
   } catch (error) {
     console.error(JSON.stringify({
       level: "error",
-      action: "pdf_generation_failed",
+      action: "html_to_pdf_failed",
       error: error instanceof Error ? error.message : "Unknown"
     }));
-    throw new Error(`Falha ao gerar PDF: ${error instanceof Error ? error.message : "Unknown"}`);
+    throw new Error(`Falha ao converter HTML para PDF: ${error instanceof Error ? error.message : "Unknown"}`);
   }
 }
 
