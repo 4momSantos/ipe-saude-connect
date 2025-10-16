@@ -1,9 +1,8 @@
 /**
- * Gerador de PDF de Contratos usando jsPDF
- * Substitui a geração HTML + Paged.js por PDF nativo
+ * Gerador de PDF de Contratos usando jsPDF puro
+ * Sem dependências externas problemáticas
  */
 import jsPDF from "https://esm.sh/jspdf@2.5.1";
-import autoTable from "https://esm.sh/jspdf-autotable@3.8.2";
 
 interface ContratoData {
   inscricao_id: string;
@@ -29,7 +28,7 @@ interface ContratoData {
 }
 
 /**
- * Gera PDF do contrato diretamente usando jsPDF
+ * Gera PDF do contrato diretamente usando jsPDF puro
  * @returns Promise<Uint8Array> - PDF pronto para upload
  */
 export async function gerarContratoPDFDireto(contratoData: ContratoData): Promise<Uint8Array> {
@@ -51,6 +50,77 @@ export async function gerarContratoPDFDireto(contratoData: ContratoData): Promis
   const contentWidth = pageWidth - (margin * 2);
   let yPos = margin;
 
+  // Função auxiliar para adicionar texto com quebra de linha
+  const addText = (text: string, fontSize: number = 10, isBold: boolean = false, addSpacing: number = 6) => {
+    doc.setFontSize(fontSize);
+    doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+    const lines = doc.splitTextToSize(text, contentWidth);
+    
+    // Verificar se precisa de nova página
+    if (yPos + (lines.length * 5) > pageHeight - 30) {
+      doc.addPage();
+      yPos = margin;
+    }
+    
+    doc.text(lines, margin, yPos);
+    yPos += lines.length * 5 + addSpacing;
+  };
+
+  // Função auxiliar para adicionar título de seção
+  const addSectionTitle = (title: string) => {
+    if (yPos > pageHeight - 50) {
+      doc.addPage();
+      yPos = margin;
+    }
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(title, margin, yPos);
+    yPos += 8;
+  };
+
+  // Função auxiliar para adicionar tabela simples
+  const addSimpleTable = (headers: string[], rows: string[][], startY: number) => {
+    const colWidth = contentWidth / headers.length;
+    let currentY = startY;
+    
+    // Verificar espaço
+    if (currentY + (rows.length * 8) > pageHeight - 30) {
+      doc.addPage();
+      currentY = margin;
+    }
+    
+    // Cabeçalho
+    doc.setFillColor(99, 102, 241);
+    doc.rect(margin, currentY, contentWidth, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    
+    headers.forEach((header, i) => {
+      doc.text(header, margin + (i * colWidth) + 2, currentY + 6);
+    });
+    currentY += 8;
+    
+    // Linhas
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    
+    rows.forEach((row, rowIndex) => {
+      if (rowIndex % 2 === 0) {
+        doc.setFillColor(245, 245, 245);
+        doc.rect(margin, currentY, contentWidth, 7, 'F');
+      }
+      
+      row.forEach((cell, i) => {
+        doc.text(cell, margin + (i * colWidth) + 2, currentY + 5);
+      });
+      currentY += 7;
+    });
+    
+    return currentY + 5;
+  };
+
   // ===== CABEÇALHO =====
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
@@ -65,119 +135,61 @@ export async function gerarContratoPDFDireto(contratoData: ContratoData): Promis
   yPos += 15;
 
   // ===== SEÇÃO 1: PARTES CONTRATANTES =====
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.text('1. DAS PARTES', margin, yPos);
-  yPos += 8;
-
-  doc.setFontSize(10);
+  addSectionTitle('1. DAS PARTES');
+  
   doc.setFont('helvetica', 'bold');
   doc.text('CONTRATANTE:', margin, yPos);
   yPos += 6;
 
-  doc.setFont('helvetica', 'normal');
-  const contratanteText = `[Nome da Instituição], pessoa jurídica de direito público, inscrita no CNPJ sob nº [CNPJ], com sede na [Endereço], neste ato representada por [Representante Legal].`;
-  const contratanteLines = doc.splitTextToSize(contratanteText, contentWidth);
-  doc.text(contratanteLines, margin, yPos);
-  yPos += contratanteLines.length * 5 + 8;
+  addText(
+    '[Nome da Instituição], pessoa jurídica de direito público, inscrita no CNPJ sob nº [CNPJ], com sede na [Endereço], neste ato representada por [Representante Legal].',
+    10,
+    false,
+    8
+  );
 
   doc.setFont('helvetica', 'bold');
   doc.text('CONTRATADO:', margin, yPos);
   yPos += 6;
 
-  doc.setFont('helvetica', 'normal');
-  const contratadoText = `${contratoData.candidato_nome}, CPF ${contratoData.candidato_cpf_formatado}, RG ${contratoData.candidato_rg || 'não informado'}, residente em ${contratoData.candidato_endereco_completo}, e-mail ${contratoData.candidato_email}, telefone ${contratoData.candidato_telefone || contratoData.candidato_celular}.`;
-  const contratadoLines = doc.splitTextToSize(contratadoText, contentWidth);
-  doc.text(contratadoLines, margin, yPos);
-  yPos += contratadoLines.length * 5 + 10;
-
-  // Verifica se precisa de nova página
-  if (yPos > pageHeight - 40) {
-    doc.addPage();
-    yPos = margin;
-  }
+  addText(
+    `${contratoData.candidato_nome}, CPF ${contratoData.candidato_cpf_formatado}, RG ${contratoData.candidato_rg || 'não informado'}, residente em ${contratoData.candidato_endereco_completo}, e-mail ${contratoData.candidato_email}, telefone ${contratoData.candidato_telefone || contratoData.candidato_celular}.`,
+    10,
+    false,
+    10
+  );
 
   // ===== SEÇÃO 2: OBJETO DO CONTRATO =====
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.text('2. DO OBJETO', margin, yPos);
-  yPos += 8;
-
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  const objetoText = `O presente contrato tem por objeto o credenciamento do CONTRATADO para prestação de serviços de saúde, conforme especificado no ${contratoData.edital_numero}, publicado em ${contratoData.edital_data_publicacao_formatada}.`;
-  const objetoLines = doc.splitTextToSize(objetoText, contentWidth);
-  doc.text(objetoLines, margin, yPos);
-  yPos += objetoLines.length * 5 + 8;
+  addSectionTitle('2. DO OBJETO');
+  
+  addText(
+    `O presente contrato tem por objeto o credenciamento do CONTRATADO para prestação de serviços de saúde, conforme especificado no ${contratoData.edital_numero}, publicado em ${contratoData.edital_data_publicacao_formatada}.`,
+    10,
+    false,
+    8
+  );
 
   doc.setFont('helvetica', 'bold');
   doc.text('Objeto do Edital:', margin, yPos);
   yPos += 6;
 
-  doc.setFont('helvetica', 'normal');
-  const editalObjetoLines = doc.splitTextToSize(contratoData.edital_objeto, contentWidth);
-  doc.text(editalObjetoLines, margin, yPos);
-  yPos += editalObjetoLines.length * 5 + 10;
-
-  // Verifica se precisa de nova página
-  if (yPos > pageHeight - 60) {
-    doc.addPage();
-    yPos = margin;
-  }
+  addText(contratoData.edital_objeto, 10, false, 10);
 
   // ===== SEÇÃO 3: ESPECIALIDADES =====
   if (contratoData.especialidades && contratoData.especialidades.length > 0) {
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('3. DAS ESPECIALIDADES', margin, yPos);
-    yPos += 8;
+    addSectionTitle('3. DAS ESPECIALIDADES');
+    addText('O CONTRATADO prestará serviços nas seguintes especialidades:', 10, false, 8);
 
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('O CONTRATADO prestará serviços nas seguintes especialidades:', margin, yPos);
-    yPos += 8;
-
-    // Tabela de especialidades com autotable
-    const especialidadesData = contratoData.especialidades.map((esp, idx) => [
+    const tableData = contratoData.especialidades.map((esp, idx) => [
       `${idx + 1}`,
       esp
     ]);
 
-    (doc as any).autoTable({
-      startY: yPos,
-      head: [['#', 'Especialidade']],
-      body: especialidadesData,
-      theme: 'striped',
-      headStyles: {
-        fillColor: [99, 102, 241],
-        textColor: 255,
-        fontSize: 10,
-        fontStyle: 'bold'
-      },
-      bodyStyles: {
-        fontSize: 9
-      },
-      margin: { left: margin, right: margin },
-      columnStyles: {
-        0: { cellWidth: 15, halign: 'center' },
-        1: { cellWidth: 'auto' }
-      }
-    });
-
-    yPos = (doc as any).lastAutoTable.finalY + 10;
-  }
-
-  // Verifica se precisa de nova página
-  if (yPos > pageHeight - 100) {
-    doc.addPage();
-    yPos = margin;
+    yPos = addSimpleTable(['#', 'Especialidade'], tableData, yPos);
   }
 
   // ===== SEÇÃO 4: CLÁUSULAS CONTRATUAIS =====
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.text('4. DAS OBRIGAÇÕES', margin, yPos);
-  yPos += 8;
+  addSectionTitle('4. DAS OBRIGAÇÕES');
 
   const clausulas = [
     {
@@ -207,7 +219,6 @@ export async function gerarContratoPDFDireto(contratoData: ContratoData): Promis
   ];
 
   for (const clausula of clausulas) {
-    // Verifica se precisa de nova página antes de cada cláusula
     if (yPos > pageHeight - 50) {
       doc.addPage();
       yPos = margin;
@@ -218,10 +229,7 @@ export async function gerarContratoPDFDireto(contratoData: ContratoData): Promis
     doc.text(clausula.titulo, margin, yPos);
     yPos += 6;
 
-    doc.setFont('helvetica', 'normal');
-    const clausulaLines = doc.splitTextToSize(clausula.texto, contentWidth);
-    doc.text(clausulaLines, margin, yPos);
-    yPos += clausulaLines.length * 5 + 8;
+    addText(clausula.texto, 10, false, 8);
   }
 
   // ===== ASSINATURAS =====
@@ -232,16 +240,19 @@ export async function gerarContratoPDFDireto(contratoData: ContratoData): Promis
 
   yPos += 20;
 
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text('E, por estarem assim justos e contratados, assinam o presente instrumento em 2 (duas) vias de igual teor e forma.', margin, yPos);
-  yPos += 15;
+  addText(
+    'E, por estarem assim justos e contratados, assinam o presente instrumento em 2 (duas) vias de igual teor e forma.',
+    10,
+    false,
+    15
+  );
 
   doc.text(`[Local], ${contratoData.sistema_data_extenso}`, margin, yPos);
   yPos += 25;
 
   // Linha de assinatura do contratante
   doc.line(margin, yPos, pageWidth / 2 - 10, yPos);
+  doc.setFontSize(10);
   doc.text('CONTRATANTE', pageWidth / 4, yPos + 5, { align: 'center' });
 
   // Linha de assinatura do contratado
