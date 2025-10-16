@@ -23,6 +23,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // ✅ Usar Service Role Key para acesso total ao schema
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -30,9 +31,11 @@ Deno.serve(async (req) => {
 
     const body: CriarAvaliacaoRequest = await req.json();
 
-    console.log('[criar-avaliacao-publica] Criando avaliação:', {
+    console.log('[criar-avaliacao-publica] 📝 Payload recebido:', {
       credenciado_id: body.credenciado_id,
-      nota_estrelas: body.nota_estrelas
+      nota_estrelas: body.nota_estrelas,
+      comentario_length: body.comentario?.length,
+      avaliador_anonimo: body.avaliador_anonimo
     });
 
     // 1. Validar credenciado existe
@@ -43,8 +46,11 @@ Deno.serve(async (req) => {
       .single();
 
     if (credenciadoError || !credenciado) {
+      console.error('[criar-avaliacao-publica] ❌ Credenciado não encontrado:', credenciadoError);
       throw new Error('Credenciado não encontrado');
     }
+
+    console.log('[criar-avaliacao-publica] ✅ Credenciado válido:', credenciado.nome);
 
     // 2. Validar campos obrigatórios
     if (!body.nota_estrelas || body.nota_estrelas < 1 || body.nota_estrelas > 5) {
@@ -60,6 +66,8 @@ Deno.serve(async (req) => {
     }
 
     // 3. Chamar moderação por IA
+    console.log('[criar-avaliacao-publica] 🤖 Iniciando moderação IA...');
+    
     const moderacaoResponse = await fetch(
       `${Deno.env.get('SUPABASE_URL')}/functions/v1/moderar-avaliacao-ia`,
       {
@@ -77,7 +85,11 @@ Deno.serve(async (req) => {
 
     const moderacao = await moderacaoResponse.json();
 
-    console.log('[criar-avaliacao-publica] Resultado moderação:', moderacao);
+    console.log('[criar-avaliacao-publica] 🤖 Resultado moderação:', {
+      score: moderacao.score,
+      aprovado: moderacao.aprovado,
+      motivo: moderacao.motivo
+    });
 
     // 4. Determinar status baseado no score
     let status = 'pendente';
@@ -86,6 +98,8 @@ Deno.serve(async (req) => {
     } else if (moderacao.score < 30) {
       status = 'rejeitada';
     }
+
+    console.log('[criar-avaliacao-publica] 📊 Status determinado:', status);
 
     // 5. Criar avaliação
     const { data: avaliacao, error: avaliacaoError } = await supabase
@@ -109,13 +123,19 @@ Deno.serve(async (req) => {
       .single();
 
     if (avaliacaoError) {
-      console.error('[criar-avaliacao-publica] Erro ao criar:', avaliacaoError);
+      console.error('[criar-avaliacao-publica] ❌ Erro ao criar:', {
+        code: avaliacaoError.code,
+        message: avaliacaoError.message,
+        details: avaliacaoError.details,
+        hint: avaliacaoError.hint
+      });
       throw avaliacaoError;
     }
 
-    console.log('[criar-avaliacao-publica] Avaliação criada:', {
+    console.log('[criar-avaliacao-publica] ✅ Avaliação criada:', {
       id: avaliacao.id,
-      status: avaliacao.status
+      status: avaliacao.status,
+      score: avaliacao.moderacao_ia_score
     });
 
     // 6. As estatísticas serão atualizadas automaticamente pelo trigger
@@ -137,9 +157,16 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('[criar-avaliacao-publica] Erro:', error);
+    console.error('[criar-avaliacao-publica] ❌ Erro geral:', {
+      message: error.message,
+      stack: error.stack
+    });
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: error.stack
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400

@@ -538,6 +538,119 @@ export type Database = {
           },
         ]
       }
+      avaliacoes_publicas: {
+        Row: {
+          avaliador_anonimo: boolean | null
+          avaliador_email: string | null
+          avaliador_nome: string | null
+          avaliador_verificado: boolean | null
+          comentario: string
+          comprovante_url: string | null
+          created_at: string
+          credenciado_id: string
+          data_atendimento: string | null
+          denunciada: boolean | null
+          denunciada_em: string | null
+          denunciada_por: string | null
+          id: string
+          moderacao_ia_motivo: string | null
+          moderacao_ia_score: number | null
+          moderado_em: string | null
+          moderador_id: string | null
+          motivo_denuncia: string | null
+          nota_estrelas: number
+          respondido_em: string | null
+          respondido_por: string | null
+          resposta_profissional: string | null
+          status: string
+          tipo_servico: string | null
+          updated_at: string
+        }
+        Insert: {
+          avaliador_anonimo?: boolean | null
+          avaliador_email?: string | null
+          avaliador_nome?: string | null
+          avaliador_verificado?: boolean | null
+          comentario: string
+          comprovante_url?: string | null
+          created_at?: string
+          credenciado_id: string
+          data_atendimento?: string | null
+          denunciada?: boolean | null
+          denunciada_em?: string | null
+          denunciada_por?: string | null
+          id?: string
+          moderacao_ia_motivo?: string | null
+          moderacao_ia_score?: number | null
+          moderado_em?: string | null
+          moderador_id?: string | null
+          motivo_denuncia?: string | null
+          nota_estrelas: number
+          respondido_em?: string | null
+          respondido_por?: string | null
+          resposta_profissional?: string | null
+          status?: string
+          tipo_servico?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avaliador_anonimo?: boolean | null
+          avaliador_email?: string | null
+          avaliador_nome?: string | null
+          avaliador_verificado?: boolean | null
+          comentario?: string
+          comprovante_url?: string | null
+          created_at?: string
+          credenciado_id?: string
+          data_atendimento?: string | null
+          denunciada?: boolean | null
+          denunciada_em?: string | null
+          denunciada_por?: string | null
+          id?: string
+          moderacao_ia_motivo?: string | null
+          moderacao_ia_score?: number | null
+          moderado_em?: string | null
+          moderador_id?: string | null
+          motivo_denuncia?: string | null
+          nota_estrelas?: number
+          respondido_em?: string | null
+          respondido_por?: string | null
+          resposta_profissional?: string | null
+          status?: string
+          tipo_servico?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avaliacoes_publicas_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_publicas_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_publicas_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_publicas_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categorias_estabelecimentos: {
         Row: {
           ativo: boolean | null
@@ -2247,6 +2360,92 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      estatisticas_credenciado: {
+        Row: {
+          atualizado_em: string | null
+          badges: string[]
+          created_at: string
+          credenciado_id: string
+          distribuicao_notas: Json
+          id: string
+          indice_resolucao: number | null
+          nota_media_interna: number | null
+          nota_media_publica: number | null
+          performance_score: number
+          ranking_especialidade: number | null
+          ranking_regiao: number | null
+          taxa_satisfacao: number | null
+          tempo_medio_atendimento: number | null
+          total_avaliacoes_internas: number
+          total_avaliacoes_publicas: number
+        }
+        Insert: {
+          atualizado_em?: string | null
+          badges?: string[]
+          created_at?: string
+          credenciado_id: string
+          distribuicao_notas?: Json
+          id?: string
+          indice_resolucao?: number | null
+          nota_media_interna?: number | null
+          nota_media_publica?: number | null
+          performance_score?: number
+          ranking_especialidade?: number | null
+          ranking_regiao?: number | null
+          taxa_satisfacao?: number | null
+          tempo_medio_atendimento?: number | null
+          total_avaliacoes_internas?: number
+          total_avaliacoes_publicas?: number
+        }
+        Update: {
+          atualizado_em?: string | null
+          badges?: string[]
+          created_at?: string
+          credenciado_id?: string
+          distribuicao_notas?: Json
+          id?: string
+          indice_resolucao?: number | null
+          nota_media_interna?: number | null
+          nota_media_publica?: number | null
+          performance_score?: number
+          ranking_especialidade?: number | null
+          ranking_regiao?: number | null
+          taxa_satisfacao?: number | null
+          tempo_medio_atendimento?: number | null
+          total_avaliacoes_internas?: number
+          total_avaliacoes_publicas?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estatisticas_credenciado_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: true
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estatisticas_credenciado_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: true
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "estatisticas_credenciado_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: true
+            referencedRelation: "v_dados_regularidade"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "estatisticas_credenciado_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: true
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       form_templates: {
         Row: {
