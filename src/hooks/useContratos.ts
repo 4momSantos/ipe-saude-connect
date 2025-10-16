@@ -86,7 +86,7 @@ export function useTodosContratos() {
               numero_edital
             )
           ),
-          signature_request:signature_requests(
+          signature_requests(
             id,
             status,
             external_id

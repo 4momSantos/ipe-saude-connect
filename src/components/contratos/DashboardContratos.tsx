@@ -86,9 +86,9 @@ export function DashboardContratos() {
         inscricao?.dados_inscricao?.dados_pessoais?.nome_completo ||
         inscricao?.candidato?.email;
       
-      // Verificar se contrato foi enviado (tem signature_request)
-      const signatureRequest = (c as any).signature_request;
-      const naoEnviado = !signatureRequest || (Array.isArray(signatureRequest) && signatureRequest.length === 0);
+      // Verificar se contrato foi enviado (tem signature_requests)
+      const signatureRequests = (c as any).signature_requests;
+      const naoEnviado = !signatureRequests || (Array.isArray(signatureRequests) && signatureRequests.length === 0);
       
       // Filtros
       let matchesStatus = true;
@@ -234,8 +234,8 @@ export function DashboardContratos() {
                     const statusProblematico = contrato.status === 'pendente_assinatura' && !temHTML;
                     
                     // Verificar se contrato foi enviado para assinatura
-                    const signatureRequest = (contrato as any).signature_request;
-                    const naoEnviado = !signatureRequest || (Array.isArray(signatureRequest) && signatureRequest.length === 0);
+                    const signatureRequests = (contrato as any).signature_requests;
+                    const naoEnviado = !signatureRequests || (Array.isArray(signatureRequests) && signatureRequests.length === 0);
 
                     return (
                       <TableRow key={contrato.id}>
@@ -356,8 +356,8 @@ export function DashboardContratos() {
               <CardContent className="pt-6">
                 <div className="text-2xl font-bold text-yellow-600">
                   {contratos.filter(c => {
-                    const signatureRequest = (c as any).signature_request;
-                    const naoEnviado = !signatureRequest || (Array.isArray(signatureRequest) && signatureRequest.length === 0);
+                    const signatureRequests = (c as any).signature_requests;
+                    const naoEnviado = !signatureRequests || (Array.isArray(signatureRequests) && signatureRequests.length === 0);
                     return c.status === 'pendente_assinatura' && naoEnviado;
                   }).length}
                 </div>
