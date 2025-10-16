@@ -63,13 +63,85 @@ export function usePrazos() {
   const { data: prazos, isLoading: loadingPrazos } = useQuery({
     queryKey: ['prazos-completos'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('v_prazos_completos')
-        .select('*')
-        .order('dias_para_vencer', { ascending: true });
+      // Buscar todos os documentos com prazos de validade
+      const { data: documentos, error } = await supabase
+        .from('documentos_credenciados')
+        .select(`
+          id,
+          credenciado_id,
+          tipo_documento,
+          data_emissao,
+          data_vencimento,
+          status,
+          criado_em,
+          atualizado_em,
+          credenciados!inner (
+            id,
+            nome,
+            cpf,
+            email
+          )
+        `)
+        .in('status', ['ativo', 'validado'])
+        .not('data_vencimento', 'is', null)
+        .order('data_vencimento', { ascending: true });
 
       if (error) throw error;
-      return data as Prazo[];
+
+      // Transformar dados para o formato esperado
+      const prazosFormatados = documentos?.map(doc => {
+        const dataVenc = new Date(doc.data_vencimento);
+        const hoje = new Date();
+        const diffTime = dataVenc.getTime() - hoje.getTime();
+        const diasParaVencer = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        let nivelAlerta = 'valido';
+        let corStatus = '#10b981'; // verde
+        let statusAtual = 'valido';
+
+        if (diasParaVencer < 0) {
+          nivelAlerta = 'vencido';
+          corStatus = '#ef4444'; // vermelho
+          statusAtual = 'vencido';
+        } else if (diasParaVencer <= 7) {
+          nivelAlerta = 'critico';
+          corStatus = '#f97316'; // laranja
+          statusAtual = 'vencendo';
+        } else if (diasParaVencer <= 30) {
+          nivelAlerta = 'atencao';
+          corStatus = '#f59e0b'; // amarelo
+          statusAtual = 'vencendo';
+        }
+
+        return {
+          id: doc.id,
+          entidade_tipo: 'documento',
+          entidade_id: doc.id,
+          entidade_nome: doc.tipo_documento,
+          credenciado_id: doc.credenciado_id,
+          credenciado_nome: doc.credenciados.nome,
+          credenciado_cpf: doc.credenciados.cpf,
+          data_emissao: doc.data_emissao || '',
+          data_vencimento: doc.data_vencimento,
+          data_renovacao: '',
+          status_atual: statusAtual,
+          dias_para_vencer: diasParaVencer,
+          nivel_alerta: nivelAlerta,
+          cor_status: corStatus,
+          notificacoes_enviadas: 0,
+          ultima_notificacao_em: '',
+          proxima_notificacao: '',
+          ativo: true,
+          renovado: false,
+          renovavel: true,
+          bloqueio_automatico: false,
+          observacoes: '',
+          criado_em: doc.criado_em,
+          atualizado_em: doc.atualizado_em
+        } as Prazo;
+      }) || [];
+
+      return prazosFormatados;
     }
   });
 
