@@ -43,5 +43,5 @@ export function validateCEPMask(value: string | undefined): boolean {
  */
 export function validateRGMask(value: string | undefined): boolean {
   const cleaned = cleanMask(value);
-  return cleaned.length >= 7 && cleaned.length <= 9;
+  return cleaned.length >= 7 && cleaned.length <= 10;
 }
