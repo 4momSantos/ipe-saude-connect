@@ -48,6 +48,7 @@ import VerificarCertificado from "./pages/VerificarCertificado";
 import MonitorFluxo from "./pages/MonitorFluxo";
 import RelatorioAvaliacoes from "./pages/RelatorioAvaliacoes";
 import GestaoRegrasSuspensao from "./pages/GestaoRegrasSuspensao";
+import AvaliacoesCredenciado from "./pages/AvaliacoesCredenciado";
 import AuditoriaCompleta from "./pages/AuditoriaCompleta";
 import GerenciarCategorias from "./pages/GerenciarCategorias";
 import GerenciarWebhooks from "./pages/GerenciarWebhooks";
@@ -187,6 +188,7 @@ const App = () => (
                           />
                           <Route path="/credenciados" element={<Credenciados />} />
                           <Route path="/credenciados/:id" element={<CredenciadoDetail />} />
+                          <Route path="/credenciados/:id/avaliacoes" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin', 'analista']}><AvaliacoesCredenciado /></RoleProtectedRoute>} />
                           <Route path="/credenciados/:id/situacao" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin', 'analista']}><SituacaoCadastral /></RoleProtectedRoute>} />
                           <Route path="/prazos" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin', 'analista']}><Prazos /></RoleProtectedRoute>} />
                           <Route path="/meu-certificado" element={<RegularidadeCadastral />} />

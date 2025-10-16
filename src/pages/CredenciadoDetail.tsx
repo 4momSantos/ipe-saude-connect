@@ -21,6 +21,8 @@ import { HistoricoCategorizacao } from "@/components/credenciados/HistoricoCateg
 import { StatusBadge } from "@/components/StatusBadge";
 import { useCredenciado } from "@/hooks/useCredenciados";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
+import { EstatisticasAvaliacao } from "@/components/avaliacoes/EstatisticasAvaliacao";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function CredenciadoDetail() {
@@ -114,7 +116,7 @@ export default function CredenciadoDetail() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-9 lg:w-auto lg:inline-grid">
+        <TabsList className="grid w-full grid-cols-10 lg:w-auto lg:inline-grid">
           <TabsTrigger value="dados">Dados Cadastrais</TabsTrigger>
           {credenciado.cnpj && (
             <TabsTrigger value="profissionais">
@@ -130,7 +132,8 @@ export default function CredenciadoDetail() {
           <TabsTrigger value="historico">Histórico</TabsTrigger>
           <TabsTrigger value="solicitacoes">Solicitações</TabsTrigger>
           <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
-          <TabsTrigger value="avaliacoes">Avaliações</TabsTrigger>
+          <TabsTrigger value="avaliacoes-publicas">Avaliações Públicas</TabsTrigger>
+          <TabsTrigger value="sistema-avaliacoes">Sistema de Avaliações</TabsTrigger>
           <TabsTrigger value="historico-categorias">
             <History className="h-4 w-4 mr-2" />
             Histórico Categorias
@@ -205,8 +208,24 @@ export default function CredenciadoDetail() {
           <HistoricoOcorrencias credenciadoId={id || ""} />
         </TabsContent>
 
-        <TabsContent value="avaliacoes" className="space-y-6">
-          <HistoricoAvaliacoes credenciadoId={id || ""} />
+        <TabsContent value="avaliacoes-publicas" className="space-y-6">
+          <EstatisticasAvaliacao credenciadoId={id!} />
+        </TabsContent>
+
+        <TabsContent value="sistema-avaliacoes" className="space-y-6">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center space-y-4">
+                <p className="text-muted-foreground">
+                  Acesse o sistema completo de avaliações para ver estatísticas consolidadas,
+                  avaliar desempenho e visualizar histórico.
+                </p>
+                <Button onClick={() => navigate(`/credenciados/${id}/avaliacoes`)}>
+                  Abrir Sistema de Avaliações
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="historico-categorias" className="space-y-6">

@@ -3274,6 +3274,68 @@ export type Database = {
         }
         Relationships: []
       }
+      lembretes_avaliacao: {
+        Row: {
+          created_at: string | null
+          credenciado_id: string
+          data_lembrete: string
+          gestor_id: string
+          id: string
+          notificado_em: string | null
+          periodo_referencia: string
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credenciado_id: string
+          data_lembrete: string
+          gestor_id: string
+          id?: string
+          notificado_em?: string | null
+          periodo_referencia: string
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credenciado_id?: string
+          data_lembrete?: string
+          gestor_id?: string
+          id?: string
+          notificado_em?: string | null
+          periodo_referencia?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lembretes_avaliacao_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lembretes_avaliacao_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "lembretes_avaliacao_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "lembretes_avaliacao_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       logs_regras_suspensao: {
         Row: {
           acao_aplicada: string
@@ -5888,6 +5950,20 @@ export type Database = {
           total_avaliacoes: number
         }[]
       }
+      calcular_estatisticas_hibridas: {
+        Args: { p_credenciado_id: string }
+        Returns: {
+          badges: string[]
+          criterios_destaque: Json
+          nota_media_interna: number
+          nota_media_publica: number
+          performance_score: number
+          pontos_fortes: string[]
+          pontos_fracos: string[]
+          total_avaliacoes_internas: number
+          total_avaliacoes_publicas: number
+        }[]
+      }
       calcular_status_regularidade: {
         Args: { p_credenciado_id: string }
         Returns: {
@@ -5953,6 +6029,10 @@ export type Database = {
           p_snapshot_type: string
         }
         Returns: string
+      }
+      criar_lembretes_avaliacao_mensal: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       detectar_zona: {
         Args: { p_cidade_id: string; p_latitude: number; p_longitude: number }
