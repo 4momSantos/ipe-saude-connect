@@ -48,6 +48,57 @@ export function validateContratoData(inscricao: any, edital: any): ValidationRes
 }
 
 /**
+ * Valida dados consolidados do contrato antes de gerar PDF
+ */
+export function validateContratoDataCompleto(contratoData: any): ValidationResult {
+  const errors: ValidationError[] = [];
+  
+  const camposObrigatorios = [
+    { field: 'candidato_nome', label: 'Nome do candidato' },
+    { field: 'candidato_cpf', label: 'CPF do candidato' },
+    { field: 'candidato_email', label: 'E-mail do candidato' },
+    { field: 'edital_titulo', label: 'Título do edital' },
+    { field: 'edital_numero', label: 'Número do edital' }
+  ];
+  
+  for (const campo of camposObrigatorios) {
+    if (!contratoData[campo.field] || contratoData[campo.field].trim() === '') {
+      errors.push({ 
+        field: campo.field, 
+        message: `${campo.label} é obrigatório` 
+      });
+    }
+  }
+  
+  // Validar formato de CPF (11 dígitos)
+  if (contratoData.candidato_cpf) {
+    const cpfLimpo = contratoData.candidato_cpf.replace(/\D/g, '');
+    if (cpfLimpo.length !== 11) {
+      errors.push({ 
+        field: 'candidato_cpf', 
+        message: 'CPF deve ter 11 dígitos' 
+      });
+    }
+  }
+  
+  // Validar formato de email
+  if (contratoData.candidato_email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(contratoData.candidato_email)) {
+      errors.push({ 
+        field: 'candidato_email', 
+        message: 'E-mail inválido' 
+      });
+    }
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
+/**
  * Extrai e consolida dados de endereço de múltiplas fontes
  */
 export function consolidarEndereco(dadosInscricao: any): string {

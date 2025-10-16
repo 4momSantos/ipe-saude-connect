@@ -216,11 +216,14 @@ serve(async (req) => {
     };
 
     // Validar dados antes de gerar contrato
-    const validationErrors = validateContratoData(contratoData);
-    if (validationErrors.length > 0) {
-      logEvent('error', 'validation_failed', { errors: validationErrors });
-      throw new Error(`Dados incompletos para gerar contrato: ${validationErrors.join('; ')}`);
+    const validation = validateContratoData(inscricao, edital);
+    if (!validation.valid) {
+      const errorMessages = validation.errors.map(e => `${e.field}: ${e.message}`).join('; ');
+      logEvent('error', 'validation_failed', { errors: validation.errors });
+      throw new Error(`Dados incompletos: ${errorMessages}`);
     }
+    
+    logEvent('info', 'validation_passed', { inscricao_id });
 
     // ========================================
     // PASSO 3: GERAR PDF DO CONTRATO (jsPDF)
@@ -238,6 +241,13 @@ serve(async (req) => {
     // PASSO 4: UPLOAD DO PDF PARA STORAGE
     // ========================================
     const pdfFileName = `${inscricao_id}/contrato.pdf`;
+    
+    logEvent('info', 'uploading_pdf', { 
+      inscricao_id, 
+      file_name: pdfFileName,
+      size_bytes: contratoPDFBytes.length 
+    });
+    
     const { error: uploadError } = await supabase.storage
       .from('contratos')
       .upload(pdfFileName, contratoPDFBytes, {
@@ -246,7 +256,11 @@ serve(async (req) => {
       });
 
     if (uploadError) {
-      logEvent('error', 'pdf_upload_failed', { error: uploadError.message });
+      logEvent('error', 'pdf_upload_failed', { 
+        inscricao_id,
+        error: uploadError.message,
+        file_name: pdfFileName
+      });
       throw new Error(`Erro ao fazer upload do PDF: ${uploadError.message}`);
     }
 
@@ -295,14 +309,21 @@ serve(async (req) => {
     // Aguardar 500ms para garantir persistência
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    logEvent('info', 'contract_saved', {
+    logEvent('info', 'contract_saved', { 
       contrato_id: contrato.id,
-      numero_contrato: numeroContrato
+      numero_contrato: numeroContrato,
+      inscricao_id
     });
 
     // ========================================
     // PASSO 6: CRIAR SIGNATURE REQUEST
     // ========================================
+    logEvent('info', 'creating_signature_request', { 
+      contrato_id: contrato.id,
+      inscricao_id,
+      candidato_email: candidato_email
+    });
+
     const { data: signatureRequest, error: signatureError } = await supabase
       .from('signature_requests')
       .insert({
@@ -354,10 +375,17 @@ serve(async (req) => {
     // ========================================
     let assinafyResponse: any = null;
     
+    logEvent('info', 'checking_assinafy_credentials', {
+      has_api_key: !!assifafyApiKey,
+      has_account_id: !!assifafyAccountId,
+      will_send_signature: !!(assifafyApiKey && assifafyAccountId)
+    });
+    
     if (assifafyApiKey && assifafyAccountId) {
       try {
         logEvent('info', 'calling_send_signature', {
-          signature_request_id: signatureRequest.id
+          signature_request_id: signatureRequest.id,
+          contrato_id: contrato.id
         });
 
         const { data, error: assinafyError } = await supabase.functions.invoke(
@@ -370,16 +398,17 @@ serve(async (req) => {
         );
 
         if (assinafyError) {
-          console.error(JSON.stringify({
-            timestamp: new Date().toISOString(),
-            event: 'assinafy_error',
-            error: assinafyError.message
-          }));
+          logEvent('error', 'assinafy_invoke_failed', {
+            signature_request_id: signatureRequest.id,
+            contrato_id: contrato.id,
+            error: assinafyError.message,
+            error_details: assinafyError
+          });
           
           // Atualizar status mas não falhar a função
           await supabase
             .from('signature_requests')
-            .update({ 
+            .update({
               status: 'failed',
               metadata: {
                 ...signatureRequest.metadata,
@@ -389,13 +418,19 @@ serve(async (req) => {
             .eq('id', signatureRequest.id);
         } else {
           assinafyResponse = data;
+          logEvent('info', 'assinafy_success', {
+            signature_request_id: signatureRequest.id,
+            contrato_id: contrato.id,
+            response: data
+          });
         }
       } catch (invokeError: any) {
-        console.error(JSON.stringify({
-          timestamp: new Date().toISOString(),
-          event: 'invoke_error',
-          error: invokeError.message
-        }));
+        logEvent('error', 'invoke_exception', {
+          signature_request_id: signatureRequest.id,
+          contrato_id: contrato.id,
+          error: invokeError.message,
+          stack: invokeError.stack
+        });
         
         // Atualizar status de erro
         await supabase
