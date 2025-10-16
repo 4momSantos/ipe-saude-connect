@@ -24,8 +24,17 @@ export interface ResultadoBusca {
   created_at: string;
   credenciado_nome: string;
   credenciado_cpf: string;
+  credenciado_id: string;
   relevancia: number;
   snippet: string;
+  // Campos de prazo
+  data_vencimento?: string;
+  dias_para_vencer?: number;
+  status_prazo?: string;
+  // Campos de OCR
+  ocr_resultado?: Record<string, any>;
+  ocr_processado?: boolean;
+  ocr_confidence?: number;
 }
 
 export interface CredenciadoAgrupado {
@@ -79,7 +88,7 @@ export function useBuscarDocumentos() {
     );
   };
 
-  const buscar = async (termo: string, filtros: FiltrosBusca = {}) => {
+  const buscar = async (termo: string, filtros: FiltrosBusca = {}, opcoes?: { incluirPrazos?: boolean; incluirOCR?: boolean }) => {
     if (!termo.trim()) {
       toast.error('Digite um termo de busca');
       return;
@@ -88,7 +97,12 @@ export function useBuscarDocumentos() {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('buscar-documentos', {
-        body: { termo, ...filtros }
+        body: { 
+          termo, 
+          ...filtros,
+          incluir_prazos: opcoes?.incluirPrazos ?? false,
+          incluir_ocr: opcoes?.incluirOCR ?? false
+        }
       });
 
       if (error) throw error;

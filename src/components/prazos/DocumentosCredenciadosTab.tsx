@@ -20,6 +20,9 @@ import { DashboardKPIs } from './DashboardKPIs';
 import { DocumentoHistorico } from './DocumentoHistorico';
 import { EditarDataVencimento } from './EditarDataVencimento';
 import { AcoesEmMassa } from './AcoesEmMassa';
+import { BuscaDocumentos } from '@/components/documentos/BuscaDocumentos';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Search, List } from 'lucide-react';
 
 interface PrazoDocumento {
   id: string;
@@ -353,6 +356,29 @@ export function DocumentosCredenciadosTab() {
       {/* Dashboard KPIs Completo */}
       <DashboardKPIs documentos={documentosFiltrados} />
 
+      {/* Tabs para alternar entre vistas */}
+      <Tabs defaultValue="busca" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="busca" className="gap-2">
+            <Search className="h-4 w-4" />
+            Busca Completa com Prazos e OCR
+          </TabsTrigger>
+          <TabsTrigger value="prazos" className="gap-2">
+            <List className="h-4 w-4" />
+            Vista de Prazos Avançada
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="busca" className="space-y-4">
+          <BuscaDocumentos 
+            incluirPrazos={true} 
+            incluirOCR={true}
+            filtroInicial={{ agrupar_por: 'credenciado' }}
+          />
+        </TabsContent>
+
+        <TabsContent value="prazos" className="space-y-4">
+
       {/* Ações em Massa */}
       {documentosSelecionados.length > 0 && (
         <AcoesEmMassa
@@ -566,6 +592,8 @@ export function DocumentosCredenciadosTab() {
           fileName={documentViewer.fileName}
         />
       )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

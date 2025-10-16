@@ -24,22 +24,31 @@ serve(async (req) => {
       tipo_documento, 
       credenciado_id, 
       data_inicio, 
-      data_fim 
+      data_fim,
+      incluir_prazos,
+      incluir_ocr
     } = await req.json();
 
-    console.log('[buscar-documentos] Iniciando busca:', { termo, status, tipo_documento });
+    console.log('[buscar-documentos] Iniciando busca:', { termo, status, tipo_documento, incluir_prazos, incluir_ocr });
 
     const inicioExecucao = Date.now();
 
-    // Chamar função SQL
-    const { data, error } = await supabase.rpc('buscar_documentos', {
+    // Chamar função SQL (usa buscar_documentos_completos se precisar de prazos ou OCR)
+    const usarFuncaoCompleta = incluir_prazos || incluir_ocr;
+    const funcao = usarFuncaoCompleta ? 'buscar_documentos_completos' : 'buscar_documentos';
+    
+    const { data, error } = await supabase.rpc(funcao, {
       p_termo: termo || null,
       p_status: status || null,
       p_tipo_documento: tipo_documento || null,
       p_credenciado_id: credenciado_id || null,
       p_data_inicio: data_inicio || null,
       p_data_fim: data_fim || null,
-      p_limit: 50
+      p_limit: 50,
+      ...(usarFuncaoCompleta && {
+        p_incluir_prazos: incluir_prazos ?? false,
+        p_incluir_ocr: incluir_ocr ?? false
+      })
     });
 
     if (error) {

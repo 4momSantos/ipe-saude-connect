@@ -5587,6 +5587,39 @@ export type Database = {
         }
         Returns: Database["public"]["CompositeTypes"]["documento_busca_resultado"][]
       }
+      buscar_documentos_completos: {
+        Args: {
+          p_credenciado_id?: string
+          p_data_fim?: string
+          p_data_inicio?: string
+          p_incluir_ocr?: boolean
+          p_incluir_prazos?: boolean
+          p_limit?: number
+          p_status?: string
+          p_termo?: string
+          p_tipo_documento?: string
+        }
+        Returns: {
+          arquivo_nome: string
+          arquivo_url: string
+          created_at: string
+          credenciado_cpf: string
+          credenciado_id: string
+          credenciado_nome: string
+          data_vencimento: string
+          dias_para_vencer: number
+          id: string
+          inscricao_id: string
+          ocr_confidence: number
+          ocr_processado: boolean
+          ocr_resultado: Json
+          relevancia: number
+          snippet: string
+          status: string
+          status_prazo: string
+          tipo_documento: string
+        }[]
+      }
       buscar_servicos_rede: {
         Args: {
           p_aceita_sus?: boolean

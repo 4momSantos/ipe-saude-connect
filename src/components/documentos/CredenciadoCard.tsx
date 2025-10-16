@@ -12,6 +12,8 @@ interface CredenciadoCardProps {
   documentos: ResultadoBusca[];
   onVisualizar: (url: string, nome: string) => void;
   onBaixar: (url: string, nome: string) => void;
+  onVerOCR?: (documento: ResultadoBusca) => void;
+  showPrazo?: boolean;
 }
 
 export function CredenciadoCard({ 
@@ -19,7 +21,9 @@ export function CredenciadoCard({
   credenciadoCpf, 
   documentos,
   onVisualizar,
-  onBaixar 
+  onBaixar,
+  onVerOCR,
+  showPrazo = false
 }: CredenciadoCardProps) {
   
   // Agrupar documentos por tipo
@@ -117,6 +121,8 @@ export function CredenciadoCard({
                     onVisualizar={onVisualizar}
                     onBaixar={onBaixar}
                     showCredenciado={false}
+                    showPrazo={showPrazo}
+                    onVerOCR={onVerOCR}
                   />
                 ))}
               </AccordionContent>

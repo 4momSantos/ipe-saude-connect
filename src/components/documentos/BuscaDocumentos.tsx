@@ -6,20 +6,33 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { useBuscarDocumentos, FiltrosBusca, OrdenacaoTipo } from '@/hooks/useBuscarDocumentos';
+import { useBuscarDocumentos, FiltrosBusca, OrdenacaoTipo, ResultadoBusca } from '@/hooks/useBuscarDocumentos';
 import { useTiposDocumentos } from '@/hooks/useTiposDocumentos';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { CredenciadoCard } from './CredenciadoCard';
 import { DocumentoItem } from './DocumentoItem';
+import { DadosOCRModal } from '@/components/prazos/DadosOCRModal';
 
-export function BuscaDocumentos() {
+interface BuscaDocumentosProps {
+  incluirPrazos?: boolean;
+  incluirOCR?: boolean;
+  filtroInicial?: Partial<FiltrosBusca>;
+}
+
+export function BuscaDocumentos({ 
+  incluirPrazos = false, 
+  incluirOCR = false,
+  filtroInicial = {}
+}: BuscaDocumentosProps = {}) {
   const [termo, setTermo] = useState('');
   const [filtros, setFiltros] = useState<FiltrosBusca>({ 
     ordenacao: 'data_desc',
-    agrupar_por: 'credenciado' 
+    agrupar_por: 'credenciado',
+    ...filtroInicial
   });
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  const [documentoOCRSelecionado, setDocumentoOCRSelecionado] = useState<ResultadoBusca | null>(null);
   
   const { resultados, credenciadosAgrupados, isLoading, tempoExecucao, buscar, limpar } = useBuscarDocumentos();
 
@@ -46,7 +59,7 @@ export function BuscaDocumentos() {
   }, [resultados, filtros.agrupar_por]);
 
   const handleBuscar = () => {
-    buscar(termo, filtros);
+    buscar(termo, filtros, { incluirPrazos, incluirOCR });
   };
 
   const handleLimpar = () => {
@@ -285,6 +298,8 @@ export function BuscaDocumentos() {
                   documentos={credenciado.documentos}
                   onVisualizar={visualizarDocumento}
                   onBaixar={baixarDocumento}
+                  onVerOCR={incluirOCR ? setDocumentoOCRSelecionado : undefined}
+                  showPrazo={incluirPrazos}
                 />
               ))}
             </div>
@@ -307,6 +322,8 @@ export function BuscaDocumentos() {
                           documento={doc}
                           onVisualizar={visualizarDocumento}
                           onBaixar={baixarDocumento}
+                          showPrazo={incluirPrazos}
+                          onVerOCR={incluirOCR ? setDocumentoOCRSelecionado : undefined}
                         />
                       ))}
                     </AccordionContent>
@@ -323,6 +340,8 @@ export function BuscaDocumentos() {
                     documento={doc}
                     onVisualizar={visualizarDocumento}
                     onBaixar={baixarDocumento}
+                    showPrazo={incluirPrazos}
+                    onVerOCR={incluirOCR ? setDocumentoOCRSelecionado : undefined}
                   />
                 ))}
               </div>
@@ -342,6 +361,15 @@ export function BuscaDocumentos() {
             {termo ? 'Tente ajustar os termos de busca ou os filtros' : 'Não há documentos cadastrados no sistema'}
           </p>
         </Card>
+      )}
+
+      {/* Modal de OCR */}
+      {documentoOCRSelecionado && (
+        <DadosOCRModal 
+          open={!!documentoOCRSelecionado}
+          onClose={() => setDocumentoOCRSelecionado(null)}
+          documento={documentoOCRSelecionado}
+        />
       )}
     </div>
   );
