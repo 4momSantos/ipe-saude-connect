@@ -15,25 +15,13 @@ import { Stars } from "@/components/avaliacoes/Stars";
 import { EstatisticasAvaliacao } from "@/components/avaliacoes/EstatisticasAvaliacao";
 import { ListaAvaliacoesPublicas } from "@/components/avaliacoes/ListaAvaliacoesPublicas";
 import { FormularioAvaliacaoPublica } from "@/components/avaliacoes/FormularioAvaliacaoPublica";
+import { MapaCredenciadoSingle } from "@/components/mapa/MapaCredenciadoSingle";
 import { toast } from "sonner";
 
 export default function PerfilCredenciadoPublico() {
   const { id } = useParams<{ id: string }>();
   const { data: credenciado, isLoading } = useCredenciadoPublico(id);
   const [openAvaliacaoDialog, setOpenAvaliacaoDialog] = useState(false);
-  const [mapboxToken, setMapboxToken] = useState<string>('');
-
-  // Buscar token do Mapbox
-  useState(() => {
-    fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-mapbox-token`, {
-      headers: {
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
-      }
-    })
-      .then(res => res.json())
-      .then(data => setMapboxToken(data.token))
-      .catch(() => toast.error('Erro ao carregar mapa'));
-  });
 
   if (isLoading) {
     return (
@@ -249,9 +237,15 @@ export default function PerfilCredenciadoPublico() {
             <TabsContent value="localizacao">
               <Card>
                 <CardContent className="p-0">
-                  <div className="h-96 flex items-center justify-center bg-muted">
-                    <p className="text-muted-foreground">Mapa será carregado em breve</p>
-                  </div>
+                  <MapaCredenciadoSingle 
+                    credenciado={{
+                      ...credenciado,
+                      credenciado_crms: credenciado.credenciado_crms || [],
+                      estatisticas: credenciado.estatisticas
+                    }}
+                    height="384px"
+                    zoom={15}
+                  />
                 </CardContent>
               </Card>
 

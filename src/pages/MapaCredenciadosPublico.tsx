@@ -1,19 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { NavbarPublica } from "@/components/landing/NavbarPublica";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { MapPin, Star, Filter, X } from "lucide-react";
+import { MapPin, Filter, X } from "lucide-react";
 import { useCredenciadosPublicos } from "@/hooks/useCredenciadosPublicos";
 import { Stars } from "@/components/avaliacoes/Stars";
-import { toast } from "sonner";
+import { MapaCredenciadosPublico as MapaPublico } from "@/components/mapa/MapaCredenciadosPublico";
 
-export default function MapaCredenciadosPublico() {
+export default function MapaCredenciadosPublicoPagina() {
   const [searchParams] = useSearchParams();
   const [filtros, setFiltros] = useState({
     busca: searchParams.get('busca') || '',
@@ -24,38 +22,8 @@ export default function MapaCredenciadosPublico() {
   });
   
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedCredenciado, setSelectedCredenciado] = useState<any>(null);
-  const [mapboxToken, setMapboxToken] = useState<string>('');
-  const [viewport, setViewport] = useState({
-    latitude: -30.0346,
-    longitude: -51.2177,
-    zoom: 11
-  });
-
   const { data: credenciados, isLoading } = useCredenciadosPublicos(filtros);
 
-  useEffect(() => {
-    // Buscar token do Mapbox
-    fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-mapbox-token`, {
-      headers: {
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
-      }
-    })
-      .then(res => res.json())
-      .then(data => setMapboxToken(data.token))
-      .catch(err => {
-        console.error('Erro ao buscar token Mapbox:', err);
-        toast.error('Erro ao carregar mapa');
-      });
-  }, []);
-
-  const getMarkerColor = (notaMedia: number) => {
-    if (notaMedia >= 4.5) return '#10b981'; // green
-    if (notaMedia >= 4.0) return '#3b82f6'; // blue
-    if (notaMedia >= 3.5) return '#eab308'; // yellow
-    if (notaMedia >= 3.0) return '#f97316'; // orange
-    return '#ef4444'; // red
-  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -189,9 +157,10 @@ export default function MapaCredenciadosPublico() {
             Filtros
           </Button>
 
-          <div className="flex items-center justify-center h-full bg-muted">
-            <p className="text-muted-foreground">Mapa será carregado em breve</p>
-          </div>
+          <MapaPublico 
+            credenciados={credenciados || []}
+            height="100vh"
+          />
         </main>
       </div>
     </div>
