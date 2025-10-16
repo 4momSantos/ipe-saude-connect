@@ -5801,6 +5801,18 @@ export type Database = {
           signature_request_id: string
         }[]
       }
+      get_documento_historico: {
+        Args: { p_documento_id: string }
+        Returns: {
+          alterado_por_nome: string
+          comentario: string
+          data_alteracao: string
+          id: string
+          status_anterior: string
+          status_novo: string
+          tipo_alteracao: string
+        }[]
+      }
       get_gestores: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -5920,6 +5932,10 @@ export type Database = {
       }
       refresh_catalogo_servicos: {
         Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      registrar_historico_manual: {
+        Args: { p_comentario: string; p_documento_id: string }
         Returns: undefined
       }
       relatorio_media_mediana_credenciados: {
