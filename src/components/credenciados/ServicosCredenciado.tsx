@@ -187,7 +187,10 @@ export function ServicosCredenciado({ credenciadoId, canEdit = false }: Servicos
                     <Label htmlFor="especialidade">Especialidade *</Label>
                     <Select
                       value={especialidadeSelecionada}
-                      onValueChange={setEspecialidadeSelecionada}
+                      onValueChange={(value) => {
+                        setEspecialidadeSelecionada(value);
+                        setFormData({ ...formData, procedimento_id: "" });
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione a especialidade" />
