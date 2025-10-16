@@ -290,10 +290,12 @@ export function GerenciarMembrosGrupo() {
                       <span>•</span>
                       <span>
                         Adicionado{' '}
-                        {formatDistanceToNow(new Date(membro.adicionado_em), {
-                          addSuffix: true,
-                          locale: ptBR
-                        })}
+                        {membro.adicionado_em && !isNaN(new Date(membro.adicionado_em).getTime())
+                          ? formatDistanceToNow(new Date(membro.adicionado_em), {
+                              addSuffix: true,
+                              locale: ptBR
+                            })
+                          : 'recentemente'}
                       </span>
                     </div>
                   </div>
