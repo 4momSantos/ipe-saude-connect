@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+const MESSAGE_PAGE_SIZE = 50;
 
 // Mapeia papel do usuário para sender_type válido no banco
 const mapearSenderType = (papel: string): 'analista' | 'candidato' | 'sistema' => {
@@ -33,6 +35,8 @@ interface UseWorkflowMessagesReturn {
   unreadCount: number;
   loading: boolean;
   sending: boolean;
+  hasMore: boolean;
+  loadMore: () => Promise<void>;
   sendMessage: (content: string) => Promise<void>;
   markAsRead: (messageId: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
@@ -50,6 +54,9 @@ export function useWorkflowMessages({
   const [sending, setSending] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserType, setCurrentUserType] = useState<"analista" | "candidato">("candidato");
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
+  const loadingRef = useRef(false);
 
   // Carregar usuário atual
   useEffect(() => {
@@ -118,20 +125,36 @@ export function useWorkflowMessages({
     }
   };
 
-  const loadMessages = async () => {
+  const loadMessages = async (append = false) => {
+    if (loadingRef.current) return;
+    
     try {
+      loadingRef.current = true;
       setLoading(true);
 
-      const { data, error } = await supabase
+      const currentOffset = append ? offset : 0;
+      
+      // Query otimizada: busca apenas os últimos N mensagens
+      const { data, error, count } = await supabase
         .from("workflow_messages")
         .select(
           `
-          *,
-          profiles:sender_id (nome, email)
-        `
+          id,
+          sender_id,
+          sender_type,
+          content,
+          mensagem,
+          created_at,
+          is_read,
+          read_at,
+          usuario_nome,
+          usuario_email
+        `,
+          { count: 'exact' }
         )
         .eq("inscricao_id", inscricaoId)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false })
+        .range(currentOffset, currentOffset + MESSAGE_PAGE_SIZE - 1);
 
       if (error) throw error;
 
@@ -143,23 +166,44 @@ export function useWorkflowMessages({
         created_at: msg.created_at,
         is_read: msg.is_read,
         read_at: msg.read_at,
-        sender_name: msg.usuario_nome || msg.profiles?.nome || "Usuário",
-        sender_email: msg.usuario_email || msg.profiles?.email,
-      }));
+        sender_name: msg.usuario_nome || "Usuário",
+        sender_email: msg.usuario_email,
+      })).reverse(); // Reverter para ordem cronológica
 
-      setMessages(formattedMessages);
+      if (append) {
+        setMessages(prev => [...formattedMessages, ...prev]);
+      } else {
+        setMessages(formattedMessages);
+      }
 
-      // Contar não lidas (que não são do usuário atual)
-      const unread = formattedMessages.filter(
-        (m) => !m.is_read && m.sender_id !== currentUserId
-      ).length;
-      setUnreadCount(unread);
+      setHasMore((count || 0) > currentOffset + MESSAGE_PAGE_SIZE);
+      if (append) {
+        setOffset(currentOffset + MESSAGE_PAGE_SIZE);
+      } else {
+        setOffset(MESSAGE_PAGE_SIZE);
+      }
+
+      // Contar não lidas de forma otimizada
+      const { count: unreadTotal } = await supabase
+        .from("workflow_messages")
+        .select('*', { count: 'exact', head: true })
+        .eq("inscricao_id", inscricaoId)
+        .eq("is_read", false)
+        .neq("sender_id", currentUserId || '');
+
+      setUnreadCount(unreadTotal || 0);
     } catch (error) {
       console.error("[WORKFLOW_MESSAGES] Error loading messages:", error);
       toast.error("Erro ao carregar mensagens");
     } finally {
       setLoading(false);
+      loadingRef.current = false;
     }
+  };
+
+  const loadMore = async () => {
+    if (!hasMore || loadingRef.current) return;
+    await loadMessages(true);
   };
 
   const markUnreadMessagesAsRead = async () => {
@@ -272,6 +316,8 @@ export function useWorkflowMessages({
     unreadCount,
     loading,
     sending,
+    hasMore,
+    loadMore,
     sendMessage,
     markAsRead,
     markAllAsRead,
