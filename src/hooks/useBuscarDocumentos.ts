@@ -38,6 +38,7 @@ export interface ResultadoBusca {
 }
 
 export interface CredenciadoAgrupado {
+  credenciado_id: string;
   credenciado_nome: string;
   credenciado_cpf: string;
   total_documentos: number;
@@ -69,9 +70,10 @@ export function useBuscarDocumentos() {
 
   const agruparPorCredenciado = (docs: ResultadoBusca[]): CredenciadoAgrupado[] => {
     const grupos = docs.reduce((acc, doc) => {
-      const chave = `${doc.credenciado_cpf || 'sem-cpf'}_${doc.credenciado_nome}`;
+      const chave = doc.credenciado_id;
       if (!acc[chave]) {
         acc[chave] = {
+          credenciado_id: doc.credenciado_id,
           credenciado_nome: doc.credenciado_nome,
           credenciado_cpf: doc.credenciado_cpf,
           total_documentos: 0,
