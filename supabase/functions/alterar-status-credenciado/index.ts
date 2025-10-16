@@ -55,27 +55,6 @@ serve(async (req) => {
 
     const body: AlterarStatusRequest = await req.json();
 
-    console.log('[ALTERAR_STATUS] Requisição recebida:', {
-      credenciado_id: body.credenciado_id,
-      novo_status: body.novo_status,
-      justificativa_length: body.justificativa?.length,
-      data_inicio: body.data_inicio,
-      data_fim: body.data_fim,
-      data_efetiva: body.data_efetiva
-    });
-
-    // Validar status permitido
-    const statusPermitidos = ['Ativo', 'Suspenso', 'Descredenciado', 'Afastado', 'Inativo'];
-    if (!statusPermitidos.includes(body.novo_status)) {
-      console.error('[ALTERAR_STATUS] Status inválido:', body.novo_status);
-      return new Response(
-        JSON.stringify({ 
-          error: `Status "${body.novo_status}" não é válido. Valores permitidos: ${statusPermitidos.join(', ')}` 
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     // Validações
     if (!body.justificativa || body.justificativa.length < 100) {
       return new Response(
