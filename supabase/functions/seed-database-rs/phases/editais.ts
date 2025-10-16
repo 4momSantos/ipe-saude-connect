@@ -23,7 +23,17 @@ export async function seedEditais(
   }
 
   try {
-    // Buscar especialidades criadas
+    // Verificar editais existentes
+    const { count: existingCount } = await supabase
+      .from('editais')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'publicado');
+
+    if (existingCount && existingCount >= count) {
+      console.log(`[SEED-EDITAIS] ${existingCount} editais já existem`);
+      return { success: true, phase: 'editais', created: 0, errors: [], duration: 0 };
+    }
+
     const { data: especialidades } = await supabase
       .from('especialidades_medicas')
       .select('id')
@@ -33,7 +43,6 @@ export async function seedEditais(
       throw new Error('Nenhuma especialidade encontrada');
     }
 
-    // Buscar gestor para criar edital
     const { data: gestores } = await supabase
       .from('user_roles')
       .select('user_id')
@@ -42,31 +51,33 @@ export async function seedEditais(
 
     const createdBy = gestores?.[0]?.user_id;
 
-    for (let i = 0; i < count; i++) {
-      const ano = 2024;
-      const numero = `${ano}/${String(i + 1).padStart(3, '0')}`;
+    for (let i = 0; i < count - (existingCount || 0); i++) {
+      const timestamp = Date.now();
+      const numero = `SEED-${timestamp}-${i}`;
       
       const { data, error } = await supabase
         .from('editais')
         .insert({
           numero_edital: numero,
-          titulo: `Credenciamento de Profissionais de Saúde - Edital ${numero}`,
+          titulo: `Credenciamento de Profissionais de Saúde - RS`,
           descricao: `Edital para credenciamento de profissionais da área da saúde para atendimento no Rio Grande do Sul.`,
           tipo: 'credenciamento',
           status: 'publicado',
-          data_abertura: new Date(2024, 0, i * 30 + 1).toISOString(),
+          data_abertura: new Date(2024, 0, 1).toISOString(),
           data_encerramento: new Date(2024, 11, 31).toISOString(),
-          vagas: 100 + (i * 50),
+          vagas: 150,
           modalidade: 'credenciamento',
           created_by: createdBy
         })
         .select()
         .single();
 
-      if (error) {
+      if (error && !error.message.includes('duplicate')) {
         errors.push(`Erro ao criar edital ${numero}: ${error.message}`);
         continue;
       }
+      
+      if (!data) continue;
 
       // Vincular especialidades
       if (data) {

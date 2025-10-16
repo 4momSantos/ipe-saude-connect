@@ -23,7 +23,6 @@ export async function seedInscricoes(
   }
 
   try {
-    // Buscar editais criados
     const { data: editais } = await supabase
       .from('editais')
       .select('id')
@@ -36,18 +35,32 @@ export async function seedInscricoes(
 
     const editalId = editais[0].id;
 
-    // Buscar candidatos criados
+    // Buscar candidatos sem inscrição aprovada
     const { data: candidatos } = await supabase
       .from('user_roles')
-      .select('user_id, profiles(nome, email)')
+      .select(`
+        user_id,
+        profiles!inner(nome, email)
+      `)
       .eq('role', 'candidato')
       .limit(count);
 
     if (!candidatos || candidatos.length === 0) {
-      throw new Error('Nenhum candidato encontrado');
+      console.log('[SEED-INSCRICOES] Nenhum candidato encontrado');
+      return { success: true, phase: 'inscricoes', created: 0, errors: [], duration: 0 };
     }
 
     for (const candidato of candidatos) {
+      // Verificar se já tem inscrição
+      const { data: existing } = await supabase
+        .from('inscricoes_edital')
+        .select('id')
+        .eq('candidato_id', candidato.user_id)
+        .eq('status', 'aprovado')
+        .single();
+
+      if (existing) continue;
+
       const dadosInscricao = {
         dados_pessoais: {
           nome_completo: candidato.profiles?.nome || 'Candidato Seed',
