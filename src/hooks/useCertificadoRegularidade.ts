@@ -101,6 +101,7 @@ export interface ConsultaPublicaResult {
   hash_verificacao?: string;
   certificado_id?: string;
   tem_pdf?: boolean;
+  url_pdf?: string;
 }
 
 // Hook para consulta pública

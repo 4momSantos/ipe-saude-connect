@@ -41,10 +41,23 @@ export function ConsultaCertificado() {
     resetCredenciado();
   };
 
-  const handleDownload = async (certificadoId: string, numeroCert: string) => {
+  const handleDownload = async (certificadoId: string, numeroCert: string, urlPdf?: string) => {
     try {
       setDownloadingCertId(certificadoId);
       
+      // Se já temos uma data URL, fazer download direto
+      if (urlPdf?.startsWith('data:')) {
+        const a = document.createElement('a');
+        a.href = urlPdf;
+        a.download = `${numeroCert}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        toast.success('Certificado baixado com sucesso!');
+        return;
+      }
+      
+      // Senão, chamar edge function para gerar
       const { data, error } = await supabase.functions.invoke('download-certificado', {
         body: { certificadoId }
       });
@@ -151,7 +164,11 @@ export function ConsultaCertificado() {
               <Button 
                 variant="outline" 
                 className="w-full"
-                onClick={() => handleDownload(resultado.certificado_id!, resultado.numero_certificado!)}
+                onClick={() => handleDownload(
+                  resultado.certificado_id!, 
+                  resultado.numero_certificado!,
+                  resultado.url_pdf
+                )}
                 disabled={downloadingCertId === resultado.certificado_id}
               >
                 {downloadingCertId === resultado.certificado_id ? (
