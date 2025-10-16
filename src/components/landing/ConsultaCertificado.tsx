@@ -45,8 +45,11 @@ export function ConsultaCertificado() {
     try {
       setDownloadingCertId(certificadoId);
       
-      // Se já temos uma data URL, fazer download direto
+      console.log('[DOWNLOAD_DEBUG]', { certificadoId, numeroCert, urlPdf: urlPdf?.substring(0, 50) });
+      
+      // Se temos data URL, fazer download direto
       if (urlPdf?.startsWith('data:')) {
+        console.log('[DOWNLOAD] Download direto de data URL');
         const a = document.createElement('a');
         a.href = urlPdf;
         a.download = `${numeroCert}.html`;
@@ -57,7 +60,16 @@ export function ConsultaCertificado() {
         return;
       }
       
-      // Senão, chamar edge function para gerar
+      // Se temos HTTP URL, abrir em nova aba
+      if (urlPdf?.startsWith('http')) {
+        console.log('[DOWNLOAD] Link direto para storage');
+        window.open(urlPdf, '_blank');
+        toast.success('Certificado aberto em nova aba!');
+        return;
+      }
+      
+      // Fallback: chamar edge function
+      console.log('[DOWNLOAD] Usando edge function');
       const { data, error } = await supabase.functions.invoke('download-certificado', {
         body: { certificadoId }
       });

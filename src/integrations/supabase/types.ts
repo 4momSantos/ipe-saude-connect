@@ -5401,6 +5401,7 @@ export type Database = {
           situacao: string
           status: string
           tem_pdf: boolean
+          url_pdf: string
           valido_ate: string
         }[]
       }
@@ -5416,6 +5417,7 @@ export type Database = {
           situacao: string
           status: string
           tem_pdf: boolean
+          url_pdf: string
           valido_ate: string
         }[]
       }
