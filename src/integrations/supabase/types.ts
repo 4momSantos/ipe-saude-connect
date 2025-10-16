@@ -1722,6 +1722,167 @@ export type Database = {
         }
         Relationships: []
       }
+      documentos_credenciados: {
+        Row: {
+          arquivo_nome: string | null
+          arquivo_tamanho: number | null
+          atualizado_em: string | null
+          credenciado_id: string
+          criado_em: string | null
+          criado_por: string | null
+          data_emissao: string | null
+          data_vencimento: string | null
+          descricao: string | null
+          dias_alerta: number | null
+          id: string
+          is_current: boolean | null
+          meses_validade: number | null
+          metadata: Json | null
+          numero_documento: string | null
+          observacao: string | null
+          status: string | null
+          storage_path: string | null
+          substituido_em: string | null
+          substituido_por: string | null
+          tipo_documento: string
+          url_arquivo: string | null
+          versao: number | null
+        }
+        Insert: {
+          arquivo_nome?: string | null
+          arquivo_tamanho?: number | null
+          atualizado_em?: string | null
+          credenciado_id: string
+          criado_em?: string | null
+          criado_por?: string | null
+          data_emissao?: string | null
+          data_vencimento?: string | null
+          descricao?: string | null
+          dias_alerta?: number | null
+          id?: string
+          is_current?: boolean | null
+          meses_validade?: number | null
+          metadata?: Json | null
+          numero_documento?: string | null
+          observacao?: string | null
+          status?: string | null
+          storage_path?: string | null
+          substituido_em?: string | null
+          substituido_por?: string | null
+          tipo_documento: string
+          url_arquivo?: string | null
+          versao?: number | null
+        }
+        Update: {
+          arquivo_nome?: string | null
+          arquivo_tamanho?: number | null
+          atualizado_em?: string | null
+          credenciado_id?: string
+          criado_em?: string | null
+          criado_por?: string | null
+          data_emissao?: string | null
+          data_vencimento?: string | null
+          descricao?: string | null
+          dias_alerta?: number | null
+          id?: string
+          is_current?: boolean | null
+          meses_validade?: number | null
+          metadata?: Json | null
+          numero_documento?: string | null
+          observacao?: string | null
+          status?: string | null
+          storage_path?: string | null
+          substituido_em?: string | null
+          substituido_por?: string | null
+          tipo_documento?: string
+          url_arquivo?: string | null
+          versao?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_credenciados_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_credenciados_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "documentos_credenciados_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "documentos_credenciados_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_credenciados_substituido_por_fkey"
+            columns: ["substituido_por"]
+            isOneToOne: false
+            referencedRelation: "documentos_credenciados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documentos_credenciados_historico: {
+        Row: {
+          acao: string
+          comentario: string | null
+          data_evento: string | null
+          documento_id: string | null
+          id: string
+          metadata: Json | null
+          status_anterior: string | null
+          status_novo: string | null
+          usuario_nome: string | null
+          usuario_responsavel: string | null
+        }
+        Insert: {
+          acao: string
+          comentario?: string | null
+          data_evento?: string | null
+          documento_id?: string | null
+          id?: string
+          metadata?: Json | null
+          status_anterior?: string | null
+          status_novo?: string | null
+          usuario_nome?: string | null
+          usuario_responsavel?: string | null
+        }
+        Update: {
+          acao?: string
+          comentario?: string | null
+          data_evento?: string | null
+          documento_id?: string | null
+          id?: string
+          metadata?: Json | null
+          status_anterior?: string | null
+          status_novo?: string | null
+          usuario_nome?: string | null
+          usuario_responsavel?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_credenciados_historico_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_credenciados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documentos_emitidos: {
         Row: {
           created_at: string | null
@@ -3777,6 +3938,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tipos_documentos_credenciados: {
+        Row: {
+          ativo: boolean | null
+          categoria: string | null
+          codigo: string
+          created_at: string | null
+          descricao: string | null
+          dias_alerta_1: number | null
+          dias_alerta_2: number | null
+          dias_alerta_3: number | null
+          id: string
+          meses_validade_padrao: number | null
+          nome: string
+          obrigatorio: boolean | null
+          ordem: number | null
+          renovavel: boolean | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          categoria?: string | null
+          codigo: string
+          created_at?: string | null
+          descricao?: string | null
+          dias_alerta_1?: number | null
+          dias_alerta_2?: number | null
+          dias_alerta_3?: number | null
+          id?: string
+          meses_validade_padrao?: number | null
+          nome: string
+          obrigatorio?: boolean | null
+          ordem?: number | null
+          renovavel?: boolean | null
+        }
+        Update: {
+          ativo?: boolean | null
+          categoria?: string | null
+          codigo?: string
+          created_at?: string | null
+          descricao?: string | null
+          dias_alerta_1?: number | null
+          dias_alerta_2?: number | null
+          dias_alerta_3?: number | null
+          id?: string
+          meses_validade_padrao?: number | null
+          nome?: string
+          obrigatorio?: boolean | null
+          ordem?: number | null
+          renovavel?: boolean | null
+        }
+        Relationships: []
       }
       user_consents: {
         Row: {

@@ -58,6 +58,7 @@ import RegularidadeCadastral from "./pages/RegularidadeCadastral";
 import ValidarCertificado from "./pages/ValidarCertificado";
 import TesteCertificados from "./pages/TesteCertificados";
 import MeuCredenciamento from "./pages/MeuCredenciamento";
+import DocumentosCredenciadoGrid from "./pages/DocumentosCredenciadoGrid";
 const BuscaDocumentos = lazy(() => import("./pages/BuscaDocumentos"));
 import DebugFluxoCredenciamento from "./pages/admin/DebugFluxoCredenciamento";
 import ProcessarContratosOrfaos from "./pages/admin/ProcessarContratosOrfaos";
@@ -186,6 +187,7 @@ const App = () => (
                           <Route path="/prazos" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin', 'analista']}><Prazos /></RoleProtectedRoute>} />
                           <Route path="/meu-certificado" element={<RegularidadeCadastral />} />
                           <Route path="/meu-credenciamento" element={<MeuCredenciamento />} />
+                          <Route path="/meus-documentos" element={<DocumentosCredenciadoGrid />} />
                           <Route path="/credenciados/:id/regularidade" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin', 'analista']}><RegularidadeCadastral /></RoleProtectedRoute>} />
                           <Route path="/busca-documentos" element={<RoleProtectedRoute requiredRoles={['analista', 'gestor', 'admin']}><Suspense fallback={<div>Carregando...</div>}><BuscaDocumentos /></Suspense></RoleProtectedRoute>} />
                           <Route path="/contratos" element={<RoleProtectedRoute requiredRoles={['analista', 'gestor', 'admin']}><Contratos /></RoleProtectedRoute>} />

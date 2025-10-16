@@ -1,104 +1,103 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { useCredenciadoAtual } from "./useCredenciadoAtual";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
-export type TipoDocumento = 'certificado_credenciamento' | 'certificado_regularidade' | 'extrato_completo' | 'declaracao_vinculo';
-
-interface DocumentoEmitido {
+export interface DocumentoCredenciado {
   id: string;
+  credenciado_id: string;
   tipo_documento: string;
+  descricao?: string;
   numero_documento?: string;
-  url_documento: string;
-  emitido_em: string;
-  validade_ate?: string;
-  metadata: any;
+  url_arquivo?: string;
+  arquivo_nome?: string;
+  data_emissao?: string;
+  data_vencimento?: string;
+  status: 'ativo' | 'vencendo' | 'vencido' | 'em_renovacao' | 'invalido';
+  observacao?: string;
+  criado_em: string;
+  atualizado_em: string;
 }
 
-export function useDocumentosCredenciado() {
-  const { data: credenciado } = useCredenciadoAtual();
+export function useDocumentosCredenciado(credenciadoId?: string) {
+  const queryClient = useQueryClient();
 
-  // Buscar histórico de emissões
-  const { data: historico, refetch: refetchHistorico } = useQuery({
-    queryKey: ['documentos-emitidos', credenciado?.id],
+  const { data: documentos, isLoading } = useQuery({
+    queryKey: ['documentos-credenciado', credenciadoId],
     queryFn: async () => {
-      if (!credenciado?.id) return [];
+      if (!credenciadoId) return [];
 
       const { data, error } = await supabase
-        .from('documentos_emitidos')
+        .from('documentos_credenciados')
         .select('*')
-        .eq('credenciado_id', credenciado.id)
-        .order('emitido_em', { ascending: false })
-        .limit(20);
+        .eq('credenciado_id', credenciadoId)
+        .eq('is_current', true)
+        .order('data_vencimento', { ascending: true });
 
       if (error) throw error;
-      return data as DocumentoEmitido[];
+      return data as DocumentoCredenciado[];
     },
-    enabled: !!credenciado?.id
+    enabled: !!credenciadoId
   });
 
-  // Gerar Extrato Completo
-  const gerarExtrato = useMutation({
-    mutationFn: async (secoes?: string[]) => {
-      if (!credenciado?.id) throw new Error('Credenciado não encontrado');
+  const uploadDocumento = useMutation({
+    mutationFn: async ({ 
+      file, 
+      tipoDocumento, 
+      dataEmissao, 
+      dataVencimento,
+      numeroDocumento 
+    }: {
+      file: File;
+      tipoDocumento: string;
+      dataEmissao?: Date;
+      dataVencimento?: Date;
+      numeroDocumento?: string;
+    }) => {
+      if (!credenciadoId) throw new Error('Credenciado não encontrado');
 
-      const { data, error } = await supabase.functions.invoke(
-        'gerar-extrato-credenciado',
-        { body: { credenciadoId: credenciado.id, secoes } }
-      );
+      const fileName = `${credenciadoId}/${tipoDocumento}/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('documentos-credenciados')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('documentos-credenciados')
+        .getPublicUrl(fileName);
+
+      const { data, error } = await supabase
+        .from('documentos_credenciados')
+        .insert({
+          credenciado_id: credenciadoId,
+          tipo_documento: tipoDocumento,
+          numero_documento: numeroDocumento,
+          arquivo_nome: file.name,
+          arquivo_tamanho: file.size,
+          storage_path: fileName,
+          url_arquivo: publicUrl,
+          data_emissao: dataEmissao?.toISOString().split('T')[0],
+          data_vencimento: dataVencimento?.toISOString().split('T')[0],
+          status: 'ativo'
+        })
+        .select()
+        .single();
 
       if (error) throw error;
       return data;
     },
-    onSuccess: (data) => {
-      toast.success("Extrato gerado com sucesso!");
-      refetchHistorico();
-      if (data.url) {
-        window.open(data.url, '_blank');
-      }
+    onSuccess: () => {
+      toast.success('Documento enviado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['documentos-credenciado', credenciadoId] });
     },
     onError: (error: Error) => {
-      console.error("[EXTRATO] Erro:", error);
-      toast.error("Erro ao gerar extrato", {
-        description: error.message
-      });
-    }
-  });
-
-  // Gerar Declaração de Vínculo
-  const gerarDeclaracao = useMutation({
-    mutationFn: async () => {
-      if (!credenciado?.id) throw new Error('Credenciado não encontrado');
-
-      const { data, error } = await supabase.functions.invoke(
-        'gerar-declaracao-vinculo',
-        { body: { credenciadoId: credenciado.id } }
-      );
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      toast.success("Declaração gerada com sucesso!", {
-        description: `Código: ${data.codigo}`
-      });
-      refetchHistorico();
-      if (data.url) {
-        window.open(data.url, '_blank');
-      }
-    },
-    onError: (error: Error) => {
-      console.error("[DECLARACAO] Erro:", error);
-      toast.error("Erro ao gerar declaração", {
-        description: error.message
-      });
+      toast.error('Erro ao enviar documento', { description: error.message });
     }
   });
 
   return {
-    historico,
-    gerarExtrato,
-    gerarDeclaracao,
-    refetchHistorico
+    documentos,
+    isLoading,
+    uploadDocumento
   };
 }

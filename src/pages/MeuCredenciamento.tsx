@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCredenciadoAtual } from "@/hooks/useCredenciadoAtual";
-import { useDocumentosCredenciado } from "@/hooks/useDocumentosCredenciado";
 import { useGerarCertificado } from "@/hooks/useGerarCertificado";
 import { useEmitirCertificado } from "@/hooks/useCertificadoRegularidade";
 import { format } from "date-fns";
@@ -12,7 +11,6 @@ import { toast } from "sonner";
 
 export default function MeuCredenciamento() {
   const { data: credenciado, isLoading: loadingCredenciado } = useCredenciadoAtual();
-  const { historico, gerarExtrato, gerarDeclaracao } = useDocumentosCredenciado();
   const { gerar: gerarCertificado, isLoading: gerandoCertificado } = useGerarCertificado();
   const emitirRegularidade = useEmitirCertificado();
 
@@ -215,123 +213,8 @@ export default function MeuCredenciamento() {
             </CardContent>
           </Card>
 
-          {/* Extrato Completo */}
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-500/10 rounded-lg">
-                  <FileText className="h-6 w-6 text-blue-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg">Extrato Completo</CardTitle>
-                  <CardDescription>Relatório detalhado de todos os seus dados</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                onClick={() => gerarExtrato.mutate(undefined)}
-                disabled={gerarExtrato.isPending}
-                variant="outline"
-                className="w-full"
-              >
-                {gerarExtrato.isPending ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2" />
-                    Gerando...
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4 mr-2" />
-                    Gerar Extrato
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Declaração de Vínculo */}
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-500/10 rounded-lg">
-                  <FileCheck className="h-6 w-6 text-purple-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg">Declaração de Vínculo</CardTitle>
-                  <CardDescription>Declaração formal para apresentação institucional</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                onClick={() => gerarDeclaracao.mutate(undefined)}
-                disabled={gerarDeclaracao.isPending}
-                variant="outline"
-                className="w-full"
-              >
-                {gerarDeclaracao.isPending ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2" />
-                    Gerando...
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4 mr-2" />
-                    Gerar Declaração
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
         </div>
       </div>
-
-      {/* Histórico de Emissões */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Histórico de Emissões</CardTitle>
-          <CardDescription>Documentos gerados recentemente</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {!historico || historico.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              Nenhum documento gerado ainda
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {historico.map((doc) => (
-                <div 
-                  key={doc.id} 
-                  className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
-                >
-                  <div className="flex-1">
-                    <p className="font-medium">
-                      {tipoDocumentoLabel[doc.tipo_documento] || doc.tipo_documento}
-                    </p>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {format(new Date(doc.emitido_em), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                      </span>
-                      {doc.numero_documento && (
-                        <span className="font-mono text-xs">{doc.numero_documento}</span>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => window.open(doc.url_documento, '_blank')}
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }

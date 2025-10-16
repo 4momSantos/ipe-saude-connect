@@ -26,7 +26,8 @@ import {
   FileCode,
   TestTube2,
   MapPin,
-  CalendarClock
+  CalendarClock,
+  FolderOpen
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -75,6 +76,7 @@ const mainMenuItems: MenuItem[] = [
   { title: "Análises", url: "/analises", icon: ClipboardCheck, roles: ['analista', 'gestor', 'admin'] as const },
   { title: "Credenciados", url: "/credenciados", icon: Users, roles: ['gestor', 'admin'] as const },
   { title: "Controle de Prazos", url: "/prazos", icon: CalendarClock, roles: ['analista', 'gestor', 'admin'] as const },
+  { title: "Meus Documentos", url: "/meus-documentos", icon: FolderOpen, roles: ['candidato'] as const },
   { title: "Busca de Documentos", url: "/busca-documentos", icon: Search, roles: ['analista', 'gestor', 'admin'] as const },
   { 
     title: "Contratos", 
