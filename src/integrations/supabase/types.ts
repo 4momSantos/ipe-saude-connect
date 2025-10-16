@@ -5860,6 +5860,22 @@ export type Database = {
           tipo_alteracao: string
         }[]
       }
+      get_extrato_categorizacao: {
+        Args: { p_credenciado_id: string }
+        Returns: {
+          categoria_anterior: string
+          categoria_anterior_codigo: string
+          categoria_nova: string
+          categoria_nova_codigo: string
+          data_alteracao: string
+          id: string
+          justificativa: string
+          principal_anterior: boolean
+          principal_nova: boolean
+          tipo_operacao: string
+          usuario_nome: string
+        }[]
+      }
       get_gestores: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -5895,6 +5911,17 @@ export type Database = {
           profissional_nome: string
           servico_id: string
           tempo_espera_medio: number
+        }[]
+      }
+      get_stats_categorizacao: {
+        Args: { p_credenciado_id: string }
+        Returns: {
+          categorias_ja_vinculadas: string[]
+          total_alteracoes: number
+          total_alteracoes_principal: number
+          total_inclusoes: number
+          total_remocoes: number
+          ultima_alteracao: string
         }[]
       }
       get_user_roles: {
