@@ -44,21 +44,29 @@ export function ConsultaCertificado() {
     try {
       setDownloadingCertId(certificadoId);
       
-      // Se não tem URL, gerar PDF primeiro
-      if (!urlPdf) {
-        console.log('[DOWNLOAD] Gerando PDF...');
+      // Detectar certificados legados (data URL) e forçar regeneração
+      if (!urlPdf || urlPdf.startsWith('data:')) {
+        const tipoProblema = !urlPdf ? 'sem PDF' : 'formato legado (HTML)';
+        console.log(`[DOWNLOAD] Certificado ${tipoProblema}. Regenerando para PDF real...`);
+        
         gerarPdf({ certificadoId, numeroCertificado: numeroCert });
-        toast.info('Gerando certificado... Por favor, aguarde e tente baixar novamente em alguns segundos.');
+        toast.info('Atualizando certificado para formato PDF. Aguarde 5 segundos e tente novamente.');
         return;
       }
 
-      // Download direto - URL pública do Storage
-      console.log('[DOWNLOAD] Abrindo URL:', urlPdf);
-      window.open(urlPdf, '_blank');
-      toast.success('Abrindo certificado...');
+      // Download direto apenas para URLs HTTP do Storage
+      if (urlPdf.startsWith('http')) {
+        console.log('[DOWNLOAD] Abrindo URL do Storage:', urlPdf);
+        window.open(urlPdf, '_blank');
+        toast.success('Abrindo certificado...');
+      } else {
+        console.error('[DOWNLOAD] Formato de URL não suportado:', urlPdf);
+        toast.error('Formato de URL não suportado. Regenerando certificado...');
+        gerarPdf({ certificadoId, numeroCertificado: numeroCert });
+      }
     } catch (error) {
-      console.error('Erro ao baixar:', error);
-      toast.error('Erro ao baixar o certificado');
+      console.error('[DOWNLOAD] Erro:', error);
+      toast.error('Erro ao processar certificado');
     } finally {
       setDownloadingCertId(null);
     }
@@ -153,7 +161,12 @@ export function ConsultaCertificado() {
                 {downloadingCertId === resultado.certificado_id ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Baixando PDF...
+                    Processando...
+                  </>
+                ) : resultado.url_pdf?.startsWith('data:') ? (
+                  <>
+                    <Download className="mr-2 h-4 w-4" />
+                    Atualizar e Baixar (PDF)
                   </>
                 ) : (
                   <>
