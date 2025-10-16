@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,8 @@ interface SolicitarAlteracaoDialogProps {
   credenciadoId: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  campoInicial?: string;
+  valorAtual?: string;
   dadosAtuais?: {
     endereco?: string;
     telefone?: string;
@@ -29,7 +31,14 @@ const TIPOS_ALTERACAO = [
   "Outros",
 ];
 
-export function SolicitarAlteracaoDialog({ credenciadoId, open: controlledOpen, onOpenChange: controlledOnOpenChange, dadosAtuais = {} }: SolicitarAlteracaoDialogProps) {
+export function SolicitarAlteracaoDialog({ 
+  credenciadoId, 
+  open: controlledOpen, 
+  onOpenChange: controlledOnOpenChange, 
+  campoInicial,
+  valorAtual,
+  dadosAtuais = {} 
+}: SolicitarAlteracaoDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = controlledOnOpenChange || setInternalOpen;
@@ -38,6 +47,29 @@ export function SolicitarAlteracaoDialog({ credenciadoId, open: controlledOpen, 
   const [dadosNovos, setDadosNovos] = useState("");
   
   const criarMutation = useCriarSolicitacao();
+  
+  // Pré-preencher campos quando campoInicial for fornecido
+  useEffect(() => {
+    if (campoInicial && open) {
+      const tipoMap: Record<string, string> = {
+        'nome': 'Outros',
+        'endereco': 'Alteração de Endereço',
+        'telefone': 'Alteração de Telefone',
+        'email': 'Alteração de Email',
+        'cpf': 'Outros',
+        'cnpj': 'Outros',
+        'rg': 'Outros',
+        'crm': 'Outros',
+        'especialidade': 'Atualização de Especialidade',
+        'cidade': 'Alteração de Endereço',
+        'estado': 'Alteração de Endereço',
+        'cep': 'Alteração de Endereço',
+        'celular': 'Alteração de Telefone',
+      };
+      setTipo(tipoMap[campoInicial] || 'Outros');
+      setDadosNovos(valorAtual || '');
+    }
+  }, [campoInicial, valorAtual, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,9 +1,13 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, FileText, Clock, UserCheck, DollarSign, History, Edit } from "lucide-react";
+import { ArrowLeft, Loader2, FileText, Clock, UserCheck, DollarSign, History, Edit, FileEdit } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useUserRole, type UserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DadosCadastrais } from "@/components/credenciados/DadosCadastrais";
+import { SolicitarAlteracaoDialog } from "@/components/credenciados/SolicitarAlteracaoDialog";
 import { EspecialidadesHorarios } from "@/components/credenciados/EspecialidadesHorarios";
 import { HistoricoCredenciado } from "@/components/credenciados/HistoricoCredenciado";
 import { SolicitacoesAlteracao } from "@/components/credenciados/SolicitacoesAlteracao";
@@ -23,7 +27,6 @@ import { useCredenciado } from "@/hooks/useCredenciados";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import { EstatisticasAvaliacao } from "@/components/avaliacoes/EstatisticasAvaliacao";
-import { supabase } from "@/integrations/supabase/client";
 
 export default function CredenciadoDetail() {
   const navigate = useNavigate();
@@ -32,13 +35,31 @@ export default function CredenciadoDetail() {
   const [ocorrenciaDialogOpen, setOcorrenciaDialogOpen] = useState(false);
   const [descredenciamentoDialogOpen, setDescredenciamentoDialogOpen] = useState(false);
   const [alteracaoStatusDialogOpen, setAlteracaoStatusDialogOpen] = useState(false);
+  const [solicitacaoDialogOpen, setSolicitacaoDialogOpen] = useState(false);
+  const [campoSelecionado, setCampoSelecionado] = useState<{campo: string, valor: string} | null>(null);
+  
   const { data: credenciado, isLoading, error } = useCredenciado(id || "");
+  const { roles } = useUserRole();
+  
+  const { data: user } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user;
+    }
+  });
 
-  // Simple hasRole implementation
   const hasRole = (role: string) => {
-    // Check if user has the role - this is a simplified version
-    // In production, this should be fetched from user_roles table
-    return role === "gestor" || role === "admin";
+    return roles.includes(role as UserRole);
+  };
+  
+  const isCandidato = roles.includes('candidato' as UserRole);
+  const isProprietario = (credenciado as any)?.inscricoes_edital?.candidato_id === user?.id;
+  const isGestorOrAnalista = hasRole('gestor') || hasRole('analista') || hasRole('admin');
+  
+  const handleSolicitarAlteracao = (campo: string, valorAtual: string) => {
+    setCampoSelecionado({ campo, valor: valorAtual });
+    setSolicitacaoDialogOpen(true);
   };
 
   if (isLoading) {
@@ -98,20 +119,29 @@ export default function CredenciadoDetail() {
             </div>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setAlteracaoStatusDialogOpen(true)} variant="default">
-            <Edit className="mr-2 h-4 w-4" />
-            Alterar Status
+        {isGestorOrAnalista && (
+          <div className="flex gap-2">
+            <Button onClick={() => setAlteracaoStatusDialogOpen(true)} variant="default">
+              <Edit className="mr-2 h-4 w-4" />
+              Alterar Status
+            </Button>
+            <Button onClick={() => setOcorrenciaDialogOpen(true)} variant="outline">
+              <FileText className="mr-2 h-4 w-4" />
+              Registrar Ocorrência
+            </Button>
+            <Button onClick={() => setDescredenciamentoDialogOpen(true)} variant="outline">
+              <Clock className="mr-2 h-4 w-4" />
+              Programar Descredenciamento
+            </Button>
+          </div>
+        )}
+        
+        {isCandidato && isProprietario && (
+          <Button onClick={() => setSolicitacaoDialogOpen(true)}>
+            <FileEdit className="mr-2 h-4 w-4" />
+            Solicitar Alteração
           </Button>
-          <Button onClick={() => setOcorrenciaDialogOpen(true)} variant="outline">
-            <FileText className="mr-2 h-4 w-4" />
-            Registrar Ocorrência
-          </Button>
-          <Button onClick={() => setDescredenciamentoDialogOpen(true)} variant="outline">
-            <Clock className="mr-2 h-4 w-4" />
-            Programar Descredenciamento
-          </Button>
-        </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -130,14 +160,20 @@ export default function CredenciadoDetail() {
           </TabsTrigger>
           <TabsTrigger value="especialidades">Especialidades</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
-          <TabsTrigger value="solicitacoes">Solicitações</TabsTrigger>
-          <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
-          <TabsTrigger value="avaliacoes-publicas">Avaliações Públicas</TabsTrigger>
-          <TabsTrigger value="sistema-avaliacoes">Sistema de Avaliações</TabsTrigger>
-          <TabsTrigger value="historico-categorias">
-            <History className="h-4 w-4 mr-2" />
-            Histórico Categorias
+          <TabsTrigger value="solicitacoes">
+            {isCandidato && isProprietario ? 'Minhas Solicitações' : 'Solicitações'}
           </TabsTrigger>
+          {isGestorOrAnalista && (
+            <>
+              <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
+              <TabsTrigger value="avaliacoes-publicas">Avaliações Públicas</TabsTrigger>
+              <TabsTrigger value="sistema-avaliacoes">Sistema de Avaliações</TabsTrigger>
+              <TabsTrigger value="historico-categorias">
+                <History className="h-4 w-4 mr-2" />
+                Histórico Categorias
+              </TabsTrigger>
+            </>
+          )}
         </TabsList>
 
         <TabsContent value="dados" className="space-y-6">
@@ -161,6 +197,8 @@ export default function CredenciadoDetail() {
               observacoes: (credenciado as any).observacoes,
             }}
             hasRole={hasRole}
+            isCandidato={isCandidato && isProprietario}
+            onSolicitarAlteracao={handleSolicitarAlteracao}
           />
           {credenciado.cnpj && (
             <CategoriasCredenciadoSection credenciadoId={id || ""} />
@@ -208,29 +246,33 @@ export default function CredenciadoDetail() {
           <HistoricoOcorrencias credenciadoId={id || ""} />
         </TabsContent>
 
-        <TabsContent value="avaliacoes-publicas" className="space-y-6">
-          <EstatisticasAvaliacao credenciadoId={id!} />
-        </TabsContent>
+        {isGestorOrAnalista && (
+          <>
+            <TabsContent value="avaliacoes-publicas" className="space-y-6">
+              <EstatisticasAvaliacao credenciadoId={id!} />
+            </TabsContent>
 
-        <TabsContent value="sistema-avaliacoes" className="space-y-6">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center space-y-4">
-                <p className="text-muted-foreground">
-                  Acesse o sistema completo de avaliações para ver estatísticas consolidadas,
-                  avaliar desempenho e visualizar histórico.
-                </p>
-                <Button onClick={() => navigate(`/credenciados/${id}/avaliacoes`)}>
-                  Abrir Sistema de Avaliações
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            <TabsContent value="sistema-avaliacoes" className="space-y-6">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center space-y-4">
+                    <p className="text-muted-foreground">
+                      Acesse o sistema completo de avaliações para ver estatísticas consolidadas,
+                      avaliar desempenho e visualizar histórico.
+                    </p>
+                    <Button onClick={() => navigate(`/credenciados/${id}/avaliacoes`)}>
+                      Abrir Sistema de Avaliações
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-        <TabsContent value="historico-categorias" className="space-y-6">
-          <HistoricoCategorizacao credenciadoId={id || ""} />
-        </TabsContent>
+            <TabsContent value="historico-categorias" className="space-y-6">
+              <HistoricoCategorizacao credenciadoId={id || ""} />
+            </TabsContent>
+          </>
+        )}
       </Tabs>
 
       {/* Dialogs */}
@@ -254,6 +296,22 @@ export default function CredenciadoDetail() {
         open={descredenciamentoDialogOpen}
         onClose={() => setDescredenciamentoDialogOpen(false)}
       />
+      
+      {isCandidato && isProprietario && (
+        <SolicitarAlteracaoDialog
+          credenciadoId={id!}
+          open={solicitacaoDialogOpen}
+          onOpenChange={setSolicitacaoDialogOpen}
+          campoInicial={campoSelecionado?.campo}
+          valorAtual={campoSelecionado?.valor}
+          dadosAtuais={{
+            endereco: credenciado.endereco || "",
+            telefone: credenciado.telefone || "",
+            email: credenciado.email || "",
+            especialidades: credenciado.crms?.map((c: any) => c.especialidade).join(", ") || "",
+          }}
+        />
+      )}
     </div>
   );
 }

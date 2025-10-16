@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Mail, Phone, MapPin, Calendar, Building2, Clock, Edit2 } from "lucide-react";
+import { Mail, Phone, MapPin, Calendar, Building2, Clock, Edit2, FileText, CreditCard, Hash } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useState } from "react";
@@ -33,9 +33,16 @@ interface DadosCadastraisProps {
     observacoes?: string | null;
   };
   hasRole?: (role: string) => boolean;
+  isCandidato?: boolean;
+  onSolicitarAlteracao?: (campo: string, valorAtual: string) => void;
 }
 
-export function DadosCadastrais({ credenciado, hasRole }: DadosCadastraisProps) {
+export function DadosCadastrais({ 
+  credenciado, 
+  hasRole,
+  isCandidato = false,
+  onSolicitarAlteracao 
+}: DadosCadastraisProps) {
   const [editarDatasOpen, setEditarDatasOpen] = useState(false);
   const [novaDataInicio, setNovaDataInicio] = useState<string>(
     credenciado.data_inicio_atendimento || ""
@@ -88,6 +95,37 @@ export function DadosCadastrais({ credenciado, hasRole }: DadosCadastraisProps) 
     return `${dias} dia${dias !== 1 ? "s" : ""}`;
   };
 
+  const renderCampoEditavel = (
+    label: string, 
+    value: string, 
+    campo: string,
+    icon?: React.ElementType
+  ) => {
+    const IconComponent = icon || FileText;
+    
+    return (
+      <div>
+        <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+          <IconComponent className="h-4 w-4" />
+          {label}
+        </label>
+        <div className="flex items-center justify-between mt-1">
+          <p className="text-base font-medium text-foreground flex-1">{value}</p>
+          {isCandidato && onSolicitarAlteracao && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onSolicitarAlteracao(campo, value)}
+              className="ml-2 h-8 w-8 p-0"
+            >
+              <Edit2 className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="grid gap-6 md:grid-cols-2">
       {/* Informações Principais */}
@@ -101,26 +139,27 @@ export function DadosCadastrais({ credenciado, hasRole }: DadosCadastraisProps) 
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Nome Completo</label>
-              <p className="text-base font-medium text-foreground mt-1">{credenciado.nome}</p>
-            </div>
+            {renderCampoEditavel("Nome Completo", credenciado.nome, "nome", Building2)}
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">CNPJ</label>
-                <p className="text-base font-medium text-foreground mt-1">{credenciado.cpfCnpj}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">CRM</label>
-                <p className="text-base font-medium text-foreground mt-1">{credenciado.crm}</p>
-              </div>
+              {renderCampoEditavel("CNPJ", credenciado.cpfCnpj, "cpfCnpj", CreditCard)}
+              {renderCampoEditavel("CRM", credenciado.crm, "crm", Hash)}
             </div>
             <div>
               <label className="text-sm font-medium text-muted-foreground">Especialidade Principal</label>
-              <div className="mt-1">
+              <div className="mt-1 flex items-center justify-between">
                 <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
                   {credenciado.especialidade}
                 </Badge>
+                {isCandidato && onSolicitarAlteracao && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onSolicitarAlteracao("especialidade", credenciado.especialidade)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Edit2 className="h-3 w-3" />
+                  </Button>
+                )}
               </div>
             </div>
             <div>
@@ -145,20 +184,8 @@ export function DadosCadastrais({ credenciado, hasRole }: DadosCadastraisProps) 
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                E-mail
-              </label>
-              <p className="text-base font-medium text-foreground mt-1">{credenciado.email}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Phone className="h-4 w-4" />
-                Telefone
-              </label>
-              <p className="text-base font-medium text-foreground mt-1">{credenciado.telefone}</p>
-            </div>
+            {renderCampoEditavel("E-mail", credenciado.email, "email", Mail)}
+            {renderCampoEditavel("Telefone", credenciado.telefone, "telefone", Phone)}
           </div>
         </CardContent>
       </Card>
@@ -175,21 +202,13 @@ export function DadosCadastrais({ credenciado, hasRole }: DadosCadastraisProps) 
         <CardContent>
           <div className="grid gap-4 md:grid-cols-3">
             <div className="md:col-span-2">
-              <label className="text-sm font-medium text-muted-foreground">Logradouro</label>
-              <p className="text-base font-medium text-foreground mt-1">{credenciado.endereco}</p>
+              {renderCampoEditavel("Logradouro", credenciado.endereco, "endereco", MapPin)}
             </div>
             <div>
-              <label className="text-sm font-medium text-muted-foreground">CEP</label>
-              <p className="text-base font-medium text-foreground mt-1">{credenciado.cep}</p>
+              {renderCampoEditavel("CEP", credenciado.cep, "cep")}
             </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Cidade</label>
-              <p className="text-base font-medium text-foreground mt-1">{credenciado.cidade}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Estado</label>
-              <p className="text-base font-medium text-foreground mt-1">{credenciado.estado}</p>
-            </div>
+            {renderCampoEditavel("Cidade", credenciado.cidade, "cidade")}
+            {renderCampoEditavel("Estado", credenciado.estado, "estado")}
           </div>
         </CardContent>
       </Card>

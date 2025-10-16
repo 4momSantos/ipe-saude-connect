@@ -85,10 +85,13 @@ export function useCredenciado(id: string) {
   return useQuery({
     queryKey: ["credenciado", id],
     queryFn: async () => {
-      // Buscar credenciado
+      // Buscar credenciado com relação à inscrição
       const { data: credenciadoData, error: credenciadoError } = await supabase
         .from("credenciados")
-        .select("*")
+        .select(`
+          *,
+          inscricoes_edital(candidato_id)
+        `)
         .eq("id", id)
         .single();
 
