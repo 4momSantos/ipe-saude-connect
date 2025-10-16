@@ -5604,7 +5604,6 @@ export type Database = {
           arquivo_url: string
           created_at: string
           credenciado_cpf: string
-          credenciado_id: string
           credenciado_nome: string
           data_vencimento: string
           dias_para_vencer: number
