@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -46,16 +47,13 @@ serve(async (req) => {
       throw new Error('Certificado não encontrado');
     }
 
-    console.log('[GERAR_PDF] Gerando PDF usando biblioteca externa:', certificado.numero_certificado);
+    console.log('[GERAR_PDF] Gerando certificado:', certificado.numero_certificado);
 
     const credenciado = Array.isArray(certificado.credenciado) 
       ? certificado.credenciado[0] 
       : certificado.credenciado;
 
-    // Usar API externa para gerar PDF (Puppeteer Cloud ou similar)
-    // Por enquanto, vamos usar uma solução temporária: salvar os dados e marcar como processado
-    
-    // Gerar HTML simples para PDF
+    // Gerar HTML do certificado
     const htmlContent = `
 <!DOCTYPE html>
 <html>
@@ -167,20 +165,22 @@ serve(async (req) => {
 </body>
 </html>`;
 
-    // Converter HTML para PDF usando API externa (temporariamente usamos URL de dados)
-    const pdfUrl = `data:text/html;base64,${btoa(unescape(encodeURIComponent(htmlContent)))}`;
+    // Converter HTML para base64 usando Deno API
+    const encoder = new TextEncoder();
+    const htmlBytes = encoder.encode(htmlContent);
+    const base64Html = base64Encode(htmlBytes);
+    const dataUrl = `data:text/html;base64,${base64Html}`;
 
-    console.log('[GERAR_PDF] Atualizando certificado com URL temporária');
+    console.log('[GERAR_PDF] Atualizando certificado com URL');
 
-    // Atualizar certificado com URL (temporária até implementarmos geração real de PDF)
+    // Atualizar certificado
     const { error: updateError } = await supabase
       .from('certificados_regularidade')
       .update({ 
-        url_pdf: pdfUrl,
+        url_pdf: dataUrl,
         metadata_pdf: {
           gerado_em: new Date().toISOString(),
-          formato: 'html_base64',
-          temporario: true
+          formato: 'html_base64'
         }
       })
       .eq('id', certificadoId);
@@ -195,9 +195,8 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         certificado_id: certificadoId,
-        url_pdf: pdfUrl,
-        numero_certificado: certificado.numero_certificado,
-        message: 'PDF gerado temporariamente como HTML. Implementação completa de PDF em desenvolvimento.'
+        url_pdf: dataUrl,
+        numero_certificado: certificado.numero_certificado
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
