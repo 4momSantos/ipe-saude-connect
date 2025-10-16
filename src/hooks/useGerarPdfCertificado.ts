@@ -19,11 +19,22 @@ export const useGerarPdfCertificado = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data, variables) => {
-      toast.success(`PDF gerado com sucesso para o certificado ${variables.numeroCertificado}`);
+    onSuccess: async (data, variables) => {
+      console.log('[GERAR_PDF] PDF gerado:', data);
+      
       // Invalidar queries para forçar recarregamento
-      queryClient.invalidateQueries({ queryKey: ['consulta-publica'] });
-      queryClient.invalidateQueries({ queryKey: ['consulta-credenciado'] });
+      await queryClient.invalidateQueries({ queryKey: ['consulta-publica'] });
+      await queryClient.invalidateQueries({ queryKey: ['consulta-credenciado'] });
+      
+      // Fazer download automático se temos URL
+      if (data?.url_pdf) {
+        setTimeout(() => {
+          window.open(data.url_pdf, '_blank');
+          toast.success('Abrindo certificado atualizado...');
+        }, 500);
+      } else {
+        toast.success(`PDF gerado com sucesso! Clique novamente para baixar.`);
+      }
     },
     onError: (error: Error) => {
       console.error('[GERAR_PDF] Erro:', error);

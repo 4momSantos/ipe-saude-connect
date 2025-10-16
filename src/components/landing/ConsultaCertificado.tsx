@@ -49,8 +49,8 @@ export function ConsultaCertificado() {
         const tipoProblema = !urlPdf ? 'sem PDF' : 'formato legado (HTML)';
         console.log(`[DOWNLOAD] Certificado ${tipoProblema}. Regenerando para PDF real...`);
         
+        toast.info('Gerando PDF atualizado. Download iniciará automaticamente...');
         gerarPdf({ certificadoId, numeroCertificado: numeroCert });
-        toast.info('Atualizando certificado para formato PDF. Aguarde 5 segundos e tente novamente.');
         return;
       }
 
