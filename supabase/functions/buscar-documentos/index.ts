@@ -26,7 +26,11 @@ serve(async (req) => {
       data_inicio, 
       data_fim,
       incluir_prazos,
-      incluir_ocr
+      incluir_ocr,
+      status_credenciado,
+      apenas_habilitados,
+      apenas_com_numero,
+      incluir_nao_credenciados
     } = await req.json();
 
     console.log('[buscar-documentos] Iniciando busca:', { termo, status, tipo_documento, incluir_prazos, incluir_ocr });
@@ -47,7 +51,11 @@ serve(async (req) => {
       p_limit: 50,
       ...(usarFuncaoCompleta && {
         p_incluir_prazos: incluir_prazos ?? false,
-        p_incluir_ocr: incluir_ocr ?? false
+        p_incluir_ocr: incluir_ocr ?? false,
+        p_status_credenciado: status_credenciado || null,
+        p_apenas_habilitados: apenas_habilitados ?? null,
+        p_apenas_com_numero: apenas_com_numero ?? null,
+        p_incluir_nao_credenciados: incluir_nao_credenciados ?? false
       })
     });
 
