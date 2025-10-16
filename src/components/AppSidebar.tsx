@@ -48,7 +48,6 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { RoleGuard } from "@/components/RoleGuard";
 import { useUserRole, UserRole } from "@/hooks/useUserRole";
-import { NotificationBell } from "@/components/NotificationBell";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { cn } from "@/lib/utils";
 
@@ -195,10 +194,7 @@ export function AppSidebar() {
               )}
             </div>
             {!isCollapsed && (
-              <div className="flex items-center gap-2">
-                <NotificationCenter />
-                <NotificationBell />
-              </div>
+              <NotificationCenter />
             )}
           </div>
         </div>
