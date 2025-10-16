@@ -373,6 +373,9 @@ export function FormularioAvaliacaoPublica({
                     {form.formState.errors.nota_profissional && (
                       <li>{form.formState.errors.nota_profissional.message}</li>
                     )}
+                    {form.formState.errors.comentario_profissional && (
+                      <li>{form.formState.errors.comentario_profissional.message}</li>
+                    )}
                   </ul>
                 </div>
               )}
