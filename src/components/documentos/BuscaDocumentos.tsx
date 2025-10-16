@@ -36,16 +36,11 @@ export function BuscaDocumentos({
   
   const { resultados, credenciadosAgrupados, isLoading, tempoExecucao, buscar, limpar } = useBuscarDocumentos();
 
-  const { data: tiposDisponiveis = [] } = useTiposDocumentos();
-
-  // Busca inicial ao carregar - mostra todos os documentos agrupados por credenciado
+  // Busca inicial ao carregar - mostra todos os documentos
   useEffect(() => {
-    buscar('', { 
-      ...filtros, 
-      ordenacao: 'data_desc',
-      agrupar_por: 'credenciado'
-    }, { incluirPrazos, incluirOCR });
-  }, [incluirPrazos, incluirOCR]);
+    buscar('', { ...filtros, ordenacao: 'data_desc' });
+  }, []);
+  const { data: tiposDisponiveis = [] } = useTiposDocumentos();
 
   // Agrupar resultados por tipo
   const resultadosAgrupados = useMemo(() => {
@@ -69,9 +64,8 @@ export function BuscaDocumentos({
 
   const handleLimpar = () => {
     setTermo('');
-    setFiltros({ ordenacao: 'data_desc', agrupar_por: 'credenciado' });
-    // Re-buscar todos os documentos
-    buscar('', { ordenacao: 'data_desc', agrupar_por: 'credenciado' }, { incluirPrazos, incluirOCR });
+    setFiltros({ ordenacao: 'relevancia', agrupar_por: 'credenciado' });
+    limpar();
   };
 
   const visualizarDocumento = async (arquivoUrl: string, nome: string) => {
@@ -361,12 +355,10 @@ export function BuscaDocumentos({
         <Card className="p-12 text-center">
           <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold mb-2">
-            {termo || filtros.status || filtros.tipo_documento ? 'Nenhum documento encontrado' : 'Nenhum documento disponível'}
+            {termo ? 'Nenhum documento encontrado' : 'Nenhum documento disponível'}
           </h3>
           <p className="text-sm text-muted-foreground">
-            {termo || filtros.status || filtros.tipo_documento 
-              ? 'Tente ajustar os termos de busca ou os filtros' 
-              : 'Os documentos dos credenciados aparecerão aqui automaticamente'}
+            {termo ? 'Tente ajustar os termos de busca ou os filtros' : 'Não há documentos cadastrados no sistema'}
           </p>
         </Card>
       )}
