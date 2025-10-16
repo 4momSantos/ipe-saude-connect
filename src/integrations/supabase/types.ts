@@ -5959,6 +5959,18 @@ export type Database = {
               p_termo?: string
               p_tipo_documento?: string
             }
+          | {
+              p_credenciado_id?: string
+              p_data_fim?: string
+              p_data_inicio?: string
+              p_inscricao_id?: string
+              p_limite?: number
+              p_offset?: number
+              p_ordenacao?: string
+              p_status?: string
+              p_termo?: string
+              p_tipo_documento?: string
+            }
         Returns: {
           arquivo_nome: string
           arquivo_url: string
