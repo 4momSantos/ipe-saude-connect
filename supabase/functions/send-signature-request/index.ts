@@ -65,39 +65,38 @@ async function sendEmail(to: string[], subject: string, html: string, apiKey: st
 }
 
 /**
- * Converte HTML em PDF
+ * Converte Base64 para Uint8Array (se necessário)
+ * OU retorna PDF direto se já estiver em formato correto
  */
-async function htmlToPDF(html: string, contratoNumero: string): Promise<Uint8Array> {
-  console.log(JSON.stringify({ level: "info", action: "generating_pdf", contratoNumero }));
+async function getPDFBytes(metadata: any): Promise<Uint8Array> {
+  console.log(JSON.stringify({ 
+    level: "info", 
+    action: "getting_pdf", 
+    has_base64: !!metadata.pdf_bytes_base64,
+    has_url: !!metadata.document_url
+  }));
   
   try {
-    const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595.28, 841.89]); // A4
+    // Se PDF já está em base64 no metadata (nova versão)
+    if (metadata.pdf_bytes_base64) {
+      console.log(JSON.stringify({ level: "info", action: "using_base64_pdf" }));
+      const binaryString = atob(metadata.pdf_bytes_base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      return bytes;
+    }
     
-    // Extrair texto do HTML (remover tags)
-    const textContent = html
-      .replace(/<style[^>]*>.*?<\/style>/gs, '')
-      .replace(/<script[^>]*>.*?<\/script>/gs, '')
-      .replace(/<[^>]+>/g, '')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .trim();
-    
-    // Configurações de texto
-    const fontSize = 12;
-    const lineHeight = 14;
-    const margin = 50;
-    const maxWidth = page.getWidth() - (margin * 2);
-    
-    // Quebrar texto em linhas
-    const words = textContent.split(' ');
-    const lines: string[] = [];
-    let currentLine = '';
-    
-    for (const word of words) {
-      const testLine = currentLine ? `${currentLine} ${word}` : word;
+    // Se tem URL do documento (baixar do storage)
+    if (metadata.document_url) {
+      console.log(JSON.stringify({ level: "info", action: "downloading_pdf_from_storage" }));
+      const response = await fetch(metadata.document_url);
+      if (!response.ok) {
+        throw new Error(`Erro ao baixar PDF: ${response.status}`);
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      return new Uint8Array(arrayBuffer);
       const width = testLine.length * (fontSize * 0.5);
       
       if (width < maxWidth) {
