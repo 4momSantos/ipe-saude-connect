@@ -75,6 +75,7 @@ const mainMenuItems: MenuItem[] = [
   { title: "Inscrições", url: "/inscricoes", icon: ClipboardList, roles: ['analista', 'gestor', 'admin'] as const },
   { title: "Análises", url: "/analises", icon: ClipboardCheck, roles: ['analista', 'gestor', 'admin'] as const },
   { title: "Credenciados", url: "/credenciados", icon: Users, roles: ['gestor', 'admin'] as const },
+  { title: "Minhas Credenciações", url: "/minhas-credenciacoes", icon: Award, roles: ['candidato'] as const },
   { title: "Controle de Prazos", url: "/prazos", icon: CalendarClock, roles: ['analista', 'gestor', 'admin'] as const },
   { title: "Meus Documentos", url: "/meus-documentos", icon: FolderOpen, roles: ['candidato'] as const },
   { title: "Busca de Documentos", url: "/busca-documentos", icon: Search, roles: ['analista', 'gestor', 'admin'] as const },

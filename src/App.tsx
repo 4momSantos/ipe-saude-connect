@@ -58,6 +58,7 @@ import MeusDadosLGPD from "./pages/MeusDadosLGPD";
 import TesteAssinafy from "./pages/TesteAssinafy";
 import Prazos from "./pages/Prazos";
 import RegularidadeCadastral from "./pages/RegularidadeCadastral";
+import MinhasCredenciacoes from "./pages/MinhasCredenciacoes";
 import ValidarCertificado from "./pages/ValidarCertificado";
 import TesteCertificados from "./pages/TesteCertificados";
 import MeuCredenciamento from "./pages/MeuCredenciamento";
@@ -188,6 +189,7 @@ const App = () => (
                           />
                           <Route path="/credenciados" element={<Credenciados />} />
                           <Route path="/credenciados/:id" element={<CredenciadoDetail />} />
+                          <Route path="/minhas-credenciacoes" element={<MinhasCredenciacoes />} />
                           <Route path="/credenciados/:id/avaliacoes" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin', 'analista']}><AvaliacoesCredenciado /></RoleProtectedRoute>} />
                           <Route path="/credenciados/:id/situacao" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin', 'analista']}><SituacaoCadastral /></RoleProtectedRoute>} />
                           <Route path="/prazos" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin', 'analista']}><Prazos /></RoleProtectedRoute>} />
