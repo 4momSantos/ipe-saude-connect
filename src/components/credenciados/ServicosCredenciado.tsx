@@ -207,22 +207,20 @@ export function ServicosCredenciado({ credenciadoId, canEdit = false }: Servicos
 
                   <div className="grid gap-2">
                     <Label htmlFor="procedimento">Procedimento *</Label>
-                    <Select
+                    <Input
+                      id="procedimento"
+                      placeholder={especialidadeSelecionada ? "Digite o nome do procedimento" : "Selecione uma especialidade primeiro"}
                       value={formData.procedimento_id}
-                      onValueChange={(value) => setFormData({ ...formData, procedimento_id: value })}
+                      onChange={(e) => setFormData({ ...formData, procedimento_id: e.target.value })}
                       disabled={!especialidadeSelecionada}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o procedimento" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {procedimentos?.map((proc) => (
-                          <SelectItem key={proc.id} value={proc.id}>
-                            {proc.nome} {proc.codigo_tuss && `(${proc.codigo_tuss})`}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      className="w-full"
+                    />
+                    {especialidadeSelecionada && procedimentos && procedimentos.length > 0 && (
+                      <div className="text-xs text-muted-foreground">
+                        Sugestões: {procedimentos.slice(0, 3).map(p => p.nome).join(", ")}
+                        {procedimentos.length > 3 && "..."}
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid gap-2">
