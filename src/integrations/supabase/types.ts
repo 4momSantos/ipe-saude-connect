@@ -545,6 +545,7 @@ export type Database = {
           avaliador_nome: string | null
           avaliador_verificado: boolean | null
           comentario: string
+          comentario_profissional: string | null
           comprovante_url: string | null
           created_at: string
           credenciado_id: string
@@ -559,6 +560,8 @@ export type Database = {
           moderador_id: string | null
           motivo_denuncia: string | null
           nota_estrelas: number
+          nota_profissional: number | null
+          profissional_id: string | null
           respondido_em: string | null
           respondido_por: string | null
           resposta_profissional: string | null
@@ -572,6 +575,7 @@ export type Database = {
           avaliador_nome?: string | null
           avaliador_verificado?: boolean | null
           comentario: string
+          comentario_profissional?: string | null
           comprovante_url?: string | null
           created_at?: string
           credenciado_id: string
@@ -586,6 +590,8 @@ export type Database = {
           moderador_id?: string | null
           motivo_denuncia?: string | null
           nota_estrelas: number
+          nota_profissional?: number | null
+          profissional_id?: string | null
           respondido_em?: string | null
           respondido_por?: string | null
           resposta_profissional?: string | null
@@ -599,6 +605,7 @@ export type Database = {
           avaliador_nome?: string | null
           avaliador_verificado?: boolean | null
           comentario?: string
+          comentario_profissional?: string | null
           comprovante_url?: string | null
           created_at?: string
           credenciado_id?: string
@@ -613,6 +620,8 @@ export type Database = {
           moderador_id?: string | null
           motivo_denuncia?: string | null
           nota_estrelas?: number
+          nota_profissional?: number | null
+          profissional_id?: string | null
           respondido_em?: string | null
           respondido_por?: string | null
           resposta_profissional?: string | null
@@ -647,6 +656,20 @@ export type Database = {
             columns: ["credenciado_id"]
             isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_publicas_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "estatisticas_profissionais"
+            referencedColumns: ["profissional_id"]
+          },
+          {
+            foreignKeyName: "avaliacoes_publicas_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "profissionais_credenciados"
             referencedColumns: ["id"]
           },
         ]
@@ -1597,6 +1620,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "procedimentos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credenciado_servicos_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "estatisticas_profissionais"
+            referencedColumns: ["profissional_id"]
           },
           {
             foreignKeyName: "credenciado_servicos_profissional_id_fkey"
@@ -2880,6 +2910,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "indicadores_profissionais_profissional_id_fkey"
+            columns: ["profissional_id"]
+            isOneToOne: false
+            referencedRelation: "estatisticas_profissionais"
+            referencedColumns: ["profissional_id"]
+          },
           {
             foreignKeyName: "indicadores_profissionais_profissional_id_fkey"
             columns: ["profissional_id"]
@@ -5384,6 +5421,52 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "view_inscricoes_validacao_pendente"
             referencedColumns: ["inscricao_id"]
+          },
+        ]
+      }
+      estatisticas_profissionais: {
+        Row: {
+          credenciado_id: string | null
+          especialidade: string | null
+          nota_media: number | null
+          profissional_id: string | null
+          profissional_nome: string | null
+          total_1_estrela: number | null
+          total_2_estrelas: number | null
+          total_3_estrelas: number | null
+          total_4_estrelas: number | null
+          total_5_estrelas: number | null
+          total_avaliacoes: number | null
+          ultima_avaliacao: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profissionais_credenciados_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profissionais_credenciados_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "profissionais_credenciados_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "profissionais_credenciados_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
           },
         ]
       }

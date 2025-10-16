@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Star } from "lucide-react";
+import { Star, Building, Stethoscope } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AvaliacaoPublica } from "@/types/avaliacoes";
@@ -57,22 +57,53 @@ export function AvaliacaoCard({ avaliacao }: AvaliacaoCardProps) {
             </Badge>
           </div>
 
-          {/* Comentário */}
-          <p className="text-sm">{avaliacao.comentario}</p>
+          {/* AVALIAÇÃO DO ESTABELECIMENTO */}
+          <div className="space-y-2 border-l-2 border-primary pl-3">
+            <div className="flex items-center gap-2">
+              <Building className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Estabelecimento</span>
+            </div>
+            <p className="text-sm">{avaliacao.comentario}</p>
+          </div>
 
-          {/* Tipo de serviço */}
-          {avaliacao.tipo_servico && (
-            <div className="text-xs text-muted-foreground">
-              Serviço: <span className="font-medium">{avaliacao.tipo_servico}</span>
+          {/* AVALIAÇÃO DO PROFISSIONAL (se existir) */}
+          {avaliacao.profissional_id && avaliacao.nota_profissional && (
+            <div className="space-y-2 border-l-2 border-blue-500 pl-3">
+              <div className="flex items-center gap-2">
+                <Stethoscope className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-medium">
+                  Profissional: {avaliacao.profissionais_credenciados?.nome || 'Nome não disponível'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className={`h-3 w-3 ${
+                      star <= avaliacao.nota_profissional!
+                        ? 'fill-yellow-400 text-yellow-400'
+                        : 'text-gray-300'
+                    }`}
+                  />
+                ))}
+              </div>
+              {avaliacao.comentario_profissional && (
+                <p className="text-sm">{avaliacao.comentario_profissional}</p>
+              )}
             </div>
           )}
 
-          {/* Data de atendimento */}
-          {avaliacao.data_atendimento && (
-            <div className="text-xs text-muted-foreground">
-              Atendimento em: {format(new Date(avaliacao.data_atendimento), "dd/MM/yyyy")}
-            </div>
-          )}
+          {/* Metadados */}
+          <div className="flex flex-wrap gap-2 pt-2 border-t">
+            {avaliacao.tipo_servico && (
+              <Badge variant="outline">{avaliacao.tipo_servico}</Badge>
+            )}
+            {avaliacao.data_atendimento && (
+              <Badge variant="outline">
+                Atendimento em {format(new Date(avaliacao.data_atendimento), "dd/MM/yyyy")}
+              </Badge>
+            )}
+          </div>
 
           {/* Resposta do profissional */}
           {avaliacao.resposta_profissional && (

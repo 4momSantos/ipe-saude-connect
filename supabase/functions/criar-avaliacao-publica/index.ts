@@ -9,6 +9,9 @@ interface CriarAvaliacaoRequest {
   credenciado_id: string;
   nota_estrelas: number;
   comentario: string;
+  profissional_id?: string;
+  nota_profissional?: number;
+  comentario_profissional?: string;
   data_atendimento?: string;
   tipo_servico?: string;
   avaliador_nome?: string;
@@ -108,6 +111,9 @@ Deno.serve(async (req) => {
         credenciado_id: body.credenciado_id,
         nota_estrelas: body.nota_estrelas,
         comentario: body.comentario.trim(),
+        profissional_id: body.profissional_id || null,
+        nota_profissional: body.nota_profissional || null,
+        comentario_profissional: body.comentario_profissional?.trim() || null,
         data_atendimento: body.data_atendimento || null,
         tipo_servico: body.tipo_servico || null,
         avaliador_nome: body.avaliador_anonimo ? null : body.avaliador_nome,

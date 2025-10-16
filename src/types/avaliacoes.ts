@@ -9,7 +9,14 @@ export interface AvaliacaoPublica {
   avaliador_verificado: boolean;
   nota_estrelas: number;
   comentario: string;
+  profissional_id: string | null;
+  nota_profissional: number | null;
+  comentario_profissional: string | null;
   data_atendimento: string | null;
+  profissionais_credenciados?: {
+    nome: string;
+    especialidade: string;
+  };
   tipo_servico: string | null;
   comprovante_url: string | null;
   status: 'pendente' | 'aprovada' | 'rejeitada' | 'reportada';

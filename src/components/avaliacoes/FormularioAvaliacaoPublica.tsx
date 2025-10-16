@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Calendar, Upload, X } from 'lucide-react';
+import { Calendar, Upload, X, Stethoscope, Building } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -14,10 +14,13 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Separator } from '@/components/ui/separator';
 import { Stars } from './Stars';
+import { SeletorProfissional } from './SeletorProfissional';
 import { useCriarAvaliacaoPublica } from '@/hooks/useAvaliacoesPublicas';
 import { avaliacaoPublicaSchema, type AvaliacaoPublicaForm } from '@/schemas/avaliacaoPublicaSchema';
 import { cn } from '@/lib/utils';
+import type { ProfissionalCredenciado } from '@/hooks/useProfissionaisCredenciado';
 
 interface FormularioAvaliacaoPublicaProps {
   credenciadoId: string;
@@ -45,6 +48,7 @@ export function FormularioAvaliacaoPublica({
   onSuccess,
 }: FormularioAvaliacaoPublicaProps) {
   const [selectedDate, setSelectedDate] = useState<Date>();
+  const [profissionalSelecionado, setProfissionalSelecionado] = useState<ProfissionalCredenciado | null>(null);
   const criarAvaliacao = useCriarAvaliacaoPublica();
 
   const form = useForm<AvaliacaoPublicaForm>({
@@ -53,6 +57,9 @@ export function FormularioAvaliacaoPublica({
       credenciado_id: credenciadoId,
       nota_estrelas: 5,
       comentario: '',
+      profissional_id: null,
+      nota_profissional: null,
+      comentario_profissional: '',
       avaliador_anonimo: false,
     },
   });
@@ -78,52 +85,144 @@ export function FormularioAvaliacaoPublica({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Nota em Estrelas */}
-            <FormField
-              control={form.control}
-              name="nota_estrelas"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Avaliação Geral *</FormLabel>
-                  <FormControl>
-                    <Stars
-                      value={field.value}
-                      onChange={field.onChange}
-                      readonly={false}
-                      size="xl"
-                      className="py-2"
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Clique nas estrelas para avaliar
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* AVALIAÇÃO DO ESTABELECIMENTO */}
+            <div className="space-y-4 rounded-lg border p-4 bg-card">
+              <div className="flex items-center gap-2">
+                <Building className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold">Avaliação do Estabelecimento</h3>
+              </div>
 
-            {/* Comentário */}
-            <FormField
-              control={form.control}
-              name="comentario"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Seu Comentário *</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      placeholder="Compartilhe sua experiência com este profissional..."
-                      className="min-h-[120px] resize-none"
-                      maxLength={500}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    {field.value?.length || 0}/500 caracteres (mínimo 10)
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
+              <FormField
+                control={form.control}
+                name="nota_estrelas"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Avaliação Geral *</FormLabel>
+                    <FormControl>
+                      <Stars
+                        value={field.value}
+                        onChange={field.onChange}
+                        readonly={false}
+                        size="xl"
+                        className="py-2"
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Clique nas estrelas para avaliar
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="comentario"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Seu Comentário *</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        placeholder="Compartilhe sua experiência com este estabelecimento..."
+                        className="min-h-[120px] resize-none"
+                        maxLength={500}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {field.value?.length || 0}/500 caracteres (mínimo 10)
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <Separator />
+
+            {/* AVALIAÇÃO DO PROFISSIONAL */}
+            <div className="space-y-4 rounded-lg border p-4 bg-muted/30">
+              <div className="flex items-center gap-2">
+                <Stethoscope className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold">Avaliar Profissional Específico</h3>
+              </div>
+              
+              <FormField
+                control={form.control}
+                name="profissional_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <SeletorProfissional
+                        credenciadoId={credenciadoId}
+                        value={field.value}
+                        onChange={(id, prof) => {
+                          field.onChange(id);
+                          setProfissionalSelecionado(prof);
+                          if (!id) {
+                            form.setValue('nota_profissional', null);
+                            form.setValue('comentario_profissional', '');
+                          }
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {profissionalSelecionado && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="nota_profissional"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          Avaliação de {profissionalSelecionado.nome}
+                        </FormLabel>
+                        <FormControl>
+                          <Stars
+                            value={field.value || 0}
+                            onChange={field.onChange}
+                            readonly={false}
+                            size="lg"
+                            className="py-2"
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Avalie o atendimento deste profissional
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="comentario_profissional"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Comentário sobre o Profissional (Opcional)</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            value={field.value || ''}
+                            placeholder={`Compartilhe sua experiência com ${profissionalSelecionado.nome}...`}
+                            className="min-h-[100px] resize-none"
+                            maxLength={500}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {(field.value?.length || 0)}/500 caracteres
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
               )}
-            />
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Data do Atendimento */}
