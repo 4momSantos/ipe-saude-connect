@@ -41,6 +41,7 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
   const [workflowActions, setWorkflowActions] = useState<WorkflowAction[]>([]);
   const [currentStepId, setCurrentStepId] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [dadosInscricao, setDadosInscricao] = useState<any>(null);
   const { aprovar, rejeitar, isLoading } = useAnalisarInscricao();
   const { unreadCount } = useUnreadMessages(processo.id);
 
@@ -73,12 +74,14 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
       setLoading(true);
       console.log('[PROCESS_DETAIL] Loading workflow data for processo:', processo.id);
 
-      // Buscar inscrição com workflow
+      // Buscar inscrição com workflow e dados completos
       const { data: inscricao, error: inscricaoError } = await supabase
         .from('inscricoes_edital')
         .select(`
           id,
+          dados_inscricao,
           workflow_execution_id,
+          candidato:profiles(nome, email),
           workflow_executions (
             id,
             status,
@@ -100,6 +103,12 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
       if (inscricaoError) {
         console.error('[PROCESS_DETAIL] ❌ Error loading inscricao:', inscricaoError);
         throw inscricaoError;
+      }
+
+      // Salvar dados da inscrição para exibição
+      if (inscricao?.dados_inscricao) {
+        console.log('[PROCESS_DETAIL] ✅ Dados da inscrição carregados:', inscricao.dados_inscricao);
+        setDadosInscricao(inscricao.dados_inscricao);
       }
 
       if (!inscricao?.workflow_executions) {
@@ -327,7 +336,7 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
           <ScrollArea className="flex-1">
             <TabsContent value="dados" className="m-0 p-6">
               <div className="max-w-3xl mx-auto">
-                <DadosInscricaoView dadosInscricao={workflowData?.input_data?.dadosInscricao} />
+                <DadosInscricaoView dadosInscricao={dadosInscricao} />
               </div>
             </TabsContent>
 

@@ -27,8 +27,12 @@ export function DadosInscricaoView({ dadosInscricao }: DadosInscricaoViewProps) 
   
   const dadosPessoais = dadosNorm?.dados_pessoais || {};
   const endereco = dadosNorm?.endereco || {};
+  const enderecoCorrespondencia = dadosNorm?.endereco_correspondencia || {};
   const consultorio = dadosNorm?.consultorio || {};
   const pessoaJuridica = dadosNorm?.pessoa_juridica || {};
+
+  // Usar endereço de correspondência se endereço principal estiver vazio
+  const enderecoFinal = Object.keys(endereco).length > 0 ? endereco : enderecoCorrespondencia;
 
   return (
     <div className="space-y-4">
@@ -82,12 +86,30 @@ export function DadosInscricaoView({ dadosInscricao }: DadosInscricaoViewProps) 
                   </div>
                 </div>
               )}
+              {!dadosPessoais.email && enderecoCorrespondencia.email && (
+                <div className="flex items-start gap-2">
+                  <Mail className="w-4 h-4 text-muted-foreground mt-1" />
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Email</span>
+                    <p className="text-base break-all">{enderecoCorrespondencia.email}</p>
+                  </div>
+                </div>
+              )}
               {dadosPessoais.celular && (
                 <div className="flex items-start gap-2">
                   <Phone className="w-4 h-4 text-muted-foreground mt-1" />
                   <div>
                     <span className="text-sm font-medium text-muted-foreground">Celular</span>
                     <p className="text-base">{dadosPessoais.celular}</p>
+                  </div>
+                </div>
+              )}
+              {!dadosPessoais.celular && enderecoCorrespondencia.celular && (
+                <div className="flex items-start gap-2">
+                  <Phone className="w-4 h-4 text-muted-foreground mt-1" />
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Celular</span>
+                    <p className="text-base">{enderecoCorrespondencia.celular}</p>
                   </div>
                 </div>
               )}
@@ -100,13 +122,22 @@ export function DadosInscricaoView({ dadosInscricao }: DadosInscricaoViewProps) 
                   </div>
                 </div>
               )}
+              {!dadosPessoais.telefone && enderecoCorrespondencia.telefone && (
+                <div className="flex items-start gap-2">
+                  <Phone className="w-4 h-4 text-muted-foreground mt-1" />
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Telefone</span>
+                    <p className="text-base">{enderecoCorrespondencia.telefone}</p>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
       )}
 
       {/* Endereço */}
-      {Object.keys(endereco).length > 0 && (
+      {Object.keys(enderecoFinal).length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -115,37 +146,43 @@ export function DadosInscricaoView({ dadosInscricao }: DadosInscricaoViewProps) 
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {endereco.logradouro && (
+            {enderecoFinal.logradouro && (
               <div>
                 <span className="text-sm font-medium text-muted-foreground">Logradouro</span>
-                <p className="text-base">{endereco.logradouro}, {endereco.numero || "S/N"}</p>
-                {endereco.complemento && <p className="text-sm text-muted-foreground">{endereco.complemento}</p>}
+                <p className="text-base">{enderecoFinal.logradouro}, {enderecoFinal.numero || "S/N"}</p>
+                {enderecoFinal.complemento && <p className="text-sm text-muted-foreground">{enderecoFinal.complemento}</p>}
+              </div>
+            )}
+            {!enderecoFinal.logradouro && enderecoFinal.endereco && (
+              <div>
+                <span className="text-sm font-medium text-muted-foreground">Endereço</span>
+                <p className="text-base">{enderecoFinal.endereco}</p>
               </div>
             )}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {endereco.bairro && (
+              {enderecoFinal.bairro && (
                 <div>
                   <span className="text-sm font-medium text-muted-foreground">Bairro</span>
-                  <p className="text-base">{endereco.bairro}</p>
+                  <p className="text-base">{enderecoFinal.bairro}</p>
                 </div>
               )}
-              {endereco.cidade && (
+              {enderecoFinal.cidade && (
                 <div>
                   <span className="text-sm font-medium text-muted-foreground">Cidade</span>
-                  <p className="text-base">{endereco.cidade}</p>
+                  <p className="text-base">{enderecoFinal.cidade}</p>
                 </div>
               )}
-              {endereco.estado && (
+              {enderecoFinal.estado && (
                 <div>
                   <span className="text-sm font-medium text-muted-foreground">Estado</span>
-                  <p className="text-base">{endereco.estado}</p>
+                  <p className="text-base">{enderecoFinal.estado}</p>
                 </div>
               )}
             </div>
-            {endereco.cep && (
+            {enderecoFinal.cep && (
               <div>
                 <span className="text-sm font-medium text-muted-foreground">CEP</span>
-                <p className="text-base">{endereco.cep}</p>
+                <p className="text-base">{enderecoFinal.cep}</p>
               </div>
             )}
           </CardContent>
