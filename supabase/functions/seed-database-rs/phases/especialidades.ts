@@ -44,22 +44,10 @@ export async function seedEspecialidades(
   }
 
   try {
-    // Buscar especialidades existentes com count
-    const { data: existing, count: existingCount } = await supabase
+    // Buscar especialidades existentes
+    const { data: existing } = await supabase
       .from('especialidades_medicas')
-      .select('codigo', { count: 'exact' });
-    
-    // Se já existem especialidades suficientes, pular esta fase
-    if (existingCount && existingCount >= count) {
-      console.log(`[SEED-ESPECIALIDADES] ${existingCount} especialidades já existem (necessário: ${count}). Pulando fase.`);
-      return {
-        success: true,
-        phase: 'especialidades',
-        created: 0,
-        errors: [],
-        duration: 0
-      };
-    }
+      .select('codigo');
 
     const existingCodes = new Set(existing?.map(e => e.codigo) || []);
 
