@@ -71,12 +71,12 @@ export function AdvancedFilters({
       {/* Filtros Rápidos */}
       <div className="flex flex-wrap gap-3 items-center">
         {/* Situação de Prazo */}
-        <Select value={filtroSituacaoPrazo || ''} onValueChange={(v) => onFiltroSituacaoChange(v || null)}>
+        <Select value={filtroSituacaoPrazo || 'todos'} onValueChange={(v) => onFiltroSituacaoChange(v === 'todos' ? null : v)}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Situação Prazo" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todos</SelectItem>
+            <SelectItem value="todos">Todos</SelectItem>
             <SelectItem value="vencido">⚠️ Vencidos</SelectItem>
             <SelectItem value="critico">🔴 Crítico (&lt;7 dias)</SelectItem>
             <SelectItem value="atencao">🟡 Atenção (7-15 dias)</SelectItem>
