@@ -6,18 +6,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, FileText, History, Sparkles, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, FileText, History, Sparkles, ClipboardCheck } from 'lucide-react';
 import { normalizeDadosInscricao } from '@/utils/normalizeDadosInscricao';
 import { StatusBadge } from '@/components/StatusBadge';
 import { ComparacaoDadosOCR } from '@/components/analises/ComparacaoDadosOCR';
 import { DocumentoValidacaoCard } from '@/components/analises/DocumentoValidacaoCard';
-import { useAnalisarInscricao } from '@/hooks/useAnalisarInscricao';
+import { DecisaoDialog } from '@/components/analises/DecisaoDialog';
+import { useState } from 'react';
 
 export default function AnalistaInscricaoDetalhes() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { aprovar, rejeitar, isLoading: isAprovacaoLoading } = useAnalisarInscricao();
+  const [decisaoDialogOpen, setDecisaoDialogOpen] = useState(false);
 
   const { data: inscricao, isLoading } = useQuery({
     queryKey: ['analista-inscricao-detalhes', id],
@@ -75,6 +76,45 @@ export default function AnalistaInscricaoDetalhes() {
     enabled: !!id,
   });
 
+  // Buscar ou criar análise
+  const { data: analise } = useQuery({
+    queryKey: ['analise', id],
+    queryFn: async () => {
+      if (!id) return null;
+
+      // Buscar análise existente
+      const { data: existing } = await supabase
+        .from('analises')
+        .select('*')
+        .eq('inscricao_id', id)
+        .maybeSingle();
+
+      if (existing) return existing;
+
+      // Criar nova análise se não existir
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data: newAnalise, error } = await supabase
+        .from('analises')
+        .insert({
+          inscricao_id: id,
+          analista_id: user.id,
+          status: 'pendente'
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Erro ao criar análise:', error);
+        return null;
+      }
+
+      return newAnalise;
+    },
+    enabled: !!id,
+  });
+
   if (isLoading) {
     return <LoadingSkeleton />;
   }
@@ -84,29 +124,6 @@ export default function AnalistaInscricaoDetalhes() {
   }
 
   const dados = normalizeDadosInscricao(inscricao.dados_inscricao);
-
-  const handleAprovar = async () => {
-    try {
-      await aprovar({ inscricaoId: inscricao.id });
-      queryClient.invalidateQueries({ queryKey: ['analista-inscricao-detalhes', id] });
-      navigate('/analises');
-    } catch (error) {
-      // Erro já tratado no hook
-    }
-  };
-
-  const handleRejeitar = async () => {
-    try {
-      const motivo = prompt("Motivo da rejeição:");
-      if (!motivo) return;
-      
-      await rejeitar({ inscricaoId: inscricao.id, motivo });
-      queryClient.invalidateQueries({ queryKey: ['analista-inscricao-detalhes', id] });
-      navigate('/analises');
-    } catch (error) {
-      // Erro já tratado no hook
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -140,28 +157,16 @@ export default function AnalistaInscricaoDetalhes() {
                 Validação: {inscricao.validacao_status}
               </Badge>
               
-              {/* Botões de Aprovação/Rejeição */}
-              {(inscricao.status === 'aguardando_analise' || inscricao.status === 'em_analise') && (
-                <div className="flex gap-2 ml-4">
-                  <Button
-                    onClick={handleAprovar}
-                    disabled={isAprovacaoLoading}
-                    className="bg-green-600 hover:bg-green-700 text-white gap-2"
-                    size="sm"
-                  >
-                    <CheckCircle className="h-4 w-4" />
-                    Aprovar
-                  </Button>
-                  <Button
-                    onClick={handleRejeitar}
-                    disabled={isAprovacaoLoading}
-                    className="bg-red-600 hover:bg-red-700 text-white gap-2"
-                    size="sm"
-                  >
-                    <XCircle className="h-4 w-4" />
-                    Rejeitar
-                  </Button>
-                </div>
+              {/* Botão de Decisão */}
+              {(inscricao.status === 'aguardando_analise' || inscricao.status === 'em_analise' || inscricao.status === 'pendente_correcao') && analise && (
+                <Button
+                  onClick={() => setDecisaoDialogOpen(true)}
+                  className="ml-4 gap-2"
+                  size="sm"
+                >
+                  <ClipboardCheck className="h-4 w-4" />
+                  Registrar Decisão
+                </Button>
               )}
             </div>
           </div>
@@ -258,6 +263,36 @@ export default function AnalistaInscricaoDetalhes() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Modal de Decisão */}
+      {analise && (
+        <DecisaoDialog
+          open={decisaoDialogOpen}
+          onOpenChange={setDecisaoDialogOpen}
+          inscricaoId={inscricao.id}
+          analiseId={analise.id}
+          dadosInscricao={dados}
+          documentos={(inscricao.inscricao_documentos || []).map(doc => ({
+            id: doc.id,
+            inscricao_id: inscricao.id,
+            tipo_documento: doc.tipo_documento,
+            arquivo_url: doc.arquivo_url,
+            arquivo_nome: doc.arquivo_nome,
+            arquivo_tamanho: null,
+            ocr_processado: !!doc.ocr_resultado,
+            ocr_resultado: doc.ocr_resultado as Record<string, any> | null,
+            ocr_confidence: doc.ocr_confidence,
+            status: doc.status as 'pendente' | 'validado' | 'rejeitado',
+            observacoes: null,
+            uploaded_by: null,
+            analisado_por: null,
+            analisado_em: null,
+            versao: doc.versao,
+            created_at: doc.created_at,
+            updated_at: doc.created_at,
+          }))}
+        />
+      )}
     </div>
   );
 }
