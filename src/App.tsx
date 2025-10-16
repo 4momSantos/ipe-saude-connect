@@ -65,6 +65,7 @@ import MeuCredenciamento from "./pages/MeuCredenciamento";
 import DocumentosCredenciadoGrid from "./pages/DocumentosCredenciadoGrid";
 const BuscaDocumentos = lazy(() => import("./pages/BuscaDocumentos"));
 import DebugFluxoCredenciamento from "./pages/admin/DebugFluxoCredenciamento";
+import SeedDatabaseRS from "./pages/admin/SeedDatabaseRS";
 import ProcessarContratosOrfaos from "./pages/admin/ProcessarContratosOrfaos";
 import AuditoriaLogs from "./pages/admin/AuditoriaLogs";
 import SituacaoCadastral from "./pages/credenciados/SituacaoCadastral";
@@ -236,6 +237,7 @@ const App = () => (
                           <Route path="/admin/importar-geometrias" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><ImportarGeometrias /></RoleProtectedRoute>} />
                           <Route path="/admin/grupos" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><GestaoGrupos /></RoleProtectedRoute>} />
                           <Route path="/admin/grupos/:grupoId" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><GerenciarMembrosGrupo /></RoleProtectedRoute>} />
+                          <Route path="/admin/seed-rs" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><SeedDatabaseRS /></RoleProtectedRoute>} />
                           <Route path="/credenciados/:id/situacao" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin', 'analista']}><SituacaoCadastral /></RoleProtectedRoute>} />
                           <Route
                             path="/usuarios"
