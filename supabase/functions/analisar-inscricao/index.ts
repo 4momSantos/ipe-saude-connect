@@ -161,6 +161,41 @@ serve(async (req) => {
         // Não falha a operação principal
       }
 
+      // Migrar documentos da inscrição para o credenciado
+      console.log('[ANALISAR_INSCRICAO] Migrando documentos para credenciado');
+      
+      try {
+        // Buscar credenciado criado
+        const { data: credenciado } = await supabase
+          .from('credenciados')
+          .select('id')
+          .eq('inscricao_id', inscricao_id)
+          .single();
+        
+        if (credenciado) {
+          const { data: migracao, error: migracaoError } = await supabase.functions.invoke(
+            'migrar-documentos-inscricao',
+            {
+              body: {
+                inscricao_id,
+                credenciado_id: credenciado.id
+              }
+            }
+          );
+          
+          if (migracaoError) {
+            console.error('[ANALISAR_INSCRICAO] Erro ao migrar documentos:', migracaoError);
+          } else {
+            console.log('[ANALISAR_INSCRICAO] Documentos migrados:', migracao);
+          }
+        } else {
+          console.warn('[ANALISAR_INSCRICAO] Credenciado não encontrado para inscrição:', inscricao_id);
+        }
+      } catch (err) {
+        console.error('[ANALISAR_INSCRICAO] Erro ao invocar migração de documentos:', err);
+        // Não falha a operação principal
+      }
+
       // Notificar candidato sobre aprovação
       await supabase.from("app_notifications").insert({
         user_id: inscricao.candidato_id,

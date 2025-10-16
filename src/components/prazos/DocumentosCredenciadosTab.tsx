@@ -23,6 +23,10 @@ interface PrazoDocumento {
   renovavel: boolean;
 }
 
+interface DocumentoComOrigem extends PrazoDocumento {
+  origem?: string;
+}
+
 export function DocumentosCredenciadosTab() {
   const [modalOpen, setModalOpen] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState<string | null>(null);
@@ -31,14 +35,29 @@ export function DocumentosCredenciadosTab() {
   const { data: documentos, isLoading } = useQuery({
     queryKey: ['prazos-documentos'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: prazos, error } = await supabase
         .from('v_prazos_completos')
         .select('*')
         .eq('entidade_tipo', 'documento_credenciado')
         .order('dias_para_vencer', { ascending: true });
 
       if (error) throw error;
-      return data as PrazoDocumento[];
+
+      // Buscar origem dos documentos
+      const prazosIds = prazos?.map(p => p.entidade_id) || [];
+      const { data: docs } = await supabase
+        .from('documentos_credenciados')
+        .select('id, origem')
+        .in('id', prazosIds);
+
+      // Mapear origem para cada prazo
+      const docsMap = new Map(docs?.map(d => [d.id, d.origem]));
+      const documentosComOrigem = prazos?.map(p => ({
+        ...p,
+        origem: docsMap.get(p.entidade_id) || 'upload_manual'
+      })) as DocumentoComOrigem[];
+
+      return documentosComOrigem;
     }
   });
 
@@ -52,7 +71,7 @@ export function DocumentosCredenciadosTab() {
     }
     acc[doc.credenciado_id].documentos.push(doc);
     return acc;
-  }, {} as Record<string, { credenciado_nome: string; documentos: PrazoDocumento[] }>);
+  }, {} as Record<string, { credenciado_nome: string; documentos: DocumentoComOrigem[] }>);
 
   const totais = {
     ativo: documentos?.filter(d => d.status_atual === 'valido').length || 0,
@@ -173,42 +192,54 @@ export function DocumentosCredenciadosTab() {
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {docsDoCredenciado.map((doc) => (
                   <Card key={doc.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <div 
-                            className="p-2 rounded-lg" 
-                            style={{ backgroundColor: doc.cor_status + '20' }}
-                          >
-                            {getStatusIcon(doc.nivel_alerta)}
-                          </div>
-                          <div>
-                            <CardTitle className="text-base">{doc.entidade_nome}</CardTitle>
-                          </div>
-                        </div>
-                        <Badge
-                          variant="outline"
-                          style={{
-                            backgroundColor: doc.cor_status + '20',
-                            color: doc.cor_status,
-                            borderColor: doc.cor_status
-                          }}
-                        >
-                          {doc.nivel_alerta === 'critico' ? 'Crítico' :
-                           doc.nivel_alerta === 'vencendo' ? 'Vencendo' :
-                           doc.nivel_alerta === 'atencao' ? 'Atenção' : 'Válido'}
-                        </Badge>
-                      </div>
-                    </CardHeader>
+                     <CardHeader>
+                       <div className="flex items-start justify-between">
+                         <div className="flex items-center gap-3">
+                           <div 
+                             className="p-2 rounded-lg" 
+                             style={{ backgroundColor: doc.cor_status + '20' }}
+                           >
+                             {getStatusIcon(doc.nivel_alerta)}
+                           </div>
+                           <div className="space-y-1">
+                             <CardTitle className="text-base">{doc.entidade_nome}</CardTitle>
+                             <div className="flex gap-2">
+                               {/* Badge de Status */}
+                               <Badge
+                                 variant="outline"
+                                 style={{
+                                   backgroundColor: doc.cor_status + '20',
+                                   color: doc.cor_status,
+                                   borderColor: doc.cor_status
+                                 }}
+                               >
+                                 {doc.nivel_alerta === 'critico' ? 'Crítico' :
+                                  doc.nivel_alerta === 'vencendo' ? 'Vencendo' :
+                                  doc.nivel_alerta === 'atencao' ? 'Atenção' : 'Válido'}
+                               </Badge>
+                             </div>
+                           </div>
+                         </div>
+                       </div>
+                     </CardHeader>
 
-                    <CardContent className="space-y-3">
-                      <div className="text-sm space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Vencimento:</span>
-                          <span className="font-medium">
-                            {format(new Date(doc.data_vencimento), 'dd/MM/yyyy', { locale: ptBR })}
-                          </span>
-                        </div>
+                     <CardContent className="space-y-3">
+                       <div className="text-sm space-y-2">
+                         {/* Badge de Origem */}
+                         {doc.origem && (
+                           <div className="mb-2">
+                             <Badge variant={doc.origem === 'migrado' ? 'secondary' : 'default'}>
+                               {doc.origem === 'migrado' ? '📋 Da Inscrição' : '📤 Upload Manual'}
+                             </Badge>
+                           </div>
+                         )}
+                         
+                         <div className="flex items-center justify-between">
+                           <span className="text-muted-foreground">Vencimento:</span>
+                           <span className="font-medium">
+                             {format(new Date(doc.data_vencimento), 'dd/MM/yyyy', { locale: ptBR })}
+                           </span>
+                         </div>
 
                         {doc.dias_para_vencer !== null && (
                           <div className={`font-medium ${

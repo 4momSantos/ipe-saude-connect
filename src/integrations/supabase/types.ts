@@ -1734,12 +1734,15 @@ export type Database = {
           data_vencimento: string | null
           descricao: string | null
           dias_alerta: number | null
+          documento_origem_id: string | null
           id: string
+          inscricao_id: string | null
           is_current: boolean | null
           meses_validade: number | null
           metadata: Json | null
           numero_documento: string | null
           observacao: string | null
+          origem: string | null
           status: string | null
           storage_path: string | null
           substituido_em: string | null
@@ -1759,12 +1762,15 @@ export type Database = {
           data_vencimento?: string | null
           descricao?: string | null
           dias_alerta?: number | null
+          documento_origem_id?: string | null
           id?: string
+          inscricao_id?: string | null
           is_current?: boolean | null
           meses_validade?: number | null
           metadata?: Json | null
           numero_documento?: string | null
           observacao?: string | null
+          origem?: string | null
           status?: string | null
           storage_path?: string | null
           substituido_em?: string | null
@@ -1784,12 +1790,15 @@ export type Database = {
           data_vencimento?: string | null
           descricao?: string | null
           dias_alerta?: number | null
+          documento_origem_id?: string | null
           id?: string
+          inscricao_id?: string | null
           is_current?: boolean | null
           meses_validade?: number | null
           metadata?: Json | null
           numero_documento?: string | null
           observacao?: string | null
+          origem?: string | null
           status?: string | null
           storage_path?: string | null
           substituido_em?: string | null
@@ -1826,6 +1835,34 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "view_geocode_failures_last_24h"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_credenciados_documento_origem_id_fkey"
+            columns: ["documento_origem_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_credenciados_documento_origem_id_fkey"
+            columns: ["documento_origem_id"]
+            isOneToOne: false
+            referencedRelation: "inscricao_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_credenciados_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: false
+            referencedRelation: "inscricoes_edital"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_credenciados_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: false
+            referencedRelation: "view_inscricoes_validacao_pendente"
+            referencedColumns: ["inscricao_id"]
           },
           {
             foreignKeyName: "documentos_credenciados_substituido_por_fkey"
