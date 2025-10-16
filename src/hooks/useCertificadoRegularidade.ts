@@ -140,8 +140,10 @@ export const useConsultarPorCredenciado = () => {
       
       const data = resultArray?.[0] || null;
       
-      if (!data) {
-        throw new Error('Certificado não encontrado');
+      if (!data || !data.encontrado) {
+        return {
+          encontrado: false
+        };
       }
       
       // Garantir que credenciado é um objeto
