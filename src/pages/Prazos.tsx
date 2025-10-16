@@ -299,15 +299,15 @@ export default function Prazos() {
                 <Card key={credenciado.credenciado_id} className="overflow-hidden">
                   <CardHeader className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-lg">{credenciado.credenciado_nome}</CardTitle>
-                        <CardDescription className="text-primary-foreground/80">
-                          CPF: {credenciado.credenciado_cpf}
+                      <div className="flex-1">
+                        <CardTitle className="text-lg font-bold">{credenciado.credenciado_nome}</CardTitle>
+                        <CardDescription className="text-primary-foreground/90 text-sm mt-1">
+                          {credenciado.credenciado_numero}
                         </CardDescription>
                       </div>
                       <div className="flex gap-2">
                         <Badge variant="secondary" className="bg-white/20">
-                          {credenciado.total_documentos} documentos
+                          {credenciado.total_documentos} docs
                         </Badge>
                         {credenciado.documentos_vencidos > 0 && (
                           <Badge variant="destructive">
@@ -324,73 +324,77 @@ export default function Prazos() {
                   </CardHeader>
 
                   <CardContent className="pt-4">
-                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                       {credenciado.prazos.map((prazo) => {
                         const nivelAlertaTexto = prazo.nivel_alerta === 'critico' ? 'Crítico' :
                           prazo.nivel_alerta === 'vencendo' ? 'Vencendo' :
                           prazo.nivel_alerta === 'atencao' ? 'Atenção' : 'Válido';
 
                         return (
-                          <div
+                          <Card
                             key={prazo.id}
-                            className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                            className="border hover:shadow-md transition-all"
                           >
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex items-center gap-2">
-                                <div 
-                                  className="p-2 rounded-lg" 
-                                  style={{ backgroundColor: prazo.cor_status + '20' }}
+                            <CardHeader className="pb-3">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                  <div 
+                                    className="p-2 rounded-lg flex-shrink-0" 
+                                    style={{ backgroundColor: prazo.cor_status + '20' }}
+                                  >
+                                    <FileText 
+                                      className="h-4 w-4" 
+                                      style={{ color: prazo.cor_status }}
+                                    />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="font-semibold text-sm truncate">{prazo.entidade_nome}</p>
+                                  </div>
+                                </div>
+                                <Badge 
+                                  variant="outline"
+                                  className="text-xs flex-shrink-0"
+                                  style={{
+                                    backgroundColor: prazo.cor_status + '20',
+                                    color: prazo.cor_status,
+                                    borderColor: prazo.cor_status
+                                  }}
                                 >
-                                  <FileText 
-                                    className="h-4 w-4" 
-                                    style={{ color: prazo.cor_status }}
-                                  />
-                                </div>
-                                <div>
-                                  <p className="font-medium text-sm">{prazo.entidade_nome}</p>
-                                </div>
+                                  {nivelAlertaTexto}
+                                </Badge>
                               </div>
-                              <Badge 
-                                variant="outline"
-                                className="text-xs"
-                                style={{
-                                  backgroundColor: prazo.cor_status + '20',
-                                  color: prazo.cor_status,
-                                  borderColor: prazo.cor_status
-                                }}
-                              >
-                                {nivelAlertaTexto}
-                              </Badge>
-                            </div>
+                            </CardHeader>
 
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="text-muted-foreground">Vencimento:</span>
-                                <span className="font-medium">
-                                  {format(new Date(prazo.data_vencimento), "dd/MM/yyyy", { locale: ptBR })}
-                                </span>
-                              </div>
-                              
-                              {prazo.dias_para_vencer !== null && (
-                                <div className={`text-xs font-medium ${
-                                  prazo.dias_para_vencer < 0 ? 'text-red-600' :
-                                  prazo.dias_para_vencer <= 7 ? 'text-orange-600' :
-                                  prazo.dias_para_vencer <= 30 ? 'text-yellow-600' :
-                                  'text-green-600'
-                                }`}>
-                                  {prazo.dias_para_vencer < 0 
-                                    ? `Vencido há ${Math.abs(prazo.dias_para_vencer)} dias`
-                                    : `${prazo.dias_para_vencer} dias restantes`
-                                  }
+                            <CardContent className="space-y-3 pt-0">
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-muted-foreground">Vencimento:</span>
+                                  <span className="font-medium">
+                                    {format(new Date(prazo.data_vencimento), "dd/MM/yyyy", { locale: ptBR })}
+                                  </span>
                                 </div>
-                              )}
+                                
+                                {prazo.dias_para_vencer !== null && (
+                                  <div className={`text-xs font-medium ${
+                                    prazo.dias_para_vencer < 0 ? 'text-red-600' :
+                                    prazo.dias_para_vencer <= 7 ? 'text-orange-600' :
+                                    prazo.dias_para_vencer <= 30 ? 'text-yellow-600' :
+                                    'text-green-600'
+                                  }`}>
+                                    {prazo.dias_para_vencer < 0 
+                                      ? `Vencido há ${Math.abs(prazo.dias_para_vencer)} dias`
+                                      : `${prazo.dias_para_vencer} dias restantes`
+                                    }
+                                  </div>
+                                )}
 
-                              <Progress 
-                                value={prazo.dias_para_vencer < 0 ? 0 : Math.min((prazo.dias_para_vencer / 90) * 100, 100)} 
-                                className="h-1.5"
-                              />
-                            </div>
-                          </div>
+                                <Progress 
+                                  value={prazo.dias_para_vencer < 0 ? 0 : Math.min((prazo.dias_para_vencer / 90) * 100, 100)} 
+                                  className="h-1.5"
+                                />
+                              </div>
+                            </CardContent>
+                          </Card>
                         );
                       })}
                     </div>

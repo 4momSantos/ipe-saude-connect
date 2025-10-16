@@ -48,6 +48,7 @@ export interface CredenciadoPrazos {
   credenciado_id: string;
   credenciado_nome: string;
   credenciado_cpf: string;
+  credenciado_numero: string;
   total_documentos: number;
   documentos_validos: number;
   documentos_vencendo: number;
@@ -91,7 +92,8 @@ export function usePrazos() {
             id,
             nome,
             cpf,
-            email
+            email,
+            numero_credenciado
           )
         `)
         .in('status', ['ativo', 'validado'])
@@ -159,6 +161,7 @@ export function usePrazos() {
             credenciado_id: doc.credenciado_id,
             credenciado_nome: doc.credenciados.nome,
             credenciado_cpf: doc.credenciados.cpf,
+            credenciado_numero: doc.credenciados.numero_credenciado || 'N/A',
             total_documentos: 0,
             documentos_validos: 0,
             documentos_vencendo: 0,
