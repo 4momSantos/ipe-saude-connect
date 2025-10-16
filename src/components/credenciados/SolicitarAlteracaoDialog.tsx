@@ -10,7 +10,9 @@ import { useCriarSolicitacao } from "@/hooks/useSolicitacoesAlteracao";
 
 interface SolicitarAlteracaoDialogProps {
   credenciadoId: string;
-  dadosAtuais: {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  dadosAtuais?: {
     endereco?: string;
     telefone?: string;
     email?: string;
@@ -27,8 +29,10 @@ const TIPOS_ALTERACAO = [
   "Outros",
 ];
 
-export function SolicitarAlteracaoDialog({ credenciadoId, dadosAtuais }: SolicitarAlteracaoDialogProps) {
-  const [open, setOpen] = useState(false);
+export function SolicitarAlteracaoDialog({ credenciadoId, open: controlledOpen, onOpenChange: controlledOnOpenChange, dadosAtuais = {} }: SolicitarAlteracaoDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = controlledOnOpenChange || setInternalOpen;
   const [tipo, setTipo] = useState("");
   const [justificativa, setJustificativa] = useState("");
   const [dadosNovos, setDadosNovos] = useState("");

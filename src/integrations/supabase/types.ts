@@ -92,6 +92,89 @@ export type Database = {
           },
         ]
       }
+      afastamentos_credenciados: {
+        Row: {
+          analisado_em: string | null
+          analisado_por: string | null
+          created_at: string | null
+          credenciado_id: string
+          data_fim: string | null
+          data_inicio: string
+          documentos_anexos: Json | null
+          id: string
+          justificativa: string
+          motivo: string | null
+          observacoes_analise: string | null
+          status: string | null
+          tipo: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          analisado_em?: string | null
+          analisado_por?: string | null
+          created_at?: string | null
+          credenciado_id: string
+          data_fim?: string | null
+          data_inicio: string
+          documentos_anexos?: Json | null
+          id?: string
+          justificativa: string
+          motivo?: string | null
+          observacoes_analise?: string | null
+          status?: string | null
+          tipo: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          analisado_em?: string | null
+          analisado_por?: string | null
+          created_at?: string | null
+          credenciado_id?: string
+          data_fim?: string | null
+          data_inicio?: string
+          documentos_anexos?: Json | null
+          id?: string
+          justificativa?: string
+          motivo?: string | null
+          observacoes_analise?: string | null
+          status?: string | null
+          tipo?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "afastamentos_credenciados_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "afastamentos_credenciados_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "afastamentos_credenciados_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "afastamentos_credenciados_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alertas_enviados: {
         Row: {
           credenciado_id: string
@@ -4201,13 +4284,16 @@ export type Database = {
         Row: {
           analisado_em: string | null
           analisado_por: string | null
+          categoria: string | null
           created_at: string | null
           credenciado_id: string
           dados_atuais: Json | null
           dados_propostos: Json
+          documentos_anexos: Json | null
           id: string
           justificativa: string | null
           observacoes_analise: string | null
+          prioridade: string | null
           solicitado_em: string | null
           status: string
           tipo_alteracao: string
@@ -4216,13 +4302,16 @@ export type Database = {
         Insert: {
           analisado_em?: string | null
           analisado_por?: string | null
+          categoria?: string | null
           created_at?: string | null
           credenciado_id: string
           dados_atuais?: Json | null
           dados_propostos: Json
+          documentos_anexos?: Json | null
           id?: string
           justificativa?: string | null
           observacoes_analise?: string | null
+          prioridade?: string | null
           solicitado_em?: string | null
           status?: string
           tipo_alteracao: string
@@ -4231,13 +4320,16 @@ export type Database = {
         Update: {
           analisado_em?: string | null
           analisado_por?: string | null
+          categoria?: string | null
           created_at?: string | null
           credenciado_id?: string
           dados_atuais?: Json | null
           dados_propostos?: Json
+          documentos_anexos?: Json | null
           id?: string
           justificativa?: string | null
           observacoes_analise?: string | null
+          prioridade?: string | null
           solicitado_em?: string | null
           status?: string
           tipo_alteracao?: string

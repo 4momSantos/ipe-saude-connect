@@ -28,11 +28,7 @@ export function useDocumentosCredenciado(credenciadoId?: string) {
 
       const { data, error } = await supabase
         .from('documentos_credenciados')
-        .select(`
-          *,
-          inscricoes_edital:inscricao_id(protocolo),
-          inscricao_documentos:documento_origem_id(ocr_resultado, status)
-        `)
+        .select('*')
         .eq('credenciado_id', credenciadoId)
         .eq('is_current', true)
         .order('data_vencimento', { ascending: true });

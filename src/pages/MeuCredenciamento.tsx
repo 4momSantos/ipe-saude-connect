@@ -1,220 +1,111 @@
-import { Award, CheckCircle, FileText, FileCheck, Download, Calendar, Shield, Hash, Copy } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useCredenciadoAtual } from "@/hooks/useCredenciadoAtual";
-import { useGerarCertificado } from "@/hooks/useGerarCertificado";
-import { useEmitirCertificado } from "@/hooks/useCertificadoRegularidade";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { toast } from "sonner";
+import { Loader2, FileText, Users, Edit, Calendar, Award } from "lucide-react";
+import { DadosCredenciamentoTab } from "@/components/credenciados/tabs/DadosCredenciamentoTab";
+import { DocumentosCredenciadoTab } from "@/components/credenciados/tabs/DocumentosCredenciadoTab";
+import { ProfissionaisCredenciadoTab } from "@/components/credenciados/tabs/ProfissionaisCredenciadoTab";
+import { SolicitacoesAlteracaoTab } from "@/components/credenciados/tabs/SolicitacoesAlteracaoTab";
+import { AfastamentosTab } from "@/components/credenciados/tabs/AfastamentosTab";
+import { CertificadosTab } from "@/components/credenciados/tabs/CertificadosTab";
 
 export default function MeuCredenciamento() {
-  const { data: credenciado, isLoading: loadingCredenciado } = useCredenciadoAtual();
-  const { gerar: gerarCertificado, isLoading: gerandoCertificado } = useGerarCertificado();
-  const emitirRegularidade = useEmitirCertificado();
+  const { data: credenciado, isLoading } = useCredenciadoAtual();
 
-  if (loadingCredenciado) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Carregando dados...</p>
-        </div>
+      <div className="container mx-auto py-8 flex justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   if (!credenciado) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle>Credenciamento não encontrado</CardTitle>
-            <CardDescription>
-              Você ainda não possui um credenciamento ativo no sistema.
-            </CardDescription>
-          </CardHeader>
+      <div className="container mx-auto py-8">
+        <Card>
+          <CardContent className="py-8 text-center">
+            <p className="text-muted-foreground">Credenciamento não encontrado</p>
+          </CardContent>
         </Card>
       </div>
     );
   }
 
-  const handleGerarCertificado = async () => {
-    try {
-      await gerarCertificado({ credenciadoId: credenciado.id });
-    } catch (error) {
-      console.error('Erro ao gerar certificado:', error);
-    }
-  };
-
-  const handleGerarRegularidade = async () => {
-    try {
-      await emitirRegularidade.mutateAsync({ credenciadoId: credenciado.id });
-    } catch (error) {
-      console.error('Erro ao gerar certificado de regularidade:', error);
-    }
-  };
-
-  const tipoDocumentoLabel: Record<string, string> = {
-    certificado_credenciamento: 'Certificado de Credenciamento',
-    certificado_regularidade: 'Certificado de Regularidade',
-    extrato_completo: 'Extrato Completo',
-    declaracao_vinculo: 'Declaração de Vínculo'
+  const statusColors: Record<string, string> = {
+    'Ativo': 'bg-success/10 text-success border-success/20',
+    'Suspenso': 'bg-warning/10 text-warning border-warning/20',
+    'Inativo': 'bg-muted text-muted-foreground',
+    'Descredenciado': 'bg-destructive/10 text-destructive border-destructive/20'
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
+    <div className="container mx-auto py-8 space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Meu Credenciamento</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Meu Credenciamento</h1>
           <p className="text-muted-foreground">
-            Visualize seu status e gere documentos oficiais
+            Número: <span className="font-medium text-foreground">{credenciado.numero_credenciado}</span>
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          {/* Número do Credenciado - Único e permanente */}
-          {credenciado.numero_credenciado && (
-            <Card className="shadow-md">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Hash className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium">Número do Credenciado</p>
-                  <div className="flex items-center gap-2">
-                    <p className="text-lg font-bold font-mono">{credenciado.numero_credenciado}</p>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0"
-                      onClick={() => {
-                        navigator.clipboard.writeText(credenciado.numero_credenciado!);
-                        toast.success('Número copiado!');
-                      }}
-                    >
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          <Badge 
-            variant={credenciado.status === 'Ativo' ? 'default' : 'destructive'}
-            className="text-base px-4 py-2"
-          >
-            <Shield className="h-4 w-4 mr-2" />
-            {credenciado.status}
-          </Badge>
-        </div>
+        <Badge className={statusColors[credenciado.status] || 'bg-muted'}>
+          {credenciado.status}
+        </Badge>
       </div>
 
-      {/* Resumo do Credenciamento */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Dados do Credenciamento</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Nome</p>
-              <p className="font-medium">{credenciado.nome}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">CPF/CNPJ</p>
-              <p className="font-medium">{credenciado.cpf || credenciado.cnpj}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Data de Credenciamento</p>
-              <p className="font-medium">
-                {format(new Date(credenciado.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Email</p>
-              <p className="font-medium">{credenciado.email || 'Não informado'}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="dados" className="w-full">
+        <TabsList className="grid w-full grid-cols-6 mb-6">
+          <TabsTrigger value="dados" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Meus Dados</span>
+          </TabsTrigger>
+          <TabsTrigger value="documentos" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Documentos</span>
+          </TabsTrigger>
+          <TabsTrigger value="profissionais" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            <span className="hidden sm:inline">Profissionais</span>
+          </TabsTrigger>
+          <TabsTrigger value="solicitacoes" className="flex items-center gap-2">
+            <Edit className="h-4 w-4" />
+            <span className="hidden sm:inline">Solicitações</span>
+          </TabsTrigger>
+          <TabsTrigger value="afastamentos" className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            <span className="hidden sm:inline">Licenças</span>
+          </TabsTrigger>
+          <TabsTrigger value="certificados" className="flex items-center gap-2">
+            <Award className="h-4 w-4" />
+            <span className="hidden sm:inline">Certificados</span>
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Documentos Disponíveis */}
-      <div>
-        <h2 className="text-2xl font-bold mb-4">Documentos Disponíveis</h2>
-        <div className="grid gap-4 md:grid-cols-2">
-          {/* Certificado de Credenciamento */}
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <Award className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg">Certificado de Credenciamento</CardTitle>
-                  <CardDescription>Documento oficial que comprova seu credenciamento</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                onClick={handleGerarCertificado}
-                disabled={gerandoCertificado}
-                className="w-full"
-              >
-                {gerandoCertificado ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                    Gerando...
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4 mr-2" />
-                    Gerar Certificado
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
+        <TabsContent value="dados">
+          <DadosCredenciamentoTab credenciado={credenciado} />
+        </TabsContent>
 
-          {/* Certificado de Regularidade */}
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-500/10 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-green-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg">Certificado de Regularidade</CardTitle>
-                  <CardDescription>Atesta sua situação cadastral atual</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                onClick={handleGerarRegularidade}
-                disabled={emitirRegularidade.isPending}
-                variant="secondary"
-                className="w-full"
-              >
-                {emitirRegularidade.isPending ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2" />
-                    Gerando...
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4 mr-2" />
-                    Emitir Certificado
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
+        <TabsContent value="documentos">
+          <DocumentosCredenciadoTab credenciadoId={credenciado.id} />
+        </TabsContent>
 
-        </div>
-      </div>
+        <TabsContent value="profissionais">
+          <ProfissionaisCredenciadoTab credenciadoId={credenciado.id} />
+        </TabsContent>
+
+        <TabsContent value="solicitacoes">
+          <SolicitacoesAlteracaoTab credenciadoId={credenciado.id} />
+        </TabsContent>
+
+        <TabsContent value="afastamentos">
+          <AfastamentosTab credenciadoId={credenciado.id} />
+        </TabsContent>
+
+        <TabsContent value="certificados">
+          <CertificadosTab credenciado={credenciado} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

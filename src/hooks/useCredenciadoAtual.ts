@@ -11,16 +11,25 @@ export function useCredenciadoAtual() {
       const { data, error } = await supabase
         .from('credenciados')
         .select(`
-          id,
-          nome,
-          cpf,
-          cnpj,
-          email,
-          status,
-          created_at,
-          inscricao_id,
-          numero_credenciado,
-          inscricoes_edital!inner(candidato_id)
+          *,
+          inscricoes_edital!inner(candidato_id),
+          credenciado_crms(
+            id,
+            crm,
+            uf_crm,
+            especialidade,
+            especialidade_id
+          ),
+          credenciado_categorias(
+            id,
+            principal,
+            categorias_estabelecimentos(
+              id,
+              nome,
+              codigo,
+              descricao
+            )
+          )
         `)
         .eq('inscricoes_edital.candidato_id', user.id)
         .single();
