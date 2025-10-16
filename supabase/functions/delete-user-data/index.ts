@@ -44,24 +44,48 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[DELETE_USER_DATA] Iniciando anonimização para user_id: ${userId}`);
+    console.log(`[DELETE_USER_DATA] Iniciando exclusão completa para user_id: ${userId}`);
 
-    // Anonimizar dados do perfil
+    // 1. Deletar roles do usuário
+    const { error: rolesError } = await supabaseClient
+      .from('user_roles')
+      .delete()
+      .eq('user_id', userId);
+
+    if (rolesError) {
+      console.error('[DELETE_USER_DATA] Erro ao deletar roles:', rolesError);
+    }
+
+    // 2. Deletar notificações
+    const { error: notifError } = await supabaseClient
+      .from('app_notifications')
+      .delete()
+      .eq('user_id', userId);
+
+    if (notifError) {
+      console.error('[DELETE_USER_DATA] Erro ao deletar notificações:', notifError);
+    }
+
+    // 3. Deletar perfil
     const { error: profileError } = await supabaseClient
       .from('profiles')
-      .update({
-        nome: '[REMOVIDO]',
-        email: `anonimizado_${userId}@sistema.gov`,
-        telefone: null
-      })
+      .delete()
       .eq('id', userId);
 
     if (profileError) {
-      console.error('[DELETE_USER_DATA] Erro ao anonimizar perfil:', profileError);
-      throw new Error(`Erro ao anonimizar perfil: ${profileError.message}`);
+      console.error('[DELETE_USER_DATA] Erro ao deletar perfil:', profileError);
+      throw new Error(`Erro ao deletar perfil: ${profileError.message}`);
     }
 
-    // Registrar solicitação em audit_logs
+    // 4. Deletar usuário do auth
+    const { error: authError } = await supabaseClient.auth.admin.deleteUser(userId);
+
+    if (authError) {
+      console.error('[DELETE_USER_DATA] Erro ao deletar usuário do auth:', authError);
+      throw new Error(`Erro ao deletar usuário: ${authError.message}`);
+    }
+
+    // Registrar em audit_logs (antes de deletar)
     const { error: auditError } = await supabaseClient
       .from('audit_logs')
       .insert({
@@ -80,12 +104,12 @@ serve(async (req) => {
       // Não falhar por causa do log de auditoria
     }
 
-    console.log(`[DELETE_USER_DATA] ✅ Dados anonimizados com sucesso para user_id: ${userId}`);
+    console.log(`[DELETE_USER_DATA] ✅ Usuário deletado com sucesso: ${userId}`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Dados pessoais anonimizados com sucesso',
+        message: 'Usuário excluído completamente do sistema',
         userId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useUsers, useUserStats } from '@/hooks/useUsers';
 import { useCleanupTestData } from '@/hooks/useCleanupTestData';
+import { useDeleteUser } from '@/hooks/useDeleteUser';
 import { RoleAssignment } from '@/components/admin/RoleAssignment';
 import { AuditLogsViewer } from '@/components/admin/AuditLogsViewer';
 import { CreateUserDialog } from '@/components/admin/CreateUserDialog';
@@ -72,6 +73,7 @@ export default function UserManagement() {
   const { users, isLoading } = useUsers();
   const { data: stats } = useUserStats();
   const { cleanup, isLoading: isCleaningUp, result } = useCleanupTestData();
+  const { deleteUser, isDeleting } = useDeleteUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<{
     id: string;
@@ -80,6 +82,7 @@ export default function UserManagement() {
   } | null>(null);
   const [auditUser, setAuditUser] = useState<{ id: string; name: string } | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const filteredUsers = users?.filter(
     (user) =>
@@ -272,6 +275,19 @@ export default function UserManagement() {
                               <FileText className="h-4 w-4 mr-2" />
                               Ver Audit Logs
                             </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() =>
+                                setUserToDelete({
+                                  id: user.id,
+                                  name: user.nome || user.email,
+                                })
+                              }
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir Usuário
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -399,6 +415,45 @@ export default function UserManagement() {
       )}
 
       <CreateUserDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Usuário?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir permanentemente o usuário{' '}
+              <span className="font-semibold">{userToDelete?.name}</span>?
+              <br /><br />
+              Esta ação irá:
+              <ul className="list-disc ml-6 mt-2">
+                <li>Remover o usuário do sistema de autenticação</li>
+                <li>Deletar todas as permissões (roles)</li>
+                <li>Remover o perfil e dados pessoais</li>
+                <li>Deletar todas as notificações</li>
+              </ul>
+              <br />
+              <strong className="text-destructive">Esta ação não pode ser desfeita.</strong>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (userToDelete) {
+                  deleteUser({ userId: userToDelete.id, userName: userToDelete.name });
+                  setUserToDelete(null);
+                }
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Excluindo...' : 'Excluir Permanentemente'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
+
