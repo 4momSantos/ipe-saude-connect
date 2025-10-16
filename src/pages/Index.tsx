@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import HeroSection from "@/components/landing/HeroSection";
+import { EncontreProfissionalSection } from "@/components/landing/EncontreProfissionalSection";
 import { ConsultaCertificado } from "@/components/landing/ConsultaCertificado";
 import BeneficiosSection from "@/components/landing/BeneficiosSection";
 import ComoFuncionaSection from "@/components/landing/ComoFuncionaSection";
@@ -23,6 +24,7 @@ export default function Index() {
   return (
     <div className="min-h-screen">
       <HeroSection />
+      <EncontreProfissionalSection />
       <ConsultaCertificado />
       <BeneficiosSection />
       <ComoFuncionaSection />

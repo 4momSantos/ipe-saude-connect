@@ -10,6 +10,8 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Menu } from "lucide-react";
 import { SidebarWidthObserver } from "@/components/SidebarWidthObserver";
 import Index from "./pages/Index";
+const MapaCredenciadosPublico = lazy(() => import("./pages/MapaCredenciadosPublico"));
+const PerfilCredenciadoPublico = lazy(() => import("./pages/PerfilCredenciadoPublico"));
 import Dashboard from "./pages/Dashboard";
 import Inscricoes from "./pages/Inscricoes";
 import DocumentosRejeitados from "./pages/DocumentosRejeitados";
@@ -130,6 +132,8 @@ const App = () => (
         <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/mapa" element={<Suspense fallback={<div>Carregando...</div>}><MapaCredenciadosPublico /></Suspense>} />
+            <Route path="/profissional/:id" element={<Suspense fallback={<div>Carregando...</div>}><PerfilCredenciadoPublico /></Suspense>} />
             <Route path="/verificar-certificado/:numero" element={<VerificarCertificado />} />
             <Route path="/validar-certificado" element={<ValidarCertificado />} />
             <Route path="/validar-certificado/:codigo" element={<ValidarCertificado />} />
