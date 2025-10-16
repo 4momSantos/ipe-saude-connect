@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, CheckCircle, XCircle, Clock, AlertCircle, ShieldCheck, Download } from "lucide-react";
+import { Loader2, Search, CheckCircle, XCircle, Clock, AlertCircle, ShieldCheck, Download, FileText } from "lucide-react";
 import { useConsultarPublico, useConsultarPorCredenciado } from "@/hooks/useCertificadoRegularidade";
+import { useGerarPdfCertificado } from "@/hooks/useGerarPdfCertificado";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +20,7 @@ export function ConsultaCertificado() {
   
   const { mutate: consultar, data: resultadoPublico, isPending: isPendingPublico, reset: resetPublico } = useConsultarPublico();
   const { mutate: consultarCredenciado, data: resultadoCredenciado, isPending: isPendingCredenciado, reset: resetCredenciado } = useConsultarPorCredenciado();
+  const { mutate: gerarPdf, isPending: isGeneratingPdf } = useGerarPdfCertificado();
   
   const resultado = tipoConsulta === 'credenciado' ? resultadoCredenciado : resultadoPublico;
   const isPending = tipoConsulta === 'credenciado' ? isPendingCredenciado : isPendingPublico;
@@ -143,26 +145,50 @@ export function ConsultaCertificado() {
           </div>
         </div>
         
-        {resultado.tem_pdf && resultado.certificado_id && (
-          <div className="pt-4 mt-4 border-t">
-            <Button 
-              variant="outline" 
-              className="w-full"
-              onClick={() => handleDownload(resultado.certificado_id!, resultado.numero_certificado!)}
-              disabled={downloadingCertId === resultado.certificado_id}
-            >
-              {downloadingCertId === resultado.certificado_id ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Baixando PDF...
-                </>
-              ) : (
-                <>
-                  <Download className="mr-2 h-4 w-4" />
-                  Baixar Certificado (PDF)
-                </>
-              )}
-            </Button>
+        {resultado.certificado_id && (
+          <div className="pt-4 mt-4 border-t space-y-2">
+            {resultado.tem_pdf ? (
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => handleDownload(resultado.certificado_id!, resultado.numero_certificado!)}
+                disabled={downloadingCertId === resultado.certificado_id}
+              >
+                {downloadingCertId === resultado.certificado_id ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Baixando PDF...
+                  </>
+                ) : (
+                  <>
+                    <Download className="mr-2 h-4 w-4" />
+                    Baixar Certificado (PDF)
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => gerarPdf({ 
+                  certificadoId: resultado.certificado_id!, 
+                  numeroCertificado: resultado.numero_certificado! 
+                })}
+                disabled={isGeneratingPdf}
+              >
+                {isGeneratingPdf ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Gerando PDF...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Gerar PDF do Certificado
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         )}
       </Alert>
