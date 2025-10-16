@@ -3,6 +3,7 @@ import { useTodosContratos } from "@/hooks/useContratos";
 import { useReprocessSignatures } from "@/hooks/useReprocessSignatures";
 import { useResendSignatureEmail } from "@/hooks/useResendSignatureEmail";
 import { useRegenerateContract } from "@/hooks/useRegenerateContract";
+import { useGerarContrato } from "@/hooks/useGerarContrato";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -44,6 +45,7 @@ export function DashboardContratos() {
   const { mutate: reprocessSignatures, isPending } = useReprocessSignatures();
   const { mutate: resendEmail, isPending: isResending } = useResendSignatureEmail();
   const { mutate: regenerateContract, isPending: isRegenerating } = useRegenerateContract();
+  const { gerar: gerarContrato, isLoading: isGerandoContrato } = useGerarContrato();
   
   const { mutate: checkStatus, isPending: isCheckingStatus } = useMutation({
     mutationFn: async (contratoId: string) => {
@@ -83,8 +85,19 @@ export function DashboardContratos() {
         inscricao?.dados_inscricao?.dadosPessoais?.nome ||
         inscricao?.dados_inscricao?.dados_pessoais?.nome_completo ||
         inscricao?.candidato?.email;
-        
-      const matchesStatus = !statusFilter || statusFilter === 'todos' || c.status === statusFilter;
+      
+      // Verificar se contrato foi enviado (tem signature_request)
+      const signatureRequest = (c as any).signature_request;
+      const naoEnviado = !signatureRequest || (Array.isArray(signatureRequest) && signatureRequest.length === 0);
+      
+      // Filtros
+      let matchesStatus = true;
+      if (statusFilter === 'nao_enviado') {
+        matchesStatus = naoEnviado && c.status === 'pendente_assinatura';
+      } else {
+        matchesStatus = !statusFilter || statusFilter === 'todos' || c.status === statusFilter;
+      }
+      
       const matchesSearch = !searchQuery || 
         c.numero_contrato?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         candidatoNome?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -162,6 +175,7 @@ export function DashboardContratos() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos os status</SelectItem>
+                <SelectItem value="nao_enviado">Não Enviados</SelectItem>
                 <SelectItem value="pendente_assinatura">Aguardando Assinatura</SelectItem>
                 <SelectItem value="assinado">Assinado</SelectItem>
                 <SelectItem value="rejeitado">Rejeitado</SelectItem>
@@ -218,6 +232,10 @@ export function DashboardContratos() {
                     // Verificar problemas no contrato
                     const temHTML = (contrato.dados_contrato as any)?.html;
                     const statusProblematico = contrato.status === 'pendente_assinatura' && !temHTML;
+                    
+                    // Verificar se contrato foi enviado para assinatura
+                    const signatureRequest = (contrato as any).signature_request;
+                    const naoEnviado = !signatureRequest || (Array.isArray(signatureRequest) && signatureRequest.length === 0);
 
                     return (
                       <TableRow key={contrato.id}>
@@ -226,6 +244,11 @@ export function DashboardContratos() {
                           {statusProblematico && (
                             <Badge variant="destructive" className="ml-2 text-xs">
                               Sem HTML
+                            </Badge>
+                          )}
+                          {naoEnviado && contrato.status === 'pendente_assinatura' && (
+                            <Badge variant="outline" className="ml-2 text-xs border-yellow-500 text-yellow-700">
+                              Não Enviado
                             </Badge>
                           )}
                         </TableCell>
@@ -262,6 +285,27 @@ export function DashboardContratos() {
                                 <ExternalLink className="h-4 w-4" />
                               </Button>
                             )}
+                            
+                            {/* Botões para contratos não enviados */}
+                            {contrato.status === "pendente_assinatura" && naoEnviado && temHTML && (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={async () => {
+                                  try {
+                                    await gerarContrato({ inscricaoId: contrato.inscricao_id });
+                                    refetch();
+                                  } catch (error) {
+                                    console.error('Erro ao enviar contrato:', error);
+                                  }
+                                }}
+                                disabled={isGerandoContrato}
+                              >
+                                <Mail className="h-4 w-4 mr-2" />
+                                Enviar para Assinatura
+                              </Button>
+                            )}
+                            
                             {contrato.status === "pendente_assinatura" && (
                               statusProblematico ? (
                                 <Button
@@ -273,7 +317,7 @@ export function DashboardContratos() {
                                   <RefreshCw className="h-4 w-4 mr-2" />
                                   Regenerar Contrato
                                 </Button>
-                              ) : (
+                              ) : !naoEnviado && (
                                  <Button
                                   size="sm"
                                   variant="outline"
@@ -285,7 +329,7 @@ export function DashboardContratos() {
                                 </Button>
                               )
                             )}
-                            {contrato.status === "pendente_assinatura" && (
+                            {contrato.status === "pendente_assinatura" && !naoEnviado && (
                               <Button
                                 size="sm"
                                 variant="secondary"
@@ -307,7 +351,19 @@ export function DashboardContratos() {
           </div>
 
           {/* Estatísticas */}
-          <div className="grid grid-cols-3 gap-4 mt-6">
+          <div className="grid grid-cols-4 gap-4 mt-6">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-2xl font-bold text-yellow-600">
+                  {contratos.filter(c => {
+                    const signatureRequest = (c as any).signature_request;
+                    const naoEnviado = !signatureRequest || (Array.isArray(signatureRequest) && signatureRequest.length === 0);
+                    return c.status === 'pendente_assinatura' && naoEnviado;
+                  }).length}
+                </div>
+                <p className="text-xs text-muted-foreground">Não Enviados</p>
+              </CardContent>
+            </Card>
             <Card>
               <CardContent className="pt-6">
                 <div className="text-2xl font-bold">{filtrar("pendente_assinatura").length}</div>

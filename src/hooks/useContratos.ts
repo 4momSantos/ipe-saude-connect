@@ -85,6 +85,11 @@ export function useTodosContratos() {
               titulo,
               numero_edital
             )
+          ),
+          signature_request:signature_requests(
+            id,
+            status,
+            external_id
           )
         `)
         .order("created_at", { ascending: false });
