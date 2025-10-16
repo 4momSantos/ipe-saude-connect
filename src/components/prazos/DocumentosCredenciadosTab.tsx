@@ -269,11 +269,23 @@ export function DocumentosCredenciadosTab() {
       .single();
     
     if (data?.url_arquivo) {
-      setDocumentViewer({
-        open: true,
-        url: data.url_arquivo,
-        fileName: data.arquivo_nome || 'documento.pdf'
-      });
+      // url_arquivo contém o path no storage
+      const { data: urlData } = supabase
+        .storage
+        .from('inscricao-documentos')
+        .getPublicUrl(data.url_arquivo);
+      
+      if (urlData?.publicUrl) {
+        setDocumentViewer({
+          open: true,
+          url: urlData.publicUrl,
+          fileName: data.arquivo_nome || 'documento.pdf'
+        });
+      } else {
+        toast.error('Erro ao gerar URL do documento');
+      }
+    } else {
+      toast.error('Documento não encontrado');
     }
   };
 
@@ -545,28 +557,53 @@ export function DocumentosCredenciadosTab() {
                            <Eye className="h-3 w-3 mr-1" />
                            Ver
                          </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex-1"
-                          onClick={async () => {
-                            const { data } = await supabase
-                              .from('documentos_credenciados')
-                              .select('url_arquivo, arquivo_nome')
-                              .eq('id', doc.entidade_id)
-                              .single();
-                            
-                            if (data?.url_arquivo) {
-                              const a = document.createElement('a');
-                              a.href = data.url_arquivo;
-                              a.download = data.arquivo_nome || 'documento.pdf';
-                              a.click();
-                            }
-                          }}
-                        >
-                          <Download className="h-3 w-3 mr-1" />
-                          Baixar
-                        </Button>
+                         <Button
+                           size="sm"
+                           variant="outline"
+                           className="flex-1"
+                           onClick={async () => {
+                             try {
+                               const { data } = await supabase
+                                 .from('documentos_credenciados')
+                                 .select('url_arquivo, arquivo_nome')
+                                 .eq('id', doc.entidade_id)
+                                 .single();
+                               
+                               if (data?.url_arquivo) {
+                                 // url_arquivo contém o path no storage
+                                 const { data: urlData } = supabase
+                                   .storage
+                                   .from('inscricao-documentos')
+                                   .getPublicUrl(data.url_arquivo);
+                                 
+                                 if (urlData?.publicUrl) {
+                                   // Fazer download do arquivo
+                                   const response = await fetch(urlData.publicUrl);
+                                   const blob = await response.blob();
+                                   const url = window.URL.createObjectURL(blob);
+                                   const a = document.createElement('a');
+                                   a.href = url;
+                                   a.download = data.arquivo_nome || 'documento.pdf';
+                                   document.body.appendChild(a);
+                                   a.click();
+                                   window.URL.revokeObjectURL(url);
+                                   document.body.removeChild(a);
+                                   toast.success('Download iniciado!');
+                                 } else {
+                                   toast.error('Erro ao gerar URL do documento');
+                                 }
+                               } else {
+                                 toast.error('Documento não encontrado');
+                               }
+                             } catch (error) {
+                               console.error('Erro ao baixar documento:', error);
+                               toast.error('Erro ao baixar documento');
+                             }
+                           }}
+                         >
+                           <Download className="h-3 w-3 mr-1" />
+                           Baixar
+                         </Button>
                       </div>
                     </CardContent>
                   </Card>
