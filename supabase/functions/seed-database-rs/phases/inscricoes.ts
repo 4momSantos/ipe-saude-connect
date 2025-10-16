@@ -35,36 +35,39 @@ export async function seedInscricoes(
 
     const editalId = editais[0].id;
 
-    // Buscar candidatos sem inscrição aprovada
-    const { data: candidatos } = await supabase
+    // Buscar candidatos SEM join complexo
+    const { data: userRoles } = await supabase
       .from('user_roles')
-      .select(`
-        user_id,
-        profiles!inner(nome, email)
-      `)
+      .select('user_id')
       .eq('role', 'candidato')
       .limit(count);
 
-    if (!candidatos || candidatos.length === 0) {
+    if (!userRoles || userRoles.length === 0) {
       console.log('[SEED-INSCRICOES] Nenhum candidato encontrado');
       return { success: true, phase: 'inscricoes', created: 0, errors: [], duration: 0 };
     }
 
-    for (const candidato of candidatos) {
-      // Verificar se já tem inscrição
-      const { data: existing } = await supabase
+    for (const userRole of userRoles) {
+      // Verificar se já tem inscrição aprovada
+      const { count: existingCount } = await supabase
         .from('inscricoes_edital')
-        .select('id')
-        .eq('candidato_id', candidato.user_id)
-        .eq('status', 'aprovado')
-        .single();
+        .select('*', { count: 'exact', head: true })
+        .eq('candidato_id', userRole.user_id)
+        .eq('status', 'aprovado');
 
-      if (existing) continue;
+      if (existingCount && existingCount > 0) continue;
+
+      // Buscar profile do candidato
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('nome, email')
+        .eq('id', userRole.user_id)
+        .single();
 
       const dadosInscricao = {
         dados_pessoais: {
-          nome_completo: candidato.profiles?.nome || 'Candidato Seed',
-          email: candidato.profiles?.email,
+          nome_completo: profile?.nome || 'Candidato Seed',
+          email: profile?.email || `seed${created}@example.com`,
           cpf: `${Math.floor(Math.random() * 100000000000)}`,
           data_nascimento: '1985-05-15'
         },
@@ -80,7 +83,7 @@ export async function seedInscricoes(
         .from('inscricoes_edital')
         .insert({
           edital_id: editalId,
-          candidato_id: candidato.user_id,
+          candidato_id: userRole.user_id,
           dados_inscricao: dadosInscricao,
           status: 'aprovado',
           is_rascunho: false
