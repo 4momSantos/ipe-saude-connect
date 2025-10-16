@@ -6403,6 +6403,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_credenciado_owner: {
+        Args: { _credenciado_id: string; _user_id: string }
+        Returns: boolean
+      }
       log_audit_event: {
         Args: {
           p_action: string
