@@ -17,21 +17,23 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
     
-    console.log('[GENERATE_MISSING_PDFS] Iniciando busca de certificados sem PDF...');
+    console.log('[AUTO_PDF] Iniciando busca de certificados de regularidade sem PDF...');
     
-    // Buscar certificados SEM documento_url na tabela antiga
+    // Buscar certificados de regularidade SEM url_pdf
     const { data: certsSemPdf, error: certsError } = await supabase
-      .from('certificados')
+      .from('certificados_regularidade')
       .select('id, numero_certificado, credenciado_id, status')
-      .is('documento_url', null)
-      .eq('status', 'ativo');
+      .is('url_pdf', null)
+      .eq('ativo', true)
+      .eq('cancelado', false)
+      .limit(10); // Processar no máximo 10 por execução
     
     if (certsError) {
-      console.error('[GENERATE_MISSING_PDFS] Erro ao buscar certificados:', certsError);
+      console.error('[AUTO_PDF] Erro ao buscar certificados:', certsError);
       throw certsError;
     }
     
-    console.log('[GENERATE_MISSING_PDFS] Encontrados', certsSemPdf?.length || 0, 'certificados sem PDF');
+    console.log('[AUTO_PDF] Encontrados', certsSemPdf?.length || 0, 'certificados sem PDF');
     
     const results = {
       total: certsSemPdf?.length || 0,
@@ -44,34 +46,36 @@ serve(async (req) => {
     if (certsSemPdf && certsSemPdf.length > 0) {
       for (const cert of certsSemPdf) {
         try {
-          console.log('[GENERATE_MISSING_PDFS] Processando certificado:', cert.numero_certificado);
+          console.log('[AUTO_PDF] Processando certificado:', cert.numero_certificado);
           
-          // Chamar edge function gerar-certificado
-          const { data, error } = await supabase.functions.invoke('gerar-certificado', {
+          // Chamar edge function de geração de PDF
+          const { data, error } = await supabase.functions.invoke('gerar-certificado-regularidade', {
             body: {
-              credenciadoId: cert.credenciado_id,
-              force_new: false // Vai atualizar o certificado existente
+              certificadoId: cert.id
             }
           });
           
           if (error) {
-            console.error('[GENERATE_MISSING_PDFS] Erro ao gerar PDF:', error);
+            console.error('[AUTO_PDF] Erro ao gerar PDF:', error);
             results.erros.push({
               certificado_id: cert.id,
               numero: cert.numero_certificado,
               erro: error.message
             });
           } else {
-            console.log('[GENERATE_MISSING_PDFS] PDF gerado com sucesso:', cert.numero_certificado);
+            console.log('[AUTO_PDF] PDF gerado com sucesso:', cert.numero_certificado);
             results.sucesso.push({
               certificado_id: cert.id,
               numero: cert.numero_certificado,
-              documento_url: data?.certificado?.documento_url
+              url_pdf: data?.url_pdf
             });
             results.processados++;
           }
+          
+          // Aguardar 500ms entre cada certificado para evitar sobrecarga
+          await new Promise(resolve => setTimeout(resolve, 500));
         } catch (err) {
-          console.error('[GENERATE_MISSING_PDFS] Erro inesperado:', err);
+          console.error('[AUTO_PDF] Erro inesperado:', err);
           results.erros.push({
             certificado_id: cert.id,
             numero: cert.numero_certificado,
@@ -81,7 +85,7 @@ serve(async (req) => {
       }
     }
     
-    console.log('[GENERATE_MISSING_PDFS] Processamento concluído:', results);
+    console.log('[AUTO_PDF] Processamento concluído:', results);
     
     return new Response(
       JSON.stringify({
@@ -96,7 +100,7 @@ serve(async (req) => {
     );
     
   } catch (error) {
-    console.error('[GENERATE_MISSING_PDFS] Erro geral:', error);
+    console.error('[AUTO_PDF] Erro geral:', error);
     return new Response(
       JSON.stringify({ 
         success: false,

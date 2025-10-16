@@ -96,3 +96,9 @@ verify_jwt = true
 [functions.consultar-certificado-publico]
 verify_jwt = false
 
+[functions.generate-missing-pdfs]
+verify_jwt = false
+
+[functions.gerar-certificado-regularidade]
+verify_jwt = false
+
