@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePrazos } from "@/hooks/usePrazos";
 import { ModalRenovarPrazo } from "@/components/prazos/ModalRenovarPrazo";
 import { DocumentosCredenciadosTab } from "@/components/prazos/DocumentosCredenciadosTab";
-import { ControlePrazosAgrupado } from "@/components/prazos/ControlePrazosAgrupado";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -112,12 +111,8 @@ export default function Prazos() {
       </div>
 
       {/* Tabs Principal */}
-      <Tabs defaultValue="agrupado" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="agrupado">
-            <FolderOpen className="h-4 w-4 mr-2" />
-            Por Credenciado
-          </TabsTrigger>
+      <Tabs defaultValue="todos" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="todos">
             <FileText className="h-4 w-4 mr-2" />
             Todos os Prazos
@@ -131,11 +126,6 @@ export default function Prazos() {
             Críticos
           </TabsTrigger>
         </TabsList>
-
-        {/* Aba: Por Credenciado */}
-        <TabsContent value="agrupado" className="mt-6">
-          <ControlePrazosAgrupado />
-        </TabsContent>
 
         {/* Aba: Todos os Prazos */}
         <TabsContent value="todos" className="space-y-6 mt-6">
