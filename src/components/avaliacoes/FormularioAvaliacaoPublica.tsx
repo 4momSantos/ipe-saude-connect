@@ -352,18 +352,47 @@ export function FormularioAvaliacaoPublica({
             )}
 
             {/* Botões */}
-            <div className="flex justify-end gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={criarAvaliacao.isPending}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={criarAvaliacao.isPending}>
-                {criarAvaliacao.isPending ? 'Enviando...' : 'Enviar Avaliação'}
-              </Button>
+            <div className="flex flex-col gap-3">
+              {/* Mensagem de ajuda se houver erros */}
+              {Object.keys(form.formState.errors).length > 0 && (
+                <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                  Por favor, corrija os erros no formulário antes de enviar:
+                  <ul className="list-disc list-inside mt-1 space-y-1">
+                    {form.formState.errors.nota_estrelas && (
+                      <li>{form.formState.errors.nota_estrelas.message}</li>
+                    )}
+                    {form.formState.errors.comentario && (
+                      <li>{form.formState.errors.comentario.message}</li>
+                    )}
+                    {form.formState.errors.avaliador_nome && (
+                      <li>{form.formState.errors.avaliador_nome.message}</li>
+                    )}
+                    {form.formState.errors.avaliador_email && (
+                      <li>{form.formState.errors.avaliador_email.message}</li>
+                    )}
+                    {form.formState.errors.nota_profissional && (
+                      <li>{form.formState.errors.nota_profissional.message}</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+              
+              <div className="flex justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={criarAvaliacao.isPending}
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={criarAvaliacao.isPending || !form.formState.isValid}
+                >
+                  {criarAvaliacao.isPending ? 'Enviando...' : 'Enviar Avaliação'}
+                </Button>
+              </div>
             </div>
           </form>
         </Form>
