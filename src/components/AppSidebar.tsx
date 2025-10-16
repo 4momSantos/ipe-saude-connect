@@ -27,7 +27,8 @@ import {
   TestTube2,
   MapPin,
   CalendarClock,
-  FolderOpen
+  FolderOpen,
+  Database
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -405,6 +406,26 @@ export function AppSidebar() {
                         <MapPin className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
                         {!isCollapsed && (
                           <span className="text-sm font-medium">Importar Geometrias</span>
+                        )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to="/admin/seed-rs"
+                        className={({ isActive }) =>
+                          cn(
+                            "group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors",
+                            isActive
+                              ? "bg-primary text-primary-foreground shadow-sm"
+                              : "text-white hover:text-white hover:bg-muted"
+                          )
+                        }
+                      >
+                        <Database className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+                        {!isCollapsed && (
+                          <span className="text-sm font-medium">Seed Database RS</span>
                         )}
                       </NavLink>
                     </SidebarMenuButton>
