@@ -46,26 +46,7 @@ serve(async (req) => {
 
     console.log(`[DELETE_USER_DATA] Iniciando exclusão completa para user_id: ${userId}`);
 
-    // 1. Registrar em audit_logs PRIMEIRO (antes de qualquer deleção)
-    const { error: auditError } = await supabaseClient
-      .from('audit_logs')
-      .insert({
-        user_id: userId,
-        action: 'user_data_deletion_request',
-        resource_type: 'user',
-        resource_id: userId,
-        metadata: {
-          requested_at: new Date().toISOString(),
-          ip_address: req.headers.get('x-forwarded-for') || 'unknown'
-        }
-      });
-
-    if (auditError) {
-      console.error('[DELETE_USER_DATA] Erro ao registrar auditoria:', auditError);
-      // Continuar mesmo com erro no log
-    }
-
-    // 2. Deletar roles do usuário
+    // 1. Deletar roles do usuário
     const { error: rolesError } = await supabaseClient
       .from('user_roles')
       .delete()
@@ -75,7 +56,7 @@ serve(async (req) => {
       console.error('[DELETE_USER_DATA] Erro ao deletar roles:', rolesError);
     }
 
-    // 3. Deletar notificações
+    // 2. Deletar notificações
     const { error: notifError } = await supabaseClient
       .from('app_notifications')
       .delete()
@@ -85,7 +66,7 @@ serve(async (req) => {
       console.error('[DELETE_USER_DATA] Erro ao deletar notificações:', notifError);
     }
 
-    // 4. Deletar perfil
+    // 3. Deletar perfil
     const { error: profileError } = await supabaseClient
       .from('profiles')
       .delete()
@@ -96,7 +77,7 @@ serve(async (req) => {
       throw new Error(`Erro ao deletar perfil: ${profileError.message}`);
     }
 
-    // 5. Deletar usuário do auth (por último)
+    // 4. Deletar usuário do auth (por último)
     const { error: authError } = await supabaseClient.auth.admin.deleteUser(userId);
 
     if (authError) {
