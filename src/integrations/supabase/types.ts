@@ -1522,6 +1522,7 @@ export type Database = {
           motivo_descredenciamento: string | null
           motivo_suspensao: string | null
           nome: string
+          numero_credenciado: string | null
           observacoes: string | null
           porte: string | null
           rg: string | null
@@ -1560,6 +1561,7 @@ export type Database = {
           motivo_descredenciamento?: string | null
           motivo_suspensao?: string | null
           nome: string
+          numero_credenciado?: string | null
           observacoes?: string | null
           porte?: string | null
           rg?: string | null
@@ -1598,6 +1600,7 @@ export type Database = {
           motivo_descredenciamento?: string | null
           motivo_suspensao?: string | null
           nome?: string
+          numero_credenciado?: string | null
           observacoes?: string | null
           porte?: string | null
           rg?: string | null

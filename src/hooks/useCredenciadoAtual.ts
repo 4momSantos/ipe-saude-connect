@@ -19,6 +19,7 @@ export function useCredenciadoAtual() {
           status,
           created_at,
           inscricao_id,
+          numero_credenciado,
           inscricoes_edital!inner(candidato_id)
         `)
         .eq('inscricoes_edital.candidato_id', user.id)

@@ -38,26 +38,7 @@ export function UserProfileMenu() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Buscar protocolo mais recente do candidato
-  const { data: ultimoProtocolo } = useQuery({
-    queryKey: ['ultimo-protocolo', userId],
-    queryFn: async () => {
-      if (!userId) return null;
-      
-      const { data } = await supabase
-        .from('inscricoes_edital')
-        .select('protocolo, editais(titulo)')
-        .eq('candidato_id', userId)
-        .eq('is_rascunho', false)
-        .not('protocolo', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      return data;
-    },
-    enabled: !!userId && isCandidato
-  });
+  // Removido: protocolo não deve aparecer aqui - é específico de cada edital
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -76,42 +57,6 @@ export function UserProfileMenu() {
 
   return (
     <div className="flex items-center gap-2">
-      {/* Badge de Protocolo (apenas para candidatos) */}
-      {isCandidato && ultimoProtocolo?.protocolo && (
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2 hidden md:flex">
-              <FileText className="h-4 w-4" />
-              <span className="font-mono text-xs">{ultimoProtocolo.protocolo}</span>
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-80">
-            <div className="space-y-3">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Protocolo da Inscrição</p>
-                <p className="font-mono text-lg font-bold mt-1">{ultimoProtocolo.protocolo}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Edital</p>
-                <p className="text-sm mt-1">{ultimoProtocolo.editais?.titulo}</p>
-              </div>
-              <Button 
-                size="sm" 
-                variant="secondary"
-                className="w-full"
-                onClick={() => {
-                  navigator.clipboard.writeText(ultimoProtocolo.protocolo);
-                  toast.success('Protocolo copiado!');
-                }}
-              >
-                <Copy className="h-3 w-3 mr-2" />
-                Copiar Protocolo
-              </Button>
-            </div>
-          </PopoverContent>
-        </Popover>
-      )}
-
       <DropdownMenu>
         <DropdownMenuTrigger className="focus:outline-none">
           <div className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-colors">

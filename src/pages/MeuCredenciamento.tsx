@@ -1,4 +1,4 @@
-import { Award, CheckCircle, FileText, FileCheck, Download, Calendar, Shield } from "lucide-react";
+import { Award, CheckCircle, FileText, FileCheck, Download, Calendar, Shield, Hash, Copy } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { useGerarCertificado } from "@/hooks/useGerarCertificado";
 import { useEmitirCertificado } from "@/hooks/useCertificadoRegularidade";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 export default function MeuCredenciamento() {
   const { data: credenciado, isLoading: loadingCredenciado } = useCredenciadoAtual();
@@ -67,20 +68,49 @@ export default function MeuCredenciamento() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold">Meu Credenciamento</h1>
           <p className="text-muted-foreground">
             Visualize seu status e gere documentos oficiais
           </p>
         </div>
-        <Badge 
-          variant={credenciado.status === 'Ativo' ? 'default' : 'destructive'}
-          className="text-base px-4 py-2"
-        >
-          <Shield className="h-4 w-4 mr-2" />
-          {credenciado.status}
-        </Badge>
+        <div className="flex items-center gap-3">
+          {/* Número do Credenciado - Único e permanente */}
+          {credenciado.numero_credenciado && (
+            <Card className="shadow-md">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Hash className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">Número do Credenciado</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-lg font-bold font-mono">{credenciado.numero_credenciado}</p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      onClick={() => {
+                        navigator.clipboard.writeText(credenciado.numero_credenciado!);
+                        toast.success('Número copiado!');
+                      }}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          <Badge 
+            variant={credenciado.status === 'Ativo' ? 'default' : 'destructive'}
+            className="text-base px-4 py-2"
+          >
+            <Shield className="h-4 w-4 mr-2" />
+            {credenciado.status}
+          </Badge>
+        </div>
       </div>
 
       {/* Resumo do Credenciamento */}
