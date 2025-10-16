@@ -10,7 +10,6 @@ import { useConsultarPublico, useConsultarPorCredenciado } from "@/hooks/useCert
 import { useGerarPdfCertificado } from "@/hooks/useGerarPdfCertificado";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export function ConsultaCertificado() {
@@ -45,50 +44,18 @@ export function ConsultaCertificado() {
     try {
       setDownloadingCertId(certificadoId);
       
-      console.log('[DOWNLOAD_DEBUG]', { certificadoId, numeroCert, urlPdf: urlPdf?.substring(0, 50) });
-      
-      // Se temos data URL, fazer download direto
-      if (urlPdf?.startsWith('data:')) {
-        console.log('[DOWNLOAD] Download direto de data URL');
-        const a = document.createElement('a');
-        a.href = urlPdf;
-        a.download = `${numeroCert}.html`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        toast.success('Certificado baixado com sucesso!');
+      // Se não tem URL, gerar PDF primeiro
+      if (!urlPdf) {
+        console.log('[DOWNLOAD] Gerando PDF...');
+        gerarPdf({ certificadoId, numeroCertificado: numeroCert });
+        toast.info('Gerando certificado... Por favor, aguarde e tente baixar novamente em alguns segundos.');
         return;
       }
-      
-      // Se temos HTTP URL, abrir em nova aba
-      if (urlPdf?.startsWith('http')) {
-        console.log('[DOWNLOAD] Link direto para storage');
-        window.open(urlPdf, '_blank');
-        toast.success('Certificado aberto em nova aba!');
-        return;
-      }
-      
-      // Fallback: chamar edge function
-      console.log('[DOWNLOAD] Usando edge function');
-      const { data, error } = await supabase.functions.invoke('download-certificado', {
-        body: { certificadoId }
-      });
 
-      if (error) throw error;
-
-      if (data instanceof Blob) {
-        const url = window.URL.createObjectURL(data);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${numeroCert}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        toast.success('Certificado baixado com sucesso!');
-      } else {
-        throw new Error('Formato de resposta inválido');
-      }
+      // Download direto - URL pública do Storage
+      console.log('[DOWNLOAD] Abrindo URL:', urlPdf);
+      window.open(urlPdf, '_blank');
+      toast.success('Abrindo certificado...');
     } catch (error) {
       console.error('Erro ao baixar:', error);
       toast.error('Erro ao baixar o certificado');
