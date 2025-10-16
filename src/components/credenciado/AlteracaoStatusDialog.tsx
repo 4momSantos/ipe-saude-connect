@@ -142,7 +142,7 @@ export function AlteracaoStatusDialog({
 
     return (
       <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] md:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Revisar Alteração de Status</DialogTitle>
             <DialogDescription>
@@ -185,7 +185,7 @@ export function AlteracaoStatusDialog({
 
             <div className="p-4 border rounded-lg bg-muted/50">
               <p className="text-sm font-semibold mb-2">Justificativa:</p>
-              <p className="text-sm whitespace-pre-wrap">{justificativa}</p>
+              <p className="text-sm whitespace-pre-wrap break-words">{justificativa}</p>
             </div>
 
             {motivoDetalhado && (
@@ -232,9 +232,9 @@ export function AlteracaoStatusDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] md:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Alterar Status - {credenciadoNome}</DialogTitle>
+          <DialogTitle className="text-base md:text-lg">Alterar Status - {credenciadoNome}</DialogTitle>
           <DialogDescription>
             Status Atual: <span className="font-semibold">{statusAtual}</span>
           </DialogDescription>
@@ -275,7 +275,7 @@ export function AlteracaoStatusDialog({
           {(novoStatus === 'Suspenso' || novoStatus === 'Afastado') && (
             <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
               <Label className="text-base font-semibold">Período de {novoStatus} *</Label>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Data Início</Label>
                   <Popover>
@@ -399,7 +399,7 @@ export function AlteracaoStatusDialog({
               onChange={(e) => setJustificativa(e.target.value)}
               placeholder="Descreva detalhadamente o motivo da alteração de status..."
               className={cn(
-                "min-h-[120px]",
+                "min-h-[120px] break-words",
                 !isJustificativaValida && justificativa.length > 0 && "border-red-500"
               )}
             />
