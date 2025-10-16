@@ -22,10 +22,13 @@ import {
   FileText,
   CheckCircle,
   FileSignature,
-  ClipboardList
+  ClipboardList,
+  FileEdit
 } from 'lucide-react';
 import { AttachmentPreview } from './AttachmentPreview';
 import { ManifestationForm } from './ManifestationForm';
+import { SolicitarAlteracaoChatDialog } from './SolicitarAlteracaoChatDialog';
+import { SolicitacaoCard } from './SolicitacaoCard';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -78,9 +81,20 @@ interface ChatWorkflowProps {
   executionId?: string;
   etapaAtual?: string;
   usuarioPapel?: 'candidato' | 'analista' | 'gestor' | 'admin';
+  credenciadoId?: string;
+  dadosCredenciado?: any;
+  documentosCredenciado?: any[];
 }
 
-export function ChatWorkflow({ inscricaoId, executionId, etapaAtual, usuarioPapel = 'candidato' }: ChatWorkflowProps) {
+export function ChatWorkflow({ 
+  inscricaoId, 
+  executionId, 
+  etapaAtual, 
+  usuarioPapel = 'candidato',
+  credenciadoId,
+  dadosCredenciado,
+  documentosCredenciado = []
+}: ChatWorkflowProps) {
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
@@ -94,6 +108,7 @@ export function ChatWorkflow({ inscricaoId, executionId, etapaAtual, usuarioPape
   const [anexos, setAnexos] = useState<File[]>([]);
   const [mostrarFormularioAvancado, setMostrarFormularioAvancado] = useState(false);
   const [tipoManifestacao, setTipoManifestacao] = useState<'parecer' | 'decisao' | 'justificativa' | 'observacao_formal' | null>(null);
+  const [mostrarDialogSolicitacao, setMostrarDialogSolicitacao] = useState(false);
   
   // Menções
   const [mostrandoMencoes, setMostrandoMencoes] = useState(false);
@@ -394,6 +409,218 @@ export function ChatWorkflow({ inscricaoId, executionId, etapaAtual, usuarioPape
     mensagensEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const handleSolicitacaoSubmit = async (dados: {
+    tipo: 'campo' | 'documento';
+    campo?: string;
+    valorAtual?: string;
+    valorNovo?: string;
+    documentoId?: string;
+    novoArquivo?: File;
+    justificativa: string;
+  }) => {
+    setEnviando(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('nome, email')
+        .eq('id', user.id)
+        .single();
+
+      // Upload do novo arquivo se for documento
+      let novoArquivoUrl = '';
+      let novoArquivoNome = '';
+      
+      if (dados.tipo === 'documento' && dados.novoArquivo) {
+        const fileName = `${Date.now()}_${dados.novoArquivo.name}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('workflow-anexos')
+          .upload(fileName, dados.novoArquivo);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('workflow-anexos')
+          .getPublicUrl(fileName);
+
+        novoArquivoUrl = urlData.publicUrl;
+        novoArquivoNome = dados.novoArquivo.name;
+      }
+
+      // Buscar nome do documento se for substituição
+      let documentoNome = '';
+      if (dados.tipo === 'documento' && dados.documentoId) {
+        const doc = documentosCredenciado.find(d => d.id === dados.documentoId);
+        documentoNome = doc?.tipo_documento || doc?.arquivo_nome || 'Documento';
+      }
+
+      // Criar mensagem de solicitação
+      const mensagemTexto = dados.tipo === 'campo'
+        ? `Solicitação de alteração do campo "${dados.campo}" de "${dados.valorAtual}" para "${dados.valorNovo}"`
+        : `Solicitação de substituição do documento "${documentoNome}"`;
+
+      const insertData = {
+        inscricao_id: inscricaoId,
+        execution_id: executionId || null,
+        etapa_id: etapaAtual || null,
+        sender_id: user.id,
+        usuario_nome: profile?.nome || user.email,
+        usuario_email: user.email || '',
+        usuario_papel: usuarioPapel,
+        sender_type: mapearSenderType(usuarioPapel),
+        tipo: 'solicitacao',
+        content: mensagemTexto,
+        mensagem: mensagemTexto,
+        mensagem_html: mensagemTexto,
+        mencoes: [],
+        visivel_para: ['analista', 'gestor', 'admin', 'candidato'],
+        privada: false,
+        status_aprovacao: 'pendente',
+        manifestacao_metadata: {
+          tipo_solicitacao: dados.tipo,
+          campo: dados.campo,
+          valorAtual: dados.valorAtual,
+          valorNovo: dados.valorNovo,
+          documentoId: dados.documentoId,
+          documentoNome,
+          novoArquivoUrl,
+          novoArquivoNome,
+          justificativa: dados.justificativa,
+          credenciadoId: credenciadoId,
+          status: 'pendente'
+        }
+      };
+
+      const { error } = await supabase
+        .from('workflow_messages')
+        .insert(insertData);
+
+      if (error) throw error;
+
+      toast.success('Solicitação enviada com sucesso!');
+    } catch (error: any) {
+      console.error('Erro ao enviar solicitação:', error);
+      toast.error('Erro ao enviar solicitação: ' + error.message);
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  const handleAprovarSolicitacao = async (mensagemId: string, metadata: any) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('nome')
+        .eq('id', user.id)
+        .single();
+
+      // Se for alteração de campo, atualizar credenciado
+      if (metadata.tipo_solicitacao === 'campo' && metadata.credenciadoId) {
+        const updateData: any = {};
+        updateData[metadata.campo] = metadata.valorNovo;
+
+        await supabase
+          .from('credenciados')
+          .update(updateData)
+          .eq('id', metadata.credenciadoId);
+      }
+
+      // Se for substituição de documento, marcar documento antigo como não atual e criar novo
+      if (metadata.tipo_solicitacao === 'documento' && metadata.documentoId) {
+        // Marcar documento antigo
+        await supabase
+          .from('inscricao_documentos')
+          .update({ is_current: false })
+          .eq('id', metadata.documentoId);
+
+        // Criar novo documento
+        const { data: oldDoc } = await supabase
+          .from('inscricao_documentos')
+          .select('*')
+          .eq('id', metadata.documentoId)
+          .single();
+
+        if (oldDoc) {
+          await supabase
+            .from('inscricao_documentos')
+            .insert({
+              inscricao_id: oldDoc.inscricao_id,
+              tipo_documento: oldDoc.tipo_documento,
+              arquivo_url: metadata.novoArquivoUrl,
+              arquivo_nome: metadata.novoArquivoNome,
+              status: 'aprovado',
+              is_current: true,
+              versao: (oldDoc.versao || 1) + 1,
+              parent_document_id: metadata.documentoId,
+              uploaded_by: user.id
+            });
+        }
+      }
+
+      // Atualizar mensagem com aprovação
+      await supabase
+        .from('workflow_messages')
+        .update({
+          status_aprovacao: 'aprovada',
+          manifestacao_metadata: {
+            ...metadata,
+            status: 'aprovada',
+            aprovadoPor: profile?.nome || user.email,
+            aprovadoEm: new Date().toISOString()
+          }
+        })
+        .eq('id', mensagemId);
+
+      toast.success('Solicitação aprovada com sucesso!');
+      carregarMensagens();
+    } catch (error: any) {
+      console.error('Erro ao aprovar solicitação:', error);
+      toast.error('Erro ao aprovar: ' + error.message);
+    }
+  };
+
+  const handleRejeitarSolicitacao = async (mensagemId: string, metadata: any) => {
+    const motivo = window.prompt('Informe o motivo da rejeição:');
+    if (!motivo) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('nome')
+        .eq('id', user.id)
+        .single();
+
+      await supabase
+        .from('workflow_messages')
+        .update({
+          status_aprovacao: 'rejeitada',
+          manifestacao_metadata: {
+            ...metadata,
+            status: 'rejeitada',
+            aprovadoPor: profile?.nome || user.email,
+            aprovadoEm: new Date().toISOString(),
+            motivoRejeicao: motivo
+          }
+        })
+        .eq('id', mensagemId);
+
+      toast.success('Solicitação rejeitada');
+      carregarMensagens();
+    } catch (error: any) {
+      console.error('Erro ao rejeitar solicitação:', error);
+      toast.error('Erro ao rejeitar: ' + error.message);
+    }
+  };
+
   const renderizarMensagem = (mensagem: Mensagem) => {
     const ehAutor = mensagem.usuario_id === currentUser?.id;
 
@@ -443,7 +670,7 @@ export function ChatWorkflow({ inscricaoId, executionId, etapaAtual, usuarioPape
           )}
 
           {/* Badge de tipo */}
-          {mensagem.tipo !== 'comentario' && (
+          {mensagem.tipo !== 'comentario' && mensagem.tipo !== 'solicitacao' && (
             <div className="mb-2 flex items-center gap-2">
               <Badge
                 variant={
@@ -490,43 +717,55 @@ export function ChatWorkflow({ inscricaoId, executionId, etapaAtual, usuarioPape
             </div>
           )}
 
-          {/* Balão da mensagem */}
-          <Card
-            className={`p-3 ${
-              ['parecer', 'decisao', 'justificativa', 'observacao_formal'].includes(mensagem.tipo)
-                ? 'border-l-4 border-l-primary bg-primary/5'
-                : ehAutor
-                ? 'bg-primary text-primary-foreground'
-                : mensagem.tipo === 'nota_interna'
-                ? 'bg-yellow-50 border-yellow-200'
-                : 'bg-card'
-            }`}
-          >
-            <div
-              className="whitespace-pre-wrap break-words"
-              dangerouslySetInnerHTML={{
-                __html: mensagem.mensagem_html || mensagem.mensagem
-              }}
+          {/* Card de Solicitação */}
+          {mensagem.tipo === 'solicitacao' && (mensagem as any).manifestacao_metadata && (
+            <SolicitacaoCard
+              solicitacao={(mensagem as any).manifestacao_metadata}
+              ehAnalista={usuarioPapel === 'analista' || usuarioPapel === 'gestor' || usuarioPapel === 'admin'}
+              onAprovar={() => handleAprovarSolicitacao((mensagem as any).id, (mensagem as any).manifestacao_metadata)}
+              onRejeitar={() => handleRejeitarSolicitacao((mensagem as any).id, (mensagem as any).manifestacao_metadata)}
             />
+          )}
 
-            {/* Anexos */}
-            {mensagem.anexos && mensagem.anexos.length > 0 && (
-              <div className="mt-2 space-y-2">
-                {mensagem.anexos.map((anexo: any, idx: number) => (
-                  <AttachmentPreview 
-                    key={anexo.id || idx} 
-                    anexo={{
-                      nome: anexo.nome || anexo.nome_arquivo,
-                      url: anexo.url || anexo.url_publica,
-                      tipo: anexo.tipo || anexo.mime_type || 'application/octet-stream',
-                      tamanho: anexo.tamanho || anexo.tamanho_bytes || 0
-                    }}
-                    compact={mensagem.anexos.length > 1} 
-                  />
-                ))}
-              </div>
-            )}
-          </Card>
+          {/* Balão da mensagem normal */}
+          {mensagem.tipo !== 'solicitacao' && (
+            <Card
+              className={`p-3 ${
+                ['parecer', 'decisao', 'justificativa', 'observacao_formal'].includes(mensagem.tipo)
+                  ? 'border-l-4 border-l-primary bg-primary/5'
+                  : ehAutor
+                  ? 'bg-primary text-primary-foreground'
+                  : mensagem.tipo === 'nota_interna'
+                  ? 'bg-yellow-50 border-yellow-200'
+                  : 'bg-card'
+              }`}
+            >
+              <div
+                className="whitespace-pre-wrap break-words"
+                dangerouslySetInnerHTML={{
+                  __html: mensagem.mensagem_html || mensagem.mensagem
+                }}
+              />
+
+              {/* Anexos */}
+              {mensagem.anexos && mensagem.anexos.length > 0 && (
+                <div className="mt-2 space-y-2">
+                  {mensagem.anexos.map((anexo: any, idx: number) => (
+                    <AttachmentPreview 
+                      key={anexo.id || idx} 
+                      anexo={{
+                        nome: anexo.nome || anexo.nome_arquivo,
+                        url: anexo.url || anexo.url_publica,
+                        tipo: anexo.tipo || anexo.mime_type || 'application/octet-stream',
+                        tamanho: anexo.tamanho || anexo.tamanho_bytes || 0
+                      }}
+                      compact={mensagem.anexos.length > 1} 
+                    />
+                  ))}
+                </div>
+              )}
+            </Card>
+          )}
 
           {/* Ações */}
           <div className={`flex items-center gap-2 mt-1 ${ehAutor ? 'flex-row-reverse' : 'flex-row'}`}>
@@ -578,6 +817,19 @@ export function ChatWorkflow({ inscricaoId, executionId, etapaAtual, usuarioPape
             {mensagens.length} mensagem(ns)
           </p>
         </div>
+
+        {/* Botão Solicitar Alteração (apenas candidatos) */}
+        {usuarioPapel === 'candidato' && credenciadoId && (
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => setMostrarDialogSolicitacao(true)}
+            className="mr-2"
+          >
+            <FileEdit className="w-4 h-4 mr-2" />
+            Solicitar Alteração
+          </Button>
+        )}
 
         {/* Filtros de tipo de mensagem */}
         <div className="flex gap-2">
@@ -868,6 +1120,17 @@ export function ChatWorkflow({ inscricaoId, executionId, etapaAtual, usuarioPape
           </Button>
         </div>
       </div>
+
+      {/* Dialog de Solicitação de Alteração */}
+      {credenciadoId && (
+        <SolicitarAlteracaoChatDialog
+          open={mostrarDialogSolicitacao}
+          onOpenChange={setMostrarDialogSolicitacao}
+          dadosAtuais={dadosCredenciado || {}}
+          documentosAtuais={documentosCredenciado}
+          onSubmit={handleSolicitacaoSubmit}
+        />
+      )}
     </Card>
   );
 }
