@@ -72,12 +72,12 @@ export function useCredenciadosPublicos(filtros: FiltrosPublicos = {}) {
         filteredData.map(async (cred: any) => {
           const { data: stats } = await (supabase as any)
             .from('avaliacoes_publicas')
-            .select('nota')
+            .select('nota_estrelas')
             .eq('credenciado_id', cred.id)
             .eq('status', 'aprovada');
 
           const notaMedia = stats && stats.length > 0
-            ? stats.reduce((acc: number, val: any) => acc + (val as any).nota, 0) / stats.length
+            ? stats.reduce((acc: number, val: any) => acc + val.nota_estrelas, 0) / stats.length
             : 0;
 
           return {
@@ -138,12 +138,12 @@ export function useCredenciadoPublico(id: string | undefined) {
       // Buscar estatísticas
       const { data: avaliacoes } = await (supabase as any)
         .from('avaliacoes_publicas')
-        .select('nota')
+        .select('nota_estrelas')
         .eq('credenciado_id', id)
         .eq('status', 'aprovada');
 
       const notaMedia = avaliacoes && avaliacoes.length > 0
-        ? avaliacoes.reduce((acc: number, val: any) => acc + val.nota, 0) / avaliacoes.length
+        ? avaliacoes.reduce((acc: number, val: any) => acc + val.nota_estrelas, 0) / avaliacoes.length
         : 0;
 
       return {
@@ -185,12 +185,12 @@ export function useTopCredenciados(limit: number = 4) {
         (data || []).map(async (cred: any) => {
           const { data: avaliacoes } = await (supabase as any)
             .from('avaliacoes_publicas')
-            .select('nota')
+            .select('nota_estrelas')
             .eq('credenciado_id', cred.id)
             .eq('status', 'aprovada');
 
           const notaMedia = avaliacoes && avaliacoes.length > 0
-            ? avaliacoes.reduce((acc: number, val: any) => acc + val.nota, 0) / avaliacoes.length
+            ? avaliacoes.reduce((acc: number, val: any) => acc + val.nota_estrelas, 0) / avaliacoes.length
             : 0;
 
           return {
