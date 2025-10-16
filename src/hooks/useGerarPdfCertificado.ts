@@ -28,9 +28,27 @@ export const useGerarPdfCertificado = () => {
       
       // Fazer download automático se temos URL
       if (data?.url_pdf) {
-        setTimeout(() => {
-          window.open(data.url_pdf, '_blank');
-          toast.success('Abrindo certificado atualizado...');
+        setTimeout(async () => {
+          try {
+            const response = await fetch(data.url_pdf);
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `certificado-${variables.numeroCertificado}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            toast.success('Certificado atualizado e baixado!');
+          } catch (error) {
+            console.error('[AUTO_DOWNLOAD] Erro:', error);
+            // Fallback: abrir em nova aba
+            window.open(data.url_pdf, '_blank');
+            toast.success('Abrindo certificado atualizado...');
+          }
         }, 500);
       } else {
         toast.success(`PDF gerado com sucesso! Clique novamente para baixar.`);

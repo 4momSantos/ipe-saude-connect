@@ -54,11 +54,26 @@ export function ConsultaCertificado() {
         return;
       }
 
-      // Download direto apenas para URLs HTTP do Storage
+      // Download direto usando fetch + blob
       if (urlPdf.startsWith('http')) {
-        console.log('[DOWNLOAD] Abrindo URL do Storage:', urlPdf);
-        window.open(urlPdf, '_blank');
-        toast.success('Abrindo certificado...');
+        console.log('[DOWNLOAD] Baixando PDF:', urlPdf);
+        toast.loading('Baixando certificado...', { id: 'download-cert' });
+        
+        const response = await fetch(urlPdf);
+        if (!response.ok) throw new Error('Erro ao baixar certificado');
+        
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `certificado-${numeroCert}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        toast.success('Certificado baixado com sucesso!', { id: 'download-cert' });
       } else {
         console.error('[DOWNLOAD] Formato de URL não suportado:', urlPdf);
         toast.error('Formato de URL não suportado. Regenerando certificado...');
@@ -66,7 +81,7 @@ export function ConsultaCertificado() {
       }
     } catch (error) {
       console.error('[DOWNLOAD] Erro:', error);
-      toast.error('Erro ao processar certificado');
+      toast.error('Erro ao baixar certificado', { id: 'download-cert' });
     } finally {
       setDownloadingCertId(null);
     }
