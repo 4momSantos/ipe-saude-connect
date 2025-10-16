@@ -6294,6 +6294,13 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_batch_unread_counts: {
+        Args: { p_inscricao_ids: string[] }
+        Returns: {
+          inscricao_id: string
+          unread_count: number
+        }[]
+      }
       get_categorias_por_credenciado: {
         Args: { p_credenciado_id: string }
         Returns: {

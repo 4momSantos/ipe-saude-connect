@@ -63,36 +63,78 @@ export function useWorkflowMessages({
     loadCurrentUser();
   }, []);
 
-  // Carregar mensagens e setup realtime
+  // Carregar mensagens e setup realtime com debounce
   useEffect(() => {
     if (!inscricaoId) return;
 
     loadMessages();
 
-    // Realtime subscription
+    let debounceTimer: NodeJS.Timeout;
+    
+    // Realtime subscription com incremental updates
     const channel = supabase
       .channel(`workflow-messages:${inscricaoId}`)
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "INSERT",
           schema: "public",
           table: "workflow_messages",
           filter: `inscricao_id=eq.${inscricaoId}`,
         },
         (payload) => {
-          console.log("[WORKFLOW_MESSAGES] Realtime event:", payload.eventType);
-          if (payload.eventType === "INSERT" || payload.eventType === "UPDATE") {
+          console.log("[WORKFLOW_MESSAGES] Nova mensagem recebida");
+          
+          // Debounce: aguardar 300ms antes de processar
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            const newMsg = payload.new as any;
+            
+            // Adicionar apenas se não é do usuário atual
+            if (newMsg.sender_id !== currentUserId) {
+              const formattedMsg: Message = {
+                id: newMsg.id,
+                sender_id: newMsg.sender_id,
+                sender_type: newMsg.sender_type,
+                content: newMsg.content || newMsg.mensagem,
+                created_at: newMsg.created_at,
+                is_read: newMsg.is_read,
+                read_at: newMsg.read_at,
+                sender_name: newMsg.usuario_nome || "Usuário",
+                sender_email: newMsg.usuario_email,
+              };
+              
+              setMessages(prev => [...prev, formattedMsg]);
+              setUnreadCount(prev => prev + 1);
+            }
+          }, 300);
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "workflow_messages",
+          filter: `inscricao_id=eq.${inscricaoId}`,
+        },
+        (payload) => {
+          console.log("[WORKFLOW_MESSAGES] Mensagem atualizada");
+          
+          // Para updates, debounce e refresh
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
             loadMessages();
-          }
+          }, 500);
         }
       )
       .subscribe();
 
     return () => {
+      clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-  }, [inscricaoId]);
+  }, [inscricaoId, currentUserId]);
 
   // Auto-marcar como lidas quando mensagens mudam
   useEffect(() => {

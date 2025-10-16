@@ -149,23 +149,57 @@ export function ChatWorkflow({
 
   const carregarMensagens = async () => {
     try {
+      // Query direta otimizada - últimas 100 mensagens
       const { data, error } = await supabase
-        .from('v_mensagens_completas' as any)
-        .select('*')
+        .from('workflow_messages')
+        .select(`
+          id,
+          usuario_id: sender_id,
+          usuario_nome,
+          usuario_email,
+          usuario_papel,
+          tipo,
+          mensagem,
+          mensagem_html,
+          mencoes,
+          em_resposta_a,
+          anexos: anexos_mensagens(
+            id,
+            nome_arquivo,
+            url_publica,
+            mime_type,
+            tamanho_bytes
+          ),
+          lido_por,
+          created_at,
+          editada,
+          status_aprovacao,
+          manifestacao_metadata
+        `)
         .eq('inscricao_id', inscricaoId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false })
+        .limit(100);
 
       if (error) throw error;
       
-      setMensagens((data as any) || []);
+      // Reverter ordem para cronológica
+      const mensagensOrdenadas = (data || []).reverse();
+      setMensagens(mensagensOrdenadas as any);
       
-      // Marcar mensagens como lidas
-      if (currentUser) {
-        (data as any)?.forEach((msg: any) => {
-          if (msg.usuario_id !== currentUser?.id) {
-            marcarComoLida(msg.id);
-          }
-        });
+      // Marcar mensagens como lidas (batch)
+      if (currentUser && data) {
+        const idsParaMarcar = data
+          .filter((msg: any) => msg.usuario_id !== currentUser?.id)
+          .map((msg: any) => msg.id);
+        
+        if (idsParaMarcar.length > 0) {
+          // Marcar em lote
+          await supabase
+            .from('workflow_messages')
+            .update({ is_read: true, read_at: new Date().toISOString() })
+            .in('id', idsParaMarcar)
+            .eq('is_read', false);
+        }
       }
     } catch (error: any) {
       toast.error('Erro ao carregar mensagens: ' + error.message);
@@ -198,9 +232,47 @@ export function ChatWorkflow({
           table: 'workflow_messages',
           filter: `inscricao_id=eq.${inscricaoId}`
         },
-        (payload) => {
+        async (payload) => {
           console.log('Nova mensagem recebida:', payload);
-          carregarMensagens();
+          
+          // Realtime incremental: adicionar apenas nova mensagem
+          const novaMensagem = payload.new as any;
+          
+          // Buscar dados complementares apenas da nova mensagem
+          const { data: anexosData } = await supabase
+            .from('anexos_mensagens')
+            .select('*')
+            .eq('mensagem_id', novaMensagem.id);
+          
+          // Construir mensagem completa
+          const mensagemCompleta = {
+            id: novaMensagem.id,
+            usuario_id: novaMensagem.sender_id,
+            usuario_nome: novaMensagem.usuario_nome,
+            usuario_email: novaMensagem.usuario_email,
+            usuario_papel: novaMensagem.usuario_papel,
+            tipo: novaMensagem.tipo,
+            mensagem: novaMensagem.mensagem,
+            mensagem_html: novaMensagem.mensagem_html,
+            mencoes: novaMensagem.mencoes || [],
+            em_resposta_a: novaMensagem.em_resposta_a,
+            anexos: anexosData || [],
+            lido_por: novaMensagem.lido_por || [],
+            created_at: novaMensagem.created_at,
+            editada: novaMensagem.editada || false,
+            status_aprovacao: novaMensagem.status_aprovacao,
+            manifestacao_metadata: novaMensagem.manifestacao_metadata
+          };
+          
+          // Adicionar apenas se não é do usuário atual
+          if (novaMensagem.sender_id !== currentUser?.id) {
+            setMensagens(prev => [...prev, mensagemCompleta]);
+            
+            // Marcar como lida
+            if (currentUser) {
+              marcarComoLida(novaMensagem.id);
+            }
+          }
         }
       )
       .subscribe();
