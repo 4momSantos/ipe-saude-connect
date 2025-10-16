@@ -1,54 +1,42 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { CheckCircle, AlertTriangle, AlertCircle, AlertOctagon, XCircle, TrendingUp } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useMemo } from "react";
 
-export function DashboardKPIs() {
-  const { data: stats, isLoading } = useQuery({
-    queryKey: ['dashboard-prazos-stats'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('v_prazos_completos')
-        .select('dias_para_vencer, nivel_alerta')
-        .eq('entidade_tipo', 'documento_credenciado');
+interface DocumentoComOrigem {
+  id: string;
+  dias_para_vencer: number;
+  nivel_alerta: string;
+  [key: string]: any;
+}
 
-      if (error) throw error;
+interface DashboardKPIsProps {
+  documentos: DocumentoComOrigem[];
+}
 
-      const validos = data?.filter(d => d.dias_para_vencer > 30).length || 0;
-      const atencao = data?.filter(d => d.dias_para_vencer >= 15 && d.dias_para_vencer <= 30).length || 0;
-      const criticos = data?.filter(d => d.dias_para_vencer >= 7 && d.dias_para_vencer < 15).length || 0;
-      const urgentes = data?.filter(d => d.dias_para_vencer >= 1 && d.dias_para_vencer < 7).length || 0;
-      const vencidos = data?.filter(d => d.dias_para_vencer < 0).length || 0;
-      const total = data?.length || 0;
+export function DashboardKPIs({ documentos }: DashboardKPIsProps) {
+  const stats = useMemo(() => {
+    const validos = documentos.filter(d => d.dias_para_vencer > 30).length;
+    const atencao = documentos.filter(d => d.dias_para_vencer >= 15 && d.dias_para_vencer <= 30).length;
+    const criticos = documentos.filter(d => d.dias_para_vencer >= 7 && d.dias_para_vencer < 15).length;
+    const urgentes = documentos.filter(d => d.dias_para_vencer >= 1 && d.dias_para_vencer < 7).length;
+    const vencidos = documentos.filter(d => d.dias_para_vencer < 0).length;
+    const total = documentos.length;
 
-      const taxaConformidade = total > 0 
-        ? Math.round(((validos + atencao) / total) * 100) 
-        : 0;
+    const taxaConformidade = total > 0 
+      ? Math.round(((validos + atencao) / total) * 100) 
+      : 0;
 
-      return {
-        validos,
-        atencao,
-        criticos,
-        urgentes,
-        vencidos,
-        total,
-        taxaConformidade,
-        acaoNecessaria: criticos + urgentes + vencidos,
-      };
-    },
-    refetchInterval: 60000, // Atualizar a cada 1 minuto
-  });
-
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {[...Array(6)].map((_, i) => (
-          <Skeleton key={i} className="h-24" />
-        ))}
-      </div>
-    );
-  }
+    return {
+      validos,
+      atencao,
+      criticos,
+      urgentes,
+      vencidos,
+      total,
+      taxaConformidade,
+      acaoNecessaria: criticos + urgentes + vencidos,
+    };
+  }, [documentos]);
 
   const kpis = [
     {

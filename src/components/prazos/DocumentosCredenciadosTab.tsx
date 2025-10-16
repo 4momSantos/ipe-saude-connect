@@ -15,6 +15,11 @@ import { VencimentosTimeline } from './VencimentosTimeline';
 import { useFilterPreferences } from '@/hooks/useFilterPreferences';
 import { exportToCSV, exportToPDF } from '@/lib/exportUtils';
 import { toast } from 'sonner';
+import { StatusBadge } from './StatusBadge';
+import { DashboardKPIs } from './DashboardKPIs';
+import { DocumentoHistorico } from './DocumentoHistorico';
+import { EditarDataVencimento } from './EditarDataVencimento';
+import { AcoesEmMassa } from './AcoesEmMassa';
 
 interface PrazoDocumento {
   id: string;
@@ -47,6 +52,9 @@ export function DocumentosCredenciadosTab() {
   const [filtroSituacaoPrazo, setFiltroSituacaoPrazo] = useState<string | null>(null);
   const [filtroTipoDoc, setFiltroTipoDoc] = useState<string[]>([]);
   const [incluirArquivados, setIncluirArquivados] = useState(false);
+  
+  // Ações em massa
+  const [documentosSelecionados, setDocumentosSelecionados] = useState<string[]>([]);
 
   // Preferências de filtros persistentes
   const { preferences, savePreferences } = useFilterPreferences('prazos-documentos');
@@ -342,33 +350,16 @@ export function DocumentosCredenciadosTab() {
         </Button>
       </div>
 
-      {/* KPIs Mini */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-3xl font-bold text-green-600">{totais.ativo}</p>
-              <p className="text-sm text-muted-foreground">Válidos</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-3xl font-bold text-yellow-600">{totais.vencendo}</p>
-              <p className="text-sm text-muted-foreground">Vencendo</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <p className="text-3xl font-bold text-red-600">{totais.vencido}</p>
-              <p className="text-sm text-muted-foreground">Vencidos</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Dashboard KPIs Completo */}
+      <DashboardKPIs documentos={documentosFiltrados} />
+
+      {/* Ações em Massa */}
+      {documentosSelecionados.length > 0 && (
+        <AcoesEmMassa
+          documentosSelecionados={documentosSelecionados}
+          onClearSelection={() => setDocumentosSelecionados([])}
+        />
+      )}
 
       {/* Filtros Avançados */}
       <AdvancedFilters
