@@ -44,6 +44,18 @@ export interface Prazo {
   atualizado_em: string;
 }
 
+export interface CredenciadoPrazos {
+  credenciado_id: string;
+  credenciado_nome: string;
+  credenciado_cpf: string;
+  total_documentos: number;
+  documentos_validos: number;
+  documentos_vencendo: number;
+  documentos_vencidos: number;
+  documentos_criticos: number;
+  prazos: Prazo[];
+}
+
 export function usePrazos() {
   const queryClient = useQueryClient();
 
@@ -53,15 +65,15 @@ export function usePrazos() {
       const { data, error } = await supabase
         .from('v_dashboard_vencimentos')
         .select('*')
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      return data as Dashboard;
+      return data as Dashboard | null;
     }
   });
 
-  const { data: prazos, isLoading: loadingPrazos } = useQuery({
-    queryKey: ['prazos-completos'],
+  const { data: prazosAgrupados, isLoading: loadingPrazos } = useQuery({
+    queryKey: ['prazos-agrupados'],
     queryFn: async () => {
       // Buscar todos os documentos com prazos de validade
       const { data: documentos, error } = await supabase
@@ -88,32 +100,34 @@ export function usePrazos() {
 
       if (error) throw error;
 
-      // Transformar dados para o formato esperado
-      const prazosFormatados = documentos?.map(doc => {
+      // Transformar e agrupar por credenciado
+      const agrupamento = new Map<string, CredenciadoPrazos>();
+
+      documentos?.forEach(doc => {
         const dataVenc = new Date(doc.data_vencimento);
         const hoje = new Date();
         const diffTime = dataVenc.getTime() - hoje.getTime();
         const diasParaVencer = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
         let nivelAlerta = 'valido';
-        let corStatus = '#10b981'; // verde
+        let corStatus = '#10b981';
         let statusAtual = 'valido';
 
         if (diasParaVencer < 0) {
           nivelAlerta = 'vencido';
-          corStatus = '#ef4444'; // vermelho
+          corStatus = '#ef4444';
           statusAtual = 'vencido';
         } else if (diasParaVencer <= 7) {
           nivelAlerta = 'critico';
-          corStatus = '#f97316'; // laranja
+          corStatus = '#f97316';
           statusAtual = 'vencendo';
         } else if (diasParaVencer <= 30) {
           nivelAlerta = 'atencao';
-          corStatus = '#f59e0b'; // amarelo
+          corStatus = '#f59e0b';
           statusAtual = 'vencendo';
         }
 
-        return {
+        const prazo: Prazo = {
           id: doc.id,
           entidade_tipo: 'documento',
           entidade_id: doc.id,
@@ -138,10 +152,39 @@ export function usePrazos() {
           observacoes: '',
           criado_em: doc.criado_em,
           atualizado_em: doc.atualizado_em
-        } as Prazo;
-      }) || [];
+        };
 
-      return prazosFormatados;
+        if (!agrupamento.has(doc.credenciado_id)) {
+          agrupamento.set(doc.credenciado_id, {
+            credenciado_id: doc.credenciado_id,
+            credenciado_nome: doc.credenciados.nome,
+            credenciado_cpf: doc.credenciados.cpf,
+            total_documentos: 0,
+            documentos_validos: 0,
+            documentos_vencendo: 0,
+            documentos_vencidos: 0,
+            documentos_criticos: 0,
+            prazos: []
+          });
+        }
+
+        const grupo = agrupamento.get(doc.credenciado_id)!;
+        grupo.total_documentos++;
+        grupo.prazos.push(prazo);
+
+        if (statusAtual === 'vencido') {
+          grupo.documentos_vencidos++;
+        } else if (nivelAlerta === 'critico') {
+          grupo.documentos_criticos++;
+          grupo.documentos_vencendo++;
+        } else if (nivelAlerta === 'atencao') {
+          grupo.documentos_vencendo++;
+        } else {
+          grupo.documentos_validos++;
+        }
+      });
+
+      return Array.from(agrupamento.values());
     }
   });
 
@@ -155,7 +198,7 @@ export function usePrazos() {
     onSuccess: () => {
       toast.success('Prazos atualizados com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['dashboard-vencimentos'] });
-      queryClient.invalidateQueries({ queryKey: ['prazos-completos'] });
+      queryClient.invalidateQueries({ queryKey: ['prazos-agrupados'] });
     },
     onError: (error: any) => {
       toast.error('Erro ao atualizar prazos: ' + error.message);
@@ -179,7 +222,7 @@ export function usePrazos() {
     },
     onSuccess: () => {
       toast.success('Prazo renovado com sucesso!');
-      queryClient.invalidateQueries({ queryKey: ['prazos-completos'] });
+      queryClient.invalidateQueries({ queryKey: ['prazos-agrupados'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-vencimentos'] });
     },
     onError: (error: any) => {
@@ -189,7 +232,7 @@ export function usePrazos() {
 
   return {
     dashboard,
-    prazos: prazos || [],
+    prazosAgrupados: prazosAgrupados || [],
     isLoading: loadingDashboard || loadingPrazos,
     atualizarAgora,
     renovarPrazo
