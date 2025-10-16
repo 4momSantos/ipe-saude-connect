@@ -38,8 +38,11 @@ serve(async (req) => {
       timestamp: new Date().toISOString()
     }));
 
-    // Buscar inscrições aprovadas sem contrato
-    const { data: orphans, error: fetchError } = await supabase
+    // Buscar TODAS as análises aprovadas (últimas 72h para garantir)
+    const cutoffDate = new Date();
+    cutoffDate.setHours(cutoffDate.getHours() - 72);
+    
+    const { data: allAnalises, error: fetchError } = await supabase
       .from("analises")
       .select(`
         id,
@@ -51,13 +54,44 @@ serve(async (req) => {
         )
       `)
       .eq("status", "aprovado")
-      .is("inscricao.contratos.id", null)
-      .order("analisado_em", { ascending: false })
-      .limit(50);
+      .gte("analisado_em", cutoffDate.toISOString())
+      .order("analisado_em", { ascending: false });
 
     if (fetchError) {
-      throw new Error(`Erro ao buscar órfãos: ${fetchError.message}`);
+      throw new Error(`Erro ao buscar análises: ${fetchError.message}`);
     }
+
+    if (!allAnalises || allAnalises.length === 0) {
+      console.log(JSON.stringify({
+        level: "info",
+        action: "no_approved_found_in_72h"
+      }));
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "Nenhuma análise aprovada encontrada nas últimas 72h",
+          processed: 0
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Buscar contratos existentes para essas inscrições
+    const inscricaoIds = allAnalises.map(a => a.inscricao_id);
+    const { data: existingContratos } = await supabase
+      .from("contratos")
+      .select("inscricao_id")
+      .in("inscricao_id", inscricaoIds);
+
+    const existingInscricaoIds = new Set(
+      (existingContratos || []).map(c => c.inscricao_id)
+    );
+
+    // Filtrar apenas as que NÃO têm contrato
+    const orphans = allAnalises.filter(
+      a => !existingInscricaoIds.has(a.inscricao_id)
+    );
 
     if (!orphans || orphans.length === 0) {
       console.log(JSON.stringify({
