@@ -172,6 +172,6 @@ export async function seedInscricoes(
 
     return { success: errors.length === 0, phase: 'inscricoes', created, errors, duration: 0 };
   } catch (error) {
-    throw new Error(`Falha na fase de inscrições: ${error.message}`);
+    throw new Error(`Falha na fase de inscrições: ${(error as Error).message}`);
   }
 }
