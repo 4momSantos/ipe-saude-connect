@@ -339,7 +339,7 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
             </TabsContent>
 
             <TabsContent value="workflow" className="m-0 p-6">
-              <div className="max-w-3xl mx-auto space-y-4">
+              <div className="space-y-4">
                 {loading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -442,12 +442,10 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
               />
             </TabsContent>
             <TabsContent value="historico" className="m-0 p-6">
-              <div className="max-w-3xl mx-auto">
-                <HistoryTab 
-                  processoId={processo.id}
-                  dadosInscricao={dadosInscricao}
-                />
-              </div>
+              <HistoryTab 
+                processoId={processo.id}
+                dadosInscricao={dadosInscricao}
+              />
             </TabsContent>
           </ScrollArea>
         </Tabs>
