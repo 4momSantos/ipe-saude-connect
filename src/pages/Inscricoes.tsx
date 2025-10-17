@@ -103,8 +103,8 @@ export default function Inscricoes() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Minhas Inscrições</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Minhas Inscrições</h1>
+          <p className="text-sm md:text-base text-muted-foreground mt-2">
             Acompanhe o status das suas inscrições em editais de credenciamento
           </p>
         </div>
@@ -112,15 +112,15 @@ export default function Inscricoes() {
 
       {inscricoes.length === 0 ? (
         <Card className="border bg-card">
-          <CardContent className="flex flex-col items-center justify-center py-12 space-y-4">
-            <FileText className="h-16 w-16 text-muted-foreground" />
+          <CardContent className="flex flex-col items-center justify-center py-12 space-y-4 p-4 md:p-6">
+            <FileText className="h-12 w-12 md:h-16 md:w-16 text-muted-foreground" />
             <div className="text-center space-y-2">
-              <p className="text-lg font-medium">Nenhuma inscrição realizada</p>
-              <p className="text-muted-foreground">
+              <p className="text-base md:text-lg font-medium">Nenhuma inscrição realizada</p>
+              <p className="text-sm md:text-base text-muted-foreground">
                 Acesse a página de Editais para se inscrever em processos de credenciamento
               </p>
             </div>
-            <Button onClick={() => navigate('/editais')} className="mt-4">
+            <Button onClick={() => navigate('/editais')} className="mt-4 w-full sm:w-auto">
               Ver Editais Disponíveis
             </Button>
           </CardContent>
@@ -129,29 +129,33 @@ export default function Inscricoes() {
         <div className="grid gap-4">
           {inscricoes.map((inscricao) => (
             <Card key={inscricao.id} className="border bg-card hover-lift transition-all">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-primary" />
-                      {inscricao.editais?.titulo || 'Edital'}
+              <CardHeader className="p-3 md:p-6">
+                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <CardTitle className="flex items-center gap-2 text-base md:text-lg line-clamp-2">
+                      <FileText className="h-4 w-4 md:h-5 md:w-5 text-primary flex-shrink-0" />
+                      <span className="break-words">{inscricao.editais?.titulo || 'Edital'}</span>
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-xs md:text-sm">
                       Inscrição realizada em {new Date(inscricao.created_at).toLocaleDateString('pt-BR')}
                     </CardDescription>
                     {inscricao.editais?.especialidade && (
-                      <Badge variant="secondary" className="mt-2">
+                      <Badge variant="secondary" className="mt-2 text-[10px] md:text-xs">
                         {inscricao.editais.especialidade}
                       </Badge>
                     )}
                   </div>
-                  {getStatusBadge(inscricao.status)}
+                  <div className="flex-shrink-0">
+                    {getStatusBadge(inscricao.status)}
+                  </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 md:p-6 pt-0">
                 <Button 
                   onClick={() => navigate('/editais')}
                   variant="outline"
+                  size="sm"
+                  className="w-full sm:w-auto text-xs md:text-sm"
                 >
                   Acompanhar Processo
                 </Button>

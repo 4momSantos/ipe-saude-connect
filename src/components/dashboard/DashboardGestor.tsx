@@ -184,73 +184,73 @@ export function DashboardGestor() {
   return (
     <div className="space-y-8 pb-8">
       {/* Header Premium */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border border-primary/20 p-8">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-background border border-primary/20 p-4 md:p-8">
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-chart-2/5 rounded-full blur-3xl" />
         <div className="relative">
-          <div className="flex items-center gap-3 mb-2">
-            <Award className="h-8 w-8 text-primary" />
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-transparent">
+          <div className="flex items-center gap-2 md:gap-3 mb-2">
+            <Award className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+            <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-primary to-chart-2 bg-clip-text text-transparent">
               Relatório Executivo
             </h1>
           </div>
-          <p className="text-muted-foreground text-lg">Visão completa e consolidada do sistema de credenciamento</p>
+          <p className="text-muted-foreground text-sm md:text-base lg:text-lg">Visão completa e consolidada do sistema de credenciamento</p>
         </div>
       </div>
 
       {/* KPIs Premium Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="border-l-4 border-l-chart-1 hover:shadow-lg transition-shadow">
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Total de Inscrições</p>
-                <p className="text-3xl font-bold text-foreground">{stats.totalInscricoes}</p>
+                <p className="text-xs md:text-sm font-medium text-muted-foreground">Total de Inscrições</p>
+                <p className="text-2xl md:text-3xl font-bold text-foreground">{stats.totalInscricoes}</p>
               </div>
-              <div className="h-14 w-14 rounded-full bg-chart-1/10 flex items-center justify-center">
-                <Users className="h-7 w-7 text-chart-1" />
+              <div className="h-10 w-10 md:h-14 md:w-14 rounded-full bg-chart-1/10 flex items-center justify-center">
+                <Users className="h-5 w-5 md:h-7 md:w-7 text-chart-1" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-chart-2 hover:shadow-lg transition-shadow">
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Taxa de Aprovação</p>
-                <p className="text-3xl font-bold text-foreground">{taxaAprovacao}%</p>
+                <p className="text-xs md:text-sm font-medium text-muted-foreground">Taxa de Aprovação</p>
+                <p className="text-2xl md:text-3xl font-bold text-foreground">{taxaAprovacao}%</p>
               </div>
-              <div className="h-14 w-14 rounded-full bg-chart-2/10 flex items-center justify-center">
-                <TrendingUp className="h-7 w-7 text-chart-2" />
+              <div className="h-10 w-10 md:h-14 md:w-14 rounded-full bg-chart-2/10 flex items-center justify-center">
+                <TrendingUp className="h-5 w-5 md:h-7 md:w-7 text-chart-2" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-chart-3 hover:shadow-lg transition-shadow">
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Credenciados Ativos</p>
-                <p className="text-3xl font-bold text-foreground">{stats.credenciadosAtivos}</p>
+                <p className="text-xs md:text-sm font-medium text-muted-foreground">Credenciados Ativos</p>
+                <p className="text-2xl md:text-3xl font-bold text-foreground">{stats.credenciadosAtivos}</p>
               </div>
-              <div className="h-14 w-14 rounded-full bg-chart-3/10 flex items-center justify-center">
-                <UserCheck className="h-7 w-7 text-chart-3" />
+              <div className="h-10 w-10 md:h-14 md:w-14 rounded-full bg-chart-3/10 flex items-center justify-center">
+                <UserCheck className="h-5 w-5 md:h-7 md:w-7 text-chart-3" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-chart-4 hover:shadow-lg transition-shadow">
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-sm font-medium text-muted-foreground">Editais Ativos</p>
-                <p className="text-3xl font-bold text-foreground">{stats.editaisAtivos}</p>
+                <p className="text-xs md:text-sm font-medium text-muted-foreground">Editais Ativos</p>
+                <p className="text-2xl md:text-3xl font-bold text-foreground">{stats.editaisAtivos}</p>
               </div>
-              <div className="h-14 w-14 rounded-full bg-chart-4/10 flex items-center justify-center">
-                <FileText className="h-7 w-7 text-chart-4" />
+              <div className="h-10 w-10 md:h-14 md:w-14 rounded-full bg-chart-4/10 flex items-center justify-center">
+                <FileText className="h-5 w-5 md:h-7 md:w-7 text-chart-4" />
               </div>
             </div>
           </CardContent>

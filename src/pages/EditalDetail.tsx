@@ -151,20 +151,22 @@ export default function EditalDetail() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <Button variant="ghost" onClick={() => navigate("/editais")} className="mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar para Editais
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/editais")} className="mb-2 md:mb-4">
+            <ArrowLeft className="h-3 w-3 md:h-4 md:w-4 mr-2" />
+            <span className="text-xs md:text-sm">Voltar para Editais</span>
           </Button>
-          <h1 className="text-3xl font-bold">{edital.titulo}</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl md:text-3xl font-bold break-words">{edital.titulo}</h1>
+          <p className="text-sm md:text-base text-muted-foreground mt-1">
             Edital {edital.numero_edital}
           </p>
         </div>
-        <Badge variant={edital.status === 'publicado' ? 'default' : 'secondary'}>
-          {edital.status}
-        </Badge>
+        <div className="flex-shrink-0">
+          <Badge variant={edital.status === 'publicado' ? 'default' : 'secondary'} className="text-xs md:text-sm">
+            {edital.status}
+          </Badge>
+        </div>
       </div>
 
       {/* Informações Básicas */}
@@ -175,25 +177,25 @@ export default function EditalDetail() {
             Informações do Edital
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 p-4 md:p-6">
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Descrição</p>
-            <p className="mt-1">{edital.descricao}</p>
+            <p className="text-xs md:text-sm font-medium text-muted-foreground">Descrição</p>
+            <p className="mt-1 text-sm md:text-base break-words">{edital.descricao}</p>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
+              <p className="text-xs md:text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Calendar className="h-3 w-3 md:h-4 md:w-4" />
                 Data de Início
               </p>
-              <p className="mt-1">{new Date(edital.data_inicio).toLocaleDateString('pt-BR')}</p>
+              <p className="mt-1 text-sm md:text-base">{new Date(edital.data_inicio).toLocaleDateString('pt-BR')}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
+              <p className="text-xs md:text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Calendar className="h-3 w-3 md:h-4 md:w-4" />
                 Data de Término
               </p>
-              <p className="mt-1">{new Date(edital.data_fim).toLocaleDateString('pt-BR')}</p>
+              <p className="mt-1 text-sm md:text-base">{new Date(edital.data_fim).toLocaleDateString('pt-BR')}</p>
             </div>
           </div>
         </CardContent>
@@ -208,18 +210,18 @@ export default function EditalDetail() {
               Fluxo de Processo Vinculado
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-4 border rounded-lg bg-accent/5">
-              <div className="flex items-center gap-4">
-                <Workflow className="h-10 w-10 text-primary" />
-                <div>
-                  <p className="font-semibold text-lg">{workflow.name}</p>
-                  <p className="text-sm text-muted-foreground">{workflow.description}</p>
-                  <Badge variant="outline" className="mt-1">Versão {workflow.version}</Badge>
+          <CardContent className="space-y-4 p-4 md:p-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between p-3 md:p-4 border rounded-lg bg-accent/5 gap-3">
+              <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
+                <Workflow className="h-8 w-8 md:h-10 md:w-10 text-primary flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-base md:text-lg break-words">{workflow.name}</p>
+                  <p className="text-xs md:text-sm text-muted-foreground break-words">{workflow.description}</p>
+                  <Badge variant="outline" className="mt-1 text-[10px] md:text-xs">Versão {workflow.version}</Badge>
                 </div>
               </div>
-              <Button variant="outline" size="sm" onClick={() => navigate(`/workflow-editor/${workflow.id}`)}>
-                <Eye className="h-4 w-4 mr-2" />
+              <Button variant="outline" size="sm" className="w-full md:w-auto text-xs md:text-sm" onClick={() => navigate(`/workflow-editor/${workflow.id}`)}>
+                <Eye className="h-3 w-3 md:h-4 md:w-4 mr-2" />
                 Ver Workflow
               </Button>
             </div>
@@ -238,23 +240,24 @@ export default function EditalDetail() {
               ) : (
                 <div className="space-y-2">
                   {formularios.map((form, idx) => (
-                    <Card key={form.id} className="p-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Badge variant="secondary" className="w-8 h-8 flex items-center justify-center">
+                    <Card key={form.id} className="p-2 md:p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+                          <Badge variant="secondary" className="w-6 h-6 md:w-8 md:h-8 flex items-center justify-center text-xs md:text-sm flex-shrink-0">
                             {idx + 1}
                           </Badge>
-                          <div>
-                            <p className="font-medium">{form.name}</p>
-                            <p className="text-xs text-muted-foreground">{form.category}</p>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-xs md:text-sm break-words">{form.name}</p>
+                            <p className="text-[10px] md:text-xs text-muted-foreground">{form.category}</p>
                           </div>
                         </div>
                         <Button 
                           variant="ghost" 
-                          size="sm" 
+                          size="sm"
+                          className="h-7 w-7 md:h-8 md:w-8 flex-shrink-0"
                           onClick={() => navigate(`/templates-formularios?template=${form.id}`)}
                         >
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-3 w-3 md:h-4 md:w-4" />
                         </Button>
                       </div>
                     </Card>

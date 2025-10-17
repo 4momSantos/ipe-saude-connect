@@ -150,8 +150,8 @@ export function DashboardAnalista() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Painel do Analista</h1>
-        <p className="text-muted-foreground">Gerencie análises e credenciamentos</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground">Painel do Analista</h1>
+        <p className="text-sm md:text-base text-muted-foreground">Gerencie análises e credenciamentos</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -264,21 +264,23 @@ export function DashboardAnalista() {
               {inscricoesPendentes.map((inscricao) => (
                 <div
                   key={inscricao.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 md:p-4 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer gap-3"
                   onClick={() => navigate('/analises')}
                 >
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-foreground">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-sm md:text-base text-foreground break-words">
                       {inscricao.editais.titulo}
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs md:text-sm text-muted-foreground break-words">
                       Candidato: {inscricao.profiles?.nome || inscricao.profiles?.email || 'N/A'}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-[10px] md:text-xs text-muted-foreground mt-1">
                       Inscrito em: {format(new Date(inscricao.created_at), 'dd/MM/yyyy HH:mm')}
                     </p>
                   </div>
-                  <StatusBadge status={inscricao.status as any} />
+                  <div className="flex-shrink-0">
+                    <StatusBadge status={inscricao.status as any} />
+                  </div>
                 </div>
               ))}
             </div>

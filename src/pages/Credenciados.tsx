@@ -137,51 +137,53 @@ export default function Credenciados() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          Prestadores Credenciados
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Listagem completa de prestadores da rede IPE Saúde
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
+            Prestadores Credenciados
+          </h1>
+          <p className="text-sm md:text-base text-muted-foreground mt-2">
+            Listagem completa de prestadores da rede IPE Saúde
+          </p>
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
         <Card className="border bg-card">
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Credenciados</p>
-                <p className="text-2xl font-bold text-foreground">{credenciados?.length || 0}</p>
+                <p className="text-xs md:text-sm font-medium text-muted-foreground">Total Credenciados</p>
+                <p className="text-xl md:text-2xl font-bold text-foreground">{credenciados?.length || 0}</p>
               </div>
-              <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center">
-                <span className="text-2xl">👥</span>
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-primary/20 flex items-center justify-center">
+                <span className="text-xl md:text-2xl">👥</span>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card className="border bg-card">
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Ativos</p>
-                <p className="text-2xl font-bold text-green-400">{totalAtivos}</p>
+                <p className="text-xs md:text-sm font-medium text-muted-foreground">Ativos</p>
+                <p className="text-xl md:text-2xl font-bold text-green-400">{totalAtivos}</p>
               </div>
-              <div className="h-12 w-12 rounded-full bg-green-500/20 flex items-center justify-center">
-                <span className="text-2xl">✓</span>
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                <span className="text-xl md:text-2xl">✓</span>
               </div>
             </div>
           </CardContent>
         </Card>
         <Card className="border bg-card">
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Inativos</p>
-                <p className="text-2xl font-bold text-red-400">{totalInativos}</p>
+                <p className="text-xs md:text-sm font-medium text-muted-foreground">Inativos</p>
+                <p className="text-xl md:text-2xl font-bold text-red-400">{totalInativos}</p>
               </div>
-              <div className="h-12 w-12 rounded-full bg-red-500/20 flex items-center justify-center">
-                <span className="text-2xl">✕</span>
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                <span className="text-xl md:text-2xl">✕</span>
               </div>
             </div>
           </CardContent>
@@ -190,27 +192,27 @@ export default function Credenciados() {
 
       <Card className="border bg-card card-glow">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-foreground">Lista de Credenciados</CardTitle>
-            <Button variant="outline" className="border-border hover:bg-card gap-2">
-              <Download className="h-4 w-4" />
-              Exportar
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <CardTitle className="text-base md:text-lg lg:text-xl text-foreground">Lista de Credenciados</CardTitle>
+            <Button variant="outline" size="sm" className="border-border hover:bg-card gap-2 w-full sm:w-auto">
+              <Download className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="text-xs md:text-sm">Exportar</span>
             </Button>
           </div>
-          <div className="flex flex-col lg:flex-row gap-4 mt-4">
-            <div className="relative flex-1">
+          <div className="flex flex-col gap-4 mt-4">
+            <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar por nome, CPF/CNPJ ou CRM..."
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
-                className="pl-10 bg-background"
+                className="pl-10 bg-background text-sm"
               />
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-2">
               <Select value={filtroEspecialidade} onValueChange={setFiltroEspecialidade}>
-                <SelectTrigger className="w-[180px] bg-background">
-                  <Filter className="h-4 w-4 mr-2" />
+                <SelectTrigger className="w-full sm:w-[180px] bg-background text-xs md:text-sm">
+                  <Filter className="h-3 w-3 md:h-4 md:w-4 mr-2" />
                   <SelectValue placeholder="Especialidade" />
                 </SelectTrigger>
                 <SelectContent>
@@ -223,8 +225,8 @@ export default function Credenciados() {
                 </SelectContent>
               </Select>
               <Select value={filtroMunicipio} onValueChange={setFiltroMunicipio}>
-                <SelectTrigger className="w-[180px] bg-background">
-                  <Filter className="h-4 w-4 mr-2" />
+                <SelectTrigger className="w-full sm:w-[180px] bg-background text-xs md:text-sm">
+                  <Filter className="h-3 w-3 md:h-4 md:w-4 mr-2" />
                   <SelectValue placeholder="Município" />
                 </SelectTrigger>
                 <SelectContent>
@@ -237,8 +239,8 @@ export default function Credenciados() {
                 </SelectContent>
               </Select>
               <Select value={filtroAreaAtuacao} onValueChange={setFiltroAreaAtuacao}>
-                <SelectTrigger className="w-[180px] bg-background">
-                  <Filter className="h-4 w-4 mr-2" />
+                <SelectTrigger className="w-full sm:w-[180px] bg-background text-xs md:text-sm">
+                  <Filter className="h-3 w-3 md:h-4 md:w-4 mr-2" />
                   <SelectValue placeholder="Área de Atuação" />
                 </SelectTrigger>
                 <SelectContent>
@@ -251,8 +253,8 @@ export default function Credenciados() {
                 </SelectContent>
               </Select>
               <Select value={filtroServico} onValueChange={setFiltroServico}>
-                <SelectTrigger className="w-[200px] bg-background">
-                  <Filter className="h-4 w-4 mr-2" />
+                <SelectTrigger className="w-full sm:w-[200px] bg-background text-xs md:text-sm">
+                  <Filter className="h-3 w-3 md:h-4 md:w-4 mr-2" />
                   <SelectValue placeholder="Serviço Ofertado" />
                 </SelectTrigger>
                 <SelectContent>
@@ -265,7 +267,7 @@ export default function Credenciados() {
                 </SelectContent>
               </Select>
               <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-                <SelectTrigger className="w-[180px] bg-background">
+                <SelectTrigger className="w-full sm:w-[180px] bg-background text-xs md:text-sm">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -306,19 +308,19 @@ export default function Credenciados() {
 
                     return (
                       <TableRow key={credenciado.id} className="hover:bg-muted/50 cursor-pointer transition-colors">
-                        <TableCell className="font-medium">{credenciado.nome}</TableCell>
-                        <TableCell className="font-mono text-sm">{cpfCnpj}</TableCell>
-                        <TableCell className="font-mono text-sm">{primeirosCrms || "-"}</TableCell>
+                        <TableCell className="font-medium text-xs md:text-sm">{credenciado.nome}</TableCell>
+                        <TableCell className="font-mono text-xs md:text-sm">{cpfCnpj}</TableCell>
+                        <TableCell className="font-mono text-xs md:text-sm">{primeirosCrms || "-"}</TableCell>
                         <TableCell>
                           {primeiraEspecialidade !== "-" ? (
-                            <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20">
+                            <span className="inline-flex items-center rounded-md bg-primary/10 px-1.5 py-0.5 md:px-2 md:py-1 text-[10px] md:text-xs font-medium text-primary ring-1 ring-inset ring-primary/20">
                               {primeiraEspecialidade}
                             </span>
                           ) : (
                             "-"
                           )}
                         </TableCell>
-                        <TableCell>{credenciado.cidade || "-"}</TableCell>
+                        <TableCell className="text-xs md:text-sm">{credenciado.cidade || "-"}</TableCell>
                         <TableCell>
                           <StatusBadge status={credenciado.status.toLowerCase() === "ativo" ? "habilitado" : "inabilitado"} />
                         </TableCell>
@@ -326,11 +328,11 @@ export default function Credenciados() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="gap-2 hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all"
+                            className="gap-1 md:gap-2 hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all text-xs md:text-sm px-2 md:px-3"
                             onClick={() => navigate(`/credenciados/${credenciado.id}`)}
                           >
-                            <Eye className="h-4 w-4" />
-                            Detalhes
+                            <Eye className="h-3 w-3 md:h-4 md:w-4" />
+                            <span className="hidden sm:inline">Detalhes</span>
                           </Button>
                         </TableCell>
                       </TableRow>

@@ -84,44 +84,53 @@ export default function DetalhesInscricao() {
 
       {/* Card Principal com Protocolo */}
       <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between flex-wrap gap-4">
-            <div className="space-y-2 flex-1">
-              <CardTitle className="text-2xl">
+        <CardHeader className="p-4 md:p-6">
+          <div className="flex flex-col gap-4">
+            <div className="space-y-2 flex-1 min-w-0">
+              <CardTitle className="text-xl md:text-2xl break-words">
                 {inscricao.editais?.titulo || 'Edital não encontrado'}
               </CardTitle>
               
               {/* Protocolo em destaque */}
               {inscricao.protocolo && (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <FileText className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Protocolo:</span>
-                  <Badge variant="outline" className="font-mono text-base px-3 py-1">
-                    {inscricao.protocolo}
-                  </Badge>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      navigator.clipboard.writeText(inscricao.protocolo!);
-                      toast.success('Protocolo copiado para área de transferência!');
-                    }}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground flex-shrink-0" />
+                    <span className="text-xs md:text-sm text-muted-foreground">Protocolo:</span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="outline" className="font-mono text-xs md:text-base px-2 md:px-3 py-0.5 md:py-1 break-all">
+                      {inscricao.protocolo}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 md:h-8 md:w-8"
+                      onClick={() => {
+                        navigator.clipboard.writeText(inscricao.protocolo!);
+                        toast.success('Protocolo copiado para área de transferência!');
+                      }}
+                    >
+                      <Copy className="h-3 w-3 md:h-4 md:w-4" />
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
-            <StatusBadge status={inscricao.status as any} />
+            <div className="flex-shrink-0">
+              <StatusBadge status={inscricao.status as any} />
+            </div>
           </div>
         </CardHeader>
         
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 p-4 md:p-6">
           {/* Data de envio */}
-          <div className="flex items-center gap-2 text-sm">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-muted-foreground">Enviado em:</span>
-            <span className="font-medium">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-xs md:text-sm">
+            <div className="flex items-center gap-2">
+              <Clock className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Enviado em:</span>
+            </div>
+            <span className="font-medium break-words">
               {format(new Date(inscricao.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
             </span>
           </div>
@@ -176,7 +185,7 @@ export default function DetalhesInscricao() {
           {/* Botão para ver processo completo */}
           <Button 
             onClick={() => navigate(`/analises`)}
-            className="w-full"
+            className="w-full text-sm md:text-base"
           >
             Ver Detalhes do Processo
           </Button>
@@ -185,11 +194,11 @@ export default function DetalhesInscricao() {
 
       {/* Card com informações adicionais */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Informações da Inscrição</CardTitle>
+        <CardHeader className="p-4 md:p-6">
+          <CardTitle className="text-base md:text-lg">Informações da Inscrição</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <CardContent className="space-y-4 p-4 md:p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs md:text-sm">
             <div>
               <span className="text-muted-foreground">Status atual:</span>
               <div className="mt-1">

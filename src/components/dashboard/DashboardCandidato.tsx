@@ -82,39 +82,40 @@ export function DashboardCandidato() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Minhas Inscrições</h1>
-        <p className="text-muted-foreground">Acompanhe o status das suas candidaturas</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground">Minhas Inscrições</h1>
+        <p className="text-sm md:text-base text-muted-foreground">Acompanhe o status das suas candidaturas</p>
       </div>
 
       {/* Card de Protocolos */}
       {inscricoes.length > 0 && inscricoes.slice(0, 3).some(i => i.protocolo) && (
         <Card className="border-2 border-primary/20 bg-primary/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
+          <CardHeader className="p-3 md:p-6">
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <FileText className="h-4 w-4 md:h-5 md:w-5" />
               Seus Protocolos de Inscrição
             </CardTitle>
-            <CardDescription>Números de protocolo para acompanhamento</CardDescription>
+            <CardDescription className="text-xs md:text-sm">Números de protocolo para acompanhamento</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 md:p-6">
             <div className="space-y-2">
               {inscricoes.slice(0, 3).map(insc => insc.protocolo && (
-                <div key={insc.id} className="flex items-center justify-between p-3 border rounded-lg bg-background">
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{insc.editais?.titulo}</p>
-                    <Badge variant="outline" className="font-mono mt-1">
+                <div key={insc.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 md:p-3 border rounded-lg bg-background gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-xs md:text-sm break-words">{insc.editais?.titulo}</p>
+                    <Badge variant="outline" className="font-mono mt-1 text-[10px] md:text-xs break-all">
                       {insc.protocolo}
                     </Badge>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
+                    className="h-7 w-7 md:h-8 md:w-8 flex-shrink-0 self-start sm:self-center"
                     onClick={() => {
                       navigator.clipboard.writeText(insc.protocolo!);
                       toast.success('Protocolo copiado!');
                     }}
                   >
-                    <Copy className="h-4 w-4" />
+                    <Copy className="h-3 w-3 md:h-4 md:w-4" />
                   </Button>
                 </div>
               ))}
@@ -238,20 +239,22 @@ export function DashboardCandidato() {
               {inscricoes.map((inscricao) => (
                 <div
                   key={inscricao.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 md:p-4 border rounded-lg hover:bg-accent/50 transition-colors gap-3"
                 >
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-foreground">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-sm md:text-base text-foreground break-words">
                       {inscricao.editais.titulo}
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs md:text-sm text-muted-foreground">
                       {inscricao.editais.especialidade || 'Sem especialidade'}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-[10px] md:text-xs text-muted-foreground mt-1">
                       Inscrito em: {format(new Date(inscricao.created_at), 'dd/MM/yyyy')}
                     </p>
                   </div>
-                  <StatusBadge status={inscricao.status as any} />
+                  <div className="flex-shrink-0">
+                    <StatusBadge status={inscricao.status as any} />
+                  </div>
                 </div>
               ))}
             </div>
