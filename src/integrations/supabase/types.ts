@@ -5784,6 +5784,23 @@ export type Database = {
           },
         ]
       }
+      geocoding_status: {
+        Row: {
+          cep: string | null
+          cidade: string | null
+          endereco: string | null
+          estado: string | null
+          geocoded_at: string | null
+          geocoding_status: string | null
+          id: string | null
+          latitude: number | null
+          longitude: number | null
+          nome: string | null
+          status: string | null
+          tipo: string | null
+        }
+        Relationships: []
+      }
       mv_catalogo_servicos: {
         Row: {
           aceita_sus: boolean | null
