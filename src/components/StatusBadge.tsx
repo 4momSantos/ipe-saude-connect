@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 
-type StatusType = "em_habilitacao" | "habilitado" | "inabilitado" | "em_analise" | "aguardando_analise" | "pendente" | "aprovado" | "pendente_workflow" | "rejeitado" | "validado";
+type StatusType = "em_habilitacao" | "habilitado" | "inabilitado" | "em_analise" | "aguardando_analise" | "pendente" | "aprovado" | "pendente_workflow" | "rejeitado" | "validado" | "Ativo" | "Descredenciado" | "Suspenso" | "Afastado" | "Inativo";
 
 interface StatusBadgeProps {
   status: StatusType;
@@ -47,6 +47,26 @@ const statusConfig = {
   validado: {
     label: "Validado",
     className: "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20",
+  },
+  Ativo: {
+    label: "Ativo",
+    className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+  },
+  Descredenciado: {
+    label: "Descredenciado",
+    className: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+  },
+  Suspenso: {
+    label: "Suspenso",
+    className: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+  },
+  Afastado: {
+    label: "Afastado",
+    className: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+  },
+  Inativo: {
+    label: "Inativo",
+    className: "bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20",
   },
 };
 
