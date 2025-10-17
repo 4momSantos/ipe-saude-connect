@@ -875,8 +875,7 @@ export function ChatWorkflow({
   }
 
   return (
-    <Card className="flex flex-col h-[600px]">
-      {/* Header */}
+    <Card className="flex flex-col min-h-[600px] h-full">{/* Header */}
       <div className="p-4 border-b flex justify-between items-center">
         <div>
           <h3 className="font-semibold">Chat do Workflow</h3>

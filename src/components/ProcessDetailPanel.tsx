@@ -437,15 +437,13 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
               </div>
             </TabsContent>
             <TabsContent value="mensagens" className="m-0 p-6">
-              <div className="max-w-3xl mx-auto">
-                <MessagesTab 
-                  processoId={processo.id} 
-                  candidatoNome={processo.nome}
-                  executionId={workflowData?.id}
-                  inscricaoId={processo.id}
-                  dadosInscricao={dadosInscricao}
-                />
-              </div>
+              <MessagesTab 
+                processoId={processo.id} 
+                candidatoNome={processo.nome}
+                executionId={workflowData?.id}
+                inscricaoId={processo.id}
+                dadosInscricao={dadosInscricao}
+              />
             </TabsContent>
             <TabsContent value="historico" className="m-0 p-6">
               <div className="max-w-3xl mx-auto">
