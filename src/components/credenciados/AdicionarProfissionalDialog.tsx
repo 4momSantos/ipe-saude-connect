@@ -7,7 +7,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAdicionarProfissional, type Profissional } from "@/hooks/useProfissionais";
 import { useEspecialidades } from "@/hooks/useEspecialidades";
-import { Loader2 } from "lucide-react";
+import { useValidateCRM } from "@/hooks/useValidateCRM";
+import { validateCPF } from "@/lib/validators";
+import { Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { toast } from "sonner";
 
 interface AdicionarProfissionalDialogProps {
   open: boolean;
@@ -22,6 +25,10 @@ export function AdicionarProfissionalDialog({
 }: AdicionarProfissionalDialogProps) {
   const { mutateAsync: adicionar, isPending } = useAdicionarProfissional();
   const { data: especialidades } = useEspecialidades();
+  const { validar: validarCRM, isLoading: isValidatingCRM, data: crmData } = useValidateCRM();
+  
+  const [cpfValidationState, setCpfValidationState] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
+  const [crmValidationState, setCrmValidationState] = useState<'idle' | 'valid' | 'invalid'>('idle');
   
   const [formData, setFormData] = useState<Partial<Profissional>>({
     nome: "",
@@ -36,6 +43,39 @@ export function AdicionarProfissionalDialog({
     especialidade: "",
     principal: false,
   });
+
+  const handleValidateCPF = async () => {
+    if (!formData.cpf) {
+      toast.error("Digite um CPF para validar");
+      return;
+    }
+
+    setCpfValidationState('validating');
+    
+    const isValid = validateCPF(formData.cpf);
+    
+    if (isValid) {
+      setCpfValidationState('valid');
+      toast.success("CPF válido");
+    } else {
+      setCpfValidationState('invalid');
+      toast.error("CPF inválido");
+    }
+  };
+
+  const handleValidateCRM = async () => {
+    if (!formData.crm || !formData.uf_crm) {
+      toast.error("Digite CRM e UF para validar");
+      return;
+    }
+
+    try {
+      await validarCRM({ crm: formData.crm, uf: formData.uf_crm });
+      setCrmValidationState('valid');
+    } catch (error) {
+      setCrmValidationState('invalid');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,6 +101,9 @@ export function AdicionarProfissionalDialog({
         especialidade: "",
         principal: false,
       });
+      
+      setCpfValidationState('idle');
+      setCrmValidationState('idle');
       
       onClose();
     } catch (error) {
@@ -93,13 +136,31 @@ export function AdicionarProfissionalDialog({
 
             <div className="space-y-2">
               <Label htmlFor="cpf">CPF *</Label>
-              <Input
-                id="cpf"
-                value={formData.cpf}
-                onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
-                required
-                placeholder="000.000.000-00"
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="cpf"
+                  value={formData.cpf}
+                  onChange={(e) => {
+                    setFormData({ ...formData, cpf: e.target.value });
+                    setCpfValidationState('idle');
+                  }}
+                  required
+                  placeholder="000.000.000-00"
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={handleValidateCPF}
+                  disabled={cpfValidationState === 'validating' || !formData.cpf}
+                >
+                  {cpfValidationState === 'validating' && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {cpfValidationState === 'valid' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                  {cpfValidationState === 'invalid' && <XCircle className="h-4 w-4 text-red-600" />}
+                  {cpfValidationState === 'idle' && <CheckCircle2 className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -117,7 +178,10 @@ export function AdicionarProfissionalDialog({
               <Input
                 id="crm"
                 value={formData.crm}
-                onChange={(e) => setFormData({ ...formData, crm: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, crm: e.target.value });
+                  setCrmValidationState('idle');
+                }}
                 required
                 placeholder="000000"
               />
@@ -125,15 +189,19 @@ export function AdicionarProfissionalDialog({
 
             <div className="space-y-2">
               <Label htmlFor="uf_crm">UF CRM *</Label>
-              <Select
-                value={formData.uf_crm}
-                onValueChange={(value) => setFormData({ ...formData, uf_crm: value })}
-                required
-              >
-                <SelectTrigger id="uf_crm">
-                  <SelectValue placeholder="Selecione o estado" />
-                </SelectTrigger>
-                <SelectContent>
+              <div className="flex gap-2">
+                <Select
+                  value={formData.uf_crm}
+                  onValueChange={(value) => {
+                    setFormData({ ...formData, uf_crm: value });
+                    setCrmValidationState('idle');
+                  }}
+                  required
+                >
+                  <SelectTrigger id="uf_crm" className="flex-1">
+                    <SelectValue placeholder="Selecione o estado" />
+                  </SelectTrigger>
+                  <SelectContent>
                   <SelectItem value="AC">AC</SelectItem>
                   <SelectItem value="AL">AL</SelectItem>
                   <SelectItem value="AP">AP</SelectItem>
@@ -163,6 +231,19 @@ export function AdicionarProfissionalDialog({
                   <SelectItem value="TO">TO</SelectItem>
                 </SelectContent>
               </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleValidateCRM}
+                disabled={isValidatingCRM || !formData.crm || !formData.uf_crm}
+              >
+                {isValidatingCRM && <Loader2 className="h-4 w-4 animate-spin" />}
+                {!isValidatingCRM && crmValidationState === 'valid' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                {!isValidatingCRM && crmValidationState === 'invalid' && <XCircle className="h-4 w-4 text-red-600" />}
+                {!isValidatingCRM && crmValidationState === 'idle' && <CheckCircle2 className="h-4 w-4" />}
+              </Button>
+            </div>
             </div>
 
             <div className="space-y-2 md:col-span-2">
