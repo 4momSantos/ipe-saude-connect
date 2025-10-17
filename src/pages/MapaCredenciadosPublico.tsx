@@ -109,6 +109,23 @@ export default function MapaCredenciadosPublicoPagina() {
                     </CardContent>
                   </Card>
                 ))
+              ) : !credenciados || credenciados.length === 0 ? (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <MapPin className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h4 className="font-semibold text-lg mb-2">Nenhum credenciado encontrado</h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Não há profissionais cadastrados com as suas preferências de busca ou na região selecionada.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setFiltros({ busca: '', especialidade: '', cidade: '', notaMinima: 0, raio: 10 })}
+                    >
+                      Limpar Filtros
+                    </Button>
+                  </CardContent>
+                </Card>
               ) : (
                 credenciados?.slice(0, 10).map((cred: any) => (
                   <Card key={cred.id} className="hover:shadow-md transition-shadow cursor-pointer">
