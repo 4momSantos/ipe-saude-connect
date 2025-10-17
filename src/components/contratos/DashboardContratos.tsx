@@ -4,6 +4,7 @@ import { useReprocessSignatures } from "@/hooks/useReprocessSignatures";
 import { useResendSignatureEmail } from "@/hooks/useResendSignatureEmail";
 import { useRegenerateContract } from "@/hooks/useRegenerateContract";
 import { useGerarContrato } from "@/hooks/useGerarContrato";
+import { useAutoRefreshContratos } from "@/hooks/useAutoRefreshContratos";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -46,6 +47,13 @@ export function DashboardContratos() {
   const { mutate: resendEmail, isPending: isResending } = useResendSignatureEmail();
   const { mutate: regenerateContract, isPending: isRegenerating } = useRegenerateContract();
   const { gerar: gerarContrato, isLoading: isGerandoContrato } = useGerarContrato();
+  
+  // ✅ Ativar auto-refresh para contratos pendentes
+  useAutoRefreshContratos({ 
+    contratos,
+    enabled: true,
+    interval: 15000 
+  });
   
   const { mutate: checkStatus, isPending: isCheckingStatus } = useMutation({
     mutationFn: async (contratoId: string) => {
@@ -140,6 +148,12 @@ export function DashboardContratos() {
             <div className="flex items-center gap-2">
               <FileText className="h-6 w-6" />
               Gestão de Contratos
+              {contratos.some(c => c.status === 'pendente_assinatura') && (
+                <Badge variant="outline" className="text-xs">
+                  <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                  Atualizando a cada 15s
+                </Badge>
+              )}
             </div>
             <Button
               onClick={() => setShowConfirmDialog(true)}
@@ -229,9 +243,9 @@ export function DashboardContratos() {
                       candidato?.email?.split('@')[0] ||
                       "Candidato sem nome";
 
-                    // Verificar problemas no contrato
-                    const temHTML = (contrato.dados_contrato as any)?.html;
-                    const statusProblematico = contrato.status === 'pendente_assinatura' && !temHTML;
+                    // Verificar problemas no contrato (PDF missing)
+                    const temPDF = contrato.documento_url && contrato.documento_url.length > 0;
+                    const statusProblematico = contrato.status === 'pendente_assinatura' && !temPDF;
                     
                     // Verificar se contrato foi enviado para assinatura
                     const signatureRequests = (contrato as any).signature_requests;
@@ -243,7 +257,7 @@ export function DashboardContratos() {
                           {contrato.numero_contrato}
                           {statusProblematico && (
                             <Badge variant="destructive" className="ml-2 text-xs">
-                              Sem HTML
+                              Sem PDF
                             </Badge>
                           )}
                           {naoEnviado && contrato.status === 'pendente_assinatura' && (
@@ -267,11 +281,43 @@ export function DashboardContratos() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            {contrato.documento_url && (
+                            {contrato.documento_url ? (
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => window.open(contrato.documento_url!, "_blank")}
+                                onClick={async () => {
+                                  try {
+                                    toast.loading('Baixando PDF...', { id: 'download' });
+                                    
+                                    const response = await fetch(contrato.documento_url!);
+                                    if (!response.ok) throw new Error('Erro ao buscar PDF');
+                                    
+                                    const blob = await response.blob();
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `Contrato_${contrato.numero_contrato}.pdf`;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    
+                                    window.URL.revokeObjectURL(url);
+                                    document.body.removeChild(a);
+                                    
+                                    toast.success('PDF baixado com sucesso!', { id: 'download' });
+                                  } catch (error) {
+                                    toast.error('Erro ao baixar PDF', { id: 'download' });
+                                    console.error(error);
+                                  }
+                                }}
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled
+                                onClick={() => toast.error('Contrato ainda não disponível para download')}
                               >
                                 <Download className="h-4 w-4" />
                               </Button>
@@ -287,7 +333,7 @@ export function DashboardContratos() {
                             )}
                             
                             {/* Botões para contratos não enviados */}
-                            {contrato.status === "pendente_assinatura" && naoEnviado && temHTML && (
+                            {contrato.status === "pendente_assinatura" && naoEnviado && temPDF && (
                               <Button
                                 size="sm"
                                 variant="default"
@@ -311,11 +357,31 @@ export function DashboardContratos() {
                                 <Button
                                   size="sm"
                                   variant="destructive"
-                                  onClick={() => regenerateContract({ contrato_id: contrato.id })}
-                                  disabled={isRegenerating}
+                                  onClick={async () => {
+                                    try {
+                                      toast.loading('Gerando novo contrato...', { id: 'regen' });
+                                      
+                                      const result = await gerarContrato({ 
+                                        inscricaoId: contrato.inscricao_id 
+                                      });
+                                      
+                                      toast.success('Contrato regenerado e enviado para assinatura', {
+                                        id: 'regen',
+                                        description: `Número: ${result.numero_contrato}`
+                                      });
+                                      
+                                      refetch();
+                                    } catch (error: any) {
+                                      toast.error('Erro ao regenerar contrato', {
+                                        id: 'regen',
+                                        description: error.message
+                                      });
+                                    }
+                                  }}
+                                  disabled={isGerandoContrato}
                                 >
-                                  <RefreshCw className="h-4 w-4 mr-2" />
-                                  Regenerar Contrato
+                                  <RefreshCw className={`h-4 w-4 mr-2 ${isGerandoContrato ? 'animate-spin' : ''}`} />
+                                  Regenerar e Enviar para Assinatura
                                 </Button>
                               ) : !naoEnviado && (
                                  <Button
