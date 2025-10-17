@@ -427,12 +427,10 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
               </div>
             </TabsContent>
             <TabsContent value="documentos" className="m-0 p-6">
-              <div className="max-w-3xl mx-auto">
-                <DocumentsTab 
-                  processoId={processo.id} 
-                  dadosInscricao={dadosInscricao}
-                />
-              </div>
+              <DocumentsTab 
+                processoId={processo.id} 
+                dadosInscricao={dadosInscricao}
+              />
             </TabsContent>
             <TabsContent value="mensagens" className="m-0 p-6">
               <MessagesTab 
