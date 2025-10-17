@@ -18,10 +18,9 @@ export interface ValidationResult {
 export function validateContratoData(inscricao: any, edital: any): ValidationResult {
   const errors: ValidationError[] = [];
   
-  // Validar dados pessoais - Suportar snake_case e camelCase
-  const dadosPessoais = inscricao?.dados_inscricao?.dados_pessoais || 
-                        inscricao?.dados_inscricao?.dadosPessoais ||
-                        {};
+  // Validar dados pessoais
+  const dadosPessoais = inscricao?.dados_inscricao?.dadosPessoais || 
+                        inscricao?.dados_inscricao?.dados_pessoais;
   
   if (!dadosPessoais?.nome && !dadosPessoais?.nome_completo) {
     errors.push({ field: 'nome', message: 'Nome do candidato é obrigatório' });
@@ -31,9 +30,8 @@ export function validateContratoData(inscricao: any, edital: any): ValidationRes
     errors.push({ field: 'cpf', message: 'CPF do candidato é obrigatório' });
   }
   
-  // Email pode estar em vários lugares
-  const enderecoCorresp = inscricao?.dados_inscricao?.endereco_correspondencia || 
-                          inscricao?.dados_inscricao?.enderecoCorrespondencia;
+  const enderecoCorresp = inscricao?.dados_inscricao?.enderecoCorrespondencia || 
+                          inscricao?.dados_inscricao?.endereco_correspondencia;
   
   if (!dadosPessoais?.email && !enderecoCorresp?.email) {
     errors.push({ field: 'email', message: 'E-mail do candidato é obrigatório' });
