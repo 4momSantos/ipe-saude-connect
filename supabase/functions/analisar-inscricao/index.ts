@@ -29,37 +29,28 @@ serve(async (req) => {
     console.log('[ANALISAR_INSCRICAO] Processando decisão:', { inscricao_id, decisao, analista_id });
 
     // Buscar dados da inscrição
-    const { data: inscricao, error: inscricaoError } = await supabase
+    const { data: inscricao } = await supabase
       .from('inscricoes_edital')
-      .select(`
-        id,
-        edital_id,
-        candidato_id,
-        status,
-        editais (
-          id,
-          titulo,
-          numero_edital
-        )
-      `)
+      .select('id, edital_id, candidato_id, status')
       .eq('id', inscricao_id)
       .single();
 
-    if (inscricaoError) throw inscricaoError;
     if (!inscricao) throw new Error('Inscrição não encontrada');
 
-    // Buscar análise existente
-    const { data: analise } = await supabase
-      .from('analises')
-      .select('id')
-      .eq('inscricao_id', inscricao_id)
+    // Buscar título do edital separadamente
+    const { data: edital } = await supabase
+      .from('editais')
+      .select('titulo')
+      .eq('id', inscricao.edital_id)
       .single();
+
+    const tituloEdital = edital?.titulo || 'N/A';
 
     if (decisao === 'aprovado') {
       // ✅ APROVAR
       
       // 1. Atualizar análise
-      const { error: analiseError } = await supabase
+      await supabase
         .from('analises')
         .update({
           status: 'aprovado',
@@ -69,10 +60,8 @@ serve(async (req) => {
         })
         .eq('inscricao_id', inscricao_id);
 
-      if (analiseError) throw analiseError;
-
       // 2. Atualizar inscrição
-      const { error: updateError } = await supabase
+      await supabase
         .from('inscricoes_edital')
         .update({
           status: 'aprovado',
@@ -80,8 +69,6 @@ serve(async (req) => {
           analisado_em: new Date().toISOString()
         })
         .eq('id', inscricao_id);
-
-      if (updateError) throw updateError;
 
       console.log('[ANALISAR_INSCRICAO] Inscrição aprovada');
 
@@ -102,7 +89,7 @@ serve(async (req) => {
         user_id: inscricao.candidato_id,
         type: 'success',
         title: 'Inscrição Aprovada! 🎉',
-        message: `Sua inscrição no edital "${(inscricao.editais as any).titulo}" foi aprovada! Em breve você receberá o contrato para assinatura.`,
+        message: `Sua inscrição no edital "${tituloEdital}" foi aprovada! Em breve você receberá o contrato para assinatura.`,
         related_type: 'inscricao',
         related_id: inscricao_id
       });
@@ -113,7 +100,7 @@ serve(async (req) => {
           user_id: analista_id,
           type: 'info',
           title: 'Análise Concluída',
-          message: `Inscrição aprovada no edital "${(inscricao.editais as any).titulo}". Contrato em geração.`,
+          message: `Inscrição aprovada no edital "${tituloEdital}". Contrato em geração.`,
           related_type: 'inscricao',
           related_id: inscricao_id
         });
@@ -136,7 +123,7 @@ serve(async (req) => {
       // ❌ REJEITAR
       
       // 1. Atualizar análise
-      const { error: analiseError } = await supabase
+      await supabase
         .from('analises')
         .update({
           status: 'reprovado',
@@ -146,10 +133,8 @@ serve(async (req) => {
         })
         .eq('inscricao_id', inscricao_id);
 
-      if (analiseError) throw analiseError;
-
       // 2. Atualizar inscrição
-      const { error: updateError } = await supabase
+      await supabase
         .from('inscricoes_edital')
         .update({
           status: 'inabilitado',
@@ -159,8 +144,6 @@ serve(async (req) => {
         })
         .eq('id', inscricao_id);
 
-      if (updateError) throw updateError;
-
       console.log('[ANALISAR_INSCRICAO] Inscrição rejeitada');
 
       // 3. Notificar candidato sobre rejeição
@@ -168,7 +151,7 @@ serve(async (req) => {
         user_id: inscricao.candidato_id,
         type: 'error',
         title: 'Inscrição Não Aprovada',
-        message: `Sua inscrição no edital "${(inscricao.editais as any).titulo}" não foi aprovada. Motivo: ${comentarios || 'Não especificado'}`,
+        message: `Sua inscrição no edital "${tituloEdital}" não foi aprovada. Motivo: ${comentarios || 'Não especificado'}`,
         related_type: 'inscricao',
         related_id: inscricao_id
       });
@@ -179,7 +162,7 @@ serve(async (req) => {
           user_id: analista_id,
           type: 'info',
           title: 'Análise Concluída',
-          message: `Inscrição rejeitada no edital "${(inscricao.editais as any).titulo}".`,
+          message: `Inscrição rejeitada no edital "${tituloEdital}".`,
           related_type: 'inscricao',
           related_id: inscricao_id
         });
@@ -198,12 +181,12 @@ serve(async (req) => {
       );
     }
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('[ANALISAR_INSCRICAO] Erro:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message 
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
