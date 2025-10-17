@@ -18,8 +18,11 @@ export interface ValidationResult {
 export function validateContratoData(inscricao: any, edital: any): ValidationResult {
   const errors: ValidationError[] = [];
   
-  // Validar dados pessoais
-  const dadosPessoais = inscricao?.dados_inscricao?.dadosPessoais;
+  // Validar dados pessoais - Suportar snake_case e camelCase
+  const dadosPessoais = inscricao?.dados_inscricao?.dados_pessoais || 
+                        inscricao?.dados_inscricao?.dadosPessoais ||
+                        {};
+  
   if (!dadosPessoais?.nome && !dadosPessoais?.nome_completo) {
     errors.push({ field: 'nome', message: 'Nome do candidato é obrigatório' });
   }
@@ -28,7 +31,11 @@ export function validateContratoData(inscricao: any, edital: any): ValidationRes
     errors.push({ field: 'cpf', message: 'CPF do candidato é obrigatório' });
   }
   
-  if (!dadosPessoais?.email && !inscricao?.dados_inscricao?.enderecoCorrespondencia?.email) {
+  // Email pode estar em vários lugares
+  const enderecoCorresp = inscricao?.dados_inscricao?.endereco_correspondencia || 
+                          inscricao?.dados_inscricao?.enderecoCorrespondencia;
+  
+  if (!dadosPessoais?.email && !enderecoCorresp?.email) {
     errors.push({ field: 'email', message: 'E-mail do candidato é obrigatório' });
   }
   
@@ -102,9 +109,11 @@ export function validateContratoDataCompleto(contratoData: any): ValidationResul
  * Extrai e consolida dados de endereço de múltiplas fontes
  */
 export function consolidarEndereco(dadosInscricao: any): string {
-  // Tentar múltiplas fontes
-  const enderecoCorrespondencia = dadosInscricao?.enderecoCorrespondencia || dadosInscricao?.endereco_correspondencia;
-  const pessoaJuridica = dadosInscricao?.pessoaJuridica || dadosInscricao?.pessoa_juridica;
+  // Tentar múltiplas fontes - Suportar snake_case e camelCase
+  const enderecoCorrespondencia = dadosInscricao?.endereco_correspondencia || 
+                                   dadosInscricao?.enderecoCorrespondencia;
+  const pessoaJuridica = dadosInscricao?.pessoa_juridica || 
+                         dadosInscricao?.pessoaJuridica;
   const endereco = dadosInscricao?.endereco;
   
   // Priorizar endereço de correspondência
@@ -158,9 +167,13 @@ export function consolidarEndereco(dadosInscricao: any): string {
  * Extrai telefone/celular de múltiplas fontes
  */
 export function consolidarTelefone(dadosInscricao: any): { telefone: string; celular: string } {
-  const enderecoCorrespondencia = dadosInscricao?.enderecoCorrespondencia || dadosInscricao?.endereco_correspondencia;
-  const pessoaJuridica = dadosInscricao?.pessoaJuridica || dadosInscricao?.pessoa_juridica;
-  const dadosPessoais = dadosInscricao?.dadosPessoais || dadosInscricao?.dados_pessoais;
+  // Suportar snake_case e camelCase
+  const enderecoCorrespondencia = dadosInscricao?.endereco_correspondencia || 
+                                   dadosInscricao?.enderecoCorrespondencia;
+  const pessoaJuridica = dadosInscricao?.pessoa_juridica || 
+                         dadosInscricao?.pessoaJuridica;
+  const dadosPessoais = dadosInscricao?.dados_pessoais || 
+                        dadosInscricao?.dadosPessoais;
   
   return {
     telefone: enderecoCorrespondencia?.telefone || 

@@ -151,12 +151,24 @@ serve(async (req) => {
     const dadosInscricao = inscricao.dados_inscricao || {};
     const edital = (inscricao as any).edital;
 
-    // Extrair dados do candidato
-    const dadosPessoais = dadosInscricao.dados_pessoais || dadosInscricao.pessoa_fisica || {};
-    const dadosPJ = dadosInscricao.pessoa_juridica || {};
-    const endereco = dadosInscricao.endereco_correspondencia || dadosInscricao.endereco || dadosPJ.endereco || {};
+    // Extrair dados do candidato - Suportar snake_case e camelCase
+    const dadosPessoais = dadosInscricao.dados_pessoais || 
+                          dadosInscricao.dadosPessoais || 
+                          dadosInscricao.pessoa_fisica || 
+                          {};
+    
+    const dadosPJ = dadosInscricao.pessoa_juridica || 
+                    dadosInscricao.pessoaJuridica || 
+                    {};
+    
+    const endereco = dadosInscricao.endereco_correspondencia || 
+                     dadosInscricao.enderecoCorrespondencia || 
+                     dadosInscricao.endereco || 
+                     dadosPJ.endereco || 
+                     {};
 
     const candidato_nome = dadosPessoais.nome_completo || 
+                           dadosPessoais.nome ||
                            dadosPJ.razao_social || 
                            dadosPJ.denominacao_social ||
                            (inscricao as any).candidato?.nome || '';
