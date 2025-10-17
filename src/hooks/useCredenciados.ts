@@ -7,6 +7,13 @@ export interface CredenciadoCRM {
   uf_crm: string;
 }
 
+export interface CredenciadoServico {
+  procedimento_id: string;
+  procedimento_nome: string;
+  categoria: string;
+  tipo: string;
+}
+
 export interface Credenciado {
   id: string;
   nome: string;
@@ -26,6 +33,7 @@ export interface Credenciado {
   observacoes: string | null;
   created_at: string;
   crms: CredenciadoCRM[];
+  servicos?: CredenciadoServico[];
 }
 
 export interface CredenciadoMap {
@@ -61,17 +69,42 @@ export function useCredenciados() {
 
       if (credenciadosError) throw credenciadosError;
 
-      // Buscar CRMs para cada credenciado
+      // Buscar CRMs e Serviços para cada credenciado
       const credenciadosComCrms = await Promise.all(
         (credenciadosData || []).map(async (credenciado) => {
-          const { data: crmsData } = await supabase
-            .from("credenciado_crms")
-            .select("crm, especialidade, uf_crm")
-            .eq("credenciado_id", credenciado.id);
+          const [crmsData, servicosData] = await Promise.all([
+            supabase
+              .from("credenciado_crms")
+              .select("crm, especialidade, uf_crm")
+              .eq("credenciado_id", credenciado.id)
+              .then(res => res.data),
+            supabase
+              .from("credenciado_servicos")
+              .select(`
+                procedimento_id,
+                procedimentos (
+                  id,
+                  nome,
+                  categoria,
+                  tipo
+                )
+              `)
+              .eq("credenciado_id", credenciado.id)
+              .eq("disponivel", true)
+              .then(res => res.data)
+          ]);
+
+          const servicos = (servicosData || []).map((s: any) => ({
+            procedimento_id: s.procedimento_id,
+            procedimento_nome: s.procedimentos?.nome || "",
+            categoria: s.procedimentos?.categoria || "",
+            tipo: s.procedimentos?.tipo || "",
+          }));
 
           return {
             ...credenciado,
             crms: crmsData || [],
+            servicos,
           };
         })
       );

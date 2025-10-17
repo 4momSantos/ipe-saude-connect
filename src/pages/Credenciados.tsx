@@ -29,6 +29,8 @@ export default function Credenciados() {
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [filtroEspecialidade, setFiltroEspecialidade] = useState<string>("todas");
   const [filtroMunicipio, setFiltroMunicipio] = useState<string>("todos");
+  const [filtroAreaAtuacao, setFiltroAreaAtuacao] = useState<string>("todas");
+  const [filtroServico, setFiltroServico] = useState<string>("todos");
   const [busca, setBusca] = useState("");
 
   const especialidades = useMemo(() => {
@@ -43,6 +45,28 @@ export default function Credenciados() {
   const municipios = useMemo(() => {
     if (!credenciados) return [];
     return Array.from(new Set(credenciados.map((c) => c.cidade).filter(Boolean)));
+  }, [credenciados]);
+
+  const areasAtuacao = useMemo(() => {
+    if (!credenciados) return [];
+    const categoriasSet = new Set<string>();
+    credenciados.forEach((c) => {
+      c.servicos?.forEach((s) => {
+        if (s.categoria) categoriasSet.add(s.categoria);
+      });
+    });
+    return Array.from(categoriasSet).sort();
+  }, [credenciados]);
+
+  const servicosDisponiveis = useMemo(() => {
+    if (!credenciados) return [];
+    const servicosSet = new Set<string>();
+    credenciados.forEach((c) => {
+      c.servicos?.forEach((s) => {
+        if (s.procedimento_nome) servicosSet.add(s.procedimento_nome);
+      });
+    });
+    return Array.from(servicosSet).sort();
   }, [credenciados]);
 
   const credenciadosFiltrados = useMemo(() => {
@@ -60,6 +84,14 @@ export default function Credenciados() {
         filtroMunicipio === "todos" ||
         credenciado.cidade === filtroMunicipio;
       
+      const matchAreaAtuacao =
+        filtroAreaAtuacao === "todas" ||
+        credenciado.servicos?.some((s) => s.categoria === filtroAreaAtuacao);
+      
+      const matchServico =
+        filtroServico === "todos" ||
+        credenciado.servicos?.some((s) => s.procedimento_nome === filtroServico);
+      
       const cpfCnpj = credenciado.cnpj || credenciado.cpf || "";
       const primeirosCrms = credenciado.crms.map((c) => c.crm).join(" ");
       
@@ -69,9 +101,9 @@ export default function Credenciados() {
         cpfCnpj.includes(busca) ||
         primeirosCrms.toLowerCase().includes(busca.toLowerCase());
       
-      return matchStatus && matchEspecialidade && matchMunicipio && matchBusca;
+      return matchStatus && matchEspecialidade && matchMunicipio && matchAreaAtuacao && matchServico && matchBusca;
     });
-  }, [credenciados, filtroStatus, filtroEspecialidade, filtroMunicipio, busca]);
+  }, [credenciados, filtroStatus, filtroEspecialidade, filtroMunicipio, filtroAreaAtuacao, filtroServico, busca]);
 
   const totalAtivos = useMemo(() => {
     if (!credenciados) return 0;
@@ -200,6 +232,34 @@ export default function Credenciados() {
                   {municipios.map((mun) => (
                     <SelectItem key={mun} value={mun}>
                       {mun}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filtroAreaAtuacao} onValueChange={setFiltroAreaAtuacao}>
+                <SelectTrigger className="w-[180px] bg-background">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Área de Atuação" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas Áreas</SelectItem>
+                  {areasAtuacao.map((area) => (
+                    <SelectItem key={area} value={area}>
+                      {area.charAt(0).toUpperCase() + area.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filtroServico} onValueChange={setFiltroServico}>
+                <SelectTrigger className="w-[200px] bg-background">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Serviço Ofertado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos Serviços</SelectItem>
+                  {servicosDisponiveis.map((servico) => (
+                    <SelectItem key={servico} value={servico}>
+                      {servico}
                     </SelectItem>
                   ))}
                 </SelectContent>
