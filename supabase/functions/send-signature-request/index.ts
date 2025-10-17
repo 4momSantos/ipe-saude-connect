@@ -262,7 +262,7 @@ serve(async (req) => {
       documentId
     }));
 
-    await new Promise(resolve => setTimeout(resolve, 5000)); // Delay inicial de 5s (aumentado)
+    await new Promise(resolve => setTimeout(resolve, 10000)); // Delay inicial de 10s (Fase 1)
     
     let documentReady = false;
     const maxAttempts = 20; // Aumentado de 15 para 20
@@ -290,7 +290,6 @@ serve(async (req) => {
       );
 
       if (statusResponse.status === 404) {
-        // Log detalhado da resposta 404
         const errorText = await statusResponse.text();
         console.log(JSON.stringify({
           level: 'warn',
@@ -300,25 +299,62 @@ serve(async (req) => {
           document_id: documentId
         }));
         
-        // Tolerar 404 nas primeiras 10 tentativas
-        if (attempt < 10) {
+        // Tolerar 404 nos primeiros 5 attempts (60s com novo delay de 10s)
+        if (attempt <= 5) {
           console.log(JSON.stringify({
             level: 'info',
             action: 'document_still_processing',
-            status: statusResponse.status,
             attempt,
-            message: 'Aguardando processamento do documento...'
-          }));
-          continue;
-        } else {
-          console.log(JSON.stringify({
-            level: 'warn',
-            action: 'polling_failed',
-            status: statusResponse.status,
-            attempt
+            message: 'Aguardando processamento - PDF complexo pode levar até 2 minutos'
           }));
           continue;
         }
+        
+        // Após 5 attempts: verificar se documento realmente foi criado
+        if (attempt === 6) {
+          console.log(JSON.stringify({
+            level: 'info',
+            action: 'verify_document_exists',
+            attempt
+          }));
+          
+          const allDocsResponse = await fetch(
+            `https://api.assinafy.com.br/v1/accounts/${assignafyAccountId}/documents?page=1&per_page=50`,
+            {
+              method: 'GET',
+              headers: {
+                'X-Api-Key': assignafyApiKey,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+          
+          if (allDocsResponse.ok) {
+            const allDocs = await allDocsResponse.json();
+            const found = allDocs.data?.find((d: any) => d.id === documentId);
+            
+            if (!found) {
+              console.error(JSON.stringify({
+                level: 'error',
+                action: 'document_not_found_in_assinafy',
+                document_id: documentId,
+                message: 'Upload pode ter falhado - documento não existe na Assinafy'
+              }));
+              throw new Error(`Documento ${documentId} não encontrado na Assinafy após upload`);
+            } else {
+              console.log(JSON.stringify({
+                level: 'info',
+                action: 'document_exists_but_not_ready',
+                document_id: documentId,
+                status: found.status,
+                message: 'Documento existe mas ainda não está pronto'
+              }));
+            }
+          }
+        }
+        
+        // Continuar tentando
+        continue;
       }
       
       if (statusResponse.ok) {
@@ -355,13 +391,53 @@ serve(async (req) => {
     }
     
     if (!documentReady) {
-      console.log(JSON.stringify({
-        level: 'error',
+      console.warn(JSON.stringify({
+        level: 'warn',
         action: 'polling_timeout',
-        max_attempts: maxAttempts,
-        document_id: documentId
+        document_id: documentId,
+        attempts: maxAttempts,
+        message: 'Documento ainda processando - marcando para retry manual'
       }));
-      throw new Error(`Documento ${documentId} não ficou pronto após ${maxAttempts} tentativas. Verifique a API da Assinafy.`);
+      
+      // Buscar supabase client para atualizar
+      const supabaseAdmin = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      );
+      
+      // Atualizar signature_request como "needs_retry" (não "failed")
+      await supabaseAdmin
+        .from('signature_requests')
+        .update({ 
+          status: 'needs_retry',
+          metadata: {
+            ...signatureRequest.metadata,
+            timeout_at: new Date().toISOString(),
+            retry_available: true,
+            last_attempt_info: {
+              max_attempts: maxAttempts,
+              document_id: documentId,
+              message: 'Timeout aguardando processamento Assinafy'
+            }
+          },
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', signatureRequestId);
+      
+      // Retornar 202 (Accepted) ao invés de 500 (Server Error)
+      return new Response(
+        JSON.stringify({
+          success: false,
+          retry_available: true,
+          message: 'Documento ainda processando na Assinafy. Aguarde 2-3 minutos e tente reenviar manualmente.',
+          signatureRequestId,
+          action_required: 'manual_retry'
+        }),
+        { 
+          status: 202, // Accepted (processamento assíncrono pendente)
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
     
     // 4. Solicitar assinatura
