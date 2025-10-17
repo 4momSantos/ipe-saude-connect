@@ -29,10 +29,10 @@ interface RevisaoStepProps {
 
 export function RevisaoStep({ form }: RevisaoStepProps) {
   const values = form.getValues();
-  const { data: especialidades } = useEspecialidades();
+  const { data: especialidades, isLoading: especialidadesLoading } = useEspecialidades();
   
   const getEspecialidadesNomes = () => {
-    if (!values.especialidades_ids || !especialidades) return [];
+    if (!values.especialidades_ids || !especialidades || especialidadesLoading) return [];
     return values.especialidades_ids
       .map(id => especialidades.find(e => e.id === id)?.nome)
       .filter(Boolean);
@@ -326,9 +326,15 @@ export function RevisaoStep({ form }: RevisaoStepProps) {
             <div>
               <p className="text-sm font-medium text-muted-foreground">Especialidades</p>
               <div className="flex flex-wrap gap-1 mt-1">
-                {getEspecialidadesNomes().map((nome, idx) => (
-                  <Badge key={idx} variant="secondary">{nome}</Badge>
-                ))}
+                {especialidadesLoading ? (
+                  <Badge variant="secondary">Carregando...</Badge>
+                ) : getEspecialidadesNomes().length > 0 ? (
+                  getEspecialidadesNomes().map((nome, idx) => (
+                    <Badge key={idx} variant="secondary">{nome}</Badge>
+                  ))
+                ) : (
+                  <Badge variant="outline">Nenhuma especialidade selecionada</Badge>
+                )}
               </div>
             </div>
             <div>
