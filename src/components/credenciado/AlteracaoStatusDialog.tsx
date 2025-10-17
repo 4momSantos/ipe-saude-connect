@@ -166,32 +166,32 @@ export function AlteracaoStatusDialog({
             </Alert>
 
             {(novoStatus === 'Suspenso' || novoStatus === 'Afastado') && dataInicio && dataFim && (
-              <div className="p-3 sm:p-4 border rounded-lg bg-muted/50">
+              <div className="p-3 sm:p-4 border rounded-lg bg-muted/50 w-full overflow-hidden">
                 <p className="text-xs sm:text-sm font-semibold mb-2">Período:</p>
-                <p className="text-xs sm:text-sm">
+                <p className="text-xs sm:text-sm overflow-wrap-anywhere">
                   De {format(dataInicio, "PPP", { locale: ptBR })} até {format(dataFim, "PPP", { locale: ptBR })}
                 </p>
               </div>
             )}
 
             {novoStatus === 'Descredenciado' && (
-              <div className="p-3 sm:p-4 border rounded-lg bg-muted/50">
+              <div className="p-3 sm:p-4 border rounded-lg bg-muted/50 w-full overflow-hidden">
                 <p className="text-xs sm:text-sm font-semibold mb-2">Data Efetiva:</p>
-                <p className="text-xs sm:text-sm">
+                <p className="text-xs sm:text-sm overflow-wrap-anywhere">
                   {descredenciarImediato ? 'Imediato (hoje)' : dataEfetiva ? format(dataEfetiva, "PPP", { locale: ptBR }) : 'Não definida'}
                 </p>
               </div>
             )}
 
-            <div className="p-3 sm:p-4 border rounded-lg bg-muted/50">
+            <div className="p-3 sm:p-4 border rounded-lg bg-muted/50 w-full overflow-hidden">
               <p className="text-xs sm:text-sm font-semibold mb-2">Justificativa:</p>
-              <p className="text-xs sm:text-sm whitespace-pre-wrap break-words">{justificativa}</p>
+              <p className="text-xs sm:text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere">{justificativa}</p>
             </div>
 
             {motivoDetalhado && (
-              <div className="p-3 sm:p-4 border rounded-lg bg-muted/50">
+              <div className="p-3 sm:p-4 border rounded-lg bg-muted/50 w-full overflow-hidden">
                 <p className="text-xs sm:text-sm font-semibold mb-2">Motivo Detalhado:</p>
-                <p className="text-xs sm:text-sm whitespace-pre-wrap break-words">{motivoDetalhado}</p>
+                <p className="text-xs sm:text-sm whitespace-pre-wrap break-words overflow-wrap-anywhere">{motivoDetalhado}</p>
               </div>
             )}
 

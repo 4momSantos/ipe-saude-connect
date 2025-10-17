@@ -222,25 +222,29 @@ serve(async (req) => {
     }
 
     // Log de auditoria
-    await supabase
-      .from('audit_logs')
-      .insert({
-        user_id: user.id,
-        user_email: user.email,
-        user_role: roles?.map(r => r.role).join(', '),
-        action: 'credenciado_status_changed',
-        resource_type: 'credenciado',
-        resource_id: body.credenciado_id,
-        old_values: { status: credenciadoAtual.status },
-        new_values: { status: body.novo_status },
-        metadata: {
-          justificativa: body.justificativa,
-          data_inicio: body.data_inicio,
-          data_fim: body.data_fim,
-          data_efetiva: body.data_efetiva,
-          credenciado_nome: credenciadoAtual.nome
-        }
-      });
+    if (user.id) {
+      await supabase
+        .from('audit_logs')
+        .insert({
+          user_id: user.id,
+          user_email: user.email,
+          user_role: roles?.map(r => r.role).join(', '),
+          action: 'credenciado_status_changed',
+          resource_type: 'credenciado',
+          resource_id: body.credenciado_id,
+          old_values: { status: credenciadoAtual.status },
+          new_values: { status: body.novo_status },
+          metadata: {
+            justificativa: body.justificativa,
+            data_inicio: body.data_inicio,
+            data_fim: body.data_fim,
+            data_efetiva: body.data_efetiva,
+            credenciado_nome: credenciadoAtual.nome
+          }
+        });
+    } else {
+      console.warn('[ALTERAR_STATUS] user_id é null, não foi possível registrar audit log');
+    }
 
     console.log(`[ALTERAR_STATUS] Status de ${credenciadoAtual.nome} alterado: ${credenciadoAtual.status} → ${body.novo_status}`);
 
