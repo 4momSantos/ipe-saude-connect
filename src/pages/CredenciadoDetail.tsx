@@ -114,50 +114,72 @@ export default function CredenciadoDetail() {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="space-y-4">
+        <div className="flex items-start gap-3">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => navigate("/credenciados")}
-            className="hover:bg-muted"
+            className="hover:bg-muted shrink-0"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-4 w-4 md:h-5 md:w-5" />
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight text-foreground break-words">
               {credenciado.nome}
             </h1>
-            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-              <span>CPF/CNPJ: {cpfCnpj}</span>
-              <span>•</span>
-              <span>CRM: {primeirosCrms}</span>
-              <span>•</span>
-              <StatusBadge status={credenciado.status.toLowerCase() === "ativo" ? "habilitado" : "inabilitado"} />
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-2 text-xs md:text-sm text-muted-foreground">
+              <span className="break-all">CPF/CNPJ: {cpfCnpj}</span>
+              <span className="hidden sm:inline">•</span>
+              <span className="truncate">CRM: {primeirosCrms}</span>
+              <span className="hidden sm:inline">•</span>
+              <div className="mt-1 sm:mt-0">
+                <StatusBadge status={credenciado.status.toLowerCase() === "ativo" ? "habilitado" : "inabilitado"} />
+              </div>
             </div>
           </div>
         </div>
+        
         {isGestorOrAnalista && (
-          <div className="flex gap-2">
-            <Button onClick={() => setAlteracaoStatusDialogOpen(true)} variant="default">
-              <Edit className="mr-2 h-4 w-4" />
-              Alterar Status
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button 
+              onClick={() => setAlteracaoStatusDialogOpen(true)} 
+              variant="default"
+              size="sm"
+              className="w-full sm:w-auto text-xs md:text-sm"
+            >
+              <Edit className="h-3 w-3 md:h-4 md:w-4 md:mr-2" />
+              <span className="ml-2 md:ml-0">Alterar Status</span>
             </Button>
-            <Button onClick={() => setOcorrenciaDialogOpen(true)} variant="outline">
-              <FileText className="mr-2 h-4 w-4" />
-              Registrar Ocorrência
+            <Button 
+              onClick={() => setOcorrenciaDialogOpen(true)} 
+              variant="outline"
+              size="sm"
+              className="w-full sm:w-auto text-xs md:text-sm"
+            >
+              <FileText className="h-3 w-3 md:h-4 md:w-4 md:mr-2" />
+              <span className="ml-2 md:ml-0">Registrar Ocorrência</span>
             </Button>
-            <Button onClick={() => setDescredenciamentoDialogOpen(true)} variant="outline">
-              <Clock className="mr-2 h-4 w-4" />
-              Programar Descredenciamento
+            <Button 
+              onClick={() => setDescredenciamentoDialogOpen(true)} 
+              variant="outline"
+              size="sm"
+              className="w-full sm:w-auto text-xs md:text-sm"
+            >
+              <Clock className="h-3 w-3 md:h-4 md:w-4 md:mr-2" />
+              <span className="ml-2 md:ml-0">Programar Descredenciamento</span>
             </Button>
           </div>
         )}
         
         {isCandidato && isProprietario && (
-          <Button onClick={() => setSolicitacaoDialogOpen(true)}>
-            <FileEdit className="mr-2 h-4 w-4" />
-            Solicitar Alteração
+          <Button 
+            onClick={() => setSolicitacaoDialogOpen(true)}
+            size="sm"
+            className="w-full sm:w-auto text-xs md:text-sm"
+          >
+            <FileEdit className="h-3 w-3 md:h-4 md:w-4 md:mr-2" />
+            <span className="ml-2 md:ml-0">Solicitar Alteração</span>
           </Button>
         )}
       </div>

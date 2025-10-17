@@ -104,21 +104,21 @@ export function DadosCadastrais({
     const IconComponent = icon || FileText;
     
     return (
-      <div>
-        <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-          <IconComponent className="h-4 w-4" />
-          {label}
+      <div className="min-w-0">
+        <label className="text-xs md:text-sm font-medium text-muted-foreground flex items-center gap-1.5 md:gap-2">
+          <IconComponent className="h-3 w-3 md:h-4 md:w-4 shrink-0" />
+          <span className="truncate">{label}</span>
         </label>
-        <div className="flex items-center justify-between mt-1">
-          <p className="text-base font-medium text-foreground flex-1">{value}</p>
+        <div className="flex items-start justify-between gap-2 mt-1">
+          <p className="text-sm md:text-base font-medium text-foreground break-words flex-1 min-w-0">{value}</p>
           {isCandidato && onSolicitarAlteracao && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => onSolicitarAlteracao(campo, value)}
-              className="ml-2 h-8 w-8 p-0"
+              className="h-6 w-6 md:h-8 md:w-8 p-0 shrink-0"
             >
-              <Edit2 className="h-3 w-3" />
+              <Edit2 className="h-2.5 w-2.5 md:h-3 md:w-3" />
             </Button>
           )}
         </div>
@@ -127,27 +127,27 @@ export function DadosCadastrais({
   };
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
+    <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2">
       {/* Informações Principais */}
       <Card className="card-glow">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-primary" />
-            Informações Principais
+            <Building2 className="h-4 w-4 md:h-5 md:w-5 text-primary shrink-0" />
+            <span className="truncate">Informações Principais</span>
           </CardTitle>
-          <CardDescription>Dados cadastrais do credenciado</CardDescription>
+          <CardDescription className="text-xs md:text-sm">Dados cadastrais do credenciado</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4">
+        <CardContent className="space-y-3 md:space-y-4">
+          <div className="grid gap-3 md:gap-4">
             {renderCampoEditavel("Nome Completo", credenciado.nome, "nome", Building2)}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
               {renderCampoEditavel("CNPJ", credenciado.cpfCnpj, "cpfCnpj", CreditCard)}
               {renderCampoEditavel("CRM", credenciado.crm, "crm", Hash)}
             </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Especialidade Principal</label>
-              <div className="mt-1 flex items-center justify-between">
-                <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+            <div className="min-w-0">
+              <label className="text-xs md:text-sm font-medium text-muted-foreground">Especialidade Principal</label>
+              <div className="mt-1 flex items-center justify-between gap-2">
+                <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-[10px] md:text-xs px-1.5 py-0.5 md:px-2 md:py-1 truncate">
                   {credenciado.especialidade}
                 </Badge>
                 {isCandidato && onSolicitarAlteracao && (
@@ -155,19 +155,19 @@ export function DadosCadastrais({
                     variant="ghost"
                     size="sm"
                     onClick={() => onSolicitarAlteracao("especialidade", credenciado.especialidade)}
-                    className="h-8 w-8 p-0"
+                    className="h-6 w-6 md:h-8 md:w-8 p-0 shrink-0"
                   >
-                    <Edit2 className="h-3 w-3" />
+                    <Edit2 className="h-2.5 w-2.5 md:h-3 md:w-3" />
                   </Button>
                 )}
               </div>
             </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Data de Credenciamento
+            <div className="min-w-0">
+              <label className="text-xs md:text-sm font-medium text-muted-foreground flex items-center gap-1.5 md:gap-2">
+                <Calendar className="h-3 w-3 md:h-4 md:w-4 shrink-0" />
+                <span className="truncate">Data de Credenciamento</span>
               </label>
-              <p className="text-base font-medium text-foreground mt-1">{credenciado.dataCredenciamento}</p>
+              <p className="text-sm md:text-base font-medium text-foreground mt-1">{credenciado.dataCredenciamento}</p>
             </div>
           </div>
         </CardContent>
@@ -177,13 +177,13 @@ export function DadosCadastrais({
       <Card className="card-glow">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Phone className="h-5 w-5 text-primary" />
-            Informações de Contato
+            <Phone className="h-4 w-4 md:h-5 md:w-5 text-primary shrink-0" />
+            <span className="truncate">Informações de Contato</span>
           </CardTitle>
-          <CardDescription>Dados para comunicação</CardDescription>
+          <CardDescription className="text-xs md:text-sm">Dados para comunicação</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4">
+        <CardContent className="space-y-3 md:space-y-4">
+          <div className="grid gap-3 md:gap-4">
             {renderCampoEditavel("E-mail", credenciado.email, "email", Mail)}
             {renderCampoEditavel("Telefone", credenciado.telefone, "telefone", Phone)}
           </div>
@@ -194,14 +194,14 @@ export function DadosCadastrais({
       <Card className="card-glow md:col-span-2">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-primary" />
-            Endereço
+            <MapPin className="h-4 w-4 md:h-5 md:w-5 text-primary shrink-0" />
+            <span className="truncate">Endereço</span>
           </CardTitle>
-          <CardDescription>Localização do estabelecimento</CardDescription>
+          <CardDescription className="text-xs md:text-sm">Localização do estabelecimento</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="md:col-span-2">
+          <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+            <div className="sm:col-span-2">
               {renderCampoEditavel("Logradouro", credenciado.endereco, "endereco", MapPin)}
             </div>
             <div>
@@ -217,43 +217,43 @@ export function DadosCadastrais({
       <Card className="card-glow md:col-span-2 border-primary/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-primary" />
-            Datas do Credenciamento
+            <Clock className="h-4 w-4 md:h-5 md:w-5 text-primary shrink-0" />
+            <span className="truncate">Datas do Credenciamento</span>
           </CardTitle>
-          <CardDescription>Registro das etapas do processo</CardDescription>
+          <CardDescription className="text-xs md:text-sm">Registro das etapas do processo</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <Label className="text-sm text-muted-foreground">Data da Solicitação</Label>
-              <p className="font-medium text-sm">
+        <CardContent className="space-y-3 md:space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+            <div className="space-y-1 min-w-0">
+              <Label className="text-xs md:text-sm text-muted-foreground truncate block">Data da Solicitação</Label>
+              <p className="font-medium text-xs md:text-sm break-words">
                 {credenciado.data_solicitacao
                   ? format(new Date(credenciado.data_solicitacao), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
                   : "Não registrada"}
               </p>
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-sm text-muted-foreground">Data de Habilitação</Label>
-              <p className="font-medium text-sm text-success">
+            <div className="space-y-1 min-w-0">
+              <Label className="text-xs md:text-sm text-muted-foreground truncate block">Data de Habilitação</Label>
+              <p className="font-medium text-xs md:text-sm text-success break-words">
                 {credenciado.data_habilitacao
                   ? format(new Date(credenciado.data_habilitacao), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
                   : "Não registrada"}
               </p>
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-sm text-muted-foreground">Início de Atendimento</Label>
-              <p className="font-medium text-sm">
+            <div className="space-y-1 min-w-0">
+              <Label className="text-xs md:text-sm text-muted-foreground truncate block">Início de Atendimento</Label>
+              <p className="font-medium text-xs md:text-sm break-words">
                 {credenciado.data_inicio_atendimento
                   ? format(new Date(credenciado.data_inicio_atendimento), "dd/MM/yyyy", { locale: ptBR })
                   : "Não definida"}
               </p>
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-sm text-muted-foreground">Tempo de Processo</Label>
-              <p className="font-medium text-sm text-primary">
+            <div className="space-y-1 min-w-0">
+              <Label className="text-xs md:text-sm text-muted-foreground truncate block">Tempo de Processo</Label>
+              <p className="font-medium text-xs md:text-sm text-primary break-words">
                 {calcularTempoProcesso()}
               </p>
             </div>
@@ -265,7 +265,7 @@ export function DadosCadastrais({
                 variant="outline"
                 size="sm"
                 onClick={() => setEditarDatasOpen(true)}
-                className="gap-2"
+                className="gap-2 text-xs md:text-sm w-full sm:w-auto"
               >
                 <Edit2 className="h-3 w-3" />
                 Ajustar Datas
