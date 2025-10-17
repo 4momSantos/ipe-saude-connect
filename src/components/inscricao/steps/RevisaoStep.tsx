@@ -133,12 +133,14 @@ export function RevisaoStep({ form }: RevisaoStepProps) {
       </div>
 
       {hasErrors && validationResult && !validationResult.success && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Atenção: Existem erros no formulário ({tipoCredenciamento || 'tipo não detectado'})</AlertTitle>
-          <AlertDescription>
+        <Alert variant="default" className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20">
+          <AlertCircle className="h-4 w-4 text-yellow-600" />
+          <AlertTitle className="text-yellow-900 dark:text-yellow-100">
+            ⚠️ Atenção: Alguns campos estão incompletos ({tipoCredenciamento || 'tipo não detectado'})
+          </AlertTitle>
+          <AlertDescription className="text-yellow-800 dark:text-yellow-200">
             <div className="space-y-2">
-              <p className="font-semibold">Campos com problemas:</p>
+              <p className="font-semibold">Campos sugeridos para preencher:</p>
               <ul className="list-disc list-inside space-y-1">
                 {validationResult.error.errors.slice(0, 5).map((error, idx) => (
                   <li key={idx} className="text-sm">
@@ -148,12 +150,12 @@ export function RevisaoStep({ form }: RevisaoStepProps) {
                 ))}
               </ul>
               {validationResult.error.errors.length > 5 && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  ...e mais {validationResult.error.errors.length - 5} erro(s)
+                <p className="text-sm mt-2">
+                  ...e mais {validationResult.error.errors.length - 5} campo(s) sugerido(s)
                 </p>
               )}
-              <p className="mt-3 text-sm">
-                Por favor, volte e corrija os campos marcados antes de enviar.
+              <p className="mt-3 text-sm font-medium">
+                ✅ Você pode enviar mesmo assim, mas recomendamos preencher todos os campos para agilizar a análise.
               </p>
             </div>
           </AlertDescription>
@@ -391,12 +393,12 @@ export function RevisaoStep({ form }: RevisaoStepProps) {
       </Card>
 
       {/* Confirmação */}
-      {!hasErrors && documentosEnviados >= documentosObrigatoriosList.length && (
+      {documentosEnviados >= 0 && (
         <Alert className="border-[hsl(var(--green-approved))] bg-[hsl(var(--green-approved)_/_0.1)]">
           <CheckCircle2 className="h-4 w-4 text-[hsl(var(--green-approved))]" />
-          <AlertTitle className="text-[hsl(var(--green-approved))]">Tudo pronto!</AlertTitle>
+          <AlertTitle className="text-[hsl(var(--green-approved))]">Pronto para enviar!</AlertTitle>
           <AlertDescription className="text-sm">
-            Sua inscrição está completa e pode ser enviada. Clique em "Enviar Inscrição" para finalizar o processo.
+            Sua inscrição pode ser enviada. Clique em "Enviar Inscrição" para finalizar.
           </AlertDescription>
         </Alert>
       )}
