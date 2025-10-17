@@ -4,8 +4,10 @@ import { ArrowLeft, Loader2, FileText, Clock, UserCheck, DollarSign, History, Ed
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole, type UserRole } from "@/hooks/useUserRole";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DadosCadastrais } from "@/components/credenciados/DadosCadastrais";
 import { SolicitarAlteracaoDialog } from "@/components/credenciados/SolicitarAlteracaoDialog";
 import { EspecialidadesHorarios } from "@/components/credenciados/EspecialidadesHorarios";
@@ -38,6 +40,7 @@ export default function CredenciadoDetail() {
   const [solicitacaoDialogOpen, setSolicitacaoDialogOpen] = useState(false);
   const [campoSelecionado, setCampoSelecionado] = useState<{campo: string, valor: string} | null>(null);
   
+  const isMobile = useIsMobile();
   const { data: credenciado, isLoading, error } = useCredenciado(id || "");
   const { roles } = useUserRole();
   
@@ -87,6 +90,21 @@ export default function CredenciadoDetail() {
 
   const cpfCnpj = credenciado.cnpj || credenciado.cpf || "N/A";
   const primeirosCrms = credenciado.crms?.map((c: any) => `${c.crm}-${c.uf_crm}`).join(", ") || "N/A";
+
+  const tabOptions = [
+    { value: "dados", label: "Dados Cadastrais" },
+    ...(credenciado.cnpj ? [{ value: "profissionais", label: "Profissionais" }] : []),
+    { value: "servicos", label: "Serviços" },
+    { value: "especialidades", label: "Especialidades" },
+    { value: "historico", label: "Histórico" },
+    { value: "solicitacoes", label: isCandidato && isProprietario ? 'Minhas Solicitações' : 'Solicitações' },
+    ...(isGestorOrAnalista ? [
+      { value: "ocorrencias", label: "Ocorrências" },
+      { value: "avaliacoes-publicas", label: "Avaliações Públicas" },
+      { value: "sistema-avaliacoes", label: "Sistema de Avaliações" },
+      { value: "historico-categorias", label: "Histórico Categorias" },
+    ] : [])
+  ];
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -146,35 +164,50 @@ export default function CredenciadoDetail() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-10 lg:w-auto lg:inline-grid">
-          <TabsTrigger value="dados">Dados Cadastrais</TabsTrigger>
-          {credenciado.cnpj && (
-            <TabsTrigger value="profissionais">
-              <UserCheck className="h-4 w-4 mr-2" />
-              Profissionais
-            </TabsTrigger>
-          )}
-          <TabsTrigger value="servicos">
-            <DollarSign className="h-4 w-4 mr-2" />
-            Serviços
-          </TabsTrigger>
-          <TabsTrigger value="especialidades">Especialidades</TabsTrigger>
-          <TabsTrigger value="historico">Histórico</TabsTrigger>
-          <TabsTrigger value="solicitacoes">
-            {isCandidato && isProprietario ? 'Minhas Solicitações' : 'Solicitações'}
-          </TabsTrigger>
-          {isGestorOrAnalista && (
-            <>
-              <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
-              <TabsTrigger value="avaliacoes-publicas">Avaliações Públicas</TabsTrigger>
-              <TabsTrigger value="sistema-avaliacoes">Sistema de Avaliações</TabsTrigger>
-              <TabsTrigger value="historico-categorias">
-                <History className="h-4 w-4 mr-2" />
-                Histórico Categorias
+        {isMobile ? (
+          <Select value={activeTab} onValueChange={setActiveTab}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Selecione uma seção" />
+            </SelectTrigger>
+            <SelectContent>
+              {tabOptions.map(tab => (
+                <SelectItem key={tab.value} value={tab.value}>
+                  {tab.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <TabsList className="w-full flex flex-wrap justify-start gap-1">
+            <TabsTrigger value="dados">Dados Cadastrais</TabsTrigger>
+            {credenciado.cnpj && (
+              <TabsTrigger value="profissionais">
+                <UserCheck className="h-4 w-4 mr-2" />
+                Profissionais
               </TabsTrigger>
-            </>
-          )}
-        </TabsList>
+            )}
+            <TabsTrigger value="servicos">
+              <DollarSign className="h-4 w-4 mr-2" />
+              Serviços
+            </TabsTrigger>
+            <TabsTrigger value="especialidades">Especialidades</TabsTrigger>
+            <TabsTrigger value="historico">Histórico</TabsTrigger>
+            <TabsTrigger value="solicitacoes">
+              {isCandidato && isProprietario ? 'Minhas Solicitações' : 'Solicitações'}
+            </TabsTrigger>
+            {isGestorOrAnalista && (
+              <>
+                <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
+                <TabsTrigger value="avaliacoes-publicas">Avaliações Públicas</TabsTrigger>
+                <TabsTrigger value="sistema-avaliacoes">Sistema de Avaliações</TabsTrigger>
+                <TabsTrigger value="historico-categorias">
+                  <History className="h-4 w-4 mr-2" />
+                  Histórico Categorias
+                </TabsTrigger>
+              </>
+            )}
+          </TabsList>
+        )}
 
         <TabsContent value="dados" className="space-y-6">
           <DadosCadastrais 
