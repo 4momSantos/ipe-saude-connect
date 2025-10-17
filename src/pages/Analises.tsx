@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { Search, Eye, Filter, Clock, CheckCircle, RefreshCw, FileSearch } from "lucide-react";
+import { Search, Eye, Filter, Clock, CheckCircle, RefreshCw, FileSearch, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useFixLegacyInscricoes } from "@/hooks/useFixLegacyInscricoes";
 import { normalizeDadosInscricao, extrairNomeCompleto, extrairEspecialidadesIds } from "@/utils/normalizeDadosInscricao";
 import {
@@ -59,6 +60,8 @@ export default function Analises() {
   const [filtroEspecialidade, setFiltroEspecialidade] = useState<string>("todas");
   const [busca, setBusca] = useState("");
   const [processoSelecionado, setProcessoSelecionado] = useState<Processo | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { fixInscricoes, isLoading: fixingInscricoes } = useFixLegacyInscricoes();
 
   useEffect(() => {
@@ -213,6 +216,45 @@ export default function Analises() {
     }
   };
 
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0) return;
+    
+    if (!confirm(`Deseja excluir ${selectedIds.length} inscrição(ões) selecionada(s)?`)) return;
+    
+    try {
+      setIsDeleting(true);
+      const { error } = await supabase
+        .from('inscricoes_edital')
+        .delete()
+        .in('id', selectedIds);
+      
+      if (error) throw error;
+      
+      toast.success(`${selectedIds.length} inscrição(ões) excluída(s) com sucesso!`);
+      setSelectedIds([]);
+      loadInscricoes();
+    } catch (error) {
+      console.error('Erro ao excluir inscrições:', error);
+      toast.error('Erro ao excluir inscrições selecionadas');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === processosFiltrados.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(processosFiltrados.map(p => p.id));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
   const statusCounts = {
     em_analise: processos.filter((p) => p.status === "em_analise").length,
     pendente: processos.filter((p) => p.status === "pendente").length,
@@ -295,7 +337,20 @@ export default function Analises() {
 
         <Card className="border bg-card card-glow">
           <CardHeader>
-            <CardTitle className="text-foreground">Processos em Análise</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-foreground">Processos em Análise</CardTitle>
+              {selectedIds.length > 0 && (roles.includes('gestor') || roles.includes('admin')) && (
+                <Button
+                  onClick={handleDeleteSelected}
+                  disabled={isDeleting}
+                  variant="destructive"
+                  size="sm"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Excluir {selectedIds.length} selecionado(s)
+                </Button>
+              )}
+            </div>
             <div className="flex flex-col lg:flex-row gap-4 mt-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -342,6 +397,14 @@ export default function Analises() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    {(roles.includes('gestor') || roles.includes('admin')) && (
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={selectedIds.length === processosFiltrados.length && processosFiltrados.length > 0}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </TableHead>
+                    )}
                     <TableHead>Protocolo</TableHead>
                     <TableHead>Edital</TableHead>
                     <TableHead>Nome</TableHead>
@@ -388,6 +451,14 @@ export default function Analises() {
                       className="hover:bg-card/50 cursor-pointer"
                       onClick={() => setProcessoSelecionado(processo)}
                     >
+                      {(roles.includes('gestor') || roles.includes('admin')) && (
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedIds.includes(processo.id)}
+                            onCheckedChange={() => toggleSelect(processo.id)}
+                          />
+                        </TableCell>
+                      )}
                       <TableCell className="font-mono text-sm">{processo.protocolo}</TableCell>
                       <TableCell className="text-sm">{processo.numeroEdital}</TableCell>
                       <TableCell className="font-medium">{processo.nome}</TableCell>
