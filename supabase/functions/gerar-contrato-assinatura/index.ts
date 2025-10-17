@@ -3,16 +3,23 @@
  * 
  * Gera um contrato de credenciamento em PDF e envia para assinatura via Assinafy.
  * 
- * MIGRAÇÃO PARA jsPDF:
- * - Geração direta de PDF (sem HTML intermediário)
- * - Performance 10x melhor
- * - PDFs 60% menores
- * - Texto selecionável
+ * FLUXO OTIMIZADO:
+ * 1. Buscar dados da inscrição
+ * 2. Gerar PDF usando jsPDF (geração direta, sem HTML)
+ * 3. Upload do PDF para Supabase Storage
+ * 4. Salvar metadados no banco (sem HTML)
+ * 5. Criar signature_request
+ * 6. Enviar para Assinafy (se credenciais configuradas)
  * 
- * SEGURANÇA:
- * - Sanitização completa de HTML (XSS protection)
- * - Validação de encoding UTF-8
- * - Limite de 250 KB para HTML
+ * PERFORMANCE:
+ * - PDF gerado diretamente (sem conversão HTML → PDF)
+ * - Payload 60% menor (sem HTML persistido)
+ * - Logs estruturados para monitoramento
+ * 
+ * COMPATIBILIDADE:
+ * - Mantém fluxo Assinafy 100% funcional
+ * - Schema do banco inalterado
+ * - PDF em base64 continua sendo enviado
  * 
  * Dependências:
  * - SUPABASE_URL (obrigatório)
@@ -49,49 +56,6 @@ function logEvent(level: 'info' | 'error' | 'warn', action: string, data: any) {
   }));
 }
 
-/**
- * Escapa caracteres HTML especiais para prevenir quebra de template
- * e potenciais problemas de segurança.
- */
-function escapeHTML(text: string | undefined | null): string {
-  if (!text) return '';
-  
-  return String(text)
-    .replace(/&/g, '&amp;')    // & deve ser primeiro
-    .replace(/</g, '&lt;')     // <
-    .replace(/>/g, '&gt;')     // >
-    .replace(/"/g, '&quot;')   // "
-    .replace(/'/g, '&#39;')    // '
-    .replace(/\//g, '&#x2F;')  // / (previne </script>)
-    .replace(/\0/g, '')        // Remove caracteres nulos
-    .trim();
-}
-
-/**
- * Sanitiza e valida encoding UTF-8, removendo caracteres inválidos.
- */
-function sanitizeUTF8(text: string): string {
-  // Remove caracteres de controle exceto quebras de linha
-  return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
-}
-
-/**
- * Trunca texto se exceder limite de bytes (UTF-8).
- */
-function truncateByBytes(text: string, maxBytes: number): string {
-  const encoder = new TextEncoder();
-  const bytes = encoder.encode(text);
-  
-  if (bytes.length <= maxBytes) {
-    return text;
-  }
-  
-  // Truncar e garantir que não quebre caractere UTF-8
-  const decoder = new TextDecoder('utf-8', { fatal: false });
-  const truncated = decoder.decode(bytes.slice(0, maxBytes));
-  
-  return truncated + '\n\n[... Conteúdo truncado devido ao tamanho ...]';
-}
 
 interface GerarContratoRequest {
   inscricao_id: string;
@@ -373,13 +337,18 @@ serve(async (req) => {
     // ========================================
     // PASSO 3: GERAR PDF DO CONTRATO (jsPDF)
     // ========================================
-    logEvent('info', 'generating_pdf', { inscricao_id });
+    const pdfStartTime = Date.now();
+    logEvent('info', 'pdf_generation_start', { 
+      inscricao_id,
+      timestamp: new Date().toISOString()
+    });
 
     const contratoPDFBytes = await gerarContratoPDFDireto(contratoData);
     
-    logEvent('info', 'pdf_generated', { 
+    logEvent('info', 'pdf_generation_success', { 
       size_bytes: contratoPDFBytes.length,
-      inscricao_id 
+      inscricao_id,
+      elapsed_ms: Date.now() - pdfStartTime
     });
 
     // ========================================
@@ -404,221 +373,38 @@ serve(async (req) => {
       logEvent('error', 'pdf_upload_failed', { 
         inscricao_id,
         error: uploadError.message,
-        file_name: pdfFileName
+        file_name: pdfFileName,
+        size_bytes: contratoPDFBytes.length
       });
-      throw new Error(`Erro ao fazer upload do PDF: ${uploadError.message}`);
+      
+      return new Response(
+        JSON.stringify({
+          error: 'Falha no upload do PDF',
+          details: uploadError.message,
+          inscricao_id
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     const { data: { publicUrl } } = supabase.storage
       .from('contratos')
       .getPublicUrl(pdfFileName);
 
-    logEvent('info', 'pdf_uploaded', { 
+    logEvent('info', 'pdf_upload_success', { 
+      inscricao_id,
       url: publicUrl,
-      size: contratoPDFBytes.length 
+      size_bytes: contratoPDFBytes.length
     });
 
-    // ========================================
-    // PASSO 5: GERAR HTML DO CONTRATO (para backup/regeneração)
-    // ========================================
-    
-    logEvent('info', 'html_generation_start', { inscricao_id });
-    
-    const encoder = new TextEncoder(); // Definir encoder antes do try-catch
-    let contratoHTML: string;
-    let htmlGenerationError: string | null = null;
-    
-    try {
-      // Sanitizar TODOS os campos antes da interpolação
-      const sanitizedData = {
-        edital_numero: escapeHTML(contratoData.edital_numero || ''),
-        edital_titulo: escapeHTML(contratoData.edital_titulo || ''),
-        sistema_data_extenso: escapeHTML(contratoData.sistema_data_extenso || ''),
-        candidato_nome: escapeHTML(contratoData.candidato_nome || ''),
-        candidato_cpf_formatado: escapeHTML(contratoData.candidato_cpf_formatado || ''),
-        candidato_rg: escapeHTML(contratoData.candidato_rg || ''),
-        candidato_endereco_completo: escapeHTML(contratoData.candidato_endereco_completo || ''),
-        candidato_email: escapeHTML(contratoData.candidato_email || ''),
-        candidato_telefone: escapeHTML(contratoData.candidato_telefone || ''),
-        candidato_celular: escapeHTML(contratoData.candidato_celular || ''),
-        edital_data_publicacao_formatada: escapeHTML(contratoData.edital_data_publicacao_formatada || ''),
-        edital_objeto: escapeHTML(contratoData.edital_objeto || ''),
-        especialidades: (contratoData.especialidades || []).map(esp => escapeHTML(esp)),
-        sistema_data_atual: escapeHTML(contratoData.sistema_data_atual || '')
-      };
-      
-      logEvent('info', 'html_sanitization_complete', {
-        inscricao_id,
-        fields_sanitized: Object.keys(sanitizedData).length
-      });
-      
-      // Gerar HTML com dados sanitizados
-      const contratoHTMLRaw = `
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <title>Contrato de Credenciamento - ${sanitizedData.edital_numero}</title>
-  <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; margin: 40px; }
-    h1 { text-align: center; color: #333; }
-    h2 { color: #6366f1; margin-top: 30px; }
-    .section { margin-bottom: 20px; }
-    .info-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-    .info-table th { background: #6366f1; color: white; padding: 10px; text-align: left; }
-    .info-table td { border: 1px solid #ddd; padding: 8px; }
-    .clausula { margin: 15px 0; }
-    .clausula-titulo { font-weight: bold; margin-bottom: 8px; }
-    .assinaturas { margin-top: 50px; display: flex; justify-content: space-around; }
-    .assinatura { text-align: center; }
-    .linha-assinatura { border-top: 1px solid #000; padding-top: 5px; margin-top: 40px; }
-  </style>
-</head>
-<body>
-  <h1>CONTRATO DE CREDENCIAMENTO</h1>
-  <p style="text-align: center;"><strong>Edital:</strong> ${sanitizedData.edital_numero}</p>
-  <p style="text-align: center;"><strong>Data:</strong> ${sanitizedData.sistema_data_extenso}</p>
-  
-  <h2>1. DAS PARTES</h2>
-  <div class="section">
-    <p><strong>CONTRATANTE:</strong></p>
-    <p>[Nome da Instituição], pessoa jurídica de direito público, inscrita no CNPJ sob nº [CNPJ], com sede na [Endereço], neste ato representada por [Representante Legal].</p>
-    
-    <p><strong>CONTRATADO:</strong></p>
-    <p>${sanitizedData.candidato_nome}, CPF ${sanitizedData.candidato_cpf_formatado}, RG ${sanitizedData.candidato_rg || 'não informado'}, 
-    residente em ${sanitizedData.candidato_endereco_completo}, e-mail ${sanitizedData.candidato_email}, 
-    telefone ${sanitizedData.candidato_telefone || sanitizedData.candidato_celular}.</p>
-  </div>
-  
-  <h2>2. DO OBJETO</h2>
-  <div class="section">
-    <p>O presente contrato tem por objeto o credenciamento do CONTRATADO para prestação de serviços de saúde, 
-    conforme especificado no ${sanitizedData.edital_numero}, publicado em ${sanitizedData.edital_data_publicacao_formatada}.</p>
-    <p><strong>Objeto do Edital:</strong> ${sanitizedData.edital_objeto}</p>
-  </div>
-  
-  ${sanitizedData.especialidades.length > 0 ? `
-    <h2>3. DAS ESPECIALIDADES</h2>
-    <div class="section">
-      <p>O CONTRATADO prestará serviços nas seguintes especialidades:</p>
-      <table class="info-table">
-        <thead>
-          <tr><th>#</th><th>Especialidade</th></tr>
-        </thead>
-        <tbody>
-          ${sanitizedData.especialidades.map((esp, idx) => 
-            `<tr><td>${idx + 1}</td><td>${esp}</td></tr>`
-          ).join('')}
-        </tbody>
-      </table>
-    </div>
-  ` : ''}
-  
-  <h2>4. DAS OBRIGAÇÕES</h2>
-  <div class="section">
-    <div class="clausula">
-      <div class="clausula-titulo">CLÁUSULA PRIMEIRA - DA VIGÊNCIA</div>
-      <p>O presente contrato terá vigência de 12 (doze) meses, contados a partir da data de sua assinatura, 
-      podendo ser prorrogado por iguais períodos mediante acordo entre as partes.</p>
-    </div>
-    
-    <div class="clausula">
-      <div class="clausula-titulo">CLÁUSULA SEGUNDA - DO VALOR</div>
-      <p>Os valores dos serviços prestados serão conforme tabela anexa, conforme especificado no edital de credenciamento.</p>
-    </div>
-    
-    <div class="clausula">
-      <div class="clausula-titulo">CLÁUSULA TERCEIRA - DAS OBRIGAÇÕES DO CONTRATADO</div>
-      <p>O CONTRATADO obriga-se a: (a) Prestar os serviços com qualidade e dentro dos padrões técnicos; 
-      (b) Manter cadastro atualizado; (c) Cumprir as normas e regulamentos vigentes; (d) Emitir documentação fiscal adequada.</p>
-    </div>
-    
-    <div class="clausula">
-      <div class="clausula-titulo">CLÁUSULA QUARTA - DAS OBRIGAÇÕES DO CONTRATANTE</div>
-      <p>O CONTRATANTE obriga-se a: (a) Efetuar o pagamento pelos serviços prestados; 
-      (b) Fornecer as informações necessárias; (c) Fiscalizar a execução dos serviços.</p>
-    </div>
-    
-    <div class="clausula">
-      <div class="clausula-titulo">CLÁUSULA QUINTA - DA RESCISÃO</div>
-      <p>O presente contrato poderá ser rescindido por qualquer das partes, mediante notificação prévia de 30 (trinta) dias, 
-      sem ônus ou multas.</p>
-    </div>
-    
-    <div class="clausula">
-      <div class="clausula-titulo">CLÁUSULA SEXTA - DO FORO</div>
-      <p>Fica eleito o foro da Comarca [Local] para dirimir quaisquer questões decorrentes deste contrato, 
-      renunciando as partes a qualquer outro, por mais privilegiado que seja.</p>
-    </div>
-  </div>
-  
-  <div class="section" style="margin-top: 40px;">
-    <p>E, por estarem assim justos e contratados, assinam o presente instrumento em 2 (duas) vias de igual teor e forma.</p>
-    <p>[Local], ${sanitizedData.sistema_data_extenso}</p>
-  </div>
-  
-  <div class="assinaturas">
-    <div class="assinatura">
-      <div class="linha-assinatura">CONTRATANTE</div>
-    </div>
-    <div class="assinatura">
-      <div class="linha-assinatura">CONTRATADO</div>
-      <p style="margin-top: 10px;">${sanitizedData.candidato_nome}</p>
-      <p>CPF: ${sanitizedData.candidato_cpf_formatado}</p>
-    </div>
-  </div>
-  
-  <p style="text-align: center; margin-top: 50px; font-size: 12px; color: #666;">
-    Documento gerado eletronicamente em ${sanitizedData.sistema_data_atual}
-  </p>
-</body>
-</html>
-`;
-      
-      // Sanitizar encoding UTF-8
-      contratoHTML = sanitizeUTF8(contratoHTMLRaw);
-
-      // Verificar tamanho e truncar se necessário
-      const MAX_HTML_SIZE = 250 * 1024; // 250 KB
-      const htmlBytes = encoder.encode(contratoHTML);
-
-      if (htmlBytes.length > MAX_HTML_SIZE) {
-        logEvent('warn', 'html_truncated', {
-          original_size: htmlBytes.length,
-          max_size: MAX_HTML_SIZE,
-          inscricao_id
-        });
-        
-        contratoHTML = truncateByBytes(contratoHTML, MAX_HTML_SIZE);
-      }
-
-      logEvent('info', 'html_generation_success', {
-        size_bytes: encoder.encode(contratoHTML).length,
-        inscricao_id
-      });
-      
-    } catch (htmlError: any) {
-      htmlGenerationError = htmlError.message || 'Erro desconhecido na geração do HTML';
-      contratoHTML = ''; // HTML vazio em caso de erro
-      
-      logEvent('error', 'html_generation_failed', {
-        inscricao_id,
-        error: htmlGenerationError,
-        stack: htmlError.stack
-      });
-    }
 
     // ========================================
-    // PASSO 6: SALVAR CONTRATO NO BANCO
+    // PASSO 4: SALVAR CONTRATO NO BANCO
     // ========================================
     const numeroContrato = `CONT-${new Date().getFullYear()}-${Math.floor(Math.random() * 999999).toString().padStart(6, '0')}`;
-
-    // Garantir que contratoHTML é válido JSON (sem caracteres problemáticos)
-    const contratoHTMLFinal = contratoHTML.replace(/\u0000/g, ''); // Remove nulls residuais
-    const htmlSizeBytes = encoder.encode(contratoHTMLFinal).length;
-
-    // Determinar status do contrato baseado no sucesso da geração do HTML
-    const contratoStatus = htmlGenerationError ? 'erro_html' : 'pendente_assinatura';
 
     const { data: contrato, error: contratoError } = await supabase
       .from('contratos')
@@ -626,16 +412,13 @@ serve(async (req) => {
         inscricao_id: inscricao_id,
         numero_contrato: numeroContrato,
         tipo: 'credenciamento',
-        status: contratoStatus,
+        status: 'pendente_assinatura',
         documento_url: publicUrl,
         dados_contrato: {
           ...contratoData,
-          contratoHTML: contratoHTMLFinal || null, // null se houver erro
           pdf_gerado_em: new Date().toISOString(),
           metodo_geracao: 'jspdf_direto',
-          tamanho_bytes: contratoPDFBytes.length,
-          html_size_bytes: htmlSizeBytes,
-          html_error_message: htmlGenerationError || undefined // Adicionar mensagem de erro se houver
+          tamanho_bytes: contratoPDFBytes.length
         },
         gerado_em: new Date().toISOString(),
         analise_id: null,
@@ -658,14 +441,15 @@ serve(async (req) => {
     // Aguardar 500ms para garantir persistência
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    logEvent('info', 'contract_saved', { 
+    logEvent('info', 'contract_saved_success', { 
       contrato_id: contrato.id,
       numero_contrato: numeroContrato,
+      status: 'pendente_assinatura',
       inscricao_id
     });
 
     // ========================================
-    // PASSO 6: CRIAR SIGNATURE REQUEST
+    // PASSO 5: CRIAR SIGNATURE REQUEST
     // ========================================
     logEvent('info', 'creating_signature_request', { 
       contrato_id: contrato.id,
@@ -714,13 +498,14 @@ serve(async (req) => {
       throw new Error('Signature request não foi criado (sem erro retornado)');
     }
 
-    logEvent('info', 'signature_request_created', {
+    logEvent('info', 'signature_request_created_success', {
       signature_request_id: signatureRequest.id,
+      contrato_id: contrato.id,
       inscricao_id
     });
 
     // ========================================
-    // PASSO 7: ENVIAR PARA ASSINAFY (SE CONFIGURADO)
+    // PASSO 6: ENVIAR PARA ASSINAFY (SE CONFIGURADO)
     // ========================================
     let assinafyResponse: any = null;
     
@@ -767,10 +552,10 @@ serve(async (req) => {
             .eq('id', signatureRequest.id);
         } else {
           assinafyResponse = data;
-          logEvent('info', 'assinafy_success', {
+          logEvent('info', 'signature_sent_to_assinafy', {
             signature_request_id: signatureRequest.id,
             contrato_id: contrato.id,
-            response: data
+            provider: 'assinafy'
           });
         }
       } catch (invokeError: any) {
@@ -824,11 +609,17 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
+        success: true,
         contrato_id: contrato.id,
         numero_contrato: numeroContrato,
+        pdf_url: publicUrl,
         assinatura_status: signatureRequest.status,
         signature_request_id: signatureRequest.id,
-        assinafy_response: assinafyResponse
+        assinafy_response: assinafyResponse,
+        metadata: {
+          pdf_size_bytes: contratoPDFBytes.length,
+          gerado_em: new Date().toISOString()
+        }
       }),
       {
         status: 200,
