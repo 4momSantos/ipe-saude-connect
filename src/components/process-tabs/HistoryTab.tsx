@@ -241,12 +241,12 @@ export function HistoryTab({ processoId, dadosInscricao }: {
               className="relative flex items-center gap-6 animate-fade-in"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
-              <div className={`relative z-10 flex items-center justify-center rounded-full border-2 w-14 h-14 bg-card/80 backdrop-blur-xl transition-all duration-500 hover:scale-125 hover:rotate-12 ${getColor(evento.tipo)}`}>
+              <div className={`relative z-10 flex items-center justify-center rounded-full border-2 w-14 h-14 shrink-0 bg-card/80 backdrop-blur-xl transition-all duration-500 hover:scale-125 hover:rotate-12 ${getColor(evento.tipo)}`}>
                 <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/20 to-transparent" />
                 {getIcon(evento.tipo)}
               </div>
 
-              <div className="flex-1 pb-8">
+              <div className="flex-1">
                 <div className="group relative rounded-xl border border-border/50 bg-gradient-to-br from-card via-card to-card/50 p-5 backdrop-blur-sm transition-all duration-500 hover:shadow-2xl hover:border-primary/40 hover:-translate-y-1">
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   <div className="relative z-10 flex items-start justify-between gap-4">
