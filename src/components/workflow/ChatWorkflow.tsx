@@ -173,7 +173,6 @@ export function ChatWorkflow({
           lido_por,
           created_at,
           editada,
-          status_aprovacao,
           manifestacao_metadata
         `)
         .eq('inscricao_id', inscricaoId)
@@ -260,7 +259,6 @@ export function ChatWorkflow({
             lido_por: novaMensagem.lido_por || [],
             created_at: novaMensagem.created_at,
             editada: novaMensagem.editada || false,
-            status_aprovacao: novaMensagem.status_aprovacao,
             manifestacao_metadata: novaMensagem.manifestacao_metadata
           };
           
@@ -550,7 +548,6 @@ export function ChatWorkflow({
         mencoes: [],
         visivel_para: ['analista', 'gestor', 'admin', 'candidato'],
         privada: false,
-        status_aprovacao: 'pendente',
         manifestacao_metadata: {
           tipo_solicitacao: dados.tipo,
           campo: dados.campo,
@@ -639,7 +636,6 @@ export function ChatWorkflow({
       await supabase
         .from('workflow_messages')
         .update({
-          status_aprovacao: 'aprovada',
           manifestacao_metadata: {
             ...metadata,
             status: 'aprovada',
@@ -674,7 +670,6 @@ export function ChatWorkflow({
       await supabase
         .from('workflow_messages')
         .update({
-          status_aprovacao: 'rejeitada',
           manifestacao_metadata: {
             ...metadata,
             status: 'rejeitada',
