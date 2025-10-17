@@ -233,23 +233,29 @@ export function HistoryTab({ processoId, dadosInscricao }: {
     <div className="space-y-4">
       <CandidatoInfoCard dadosInscricao={dadosInscricao} />
       <div className="relative">
-        <div className="absolute left-7 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/50 via-primary/20 to-transparent" />
-        <div className="space-y-6">
+        <div className="absolute left-7 top-0 bottom-0 w-1 bg-gradient-to-b from-primary/60 via-primary/30 to-transparent rounded-full" />
+        <div className="space-y-8">
           {allEvents.map((evento, index) => (
-            <div key={index} className="relative flex gap-4">
-              <div className={`relative z-10 rounded-full border-2 p-3 bg-card backdrop-blur-sm transition-all duration-300 hover:scale-110 ${getColor(evento.tipo)}`}>
+            <div 
+              key={index} 
+              className="relative flex gap-6 animate-fade-in"
+              style={{ animationDelay: `${index * 0.1}s` }}
+            >
+              <div className={`relative z-10 rounded-full border-2 p-3.5 bg-card/80 backdrop-blur-xl transition-all duration-500 hover:scale-125 hover:rotate-12 ${getColor(evento.tipo)}`}>
+                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/20 to-transparent" />
                 {getIcon(evento.tipo)}
               </div>
 
-              <div className="flex-1 pb-6">
-                <div className="rounded-lg border bg-card p-4 hover:shadow-lg hover:border-primary/30 transition-all duration-300">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1">
-                      <p className="font-medium text-foreground">{evento.descricao}</p>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>{evento.autor}</span>
-                        <span>•</span>
-                        <span>
+              <div className="flex-1 pb-8">
+                <div className="group relative rounded-xl border border-border/50 bg-gradient-to-br from-card via-card to-card/50 p-5 backdrop-blur-sm transition-all duration-500 hover:shadow-2xl hover:border-primary/40 hover:-translate-y-1">
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="relative z-10 flex items-start justify-between gap-4">
+                    <div className="space-y-2 flex-1">
+                      <p className="font-semibold text-foreground text-base leading-relaxed">{evento.descricao}</p>
+                      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                        <span className="font-medium">{evento.autor}</span>
+                        <span className="opacity-50">•</span>
+                        <span className="font-mono text-xs">
                           {new Date(evento.data).toLocaleString("pt-BR", {
                             day: "2-digit",
                             month: "2-digit",
