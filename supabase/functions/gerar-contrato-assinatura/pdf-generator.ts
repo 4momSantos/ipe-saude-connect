@@ -6,8 +6,12 @@ import jsPDF from "https://esm.sh/jspdf@2.5.1";
 
 interface ContratoData {
   inscricao_id: string;
+  tipo_credenciamento: 'PF' | 'PJ';
   candidato_nome: string;
   candidato_cpf: string;
+  candidato_cnpj?: string;
+  candidato_documento_tipo: 'CPF' | 'CNPJ';
+  candidato_documento: string;
   candidato_cpf_formatado: string;
   candidato_rg: string;
   candidato_email: string;
@@ -16,6 +20,14 @@ interface ContratoData {
   candidato_endereco_completo: string;
   candidato_data_nascimento: string;
   candidato_data_nascimento_formatada: string;
+  consultorios: Array<{
+    nome: string;
+    cnes: string;
+    endereco_completo: string;
+    telefone: string;
+    especialidades: string[];
+    is_principal: boolean;
+  }>;
   edital_titulo: string;
   edital_numero: string;
   edital_objeto: string;
@@ -25,6 +37,13 @@ interface ContratoData {
   especialidades_texto: string;
   sistema_data_atual: string;
   sistema_data_extenso: string;
+}
+
+function formatCPF(cpf: string): string {
+  if (!cpf) return '';
+  const cleaned = cpf.replace(/\D/g, '');
+  if (cleaned.length !== 11) return cpf;
+  return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
 }
 
 /**
@@ -152,12 +171,31 @@ export async function gerarContratoPDFDireto(contratoData: ContratoData): Promis
   doc.text('CONTRATADO:', margin, yPos);
   yPos += 6;
 
-  addText(
-    `${contratoData.candidato_nome}, CPF ${contratoData.candidato_cpf_formatado}, RG ${contratoData.candidato_rg || 'não informado'}, residente em ${contratoData.candidato_endereco_completo}, e-mail ${contratoData.candidato_email}, telefone ${contratoData.candidato_telefone || contratoData.candidato_celular}.`,
-    10,
-    false,
-    10
-  );
+  // Dados variáveis conforme tipo de credenciamento
+  if (contratoData.tipo_credenciamento === 'PF') {
+    addText(
+      `${contratoData.candidato_nome}, CPF ${contratoData.candidato_cpf_formatado}, RG ${contratoData.candidato_rg || 'não informado'}, residente em ${contratoData.candidato_endereco_completo}, e-mail ${contratoData.candidato_email}, telefone ${contratoData.candidato_telefone || contratoData.candidato_celular}.`,
+      10,
+      false,
+      10
+    );
+  } else {
+    addText(
+      `${contratoData.candidato_nome}, CNPJ ${contratoData.candidato_cpf_formatado}, com sede em ${contratoData.candidato_endereco_completo}, e-mail ${contratoData.candidato_email}, telefone ${contratoData.candidato_telefone || contratoData.candidato_celular}.`,
+      10,
+      false,
+      6
+    );
+    
+    if (contratoData.candidato_cpf) {
+      addText(
+        `Representada legalmente por seu responsável portador do CPF ${formatCPF(contratoData.candidato_cpf)}.`,
+        10,
+        false,
+        10
+      );
+    }
+  }
 
   // ===== SEÇÃO 2: OBJETO DO CONTRATO =====
   addSectionTitle('2. DO OBJETO');
@@ -175,9 +213,30 @@ export async function gerarContratoPDFDireto(contratoData: ContratoData): Promis
 
   addText(contratoData.edital_objeto, 10, false, 10);
 
-  // ===== SEÇÃO 3: ESPECIALIDADES =====
-  if (contratoData.especialidades && contratoData.especialidades.length > 0) {
-    addSectionTitle('3. DAS ESPECIALIDADES');
+  // ===== SEÇÃO 3: DOS CONSULTÓRIOS (para PJ) =====
+  if (contratoData.tipo_credenciamento === 'PJ' && contratoData.consultorios.length > 0) {
+    addSectionTitle('3. DOS CONSULTÓRIOS CREDENCIADOS');
+    
+    contratoData.consultorios.forEach((consultorio, idx) => {
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Consultório ${idx + 1}${consultorio.is_principal ? ' (Principal)' : ''}:`, margin, yPos);
+      yPos += 6;
+      
+      addText(`Nome: ${consultorio.nome}`, 10, false, 2);
+      addText(`CNES: ${consultorio.cnes}`, 10, false, 2);
+      addText(`Endereço: ${consultorio.endereco_completo}`, 10, false, 2);
+      addText(`Telefone: ${consultorio.telefone}`, 10, false, 2);
+      
+      if (consultorio.especialidades.length > 0) {
+        addText(`Especialidades: ${consultorio.especialidades.join(', ')}`, 10, false, 8);
+      }
+    });
+  }
+
+  // ===== SEÇÃO 4 ou 5: ESPECIALIDADES (para PF) =====
+  if (contratoData.tipo_credenciamento === 'PF' && contratoData.especialidades && contratoData.especialidades.length > 0) {
+    const secaoNumero = contratoData.consultorios.length > 0 ? '4' : '3';
+    addSectionTitle(`${secaoNumero}. DAS ESPECIALIDADES`);
     addText('O CONTRATADO prestará serviços nas seguintes especialidades:', 10, false, 8);
 
     const tableData = contratoData.especialidades.map((esp, idx) => [

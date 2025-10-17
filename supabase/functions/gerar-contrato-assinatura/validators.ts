@@ -186,6 +186,41 @@ export function consolidarTelefone(dadosInscricao: any): { telefone: string; cel
 }
 
 /**
+ * Determina tipo de credenciamento (PF ou PJ)
+ */
+export function determinarTipoCredenciamento(dadosInscricao: any): 'PF' | 'PJ' {
+  const pessoaJuridica = dadosInscricao?.pessoa_juridica || dadosInscricao?.pessoaJuridica;
+  
+  if (pessoaJuridica?.cnpj && pessoaJuridica.cnpj.replace(/\D/g, '').length === 14) {
+    return 'PJ';
+  }
+  
+  return 'PF';
+}
+
+/**
+ * Extrai dados do contratado baseado no tipo
+ */
+export function extrairDadosContratado(dadosInscricao: any, tipo: 'PF' | 'PJ') {
+  if (tipo === 'PF') {
+    const dadosPessoais = dadosInscricao?.dados_pessoais || dadosInscricao?.dadosPessoais;
+    return {
+      nome: dadosPessoais?.nome_completo || dadosPessoais?.nome,
+      documento: dadosPessoais?.cpf,
+      rg: dadosPessoais?.rg,
+      data_nascimento: dadosPessoais?.data_nascimento
+    };
+  } else {
+    const pessoaJuridica = dadosInscricao?.pessoa_juridica || dadosInscricao?.pessoaJuridica;
+    return {
+      nome: pessoaJuridica?.razao_social || pessoaJuridica?.denominacao_social,
+      documento: pessoaJuridica?.cnpj,
+      responsavel_legal: pessoaJuridica?.responsavel_legal
+    };
+  }
+}
+
+/**
  * Extrai especialidades formatadas
  */
 export function extrairEspecialidades(dadosInscricao: any): string[] {

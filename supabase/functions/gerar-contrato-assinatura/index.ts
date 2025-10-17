@@ -48,8 +48,12 @@ interface GerarContratoRequest {
 
 interface ContratoData {
   inscricao_id: string;
+  tipo_credenciamento: 'PF' | 'PJ';
   candidato_nome: string;
   candidato_cpf: string;
+  candidato_cnpj?: string;
+  candidato_documento_tipo: 'CPF' | 'CNPJ';
+  candidato_documento: string;
   candidato_cpf_formatado: string;
   candidato_rg: string;
   candidato_email: string;
@@ -58,6 +62,14 @@ interface ContratoData {
   candidato_endereco_completo: string;
   candidato_data_nascimento: string;
   candidato_data_nascimento_formatada: string;
+  consultorios: Array<{
+    nome: string;
+    cnes: string;
+    endereco_completo: string;
+    telefone: string;
+    especialidades: string[];
+    is_principal: boolean;
+  }>;
   edital_titulo: string;
   edital_numero: string;
   edital_objeto: string;
@@ -139,7 +151,24 @@ serve(async (req) => {
       .select(`
         *,
         candidato:profiles(nome, email),
-        edital:editais(titulo, numero_edital, objeto, data_publicacao)
+        edital:editais(titulo, numero_edital, objeto, data_publicacao),
+        consultorios:inscricao_consultorios(
+          nome_consultorio,
+          cnes,
+          telefone,
+          ramal,
+          logradouro,
+          numero,
+          complemento,
+          bairro,
+          cidade,
+          estado,
+          cep,
+          especialidades_ids,
+          horarios,
+          is_principal,
+          ativo
+        )
       `)
       .eq('id', inscricao_id)
       .single();
@@ -167,13 +196,32 @@ serve(async (req) => {
                      dadosPJ.endereco || 
                      {};
 
-    const candidato_nome = dadosPessoais.nome_completo || 
-                           dadosPessoais.nome ||
-                           dadosPJ.razao_social || 
-                           dadosPJ.denominacao_social ||
-                           (inscricao as any).candidato?.nome || '';
+    // Detectar tipo de credenciamento
+    const tipo_credenciamento = determinarTipoCredenciamento(dadosInscricao);
     
-    const candidato_cpf = dadosPessoais.cpf || '';
+    // Extrair dados baseado no tipo
+    let candidato_nome = '';
+    let candidato_documento = '';
+    let candidato_documento_formatado = '';
+    let candidato_documento_tipo: 'CPF' | 'CNPJ' = 'CPF';
+    let candidato_cpf = '';
+    let candidato_cnpj = '';
+    
+    if (tipo_credenciamento === 'PF') {
+      candidato_nome = dadosPessoais.nome_completo || dadosPessoais.nome || 'Não informado';
+      candidato_cpf = dadosPessoais.cpf || '';
+      candidato_documento = candidato_cpf;
+      candidato_documento_formatado = formatarCPF(candidato_documento);
+      candidato_documento_tipo = 'CPF';
+    } else {
+      candidato_nome = dadosPJ.razao_social || dadosPJ.denominacao_social || 'Não informado';
+      candidato_cnpj = dadosPJ.cnpj || '';
+      candidato_documento = candidato_cnpj;
+      candidato_documento_formatado = formatarCNPJ(candidato_documento);
+      candidato_documento_tipo = 'CNPJ';
+      candidato_cpf = dadosPessoais.cpf || ''; // PJ também tem responsável com CPF
+    }
+    
     const candidato_rg = dadosPessoais.rg || '';
     const candidato_email = endereco.email || 
                             dadosPJ.contatos?.email || 
@@ -184,12 +232,40 @@ serve(async (req) => {
     const candidato_endereco_completo = consolidarEndereco(dadosInscricao);
     const { telefone: candidato_telefone, celular: candidato_celular } = consolidarTelefone(dadosInscricao);
 
-    // Extrair especialidades
+    // Buscar consultórios (se houver)
+    const consultorios_raw = (inscricao as any).consultorios || [];
+    const consultorios_ativos = consultorios_raw.filter((c: any) => c.ativo !== false);
+    
+    const consultorios = consultorios_ativos.map((c: any) => {
+      const endereco_parts = [
+        c.logradouro,
+        c.numero || 'S/N',
+        c.complemento,
+        c.bairro,
+        c.cidade,
+        c.estado,
+        c.cep
+      ].filter(Boolean);
+      
+      const especialidades_nomes: string[] = [];
+      if (c.especialidades_ids && Array.isArray(c.especialidades_ids)) {
+        especialidades_nomes.push(...c.especialidades_ids.map((id: string) => `Especialidade ${id.substring(0, 8)}`));
+      }
+      
+      return {
+        nome: c.nome_consultorio || 'Consultório',
+        cnes: c.cnes || 'Não informado',
+        endereco_completo: endereco_parts.join(', '),
+        telefone: c.telefone ? `${c.telefone}${c.ramal ? ` Ramal: ${c.ramal}` : ''}` : 'Não informado',
+        especialidades: especialidades_nomes.length > 0 ? especialidades_nomes : ['Não especificada'],
+        is_principal: c.is_principal || false
+      };
+    });
+
+    // Extrair especialidades (para PF ou geral)
     const especialidades = extrairEspecialidades(dadosInscricao);
 
     // Formatações
-    const candidato_cpf_formatado = formatarCPF(candidato_cpf);
-    
     const dataNascimento = dadosPessoais.data_nascimento ? new Date(dadosPessoais.data_nascimento) : null;
     const candidato_data_nascimento_formatada = dataNascimento ? 
       dataNascimento.toLocaleDateString('pt-BR') : '';
@@ -206,9 +282,13 @@ serve(async (req) => {
     // ========================================
     const contratoData: ContratoData = {
       inscricao_id,
+      tipo_credenciamento,
       candidato_nome,
       candidato_cpf,
-      candidato_cpf_formatado,
+      candidato_cnpj: candidato_cnpj || undefined,
+      candidato_documento_tipo,
+      candidato_documento,
+      candidato_cpf_formatado: candidato_documento_formatado,
       candidato_rg,
       candidato_email,
       candidato_telefone,
@@ -216,6 +296,7 @@ serve(async (req) => {
       candidato_endereco_completo,
       candidato_data_nascimento: dadosPessoais.data_nascimento || '',
       candidato_data_nascimento_formatada,
+      consultorios,
       edital_titulo: edital?.titulo || '',
       edital_numero: edital?.numero_edital || '',
       edital_objeto: edital?.objeto || '',
