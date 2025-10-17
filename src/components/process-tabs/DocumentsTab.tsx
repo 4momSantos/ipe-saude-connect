@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { CandidatoInfoCard } from "./CandidatoInfoCard";
 
 interface Document {
   id: string;
@@ -19,7 +20,10 @@ interface Document {
   ocr_confidence: number | null;
 }
 
-export function DocumentsTab({ processoId }: { processoId: string }) {
+export function DocumentsTab({ processoId, dadosInscricao }: { 
+  processoId: string;
+  dadosInscricao?: any;
+}) {
   const queryClient = useQueryClient();
 
   const { data: documentos, isLoading } = useQuery({
@@ -128,6 +132,10 @@ export function DocumentsTab({ processoId }: { processoId: string }) {
 
   return (
     <div className="space-y-4">
+      <CandidatoInfoCard 
+        dadosInscricao={dadosInscricao}
+        showCounts={{ documentos: documentos?.length }}
+      />
       {documentos.map((doc) => (
         <Card key={doc.id} className="border bg-card hover-lift">
           <CardHeader>

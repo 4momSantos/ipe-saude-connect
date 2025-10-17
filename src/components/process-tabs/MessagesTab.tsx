@@ -2,19 +2,22 @@ import { ChatWorkflow } from '@/components/workflow/ChatWorkflow';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { CandidatoInfoCard } from './CandidatoInfoCard';
 
 interface MessagesTabProps {
   processoId: string;
   candidatoNome: string;
   executionId?: string;
   inscricaoId: string;
+  dadosInscricao?: any;
 }
 
 export function MessagesTab({ 
   processoId, 
   candidatoNome, 
   executionId, 
-  inscricaoId 
+  inscricaoId,
+  dadosInscricao
 }: MessagesTabProps) {
   const { isAdmin, isGestor, isAnalista } = useUserRole();
   
@@ -56,14 +59,17 @@ export function MessagesTab({
   });
 
   return (
-    <ChatWorkflow
-      inscricaoId={inscricaoId}
-      executionId={executionId}
-      etapaAtual={undefined}
-      usuarioPapel={usuarioPapel}
-      credenciadoId={credenciado?.id}
-      dadosCredenciado={credenciado}
-      documentosCredenciado={documentos || []}
-    />
+    <div className="space-y-4">
+      <CandidatoInfoCard dadosInscricao={dadosInscricao} />
+      <ChatWorkflow
+        inscricaoId={inscricaoId}
+        executionId={executionId}
+        etapaAtual={undefined}
+        usuarioPapel={usuarioPapel}
+        credenciadoId={credenciado?.id}
+        dadosCredenciado={credenciado}
+        documentosCredenciado={documentos || []}
+      />
+    </div>
   );
 }

@@ -341,7 +341,7 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
             </TabsContent>
 
             <TabsContent value="workflow" className="m-0 p-6">
-              <div className="max-w-3xl mx-auto">
+              <div className="max-w-3xl mx-auto space-y-4">
                 {loading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -429,18 +429,31 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
               </div>
             </TabsContent>
             <TabsContent value="documentos" className="m-0 p-6">
-              <DocumentsTab processoId={processo.id} />
+              <div className="max-w-3xl mx-auto">
+                <DocumentsTab 
+                  processoId={processo.id} 
+                  dadosInscricao={dadosInscricao}
+                />
+              </div>
             </TabsContent>
             <TabsContent value="mensagens" className="m-0 p-6">
-              <MessagesTab 
-                processoId={processo.id} 
-                candidatoNome={processo.nome}
-                executionId={workflowData?.id}
-                inscricaoId={processo.id}
-              />
+              <div className="max-w-3xl mx-auto">
+                <MessagesTab 
+                  processoId={processo.id} 
+                  candidatoNome={processo.nome}
+                  executionId={workflowData?.id}
+                  inscricaoId={processo.id}
+                  dadosInscricao={dadosInscricao}
+                />
+              </div>
             </TabsContent>
             <TabsContent value="historico" className="m-0 p-6">
-              <HistoryTab processoId={processo.id} />
+              <div className="max-w-3xl mx-auto">
+                <HistoryTab 
+                  processoId={processo.id}
+                  dadosInscricao={dadosInscricao}
+                />
+              </div>
             </TabsContent>
           </ScrollArea>
         </Tabs>

@@ -2,6 +2,7 @@ import { CheckCircle, XCircle, AlertCircle, MessageSquare, FileText, User, Loade
 import { useAuditLogsByResource } from "@/hooks/useAuditLogs";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { CandidatoInfoCard } from "./CandidatoInfoCard";
 
 interface HistoryEvent {
   tipo: "aprovacao" | "rejeicao" | "solicitacao" | "comentario" | "upload" | "atribuicao" | "workflow" | "status_change" | "criacao";
@@ -11,7 +12,10 @@ interface HistoryEvent {
   metadata?: any;
 }
 
-export function HistoryTab({ processoId }: { processoId: string }) {
+export function HistoryTab({ processoId, dadosInscricao }: { 
+  processoId: string;
+  dadosInscricao?: any;
+}) {
   // Buscar audit logs
   const { data: auditLogs, isLoading: loadingAudit } = useAuditLogsByResource('inscricoes_edital', processoId);
   
@@ -226,6 +230,7 @@ export function HistoryTab({ processoId }: { processoId: string }) {
 
   return (
     <div className="space-y-4">
+      <CandidatoInfoCard dadosInscricao={dadosInscricao} />
       <div className="relative">
         <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-border" />
         <div className="space-y-6">
