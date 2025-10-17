@@ -99,12 +99,20 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
   // Salvar tipo no rascunho e sincronizar com formulário
   useEffect(() => {
     if (tipoCredenciamento && inscricaoId) {
+      console.log('[WIZARD] 🔄 Sincronizando tipo:', tipoCredenciamento, 'para inscrição:', inscricaoId);
       form.setValue('tipo_credenciamento', tipoCredenciamento);
+      
       supabase
         .from('inscricoes_edital')
         .update({ tipo_credenciamento: tipoCredenciamento })
         .eq('id', inscricaoId)
-        .then(() => console.log('[WIZARD] Tipo salvo e sincronizado:', tipoCredenciamento));
+        .then(({ error }) => {
+          if (error) {
+            console.error('[WIZARD] ❌ Erro ao salvar tipo:', error);
+          } else {
+            console.log('[WIZARD] ✅ Tipo salvo e sincronizado com sucesso');
+          }
+        });
     }
   }, [tipoCredenciamento, inscricaoId]);
 

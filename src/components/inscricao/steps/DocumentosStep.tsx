@@ -16,7 +16,7 @@ import {
   Eye,
   Trash2
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useInscricaoDocumentos } from '@/hooks/useInscricaoDocumentos';
 import { processOCRWithValidation } from '@/lib/ocr-processor';
@@ -70,9 +70,25 @@ export function DocumentosStep({ form, inscricaoId, editalId }: DocumentosStepPr
   // Obter tipo de credenciamento do formulário
   const tipoCredenciamento = form.watch('tipo_credenciamento');
   
-  // Usar documentos dinâmicos ou baseado no tipo
-  const documentosParaExibir = uploadsConfig || 
-    (tipoCredenciamento ? getDocumentosByTipo(tipoCredenciamento) : DOCUMENTOS_OBRIGATORIOS);
+  // Usar documentos dinâmicos ou baseado no tipo (com useMemo para performance)
+  const documentosParaExibir = useMemo(() => {
+    // Prioridade 1: Config do edital (se existir)
+    if (uploadsConfig) {
+      console.log('[DocumentosStep] Usando config do edital:', uploadsConfig.length, 'documentos');
+      return uploadsConfig;
+    }
+    
+    // Prioridade 2: Filtrar por tipo de credenciamento
+    if (!tipoCredenciamento) {
+      console.warn('[DocumentosStep] ⚠️ Tipo de credenciamento não selecionado');
+      return [];
+    }
+    
+    const docs = getDocumentosByTipo(tipoCredenciamento);
+    console.log(`[DocumentosStep] Documentos para ${tipoCredenciamento}:`, docs.map(d => d.tipo));
+    return docs;
+  }, [uploadsConfig, tipoCredenciamento]);
+
   const documentosObrigatorios = documentosParaExibir.filter(d => d.obrigatorio);
 
   if (isLoadingConfig) {
@@ -81,6 +97,30 @@ export function DocumentosStep({ form, inscricaoId, editalId }: DocumentosStepPr
         <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
         <span className="ml-2 text-muted-foreground">Carregando configuração de documentos...</span>
       </div>
+    );
+  }
+
+  // Validar que tipo foi selecionado antes de exibir documentos
+  if (!tipoCredenciamento && !uploadsConfig) {
+    return (
+      <Alert className="border-orange-500/50 bg-orange-500/10">
+        <AlertTriangle className="h-4 w-4 text-orange-500" />
+        <AlertDescription className="text-orange-700 dark:text-orange-300">
+          Por favor, selecione o tipo de credenciamento (Pessoa Física ou Pessoa Jurídica) antes de enviar documentos.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // Não exibir nada se não há documentos configurados
+  if (documentosParaExibir.length === 0) {
+    return (
+      <Alert className="border-blue-500/50 bg-blue-500/10">
+        <AlertTriangle className="h-4 w-4 text-blue-500" />
+        <AlertDescription className="text-blue-700 dark:text-blue-300">
+          Nenhum documento configurado para upload. Entre em contato com o suporte.
+        </AlertDescription>
+      </Alert>
     );
   }
 
@@ -107,6 +147,7 @@ export function DocumentosStep({ form, inscricaoId, editalId }: DocumentosStepPr
       // Processar OCR se habilitado
       if (documentoConfig.enabled) {
         console.log(`[DocumentosStep] 🔍 Processando OCR para ${doc.label}...`);
+        console.log('[DocumentosStep] Config OCR:', JSON.stringify(documentoConfig, null, 2));
         toast.info('🔍 Processando OCR no documento...');
         
         try {
@@ -131,7 +172,8 @@ export function DocumentosStep({ form, inscricaoId, editalId }: DocumentosStepPr
           }
         } catch (ocrError) {
           console.error('[DocumentosStep] ❌ Erro ao processar OCR:', ocrError);
-          toast.error('Erro ao processar OCR. Arquivo enviado sem validação.');
+          console.error('[DocumentosStep] Stack:', ocrError instanceof Error ? ocrError.stack : 'No stack');
+          toast.error(`Erro ao processar OCR: ${ocrError instanceof Error ? ocrError.message : 'Erro desconhecido'}`);
           ocrResult = {
             success: false,
             extractedData: {},

@@ -327,15 +327,23 @@ async function callValidationAPI(
   formData: Record<string, any>
 ): Promise<{ valid: boolean; data?: any; message?: string }> {
   
-  console.log(`📡 Validando via API: ${apiName}`, { value });
+  console.log(`📡 [OCR] Chamando API de validação: ${apiName}`, { value });
+
+  if (!apiName) {
+    console.warn('[OCR] ⚠️ API de validação não especificada');
+    return { valid: true, message: 'Nenhuma validação configurada' };
+  }
 
   switch (apiName) {
     case 'validate-cpf': {
       const birthdate = extractedData.data_nascimento || formData.data_nascimento;
+      console.log('[OCR] Validando CPF:', { cpf: value, birthdate });
       if (!birthdate) {
+        console.warn('[OCR] ⚠️ Data de nascimento não informada para validar CPF');
         return { valid: false, message: 'Data de nascimento não informada' };
       }
       const result = await validateCPFData(value, birthdate);
+      console.log('[OCR] Resultado validação CPF:', result);
       return {
         valid: result.valid,
         data: result.data,
@@ -354,10 +362,13 @@ async function callValidationAPI(
 
     case 'validate-crm': {
       const uf = extractedData.uf_crm || formData.uf_crm;
+      console.log('[OCR] Validando CRM:', { crm: value, uf });
       if (!uf) {
+        console.warn('[OCR] ⚠️ UF do CRM não informada para validação');
         return { valid: false, message: 'UF do CRM não informada' };
       }
       const result = await validateCRM(value, uf);
+      console.log('[OCR] Resultado validação CRM:', result);
       return {
         valid: result.valid,
         data: result.data,
