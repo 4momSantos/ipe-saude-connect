@@ -167,7 +167,9 @@ export const documentoUpload = z.object({
 });
 
 export const documentosSchema = z.object({
-  documentos: z.array(documentoUpload).optional().default([]),
+  documentos: z.array(documentoUpload)
+    .optional()
+    .default([]),
 });
 
 // Schema unificado flexível (torna PF e PJ opcionais para compatibilidade)
@@ -191,11 +193,11 @@ export const tipoCredenciamentoSchema = z.object({
 
 // Schema condicional PF (dados pessoais obrigatórios, PJ opcional)
 export const inscricaoCompletaPFSchema = tipoCredenciamentoSchema
-  .merge(dadosPessoaisSchema)                    // ✅ CPF, CRM, nome obrigatórios
-  .merge(enderecoCorrespondenciaSchema.partial()) // ✅ Endereço de correspondência parcialmente opcional
-  .merge(consultorioHorariosSchema.partial())     // ✅ Consultório parcialmente opcional
-  .merge(documentosSchema)                       // ✅ Documentos opcionais
-  .merge(z.object({                              // ✅ Permitir campos PJ opcionais sem validar
+  .merge(dadosPessoaisSchema)                       // ✅ CPF, CRM, nome, RG, data nascimento obrigatórios
+  .merge(enderecoCorrespondenciaSchema.partial())   // ✅ Endereço de correspondência TOTALMENTE opcional para PF
+  .merge(consultorioHorariosSchema.partial())       // ✅ Consultório parcialmente opcional (apenas endereco_consultorio obrigatório)
+  .merge(documentosSchema)                          // ✅ Documentos com validação condicional
+  .merge(z.object({                                 // ✅ Campos PJ explicitamente opcionais (não validados para PF)
     cnpj: z.string().optional(),
     denominacao_social: z.string().optional(),
     logradouro: z.string().optional(),
@@ -216,10 +218,10 @@ export const inscricaoCompletaPFSchema = tipoCredenciamentoSchema
 
 // Schema condicional PJ (PJ obrigatório, dados pessoais opcionais)
 export const inscricaoCompletaPJSchema = tipoCredenciamentoSchema
-  .merge(dadosPessoaisSchema.partial()) // Dados pessoais opcionais para PJ
-  .merge(pessoaJuridicaSchema)
-  .merge(enderecoCorrespondenciaSchema.partial()) // Endereço pode ser do consultório
-  .merge(documentosSchema);
+  .merge(dadosPessoaisSchema.partial())             // ✅ Dados pessoais opcionais (pode ser representante legal)
+  .merge(pessoaJuridicaSchema)                      // ✅ CNPJ, razão social, endereço PJ obrigatórios
+  .merge(enderecoCorrespondenciaSchema.partial())   // ✅ Endereço de correspondência opcional
+  .merge(documentosSchema);                         // ✅ Documentos com validação condicional
 
 // Tipo unificado permissivo (todos os campos opcionais, exceto enderecoCorrespondencia e documentos)
 export type InscricaoCompletaForm = z.infer<typeof inscricaoCompletaSchema> & {
