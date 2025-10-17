@@ -186,13 +186,13 @@ export function MapaCredenciadosPublico({
       bounds.extend([lng, lat]);
     });
 
-    // Ajustar bounds
+    // Ajustar bounds apenas se houver pontos válidos
     if (points.length === 1) {
       map.current.easeTo({
         center: [points[0].geometry.coordinates[0], points[0].geometry.coordinates[1]],
         zoom: 15,
       });
-    } else if (points.length > 1) {
+    } else if (points.length > 1 && !bounds.isEmpty()) {
       map.current.fitBounds(bounds, { padding: 50, maxZoom: 15 });
     }
 
