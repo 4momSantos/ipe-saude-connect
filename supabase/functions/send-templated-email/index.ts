@@ -66,7 +66,13 @@ async function resolveVariables(
       .select("*")
       .eq("id", context.candidatoId)
       .single();
-    if (candidato) variables.candidato = candidato;
+    if (candidato) {
+      // Adicionar fallback para nome vazio
+      variables.candidato = {
+        ...candidato,
+        nome: candidato.nome?.trim() || "Candidato"
+      };
+    }
   }
 
   // Buscar dados do analista

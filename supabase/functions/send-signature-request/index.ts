@@ -816,101 +816,174 @@ serve(async (req) => {
       }
     }
 
-    // Enviar email para o candidato
-    if (candidato?.email) {
-      // Buscar signature_url do metadata atualizado
-      const { data: updatedSigRequest } = await supabase
-        .from("signature_requests")
-        .select("metadata")
-        .eq("id", signatureRequestId)
-        .single();
-      
-      const signatureUrl = updatedSigRequest?.metadata?.signature_url;
+    // ========================================
+    // VALIDAÇÕES DE E-MAIL E DADOS
+    // ========================================
+    
+    // Validar e-mail do candidato
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!candidato?.email) {
+      console.error(JSON.stringify({
+        level: "error",
+        requestId,
+        action: "email_missing",
+        candidato_id: candidato?.id
+      }));
+      throw new Error("E-mail do candidato não encontrado. Não é possível enviar contrato para assinatura.");
+    }
+    
+    if (!emailRegex.test(candidato.email)) {
+      console.error(JSON.stringify({
+        level: "error",
+        requestId,
+        action: "email_invalid",
+        email: candidato.email
+      }));
+      throw new Error(`E-mail inválido: ${candidato.email}. Verifique os dados cadastrais.`);
+    }
 
-      try {
-        await sendEmail(
-          [candidato.email],
-          "🖊️ Contrato Pronto para Assinatura Digital",
-          `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
-                <h1 style="color: white; margin: 0;">🖊️ Contrato Pronto para Assinatura</h1>
-              </div>
-              
-              <div style="padding: 30px; background: #f9fafb;">
-                <h2 style="color: #1f2937;">Olá ${candidato.nome || "Candidato"},</h2>
+    // Fallback para nome vazio
+    const candidatoNome = candidato.nome?.trim() || "Candidato";
+    
+    if (!candidato.nome?.trim()) {
+      console.warn(JSON.stringify({
+        level: "warn",
+        requestId,
+        action: "candidate_name_missing",
+        candidato_id: candidato.id,
+        fallback_used: "Candidato"
+      }));
+    }
+
+    // Buscar signature_url do metadata atualizado
+    const { data: updatedSigRequest } = await supabase
+      .from("signature_requests")
+      .select("metadata")
+      .eq("id", signatureRequestId)
+      .single();
+    
+    const signatureUrl = updatedSigRequest?.metadata?.signature_url;
+
+    // BLOQUEAR envio sem URL de assinatura válida
+    if (!signatureUrl) {
+      console.error(JSON.stringify({
+        level: "error",
+        requestId,
+        action: "signature_url_missing",
+        signatureRequestId
+      }));
+      
+      await supabase
+        .from("signature_requests")
+        .update({
+          status: "failed",
+          metadata: {
+            ...(updatedSigRequest?.metadata || {}),
+            error: "URL de assinatura não disponível. Não foi possível enviar e-mail.",
+            failed_at: new Date().toISOString()
+          }
+        })
+        .eq("id", signatureRequestId);
+      
+      throw new Error("URL de assinatura não disponível. Verifique a integração com Assinafy.");
+    }
+
+    // ========================================
+    // ENVIAR E-MAIL
+    // ========================================
+    try {
+      await sendEmail(
+        [candidato.email],
+        "🖊️ Contrato Pronto para Assinatura Digital",
+        `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+              <h1 style="color: white; margin: 0;">🖊️ Contrato Pronto para Assinatura</h1>
+            </div>
+            
+            <div style="padding: 30px; background: #f9fafb;">
+              <h2 style="color: #1f2937;">Olá ${candidatoNome},</h2>
                 
                 <p style="font-size: 16px; color: #4b5563; line-height: 1.6;">
                   Seu contrato de credenciamento está pronto e aguardando sua assinatura digital.
                 </p>
                 
-                <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea;">
-                  <p style="margin: 5px 0;"><strong>Edital:</strong> ${inscricaoData?.edital?.titulo || "N/A"}</p>
-                  <p style="margin: 5px 0;"><strong>Número:</strong> ${inscricaoData?.edital?.numero || "N/A"}</p>
-                  <p style="margin: 5px 0;"><strong>Provedor:</strong> Assinafy (Assinatura Digital Segura)</p>
-                </div>
-                
-                ${signatureUrl ? `
-                  <div style="text-align: center; margin: 30px 0;">
-                    <a href="${signatureUrl}" 
-                       style="display: inline-block; 
-                              padding: 16px 40px; 
-                              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                              color: white; 
-                              text-decoration: none; 
-                              border-radius: 8px; 
-                              font-size: 18px;
-                              font-weight: bold;
-                              box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                      🖊️ Assinar Contrato Agora
-                    </a>
-                  </div>
-                  
-                  <p style="font-size: 14px; color: #6b7280; text-align: center;">
-                    Ou copie e cole este link no navegador:<br/>
-                    <code style="background: #e5e7eb; padding: 8px; border-radius: 4px; display: inline-block; margin-top: 8px; word-break: break-all; font-size: 12px;">
-                      ${signatureUrl}
-                    </code>
-                  </p>
-                ` : `
-                  <p style="color: #dc2626; background: #fef2f2; padding: 15px; border-radius: 8px; border-left: 4px solid #dc2626;">
-                    ⚠️ Link de assinatura temporariamente indisponível. Por favor, acesse o sistema para obter o link.
-                  </p>
-                `}
-                
-                <div style="background: #fffbeb; padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #f59e0b;">
-                  <p style="margin: 0; font-size: 14px; color: #92400e;">
-                    ⏰ <strong>Atenção:</strong> Este link é válido por 7 dias. Após esse período, será necessário solicitar um novo contrato.
-                  </p>
-                </div>
+              <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea;">
+                <p style="margin: 5px 0;"><strong>Edital:</strong> ${inscricaoData?.edital?.titulo || "N/A"}</p>
+                <p style="margin: 5px 0;"><strong>Número:</strong> ${inscricaoData?.edital?.numero || "N/A"}</p>
+                <p style="margin: 5px 0;"><strong>Provedor:</strong> Assinafy (Assinatura Digital Segura)</p>
               </div>
               
-              <div style="background: #1f2937; padding: 20px; text-align: center;">
-                <p style="color: #9ca3af; margin: 0; font-size: 14px;">
-                  Sistema de Credenciamento Médico<br/>
-                  Em caso de dúvidas, entre em contato com nossa equipe.
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${signatureUrl}" 
+                   style="display: inline-block; 
+                          padding: 16px 40px; 
+                          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                          color: white; 
+                          text-decoration: none; 
+                          border-radius: 8px; 
+                          font-size: 18px;
+                          font-weight: bold;
+                          box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                  🖊️ Assinar Contrato Agora
+                </a>
+              </div>
+              
+              <p style="font-size: 14px; color: #6b7280; text-align: center;">
+                Ou copie e cole este link no navegador:<br/>
+                <code style="background: #e5e7eb; padding: 8px; border-radius: 4px; display: inline-block; margin-top: 8px; word-break: break-all; font-size: 12px;">
+                  ${signatureUrl}
+                </code>
+              </p>
+                
+              <div style="background: #fffbeb; padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #f59e0b;">
+                <p style="margin: 0; font-size: 14px; color: #92400e;">
+                  ⏰ <strong>Atenção:</strong> Este link é válido por 7 dias. Após esse período, será necessário solicitar um novo contrato.
                 </p>
               </div>
             </div>
-          `,
-          resendApiKey
-        );
+            
+            <div style="background: #1f2937; padding: 20px; text-align: center;">
+              <p style="color: #9ca3af; margin: 0; font-size: 14px;">
+                Sistema de Credenciamento Médico<br/>
+                Em caso de dúvidas, entre em contato com nossa equipe.
+              </p>
+            </div>
+          </div>
+        `,
+        resendApiKey
+      );
 
-        console.log(JSON.stringify({
-          level: "info",
-          requestId,
-          action: "email_sent_to_candidate",
-          email: candidato.email
-        }));
-      } catch (emailError) {
-        console.error(JSON.stringify({
-          level: "error",
-          requestId,
-          action: "email_failed",
-          recipient: "candidate",
-          error: emailError instanceof Error ? emailError.message : "Unknown"
-        }));
-      }
+      console.log(JSON.stringify({
+        level: "info",
+        requestId,
+        action: "email_sent",
+        recipientEmail: candidato.email,
+        recipientName: candidatoNome,
+        signatureUrl
+      }));
+
+    } catch (emailError) {
+      console.error(JSON.stringify({
+        level: "error",
+        requestId,
+        action: "email_send_failed",
+        error: emailError instanceof Error ? emailError.message : "Unknown error"
+      }));
+      
+      // Marcar signature_request como falha no envio de e-mail
+      await supabase
+        .from("signature_requests")
+        .update({
+          metadata: {
+            ...(updatedSigRequest?.metadata || {}),
+            email_error: emailError instanceof Error ? emailError.message : "Unknown error",
+            email_failed_at: new Date().toISOString()
+          }
+        })
+        .eq("id", signatureRequestId);
+      
+      throw emailError;
     }
 
     // Buscar analistas para notificar
