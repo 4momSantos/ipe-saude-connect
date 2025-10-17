@@ -184,8 +184,8 @@ export const documentosSchema = z.object({
 // Schema unificado flexível (torna PF e PJ opcionais para compatibilidade)
 export const inscricaoCompletaSchema = dadosPessoaisSchema.partial()
   .merge(pessoaJuridicaSchema.partial())
-  .merge(enderecoCorrespondenciaSchema)
-  .merge(consultorioHorariosSchema)
+  .merge(enderecoCorrespondenciaSchema.partial()) // ✅ Opcional no schema base
+  .merge(consultorioHorariosSchema.partial())     // ✅ Opcional no schema base
   .merge(documentosSchema);
 
 export type DadosPessoaisForm = z.infer<typeof dadosPessoaisSchema>;

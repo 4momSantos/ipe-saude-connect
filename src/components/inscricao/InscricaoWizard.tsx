@@ -221,17 +221,22 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
         ];
         break;
       case 'endereco_correspondencia':
-        fieldsToValidate = [
-          'cep_correspondencia',
-          'logradouro_correspondencia',
-          'numero_correspondencia',
-          'bairro_correspondencia',
-          'cidade_correspondencia',
-          'uf_correspondencia',
-          'telefone_correspondencia',
-          'celular_correspondencia',
-          'email_correspondencia',
-        ];
+        // ✅ Validar apenas se for PJ (PF não tem essa etapa separada)
+        if (tipoCredenciamento === 'PJ') {
+          fieldsToValidate = [
+            'cep_correspondencia',
+            'logradouro_correspondencia',
+            'numero_correspondencia',
+            'bairro_correspondencia',
+            'cidade_correspondencia',
+            'uf_correspondencia',
+            'telefone_correspondencia',
+            'celular_correspondencia',
+            'email_correspondencia',
+          ];
+        } else {
+          fieldsToValidate = []; // PF pula validação dessa etapa
+        }
         break;
       case 'consultorio':
         fieldsToValidate = [
@@ -303,6 +308,7 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
     // Validar os campos da etapa atual
     if (fieldsToValidate.length > 0) {
       const isValid = await form.trigger(fieldsToValidate as any);
+      console.log(`[WIZARD] Validação da etapa ${currentStepKey}:`, { isValid, fieldsToValidate });
 
       if (!isValid) {
         toast.error('Por favor, corrija os erros antes de continuar');

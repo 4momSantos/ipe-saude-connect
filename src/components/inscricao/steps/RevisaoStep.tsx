@@ -1,5 +1,5 @@
 import { UseFormReturn } from 'react-hook-form';
-import { InscricaoCompletaForm, DOCUMENTOS_OBRIGATORIOS } from '@/lib/inscricao-validation';
+import { InscricaoCompletaForm, DOCUMENTOS_OBRIGATORIOS, getSchemaByTipo } from '@/lib/inscricao-validation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
@@ -31,8 +31,26 @@ export function RevisaoStep({ form }: RevisaoStepProps) {
       .map(id => especialidades.find(e => e.id === id)?.nome)
       .filter(Boolean);
   };
-  const errors = form.formState.errors;
-  const hasErrors = Object.keys(errors).length > 0;
+
+  // ✅ Validação inteligente baseada no tipo de credenciamento
+  const tipoCredenciamento = values.tipo_credenciamento;
+  let hasErrors = false;
+  
+  if (tipoCredenciamento) {
+    const schemaToUse = getSchemaByTipo(tipoCredenciamento);
+    const validationResult = schemaToUse.safeParse(values);
+    hasErrors = !validationResult.success;
+    
+    // Debug: Mostrar erros detalhados
+    if (!validationResult.success) {
+      console.log('[REVISAO] Erros de validação:', validationResult.error.errors);
+    }
+  } else {
+    // Fallback: usar form.formState.errors se tipo não definido
+    const errors = form.formState.errors;
+    hasErrors = Object.keys(errors).length > 0;
+    console.log('[REVISAO] Erros no formulário (fallback):', errors);
+  }
 
   // Calcular progresso dos documentos obrigatórios
   const documentosObrigatoriosList = DOCUMENTOS_OBRIGATORIOS.filter(d => d.obrigatorio);
