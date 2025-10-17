@@ -59,6 +59,7 @@ export default function Analises() {
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [filtroEspecialidade, setFiltroEspecialidade] = useState<string>("todas");
   const [busca, setBusca] = useState("");
+  const [ordenacao, setOrdenacao] = useState<string>("data-desc");
   const [processoSelecionado, setProcessoSelecionado] = useState<Processo | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -179,17 +180,42 @@ export default function Analises() {
 
   const especialidades = Array.from(new Set(processos.map((p) => p.especialidade)));
 
-  const processosFiltrados = processos.filter((processo) => {
-    const matchStatus = filtroStatus === "todos" || processo.status === filtroStatus;
-    const matchEspecialidade =
-      filtroEspecialidade === "todas" || processo.especialidade === filtroEspecialidade;
-    const matchBusca =
-      busca === "" ||
-      processo.nome.toLowerCase().includes(busca.toLowerCase()) ||
-      processo.protocolo.toLowerCase().includes(busca.toLowerCase()) ||
-      processo.numeroEdital.toLowerCase().includes(busca.toLowerCase());
-    return matchStatus && matchEspecialidade && matchBusca;
-  });
+  const processosFiltrados = processos
+    .filter((processo) => {
+      const matchStatus = filtroStatus === "todos" || processo.status === filtroStatus;
+      const matchEspecialidade =
+        filtroEspecialidade === "todas" || processo.especialidade === filtroEspecialidade;
+      const matchBusca =
+        busca === "" ||
+        processo.nome.toLowerCase().includes(busca.toLowerCase()) ||
+        processo.protocolo.toLowerCase().includes(busca.toLowerCase()) ||
+        processo.numeroEdital.toLowerCase().includes(busca.toLowerCase());
+      return matchStatus && matchEspecialidade && matchBusca;
+    })
+    .sort((a, b) => {
+      switch (ordenacao) {
+        case "data-desc":
+          return new Date(b.dataSubmissao).getTime() - new Date(a.dataSubmissao).getTime();
+        case "data-asc":
+          return new Date(a.dataSubmissao).getTime() - new Date(b.dataSubmissao).getTime();
+        case "nome-asc":
+          return a.nome.localeCompare(b.nome);
+        case "nome-desc":
+          return b.nome.localeCompare(a.nome);
+        case "protocolo-asc":
+          return a.protocolo.localeCompare(b.protocolo);
+        case "protocolo-desc":
+          return b.protocolo.localeCompare(a.protocolo);
+        case "status":
+          return a.status.localeCompare(b.status);
+        case "edital-asc":
+          return a.numeroEdital.localeCompare(b.numeroEdital);
+        case "edital-desc":
+          return b.numeroEdital.localeCompare(a.numeroEdital);
+        default:
+          return 0;
+      }
+    });
 
   const handleStatusChange = async (id: string, newStatus: StatusType) => {
     try {
@@ -394,7 +420,7 @@ export default function Analises() {
                   className="pl-10 bg-background"
                 />
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Select value={filtroEspecialidade} onValueChange={setFiltroEspecialidade}>
                   <SelectTrigger className="w-full lg:w-[200px] bg-background">
                     <Filter className="h-4 w-4 mr-2" />
@@ -413,14 +439,30 @@ export default function Analises() {
                   <SelectTrigger className="w-full lg:w-[180px] bg-background">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="aguardando_analise">Aguardando Análise</SelectItem>
-                <SelectItem value="em_analise">Em Análise</SelectItem>
-                <SelectItem value="pendente">Pendente</SelectItem>
-                <SelectItem value="aprovado">Aprovado</SelectItem>
-                <SelectItem value="inabilitado">Inabilitado</SelectItem>
-              </SelectContent>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="aguardando_analise">Aguardando Análise</SelectItem>
+                    <SelectItem value="em_analise">Em Análise</SelectItem>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="aprovado">Aprovado</SelectItem>
+                    <SelectItem value="inabilitado">Inabilitado</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={ordenacao} onValueChange={setOrdenacao}>
+                  <SelectTrigger className="w-full lg:w-[200px] bg-background">
+                    <SelectValue placeholder="Ordenar por" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="data-desc">📅 Mais recente</SelectItem>
+                    <SelectItem value="data-asc">📅 Mais antiga</SelectItem>
+                    <SelectItem value="nome-asc">🔤 Nome (A-Z)</SelectItem>
+                    <SelectItem value="nome-desc">🔤 Nome (Z-A)</SelectItem>
+                    <SelectItem value="protocolo-asc">📋 Protocolo (crescente)</SelectItem>
+                    <SelectItem value="protocolo-desc">📋 Protocolo (decrescente)</SelectItem>
+                    <SelectItem value="edital-asc">📄 Edital (crescente)</SelectItem>
+                    <SelectItem value="edital-desc">📄 Edital (decrescente)</SelectItem>
+                    <SelectItem value="status">⚡ Status</SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
             </div>
