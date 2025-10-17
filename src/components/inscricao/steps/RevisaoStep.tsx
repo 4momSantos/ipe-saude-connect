@@ -1,3 +1,4 @@
+import { useMemo, useEffect } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { z } from 'zod';
 import { 
@@ -10,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   User, 
   Building2, 
@@ -28,91 +30,63 @@ interface RevisaoStepProps {
 }
 
 export function RevisaoStep({ form }: RevisaoStepProps) {
+  const DEBUG = false; // Ativar apenas para debugging
   const values = form.getValues();
   const { data: especialidades, isLoading: especialidadesLoading } = useEspecialidades();
   
-  const getEspecialidadesNomes = () => {
+  // ✅ OTIMIZAÇÃO 1: Memoizar tipo de credenciamento para evitar re-renders
+  const tipoCredenciamento = useMemo(() => {
+    return values.tipo_credenciamento;
+  }, [values.tipo_credenciamento]);
+
+  // ✅ OTIMIZAÇÃO 2: Memoizar nomes de especialidades
+  const especialidadesNomes = useMemo(() => {
     if (!values.especialidades_ids || !especialidades || especialidadesLoading) return [];
     return values.especialidades_ids
       .map(id => especialidades.find(e => e.id === id)?.nome)
       .filter(Boolean);
-  };
+  }, [values.especialidades_ids, especialidades, especialidadesLoading]);
 
-  // ✅ Validação inteligente baseada no tipo de credenciamento
-  const tipoCredenciamento = values.tipo_credenciamento || form.watch('tipo_credenciamento');
-  
-  console.log('[REVISAO] Tipo de credenciamento detectado:', tipoCredenciamento);
-  console.log('[REVISAO] Valores do formulário:', { 
-    tipo_no_values: values.tipo_credenciamento,
-    tipo_no_watch: form.watch('tipo_credenciamento'),
-    cpf: values.cpf,
-    cnpj: values.cnpj 
-  });
-  
-  let hasErrors = false;
-  let validationResult: z.SafeParseReturnType<any, any> | null = null;
-  
-  if (tipoCredenciamento) {
-    form.clearErrors(); // ✅ Limpa erros residuais antes da validação final
-    const schemaToUse = getSchemaByTipo(tipoCredenciamento);
-    validationResult = schemaToUse.safeParse(values);
-    hasErrors = !validationResult.success;
+  // ✅ OTIMIZAÇÃO 3: Memoizar validação para evitar re-execução desnecessária
+  const validationResult = useMemo(() => {
+    if (!tipoCredenciamento) return null;
     
-    // ✅ Logs detalhados para debugging
-    if (!validationResult.success) {
+    const schemaToUse = getSchemaByTipo(tipoCredenciamento);
+    return schemaToUse.safeParse(values);
+  }, [
+    tipoCredenciamento, 
+    values.cpf, 
+    values.cnpj, 
+    values.nome_completo,
+    values.crm,
+    values.uf_crm,
+    values.data_nascimento,
+    values.rg,
+    values.orgao_emissor,
+    values.endereco_consultorio,
+    values.quantidade_consultas_minima,
+    values.especialidades_ids,
+    values.documentos?.length
+  ]);
+
+  const hasErrors = validationResult ? !validationResult.success : Object.keys(form.formState.errors).length > 0;
+
+  // ✅ OTIMIZAÇÃO 4: Logs condicionais apenas em modo DEBUG dentro de useEffect
+  useEffect(() => {
+    if (!DEBUG) return;
+    
+    if (!validationResult?.success && validationResult) {
       console.group('🔴 [REVISAO] Erros de Validação Final');
       console.log('Tipo de Credenciamento:', tipoCredenciamento);
-      console.log('Erros encontrados:', validationResult.error.errors.map(e => ({
-        campo: e.path.join('.'),
-        mensagem: e.message,
-        valor: e.path.reduce((obj: any, key) => obj?.[key], values as any)
-      })));
-      console.log('---');
       console.log('❌ Erros de validação (primeiros 10):');
       validationResult.error.errors.slice(0, 10).forEach((err, idx) => {
         console.log(`${idx + 1}. ${err.path.join('.')} → ${err.message}`);
       });
-      console.log('---');
-      console.log('Campos Obrigatórios PF:', [
-        'cpf', 'nome_completo', 'rg', 'orgao_emissor', 'data_nascimento',
-        'crm', 'uf_crm', 'endereco_consultorio', 'quantidade_consultas_minima'
-      ]);
-      console.log('Valores Atuais (Obrigatórios):', {
-        cpf: values.cpf,
-        nome_completo: values.nome_completo,
-        rg: values.rg,
-        orgao_emissor: values.orgao_emissor,
-        data_nascimento: values.data_nascimento,
-        crm: values.crm,
-        uf_crm: values.uf_crm,
-        endereco_consultorio: values.endereco_consultorio,
-        quantidade_consultas_minima: values.quantidade_consultas_minima,
-      });
-      console.log('Valores Atuais (Opcionais):', {
-        especialidades_ids: values.especialidades_ids,
-        horarios: values.horarios,
-        telefone_consultorio: values.telefone_consultorio,
-        cep_correspondencia: values.cep_correspondencia,
-        logradouro_correspondencia: values.logradouro_correspondencia,
-      });
-      console.log('Documentos:', {
-        total: values.documentos?.length,
-        tipos: values.documentos?.map(d => d.tipo),
-        comArquivo: values.documentos?.filter(d => d.arquivo || d.url).length,
-      });
       console.groupEnd();
-    } else {
+    } else if (validationResult?.success) {
       console.log('✅ [REVISAO] Validação passou com sucesso!');
     }
-  } else {
-    // Fallback: usar form.formState.errors se tipo não definido
-    const errors = form.formState.errors;
-    hasErrors = Object.keys(errors).length > 0;
-    console.warn('[REVISAO] ⚠️ Tipo de credenciamento não definido, usando formState.errors');
-    if (hasErrors) {
-      console.log('[REVISAO] Erros no formulário (fallback):', errors);
-    }
-  }
+  }, [DEBUG, validationResult, tipoCredenciamento]);
 
   // PARTE 3: Calcular progresso dos documentos obrigatórios baseado no tipo
   const documentosObrigatoriosList = tipoCredenciamento
@@ -124,7 +98,8 @@ export function RevisaoStep({ form }: RevisaoStepProps) {
   ).length || 0;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <ScrollArea className="h-[calc(100vh-280px)] pr-4">
+      <div className="space-y-6 animate-fade-in">
       <div>
         <h3 className="text-lg font-semibold mb-2">Revisão e Envio</h3>
         <p className="text-sm text-muted-foreground">
@@ -328,8 +303,8 @@ export function RevisaoStep({ form }: RevisaoStepProps) {
               <div className="flex flex-wrap gap-1 mt-1">
                 {especialidadesLoading ? (
                   <Badge variant="secondary">Carregando...</Badge>
-                ) : getEspecialidadesNomes().length > 0 ? (
-                  getEspecialidadesNomes().map((nome, idx) => (
+                ) : especialidadesNomes.length > 0 ? (
+                  especialidadesNomes.map((nome, idx) => (
                     <Badge key={idx} variant="secondary">{nome}</Badge>
                   ))
                 ) : (
@@ -408,6 +383,7 @@ export function RevisaoStep({ form }: RevisaoStepProps) {
           </AlertDescription>
         </Alert>
       )}
-    </div>
+      </div>
+    </ScrollArea>
   );
 }
