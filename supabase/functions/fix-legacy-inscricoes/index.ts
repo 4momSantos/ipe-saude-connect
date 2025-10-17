@@ -34,8 +34,8 @@ Deno.serve(async (req) => {
     // 1. Corrigir editais sem workflow e sem fluxo programático
     const { data: editaisProblematicos, error: editaisError } = await supabase
       .from('editais')
-      .select('id, numero_edital, workflow_id, use_programmatic_flow')
-      .or('workflow_id.is.null,and(workflow_id.is.null,use_programmatic_flow.eq.false)');
+      .select('id, numero_edital, workflow_id, processing_mode')
+      .or('workflow_id.is.null,and(workflow_id.is.null,processing_mode.eq.none)');
 
     if (editaisError) {
       console.error('[FIX_LEGACY] Erro ao buscar editais:', editaisError);
@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
         // Atualizar para usar fluxo programático
         const { error: updateError } = await supabase
           .from('editais')
-          .update({ use_programmatic_flow: true })
+          .update({ processing_mode: 'programmatic' })
           .eq('id', edital.id);
 
         if (updateError) {
@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
         status,
         is_rascunho,
         edital_id,
-        editais!inner(numero_edital, use_programmatic_flow)
+        editais!inner(numero_edital, processing_mode)
       `)
       .eq('is_rascunho', false)
       .in('status', ['aguardando_analise', 'em_analise'])
