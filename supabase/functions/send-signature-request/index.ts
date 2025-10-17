@@ -816,6 +816,13 @@ serve(async (req) => {
       }
     }
 
+    // Buscar signature_url do metadata atualizado
+    const { data: updatedSigRequest } = await supabase
+      .from("signature_requests")
+      .select("metadata")
+      .eq("id", signatureRequestId)
+      .single();
+
     // ========================================
     // VALIDAÇÕES DE E-MAIL E DADOS
     // ========================================
@@ -855,13 +862,6 @@ serve(async (req) => {
       }));
     }
 
-    // Buscar signature_url do metadata atualizado
-    const { data: updatedSigRequest } = await supabase
-      .from("signature_requests")
-      .select("metadata")
-      .eq("id", signatureRequestId)
-      .single();
-    
     const signatureUrl = updatedSigRequest?.metadata?.signature_url;
 
     // BLOQUEAR envio sem URL de assinatura válida
