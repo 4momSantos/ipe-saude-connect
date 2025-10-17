@@ -65,23 +65,45 @@ serve(async (req) => {
 
     const inicioExecucao = Date.now();
 
-    // Usar nova função SQL otimizada
-    const { data, error } = await supabase.rpc('buscar_documentos_v2', {
-      p_termo: termo || null,
-      p_status: status || null,
-      p_tipo_documento: tipo_documento || null,
-      p_credenciado_id: credenciado_id || null,
-      p_data_inicio: data_inicio || null,
-      p_data_fim: data_fim || null,
-      p_incluir_prazos: incluir_prazos ?? false,
-      p_incluir_ocr: incluir_ocr ?? false,
-      p_status_credenciado: status_credenciado || null,
-      p_apenas_habilitados: apenas_habilitados ?? null,
-      p_apenas_com_numero: apenas_com_numero ?? null,
-      p_incluir_nao_credenciados: incluir_nao_credenciados ?? false,
-      p_limit: limit,
-      p_offset: offset
-    });
+    // Buscar documentos com query direta
+    let query = supabase
+      .from('documentos_credenciados')
+      .select(`
+        *,
+        credenciado:credenciados!documentos_credenciados_credenciado_id_fkey(
+          id, nome, cpf, status
+        )
+      `, { count: 'exact' });
+
+    // Aplicar filtros
+    if (termo) {
+      query = query.or(`numero_documento.ilike.%${termo}%,observacoes.ilike.%${termo}%`);
+    }
+    if (status) {
+      query = query.eq('status', status);
+    }
+    if (tipo_documento) {
+      query = query.eq('tipo_documento', tipo_documento);
+    }
+    if (credenciado_id) {
+      query = query.eq('credenciado_id', credenciado_id);
+    }
+    if (data_inicio) {
+      query = query.gte('data_emissao', data_inicio);
+    }
+    if (data_fim) {
+      query = query.lte('data_emissao', data_fim);
+    }
+    if (apenas_com_numero) {
+      query = query.not('numero_documento', 'is', null);
+    }
+
+    // Ordenação e paginação
+    query = query
+      .order('data_emissao', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    const { data, error, count } = await query;
 
     if (error) {
       console.error('[buscar-documentos] Erro ao buscar:', error);
