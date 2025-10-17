@@ -1,5 +1,10 @@
 import { UseFormReturn } from 'react-hook-form';
-import { InscricaoCompletaForm, DOCUMENTOS_OBRIGATORIOS, getSchemaByTipo, getDocumentosByTipo } from '@/lib/inscricao-validation';
+import { 
+  InscricaoCompletaForm, 
+  DOCUMENTOS_OBRIGATORIOS, 
+  getSchemaByTipo, 
+  getDocumentosByTipo 
+} from '@/lib/inscricao-schema-unificado';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
@@ -37,39 +42,60 @@ export function RevisaoStep({ form }: RevisaoStepProps) {
   let hasErrors = false;
   
   if (tipoCredenciamento) {
-    form.clearErrors(); // ✅ PARTE 4: Limpa erros residuais
+    form.clearErrors(); // ✅ Limpa erros residuais antes da validação final
     const schemaToUse = getSchemaByTipo(tipoCredenciamento);
     const validationResult = schemaToUse.safeParse(values);
     hasErrors = !validationResult.success;
     
-    // Debug: Mostrar erros detalhados
+    // ✅ Logs detalhados para debugging
     if (!validationResult.success) {
-      console.log('[REVISAO] ❌ Erros de validação:', validationResult.error.errors);
-      console.log('[REVISAO] 📋 Campos preenchidos:', {
-        tipo: tipoCredenciamento,
+      console.group('🔴 [REVISAO] Erros de Validação Final');
+      console.log('Tipo de Credenciamento:', tipoCredenciamento);
+      console.log('Erros encontrados:', validationResult.error.errors.map(e => ({
+        campo: e.path.join('.'),
+        mensagem: e.message,
+        valor: e.path.reduce((obj: any, key) => obj?.[key], values as any)
+      })));
+      console.log('---');
+      console.log('Campos Obrigatórios PF:', [
+        'cpf', 'nome_completo', 'rg', 'orgao_emissor', 'data_nascimento',
+        'crm', 'uf_crm', 'endereco_consultorio', 'quantidade_consultas_minima'
+      ]);
+      console.log('Valores Atuais (Obrigatórios):', {
         cpf: values.cpf,
         nome_completo: values.nome_completo,
-        crm: values.crm,
+        rg: values.rg,
+        orgao_emissor: values.orgao_emissor,
         data_nascimento: values.data_nascimento,
+        crm: values.crm,
+        uf_crm: values.uf_crm,
+        endereco_consultorio: values.endereco_consultorio,
+        quantidade_consultas_minima: values.quantidade_consultas_minima,
+      });
+      console.log('Valores Atuais (Opcionais):', {
+        especialidades_ids: values.especialidades_ids,
+        horarios: values.horarios,
+        telefone_consultorio: values.telefone_consultorio,
         cep_correspondencia: values.cep_correspondencia,
         logradouro_correspondencia: values.logradouro_correspondencia,
-        especialidades_ids: values.especialidades_ids,
-        quantidade_consultas_minima: values.quantidade_consultas_minima,
-        endereco_consultorio: values.endereco_consultorio,
-        documentos: values.documentos?.length,
-        documentos_tipos: values.documentos?.map(d => d.tipo)
       });
-      
-      // Mostrar campos que estão faltando
-      console.log('[REVISAO] 🔴 Campos faltando:', 
-        validationResult.error.errors.map(e => e.path.join('.') + ': ' + e.message)
-      );
+      console.log('Documentos:', {
+        total: values.documentos?.length,
+        tipos: values.documentos?.map(d => d.tipo),
+        comArquivo: values.documentos?.filter(d => d.arquivo || d.url).length,
+      });
+      console.groupEnd();
+    } else {
+      console.log('✅ [REVISAO] Validação passou com sucesso!');
     }
   } else {
     // Fallback: usar form.formState.errors se tipo não definido
     const errors = form.formState.errors;
     hasErrors = Object.keys(errors).length > 0;
-    console.log('[REVISAO] Erros no formulário (fallback):', errors);
+    console.warn('[REVISAO] ⚠️ Tipo de credenciamento não definido, usando formState.errors');
+    if (hasErrors) {
+      console.log('[REVISAO] Erros no formulário (fallback):', errors);
+    }
   }
 
   // PARTE 3: Calcular progresso dos documentos obrigatórios baseado no tipo

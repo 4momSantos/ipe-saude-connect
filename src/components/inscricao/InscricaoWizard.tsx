@@ -3,10 +3,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   InscricaoCompletaForm,
-  inscricaoCompletaSchema,
+  getInscricaoSchema,
   getSchemaByTipo,
   DOCUMENTOS_OBRIGATORIOS,
-} from '@/lib/inscricao-validation';
+} from '@/lib/inscricao-schema-unificado';
 import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -64,17 +64,14 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
   } = useInscricaoFluxo();
 
   const form = useForm<InscricaoCompletaForm>({
-    resolver: zodResolver(
-      tipoCredenciamento 
-        ? getSchemaByTipo(tipoCredenciamento) 
-        : inscricaoCompletaSchema
-    ),
+    resolver: zodResolver(getInscricaoSchema(tipoCredenciamento)),
     defaultValues: {
       sexo: 'M',
       optante_simples: false,
       atendimento_hora_marcada: true,
       quantidade_consultas_minima: 20,
       horarios: [],
+      especialidades_ids: [], // ✅ Array vazio por padrão
       documentos: DOCUMENTOS_OBRIGATORIOS.map((doc) => ({
         tipo: doc.tipo,
         status: 'faltante',
@@ -241,10 +238,8 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
       case 'consultorio':
         fieldsToValidate = [
           'endereco_consultorio',
-          // 'telefone_consultorio', // ✅ PARTE 5: Agora é opcional
-          'especialidades_ids',
           'quantidade_consultas_minima',
-          // 'horarios', // ✅ PARTE 5: Agora é opcional
+          // ✅ Removidos: telefone_consultorio, horarios, especialidades_ids (agora opcionais)
         ];
         break;
       case 'consultorios':
