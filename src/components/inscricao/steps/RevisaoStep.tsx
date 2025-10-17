@@ -1,4 +1,5 @@
 import { UseFormReturn } from 'react-hook-form';
+import { z } from 'zod';
 import { 
   InscricaoCompletaForm, 
   DOCUMENTOS_OBRIGATORIOS, 
@@ -49,11 +50,12 @@ export function RevisaoStep({ form }: RevisaoStepProps) {
   });
   
   let hasErrors = false;
+  let validationResult: z.SafeParseReturnType<any, any> | null = null;
   
   if (tipoCredenciamento) {
     form.clearErrors(); // ✅ Limpa erros residuais antes da validação final
     const schemaToUse = getSchemaByTipo(tipoCredenciamento);
-    const validationResult = schemaToUse.safeParse(values);
+    validationResult = schemaToUse.safeParse(values);
     hasErrors = !validationResult.success;
     
     // ✅ Logs detalhados para debugging
@@ -65,6 +67,11 @@ export function RevisaoStep({ form }: RevisaoStepProps) {
         mensagem: e.message,
         valor: e.path.reduce((obj: any, key) => obj?.[key], values as any)
       })));
+      console.log('---');
+      console.log('❌ Erros de validação (primeiros 10):');
+      validationResult.error.errors.slice(0, 10).forEach((err, idx) => {
+        console.log(`${idx + 1}. ${err.path.join('.')} → ${err.message}`);
+      });
       console.log('---');
       console.log('Campos Obrigatórios PF:', [
         'cpf', 'nome_completo', 'rg', 'orgao_emissor', 'data_nascimento',
@@ -125,17 +132,30 @@ export function RevisaoStep({ form }: RevisaoStepProps) {
         </p>
       </div>
 
-      {hasErrors && (
+      {hasErrors && validationResult && !validationResult.success && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Atenção: Existem erros no formulário</AlertTitle>
+          <AlertTitle>Atenção: Existem erros no formulário ({tipoCredenciamento || 'tipo não detectado'})</AlertTitle>
           <AlertDescription>
-            {tipoCredenciamento === 'PF' 
-              ? 'Campos obrigatórios PF faltando: CPF, nome completo, RG, data de nascimento, CRM e endereço do consultório.'
-              : 'Campos obrigatórios PJ faltando: CNPJ, razão social, endereço da empresa e dados bancários.'
-            }
-            <br />
-            Por favor, volte e corrija os campos marcados com erro antes de enviar.
+            <div className="space-y-2">
+              <p className="font-semibold">Campos com problemas:</p>
+              <ul className="list-disc list-inside space-y-1">
+                {validationResult.error.errors.slice(0, 5).map((error, idx) => (
+                  <li key={idx} className="text-sm">
+                    <span className="font-medium">{error.path.join(' → ') || 'Geral'}:</span>{' '}
+                    {error.message}
+                  </li>
+                ))}
+              </ul>
+              {validationResult.error.errors.length > 5 && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  ...e mais {validationResult.error.errors.length - 5} erro(s)
+                </p>
+              )}
+              <p className="mt-3 text-sm">
+                Por favor, volte e corrija os campos marcados antes de enviar.
+              </p>
+            </div>
           </AlertDescription>
         </Alert>
       )}
