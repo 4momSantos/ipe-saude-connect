@@ -24,8 +24,11 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let signatureRequestId: string | undefined;
+
   try {
-    const { signatureRequestId } = await req.json();
+    const requestData = await req.json();
+    signatureRequestId = requestData.signatureRequestId;
     
     // Inicializar clientes
     const supabaseAdmin = createClient(
@@ -253,14 +256,27 @@ serve(async (req) => {
     }));
     
     // 3. Aguardar processamento com backoff exponencial
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    console.log(JSON.stringify({
+      level: 'info',
+      action: 'polling_document_start',
+      documentId
+    }));
+
+    await new Promise(resolve => setTimeout(resolve, 5000)); // Delay inicial de 5s (aumentado)
     
     let documentReady = false;
-    const maxAttempts = 15;
+    const maxAttempts = 20; // Aumentado de 15 para 20
     
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      const delay = Math.min(2000 * Math.pow(1.3, attempt - 1), 15000);
+      const delay = Math.min(2000 * Math.pow(1.3, attempt - 1), 20000); // Max 20s (aumentado)
       await new Promise(resolve => setTimeout(resolve, delay));
+
+      console.log(JSON.stringify({
+        level: 'info',
+        action: 'polling_document_status',
+        document_id: documentId,
+        attempt
+      }));
       
       const statusResponse = await fetch(
         `https://api.assinafy.com.br/v1/accounts/${assignafyAccountId}/documents/${documentId}`,
@@ -272,6 +288,38 @@ serve(async (req) => {
           }
         }
       );
+
+      if (statusResponse.status === 404) {
+        // Log detalhado da resposta 404
+        const errorText = await statusResponse.text();
+        console.log(JSON.stringify({
+          level: 'warn',
+          action: '404_detail',
+          attempt,
+          response_body: errorText,
+          document_id: documentId
+        }));
+        
+        // Tolerar 404 nas primeiras 10 tentativas
+        if (attempt < 10) {
+          console.log(JSON.stringify({
+            level: 'info',
+            action: 'document_still_processing',
+            status: statusResponse.status,
+            attempt,
+            message: 'Aguardando processamento do documento...'
+          }));
+          continue;
+        } else {
+          console.log(JSON.stringify({
+            level: 'warn',
+            action: 'polling_failed',
+            status: statusResponse.status,
+            attempt
+          }));
+          continue;
+        }
+      }
       
       if (statusResponse.ok) {
         const statusData = await statusResponse.json();
@@ -297,24 +345,23 @@ serve(async (req) => {
         continue;
       }
       
-      // 404 nas primeiras tentativas é esperado
-      if (statusResponse.status === 404 && attempt < 8) {
-        console.log(JSON.stringify({
-          level: 'info',
-          action: 'document_still_processing',
-          attempt,
-          status: 404
-        }));
-        continue;
-      }
-      
-      if (attempt === maxAttempts) {
-        throw new Error('Documento não ficou pronto após múltiplas tentativas');
-      }
+      console.log(JSON.stringify({
+        level: 'error',
+        action: 'polling_error',
+        status: statusResponse.status,
+        statusText: statusResponse.statusText,
+        attempt
+      }));
     }
     
     if (!documentReady) {
-      throw new Error('Documento não ficou pronto após polling');
+      console.log(JSON.stringify({
+        level: 'error',
+        action: 'polling_timeout',
+        max_attempts: maxAttempts,
+        document_id: documentId
+      }));
+      throw new Error(`Documento ${documentId} não ficou pronto após ${maxAttempts} tentativas. Verifique a API da Assinafy.`);
     }
     
     // 4. Solicitar assinatura
@@ -385,6 +432,9 @@ serve(async (req) => {
     // 7. Enviar e-mail se houver URL de assinatura
     if (signatureUrl) {
       try {
+        // Declarar HTML como constante (evita erro de JSON multi-linha)
+        const emailHtml = `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;"><h1 style="color: white; margin: 0;">🖊️ Contrato Pronto para Assinatura</h1></div><div style="padding: 30px; background: #f9fafb;"><h2 style="color: #1f2937;">Olá ${candidato.nome || 'Candidato'},</h2><p style="font-size: 16px; color: #4b5563; line-height: 1.6;">Seu contrato de credenciamento está pronto e aguardando sua assinatura digital.</p><div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea;"><p style="margin: 5px 0;"><strong>Número do Contrato:</strong> ${contrato.numero_contrato}</p><p style="margin: 5px 0;"><strong>Provedor:</strong> Assinafy (Assinatura Digital Segura)</p></div><div style="text-align: center; margin: 30px 0;"><a href="${signatureUrl}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">🖊️ Assinar Contrato Agora</a></div><p style="font-size: 14px; color: #6b7280; text-align: center;">Ou copie e cole este link no navegador:<br/><code style="background: #e5e7eb; padding: 8px; border-radius: 4px; display: inline-block; margin-top: 8px; word-break: break-all; font-size: 12px;">${signatureUrl}</code></p><div style="background: #fffbeb; padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #f59e0b;"><p style="margin: 0; font-size: 14px; color: #92400e;">⏰ <strong>Atenção:</strong> Este link é válido por 30 dias.</p></div></div><div style="background: #1f2937; padding: 20px; text-align: center;"><p style="color: #9ca3af; margin: 0; font-size: 14px;">Sistema de Credenciamento<br/>Em caso de dúvidas, entre em contato com nossa equipe.</p></div></div>`;
+        
         const emailResponse = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
@@ -395,61 +445,7 @@ serve(async (req) => {
             from: "Contratos <onboarding@resend.dev>",
             to: [candidato.email],
             subject: "🖊️ Contrato Pronto para Assinatura Digital",
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
-                <h1 style="color: white; margin: 0;">🖊️ Contrato Pronto para Assinatura</h1>
-              </div>
-              
-              <div style="padding: 30px; background: #f9fafb;">
-                <h2 style="color: #1f2937;">Olá ${candidato.nome || 'Candidato'},</h2>
-                  
-                <p style="font-size: 16px; color: #4b5563; line-height: 1.6;">
-                  Seu contrato de credenciamento está pronto e aguardando sua assinatura digital.
-                </p>
-                  
-                <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea;">
-                  <p style="margin: 5px 0;"><strong>Número do Contrato:</strong> ${contrato.numero_contrato}</p>
-                  <p style="margin: 5px 0;"><strong>Provedor:</strong> Assinafy (Assinatura Digital Segura)</p>
-                </div>
-                
-                <div style="text-align: center; margin: 30px 0;">
-                  <a href="${signatureUrl}" 
-                     style="display: inline-block; 
-                            padding: 16px 40px; 
-                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                            color: white; 
-                            text-decoration: none; 
-                            border-radius: 8px; 
-                            font-size: 18px;
-                            font-weight: bold;
-                            box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    🖊️ Assinar Contrato Agora
-                  </a>
-                </div>
-                
-                <p style="font-size: 14px; color: #6b7280; text-align: center;">
-                  Ou copie e cole este link no navegador:<br/>
-                  <code style="background: #e5e7eb; padding: 8px; border-radius: 4px; display: inline-block; margin-top: 8px; word-break: break-all; font-size: 12px;">
-                    ${signatureUrl}
-                  </code>
-                </p>
-                  
-                <div style="background: #fffbeb; padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #f59e0b;">
-                  <p style="margin: 0; font-size: 14px; color: #92400e;">
-                    ⏰ <strong>Atenção:</strong> Este link é válido por 30 dias.
-                  </p>
-                </div>
-              </div>
-              
-              <div style="background: #1f2937; padding: 20px; text-align: center;">
-                <p style="color: #9ca3af; margin: 0; font-size: 14px;">
-                  Sistema de Credenciamento<br/>
-                  Em caso de dúvidas, entre em contato com nossa equipe.
-                </p>
-              </div>
-            </div>
-          `,
+            html: emailHtml
           })
         });
         
@@ -501,8 +497,6 @@ serve(async (req) => {
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
       );
       
-      const { signatureRequestId } = await req.json().catch(() => ({}));
-      
       if (signatureRequestId) {
         await supabaseAdmin
           .from('signature_requests')
@@ -522,7 +516,11 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message
+        error: error.message,
+        context: {
+          timestamp: new Date().toISOString(),
+          environment: Deno.env.get('ENVIRONMENT')
+        }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
