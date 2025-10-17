@@ -339,6 +339,29 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
     console.log('📝 [InscricaoWizard] handleSubmit chamado');
     
     if (isSubmitting) return;
+    
+    // ✅ AGUARDAR AUTO-SAVE SE ESTIVER SALVANDO
+    if (isSaving) {
+      toast.info('⏱️ Aguarde...', {
+        description: 'Finalizando salvamento automático',
+        duration: 2000,
+      });
+      
+      // Aguardar até 5 segundos para isSaving voltar a false
+      let waitCount = 0;
+      while (isSaving && waitCount < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        waitCount++;
+      }
+      
+      if (isSaving) {
+        toast.error('❌ Erro', {
+          description: 'Não foi possível finalizar o salvamento. Tente novamente.',
+        });
+        return;
+      }
+    }
+    
     setIsSubmitting(true);
     
     // Timeout de 30 segundos
@@ -647,13 +670,18 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
           <Button
             type="button"
             onClick={form.handleSubmit(handleSubmit)}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isSaving}
             className="gap-2 ml-auto bg-[hsl(var(--green-approved))] hover:bg-[hsl(var(--green-approved)_/_0.9)]"
           >
             {isSubmitting ? (
               <>
                 <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
                 Enviando...
+              </>
+            ) : isSaving ? (
+              <>
+                <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                Salvando...
               </>
             ) : (
               <>

@@ -28,6 +28,21 @@ export function useAutoSaveInscricao({
 
     saveLockRef.current = true; // ✅ Adquirir lock
     setIsSaving(true);
+    
+    // ✅ TIMEOUT DE SEGURANÇA (10 segundos)
+    const timeoutId = setTimeout(() => {
+      console.error('❌ Auto-save timeout após 10 segundos');
+      saveLockRef.current = false;
+      setIsSaving(false);
+      if (!silent) {
+        toast({
+          title: "⚠️ Timeout ao salvar",
+          description: "Tente salvar manualmente",
+          variant: "destructive",
+        });
+      }
+    }, 10000);
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
@@ -76,8 +91,11 @@ export function useAutoSaveInscricao({
           duration: 2000,
         });
       }
+      
+      clearTimeout(timeoutId); // ✅ Limpar timeout se sucesso
     } catch (error: any) {
       console.error('Erro ao salvar rascunho:', error);
+      clearTimeout(timeoutId); // ✅ Limpar timeout se erro
       
       // Tratamento especial para erro de duplicação
       if (error.code === '23505') {
@@ -97,6 +115,7 @@ export function useAutoSaveInscricao({
         });
       }
     } finally {
+      clearTimeout(timeoutId); // ✅ Garantir limpeza
       saveLockRef.current = false; // ✅ Liberar lock
       setIsSaving(false);
     }
