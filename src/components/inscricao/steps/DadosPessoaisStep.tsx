@@ -39,6 +39,8 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
   const [cpfState, setCpfState] = useState<CPFValidationState>({ status: 'idle' });
   const [crmState, setCrmState] = useState<CRMValidationState>({ status: 'idle' });
   const [birthDateMismatch, setBirthDateMismatch] = useState(false);
+  const [isValidatingCPF, setIsValidatingCPF] = useState(false);
+  const [isValidatingCRM, setIsValidatingCRM] = useState(false);
   
   const cpfAbortControllerRef = useRef<AbortController | null>(null);
   const crmAbortControllerRef = useRef<AbortController | null>(null);
@@ -46,6 +48,11 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
   const { setCpfData, setCrmData } = useValidatedData();
 
   const handleValidateCPF = async () => {
+    // Prevenir múltiplas chamadas simultâneas
+    if (isValidatingCPF) {
+      toast.info('Aguarde a validação atual terminar');
+      return;
+    }
     const cpf = form.getValues('cpf');
     const dataNascimento = form.getValues('data_nascimento');
 
@@ -65,6 +72,7 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
     }
     cpfAbortControllerRef.current = new AbortController();
 
+    setIsValidatingCPF(true);
     setCpfState({ status: 'validating-cpf' });
     setBirthDateMismatch(false);
 
@@ -85,9 +93,13 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
         
         if (result.code === 'birthdate-mismatch') {
           setBirthDateMismatch(true);
+          toast.error('Data de nascimento divergente', {
+            description: 'A data informada não confere com o cadastro da Receita Federal. Verifique se digitou corretamente.',
+            duration: 6000
+          });
+        } else {
+          toast.error(result.message || 'CPF não encontrado na Receita Federal');
         }
-        
-        toast.error(result.message || 'CPF não encontrado na Receita Federal');
         return;
       }
 
@@ -179,10 +191,18 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
         });
         toast.error('Erro ao validar CPF');
       }
+    } finally {
+      setIsValidatingCPF(false);
     }
   };
 
   const handleValidateCRM = async () => {
+    // Prevenir múltiplas chamadas simultâneas
+    if (isValidatingCRM) {
+      toast.info('Aguarde a validação atual terminar');
+      return;
+    }
+
     const crm = cleanMask(form.getValues('crm'));
     const uf = form.getValues('uf_crm');
 
@@ -197,6 +217,7 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
     }
     crmAbortControllerRef.current = new AbortController();
 
+    setIsValidatingCRM(true);
     setCrmState({ status: 'validating' });
 
     try {
@@ -250,6 +271,8 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
         message: 'Erro ao validar CRM' 
       });
       toast.error('Erro ao validar CRM');
+    } finally {
+      setIsValidatingCRM(false);
     }
   };
 
@@ -347,7 +370,7 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
           type="button"
           variant="outline"
           onClick={handleValidateCPF}
-          disabled={cpfState.status === 'validating-cpf' || cpfState.status === 'validating-nit' || cpfState.status === 'success'}
+          disabled={isValidatingCPF || cpfState.status === 'success'}
           className="w-full md:w-auto gap-2"
         >
           {cpfState.status === 'validating-cpf' ? (

@@ -148,6 +148,41 @@ serve(async (req) => {
       );
     }
 
+    // Tratamento específico para código 608 (erro de data de nascimento divergente)
+    if (result.code === 608) {
+      console.log('Birthdate mismatch detected (code 608)');
+      const errors = result.errors || [];
+      const isBirthdateMismatch = errors.some((error: string) => 
+        error.toLowerCase().includes('data de nascimento') || 
+        error.toLowerCase().includes('divergente') ||
+        error.toLowerCase().includes('birthdate')
+      );
+      
+      if (isBirthdateMismatch) {
+        return new Response(
+          JSON.stringify({ 
+            valid: false,
+            code: 'birthdate-mismatch',
+            birthdate_mismatch: true,
+            message: 'A data de nascimento não confere com a cadastrada na Receita Federal. Verifique se digitou corretamente.',
+            details: errors.length > 0 ? errors[0] : 'Data de nascimento divergente'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        );
+      }
+      
+      // Outros erros 608
+      return new Response(
+        JSON.stringify({ 
+          valid: false,
+          code: 'validation-rejected', 
+          message: 'Dados informados foram rejeitados pela Receita Federal',
+          details: errors.length > 0 ? errors.join('; ') : result.code_message
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
+    }
+
     if (result.code === 200 && result.data && result.data.length > 0) {
       const cpfData = result.data[0];
       
