@@ -14,7 +14,8 @@ import { WorkflowTimeline } from "./workflow/WorkflowTimeline";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { WorkflowStep, WorkflowAction } from "@/types/workflow";
-import { useAnalisarInscricao } from "@/hooks/useAnalisarInscricao";
+import { DecisaoDialog } from "@/components/analises/DecisaoDialog";
+import { ClipboardCheck } from "lucide-react";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 
 interface Processo {
@@ -42,7 +43,8 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
   const [currentStepId, setCurrentStepId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [dadosInscricao, setDadosInscricao] = useState<any>(null);
-  const { aprovar, rejeitar, isLoading } = useAnalisarInscricao();
+  const [decisaoDialogOpen, setDecisaoDialogOpen] = useState(false);
+  const [analiseId, setAnaliseId] = useState<string>("");
   const { unreadCount } = useUnreadMessages(processo.id);
 
   // Marcar mensagens como lidas ao abrir a aba de mensagens
@@ -226,26 +228,6 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
     }
   }
 
-  const handleAprovar = async () => {
-    try {
-      await aprovar({ inscricaoId: processo.id });
-      onClose();
-    } catch (error) {
-      // Erro já tratado no hook
-    }
-  };
-
-  const handleRejeitar = async () => {
-    try {
-      const motivo = prompt("Motivo da rejeição:");
-      if (!motivo) return;
-      
-      await rejeitar({ inscricaoId: processo.id, motivo });
-      onClose();
-    } catch (error) {
-      // Erro já tratado no hook
-    }
-  };
 
   const handleSolicitarInfo = () => {
     onStatusChange(processo.id, "pendente");
@@ -286,20 +268,12 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
           {(processo.status === "em_analise" || processo.status === "aguardando_analise") && (
             <div className="flex gap-3 px-6 pb-4">
               <Button
-                onClick={handleAprovar}
-                disabled={isLoading}
-                className="bg-green-600 hover:bg-green-700 text-white gap-2"
+                onClick={() => setDecisaoDialogOpen(true)}
+                className="gap-2"
+                title="Registrar decisão formal com justificativa obrigatória"
               >
-                <CheckCircle className="h-4 w-4" />
-                Aprovar
-              </Button>
-              <Button
-                onClick={handleRejeitar}
-                disabled={isLoading}
-                className="bg-red-600 hover:bg-red-700 text-white gap-2"
-              >
-                <XCircle className="h-4 w-4" />
-                Rejeitar
+                <ClipboardCheck className="h-4 w-4" />
+                Registrar Decisão
               </Button>
               <Button
                 onClick={handleSolicitarInfo}
@@ -478,6 +452,16 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
           </ScrollArea>
         </Tabs>
       </div>
+
+      {/* Dialog de Decisão Formal */}
+      <DecisaoDialog
+        open={decisaoDialogOpen}
+        onOpenChange={setDecisaoDialogOpen}
+        inscricaoId={processo.id}
+        analiseId={analiseId || processo.id}
+        dadosInscricao={dadosInscricao || {}}
+        documentos={[]}
+      />
     </div>
   );
 }

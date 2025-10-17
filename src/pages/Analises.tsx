@@ -535,6 +535,7 @@ export default function Analises() {
                             variant="outline"
                             className="border-border hover:bg-card"
                             onClick={() => setProcessoSelecionado(processo)}
+                            title="Ver resumo rápido e mensagens"
                           >
                             <Eye className="h-4 w-4" />
                             <span className="ml-1 hidden lg:inline">Ver Detalhes</span>
@@ -542,10 +543,12 @@ export default function Analises() {
                           <Button
                             size="sm"
                             variant="default"
+                            className="font-semibold"
                             onClick={(e) => {
                               e.stopPropagation();
                               navigate(`/analista/inscricoes/${processo.id}`);
                             }}
+                            title="Abrir análise completa para registrar decisão formal"
                           >
                             <FileSearch className="h-4 w-4" />
                             <span className="ml-1 hidden lg:inline">Análise Completa</span>

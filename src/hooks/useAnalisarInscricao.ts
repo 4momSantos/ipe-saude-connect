@@ -1,3 +1,16 @@
+/**
+ * @deprecated Este hook está deprecated. Use useProcessarDecisao ao invés.
+ * 
+ * MOTIVO: Este hook não valida o comprimento mínimo da justificativa,
+ * permitindo aprovações/rejeições sem justificativa adequada.
+ * 
+ * SUBSTITUTO: useProcessarDecisao (com DecisaoDialog) que valida:
+ * - Mínimo 100 caracteres para aprovação
+ * - Mínimo 50 caracteres para rejeição/correção
+ * - Campos reprovados detalhados
+ * - Documentos rejeitados com ações específicas
+ */
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -17,6 +30,8 @@ export function useAnalisarInscricao() {
 
   const aprovarMutation = useMutation({
     mutationFn: async ({ inscricaoId, observacoes }: AprovarParams) => {
+      console.warn('[DEPRECATED] useAnalisarInscricao.aprovar está deprecated. Use useProcessarDecisao.');
+      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
@@ -48,6 +63,8 @@ export function useAnalisarInscricao() {
 
   const rejeitarMutation = useMutation({
     mutationFn: async ({ inscricaoId, motivo }: RejeitarParams) => {
+      console.warn('[DEPRECATED] useAnalisarInscricao.rejeitar está deprecated. Use useProcessarDecisao.');
+      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 

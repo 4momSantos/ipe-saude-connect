@@ -32,8 +32,6 @@ interface DocumentosAnalistaViewProps {
 
 export function DocumentosAnalistaView({ inscricaoId }: DocumentosAnalistaViewProps) {
   const { documentos, isLoading, atualizarStatus } = useInscricaoDocumentos(inscricaoId);
-  const { aprovar, rejeitar, isLoading: isAnalisando } = useAnalisarInscricao();
-  const { gerar: gerarContrato, isLoading: isGerandoContrato } = useGerarContrato();
   
   const [documentoSelecionado, setDocumentoSelecionado] = useState<InscricaoDocumento | null>(null);
   const [observacoes, setObservacoes] = useState('');
@@ -41,11 +39,6 @@ export function DocumentosAnalistaView({ inscricaoId }: DocumentosAnalistaViewPr
   const [dialogOpen, setDialogOpen] = useState(false);
   const [decisaoDialogOpen, setDecisaoDialogOpen] = useState(false);
   const { data: historico = [], isLoading: isLoadingHistorico } = useHistoricoDecisoes(inscricaoId);
-  
-  // Estados para aprovação/rejeição da inscrição
-  const [aprovarDialogOpen, setAprovarDialogOpen] = useState(false);
-  const [rejeitarDialogOpen, setRejeitarDialogOpen] = useState(false);
-  const [motivoRejeicao, setMotivoRejeicao] = useState('');
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -94,29 +87,6 @@ export function DocumentosAnalistaView({ inscricaoId }: DocumentosAnalistaViewPr
     setDialogOpen(true);
   };
 
-  const handleAprovarInscricao = async () => {
-    try {
-      // ✅ Edge function já gera contrato automaticamente
-      await aprovar({ inscricaoId, observacoes });
-      setAprovarDialogOpen(false);
-      setObservacoes('');
-    } catch (error) {
-      console.error('Erro ao aprovar inscrição:', error);
-    }
-  };
-
-  const handleRejeitarInscricao = async () => {
-    if (!motivoRejeicao.trim()) {
-      return;
-    }
-    try {
-      await rejeitar({ inscricaoId, motivo: motivoRejeicao });
-      setRejeitarDialogOpen(false);
-      setMotivoRejeicao('');
-    } catch (error) {
-      console.error('Erro ao rejeitar inscrição:', error);
-    }
-  };
 
   const todosPendentes = documentos.filter(d => d.status === 'pendente').length;
   const todosValidados = documentos.every(d => d.status === 'validado');
@@ -372,69 +342,6 @@ export function DocumentosAnalistaView({ inscricaoId }: DocumentosAnalistaViewPr
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Dialog de Aprovação */}
-      <AlertDialog open={aprovarDialogOpen} onOpenChange={setAprovarDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Aprovar Inscrição</AlertDialogTitle>
-            <AlertDialogDescription>
-              Ao aprovar, um contrato será gerado automaticamente e enviado para assinatura.
-              Deseja continuar?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="my-4">
-            <label className="text-sm font-medium mb-2 block">Observações (opcional)</label>
-            <Textarea
-              placeholder="Adicione observações sobre a aprovação..."
-              value={observacoes}
-              onChange={(e) => setObservacoes(e.target.value)}
-              rows={3}
-            />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleAprovarInscricao}
-              disabled={isAnalisando || isGerandoContrato}
-            >
-            {isAnalisando || isGerandoContrato ? 'Processando...' : 'Confirmar Aprovação'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-      {/* Dialog de Rejeição */}
-      <AlertDialog open={rejeitarDialogOpen} onOpenChange={setRejeitarDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Rejeitar Inscrição</AlertDialogTitle>
-            <AlertDialogDescription>
-              Informe o motivo da rejeição. Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="my-4">
-            <label className="text-sm font-medium mb-2 block">Motivo da Rejeição *</label>
-            <Textarea
-              placeholder="Descreva os motivos da rejeição..."
-              value={motivoRejeicao}
-              onChange={(e) => setMotivoRejeicao(e.target.value)}
-              rows={4}
-              required
-            />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleRejeitarInscricao}
-              disabled={!motivoRejeicao.trim() || isAnalisando}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              {isAnalisando ? 'Processando...' : 'Confirmar Rejeição'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
