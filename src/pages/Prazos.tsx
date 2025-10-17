@@ -44,11 +44,14 @@ const CORES = {
 
 type FiltroStatus = 'todos' | 'criticos' | 'vencendo' | 'vencidos';
 
+type TipoAgrupamento = 'credenciado' | 'tipo' | 'nenhum';
+
 export default function Prazos() {
   const { dashboard, prazosAgrupados, isLoading, atualizarAgora, renovarPrazo } = usePrazos();
   const [filtro, setFiltro] = useState<FiltroStatus>('todos');
   const [prazoSelecionado, setPrazoSelecionado] = useState<Prazo | null>(null);
   const [modalRenovarOpen, setModalRenovarOpen] = useState(false);
+  const [agrupamento, setAgrupamento] = useState<TipoAgrupamento>('credenciado');
 
   const handleRenovar = (prazo: Prazo) => {
     setPrazoSelecionado(prazo);
@@ -250,42 +253,73 @@ export default function Prazos() {
             </Card>
           </div>
 
-          {/* Filtros */}
-          <div className="flex gap-2">
-            <Button
-              variant={filtro === 'todos' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setFiltro('todos')}
-            >
-              Todos ({prazosAgrupados.length} credenciados)
-            </Button>
-            <Button
-              variant={filtro === 'criticos' ? 'destructive' : 'outline'}
-              size="sm"
-              onClick={() => setFiltro('criticos')}
-            >
-              <AlertTriangle className="h-4 w-4 mr-2" />
-              Críticos ({totalCriticos})
-            </Button>
-            <Button
-              variant={filtro === 'vencendo' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setFiltro('vencendo')}
-            >
-              <Clock className="h-4 w-4 mr-2" />
-              Vencendo ({totalVencendo})
-            </Button>
-            <Button
-              variant={filtro === 'vencidos' ? 'destructive' : 'outline'}
-              size="sm"
-              onClick={() => setFiltro('vencidos')}
-            >
-              <AlertTriangle className="h-4 w-4 mr-2" />
-              Vencidos ({totalVencidos})
-            </Button>
+          {/* Filtros e Agrupamento */}
+          <div className="flex flex-col sm:flex-row justify-between gap-4">
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                variant={filtro === 'todos' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFiltro('todos')}
+              >
+                Todos ({prazosAgrupados.length} credenciados)
+              </Button>
+              <Button
+                variant={filtro === 'criticos' ? 'destructive' : 'outline'}
+                size="sm"
+                onClick={() => setFiltro('criticos')}
+              >
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                Críticos ({totalCriticos})
+              </Button>
+              <Button
+                variant={filtro === 'vencendo' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFiltro('vencendo')}
+              >
+                <Clock className="h-4 w-4 mr-2" />
+                Vencendo ({totalVencendo})
+              </Button>
+              <Button
+                variant={filtro === 'vencidos' ? 'destructive' : 'outline'}
+                size="sm"
+                onClick={() => setFiltro('vencidos')}
+              >
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                Vencidos ({totalVencidos})
+              </Button>
+            </div>
+
+            {/* Controles de Agrupamento */}
+            <div className="flex gap-2 items-center">
+              <span className="text-sm text-muted-foreground">Agrupar:</span>
+              <Button
+                variant={agrupamento === 'credenciado' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setAgrupamento('credenciado')}
+              >
+                <FolderOpen className="h-4 w-4 mr-2" />
+                Por Credenciado
+              </Button>
+              <Button
+                variant={agrupamento === 'tipo' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setAgrupamento('tipo')}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Por Tipo
+              </Button>
+              <Button
+                variant={agrupamento === 'nenhum' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setAgrupamento('nenhum')}
+              >
+                <CalendarDays className="h-4 w-4 mr-2" />
+                Lista Simples
+              </Button>
+            </div>
           </div>
 
-          {/* Grid de Credenciados Agrupados */}
+          {/* Renderização baseada no agrupamento */}
           <div className="space-y-4">
             {credenciadosFiltrados.length === 0 ? (
               <Card className="p-8">
@@ -294,7 +328,8 @@ export default function Prazos() {
                   <p>Nenhum credenciado encontrado</p>
                 </div>
               </Card>
-            ) : (
+            ) : agrupamento === 'credenciado' ? (
+              // Agrupado por Credenciado (visualização original)
               credenciadosFiltrados.map((credenciado) => (
                 <Card key={credenciado.credenciado_id} className="overflow-hidden">
                   <CardHeader className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
@@ -401,6 +436,181 @@ export default function Prazos() {
                   </CardContent>
                 </Card>
               ))
+            ) : agrupamento === 'tipo' ? (
+              // Agrupado por Tipo de Documento
+              (() => {
+                const prazosFlat = credenciadosFiltrados.flatMap(c => 
+                  c.prazos.map(p => ({ ...p, credenciado: c }))
+                );
+                const gruposPorTipo = prazosFlat.reduce((acc, prazo) => {
+                  const tipo = prazo.entidade_tipo || 'Outros';
+                  if (!acc[tipo]) acc[tipo] = [];
+                  acc[tipo].push(prazo);
+                  return acc;
+                }, {} as Record<string, typeof prazosFlat>);
+
+                return Object.entries(gruposPorTipo).map(([tipo, prazos]) => (
+                  <Card key={tipo} className="overflow-hidden">
+                    <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                      <CardTitle className="flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        {tipo}
+                        <Badge variant="secondary" className="ml-auto bg-white/20">
+                          {prazos.length} documentos
+                        </Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {prazos.map((prazo) => {
+                          const nivelAlertaTexto = prazo.nivel_alerta === 'critico' ? 'Crítico' :
+                            prazo.nivel_alerta === 'vencendo' ? 'Vencendo' :
+                            prazo.nivel_alerta === 'atencao' ? 'Atenção' : 'Válido';
+
+                          return (
+                            <Card key={prazo.id} className="border hover:shadow-md transition-all">
+                              <CardHeader className="pb-3">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                                    <div 
+                                      className="p-2 rounded-lg flex-shrink-0" 
+                                      style={{ backgroundColor: prazo.cor_status + '20' }}
+                                    >
+                                      <FileText 
+                                        className="h-4 w-4" 
+                                        style={{ color: prazo.cor_status }}
+                                      />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="font-semibold text-sm truncate">{prazo.entidade_nome}</p>
+                                      <p className="text-xs text-muted-foreground truncate">
+                                        {prazo.credenciado.credenciado_nome}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Badge 
+                                    variant="outline"
+                                    className="text-xs flex-shrink-0"
+                                    style={{
+                                      backgroundColor: prazo.cor_status + '20',
+                                      color: prazo.cor_status,
+                                      borderColor: prazo.cor_status
+                                    }}
+                                  >
+                                    {nivelAlertaTexto}
+                                  </Badge>
+                                </div>
+                              </CardHeader>
+                              <CardContent className="space-y-3 pt-0">
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="text-muted-foreground">Vencimento:</span>
+                                    <span className="font-medium">
+                                      {format(new Date(prazo.data_vencimento), "dd/MM/yyyy", { locale: ptBR })}
+                                    </span>
+                                  </div>
+                                  {prazo.dias_para_vencer !== null && (
+                                    <div className={`text-xs font-medium ${
+                                      prazo.dias_para_vencer < 0 ? 'text-red-600' :
+                                      prazo.dias_para_vencer <= 7 ? 'text-orange-600' :
+                                      prazo.dias_para_vencer <= 30 ? 'text-yellow-600' :
+                                      'text-green-600'
+                                    }`}>
+                                      {prazo.dias_para_vencer < 0 
+                                        ? `Vencido há ${Math.abs(prazo.dias_para_vencer)} dias`
+                                        : `${prazo.dias_para_vencer} dias restantes`
+                                      }
+                                    </div>
+                                  )}
+                                  <Progress 
+                                    value={prazo.dias_para_vencer < 0 ? 0 : Math.min((prazo.dias_para_vencer / 90) * 100, 100)} 
+                                    className="h-1.5"
+                                  />
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ));
+              })()
+            ) : (
+              // Lista Simples (sem agrupamento)
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {credenciadosFiltrados.flatMap(credenciado =>
+                  credenciado.prazos.map((prazo) => {
+                    const nivelAlertaTexto = prazo.nivel_alerta === 'critico' ? 'Crítico' :
+                      prazo.nivel_alerta === 'vencendo' ? 'Vencendo' :
+                      prazo.nivel_alerta === 'atencao' ? 'Atenção' : 'Válido';
+
+                    return (
+                      <Card key={prazo.id} className="border hover:shadow-md transition-all">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <div 
+                                className="p-2 rounded-lg flex-shrink-0" 
+                                style={{ backgroundColor: prazo.cor_status + '20' }}
+                              >
+                                <FileText 
+                                  className="h-4 w-4" 
+                                  style={{ color: prazo.cor_status }}
+                                />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-semibold text-sm truncate">{prazo.entidade_nome}</p>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {credenciado.credenciado_nome}
+                                </p>
+                              </div>
+                            </div>
+                            <Badge 
+                              variant="outline"
+                              className="text-xs flex-shrink-0"
+                              style={{
+                                backgroundColor: prazo.cor_status + '20',
+                                color: prazo.cor_status,
+                                borderColor: prazo.cor_status
+                              }}
+                            >
+                              {nivelAlertaTexto}
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3 pt-0">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-muted-foreground">Vencimento:</span>
+                              <span className="font-medium">
+                                {format(new Date(prazo.data_vencimento), "dd/MM/yyyy", { locale: ptBR })}
+                              </span>
+                            </div>
+                            {prazo.dias_para_vencer !== null && (
+                              <div className={`text-xs font-medium ${
+                                prazo.dias_para_vencer < 0 ? 'text-red-600' :
+                                prazo.dias_para_vencer <= 7 ? 'text-orange-600' :
+                                prazo.dias_para_vencer <= 30 ? 'text-yellow-600' :
+                                'text-green-600'
+                              }`}>
+                                {prazo.dias_para_vencer < 0 
+                                  ? `Vencido há ${Math.abs(prazo.dias_para_vencer)} dias`
+                                  : `${prazo.dias_para_vencer} dias restantes`
+                                }
+                              </div>
+                            )}
+                            <Progress 
+                              value={prazo.dias_para_vencer < 0 ? 0 : Math.min((prazo.dias_para_vencer / 90) * 100, 100)} 
+                              className="h-1.5"
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })
+                )}
+              </div>
             )}
           </div>
         </TabsContent>
