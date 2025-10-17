@@ -506,7 +506,7 @@ export type Database = {
           resource_type: string
           user_agent: string | null
           user_email: string | null
-          user_id: string
+          user_id: string | null
           user_role: string | null
         }
         Insert: {
@@ -521,7 +521,7 @@ export type Database = {
           resource_type: string
           user_agent?: string | null
           user_email?: string | null
-          user_id: string
+          user_id?: string | null
           user_role?: string | null
         }
         Update: {
@@ -536,7 +536,7 @@ export type Database = {
           resource_type?: string
           user_agent?: string | null
           user_email?: string | null
-          user_id?: string
+          user_id?: string | null
           user_role?: string | null
         }
         Relationships: []
