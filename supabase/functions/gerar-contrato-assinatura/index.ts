@@ -44,6 +44,50 @@ function logEvent(level: 'info' | 'error' | 'warn', action: string, data: any) {
   }));
 }
 
+/**
+ * Escapa caracteres HTML especiais para prevenir quebra de template
+ * e potenciais problemas de segurança.
+ */
+function escapeHTML(text: string | undefined | null): string {
+  if (!text) return '';
+  
+  return String(text)
+    .replace(/&/g, '&amp;')    // & deve ser primeiro
+    .replace(/</g, '&lt;')     // <
+    .replace(/>/g, '&gt;')     // >
+    .replace(/"/g, '&quot;')   // "
+    .replace(/'/g, '&#39;')    // '
+    .replace(/\//g, '&#x2F;')  // / (previne </script>)
+    .replace(/\0/g, '')        // Remove caracteres nulos
+    .trim();
+}
+
+/**
+ * Sanitiza e valida encoding UTF-8, removendo caracteres inválidos.
+ */
+function sanitizeUTF8(text: string): string {
+  // Remove caracteres de controle exceto quebras de linha
+  return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+}
+
+/**
+ * Trunca texto se exceder limite de bytes (UTF-8).
+ */
+function truncateByBytes(text: string, maxBytes: number): string {
+  const encoder = new TextEncoder();
+  const bytes = encoder.encode(text);
+  
+  if (bytes.length <= maxBytes) {
+    return text;
+  }
+  
+  // Truncar e garantir que não quebre caractere UTF-8
+  const decoder = new TextDecoder('utf-8', { fatal: false });
+  const truncated = decoder.decode(bytes.slice(0, maxBytes));
+  
+  return truncated + '\n\n[... Conteúdo truncado devido ao tamanho ...]';
+}
+
 interface GerarContratoRequest {
   inscricao_id: string;
   template_id?: string; // Opcional: ID do template customizado
@@ -372,12 +416,36 @@ serve(async (req) => {
     // ========================================
     // PASSO 5: GERAR HTML DO CONTRATO (para backup/regeneração)
     // ========================================
-    const contratoHTML = `
+    
+    // Sanitizar TODOS os campos antes da interpolação
+    const sanitizedData = {
+      edital_numero: escapeHTML(contratoData.edital_numero),
+      sistema_data_extenso: escapeHTML(contratoData.sistema_data_extenso),
+      candidato_nome: escapeHTML(contratoData.candidato_nome),
+      candidato_cpf_formatado: escapeHTML(contratoData.candidato_cpf_formatado),
+      candidato_rg: escapeHTML(contratoData.candidato_rg),
+      candidato_endereco_completo: escapeHTML(contratoData.candidato_endereco_completo),
+      candidato_email: escapeHTML(contratoData.candidato_email),
+      candidato_telefone: escapeHTML(contratoData.candidato_telefone),
+      candidato_celular: escapeHTML(contratoData.candidato_celular),
+      edital_data_publicacao_formatada: escapeHTML(contratoData.edital_data_publicacao_formatada),
+      edital_objeto: escapeHTML(contratoData.edital_objeto),
+      especialidades: contratoData.especialidades.map(esp => escapeHTML(esp)),
+      sistema_data_atual: escapeHTML(contratoData.sistema_data_atual)
+    };
+    
+    logEvent('info', 'html_sanitization_start', {
+      inscricao_id,
+      fields_sanitized: Object.keys(sanitizedData).length
+    });
+    
+    // Gerar HTML com dados sanitizados
+    const contratoHTMLRaw = `
       <!DOCTYPE html>
       <html lang="pt-BR">
       <head>
         <meta charset="UTF-8">
-        <title>Contrato de Credenciamento - ${contratoData.edital_numero}</title>
+        <title>Contrato de Credenciamento - ${sanitizedData.edital_numero}</title>
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; margin: 40px; }
           h1 { text-align: center; color: #333; }
@@ -395,8 +463,8 @@ serve(async (req) => {
       </head>
       <body>
         <h1>CONTRATO DE CREDENCIAMENTO</h1>
-        <p style="text-align: center;"><strong>Edital:</strong> ${contratoData.edital_numero}</p>
-        <p style="text-align: center;"><strong>Data:</strong> ${contratoData.sistema_data_extenso}</p>
+        <p style="text-align: center;"><strong>Edital:</strong> ${sanitizedData.edital_numero}</p>
+        <p style="text-align: center;"><strong>Data:</strong> ${sanitizedData.sistema_data_extenso}</p>
         
         <h2>1. DAS PARTES</h2>
         <div class="section">
@@ -404,19 +472,19 @@ serve(async (req) => {
           <p>[Nome da Instituição], pessoa jurídica de direito público, inscrita no CNPJ sob nº [CNPJ], com sede na [Endereço], neste ato representada por [Representante Legal].</p>
           
           <p><strong>CONTRATADO:</strong></p>
-          <p>${contratoData.candidato_nome}, CPF ${contratoData.candidato_cpf_formatado}, RG ${contratoData.candidato_rg || 'não informado'}, 
-          residente em ${contratoData.candidato_endereco_completo}, e-mail ${contratoData.candidato_email}, 
-          telefone ${contratoData.candidato_telefone || contratoData.candidato_celular}.</p>
+          <p>${sanitizedData.candidato_nome}, CPF ${sanitizedData.candidato_cpf_formatado}, RG ${sanitizedData.candidato_rg || 'não informado'}, 
+          residente em ${sanitizedData.candidato_endereco_completo}, e-mail ${sanitizedData.candidato_email}, 
+          telefone ${sanitizedData.candidato_telefone || sanitizedData.candidato_celular}.</p>
         </div>
         
         <h2>2. DO OBJETO</h2>
         <div class="section">
           <p>O presente contrato tem por objeto o credenciamento do CONTRATADO para prestação de serviços de saúde, 
-          conforme especificado no ${contratoData.edital_numero}, publicado em ${contratoData.edital_data_publicacao_formatada}.</p>
-          <p><strong>Objeto do Edital:</strong> ${contratoData.edital_objeto}</p>
+          conforme especificado no ${sanitizedData.edital_numero}, publicado em ${sanitizedData.edital_data_publicacao_formatada}.</p>
+          <p><strong>Objeto do Edital:</strong> ${sanitizedData.edital_objeto}</p>
         </div>
         
-        ${contratoData.especialidades && contratoData.especialidades.length > 0 ? `
+        ${sanitizedData.especialidades.length > 0 ? `
           <h2>3. DAS ESPECIALIDADES</h2>
           <div class="section">
             <p>O CONTRATADO prestará serviços nas seguintes especialidades:</p>
@@ -425,7 +493,7 @@ serve(async (req) => {
                 <tr><th>#</th><th>Especialidade</th></tr>
               </thead>
               <tbody>
-                ${contratoData.especialidades.map((esp, idx) => 
+                ${sanitizedData.especialidades.map((esp, idx) => 
                   `<tr><td>${idx + 1}</td><td>${esp}</td></tr>`
                 ).join('')}
               </tbody>
@@ -473,7 +541,7 @@ serve(async (req) => {
         
         <div class="section" style="margin-top: 40px;">
           <p>E, por estarem assim justos e contratados, assinam o presente instrumento em 2 (duas) vias de igual teor e forma.</p>
-          <p>[Local], ${contratoData.sistema_data_extenso}</p>
+          <p>[Local], ${sanitizedData.sistema_data_extenso}</p>
         </div>
         
         <div class="assinaturas">
@@ -482,22 +550,48 @@ serve(async (req) => {
           </div>
           <div class="assinatura">
             <div class="linha-assinatura">CONTRATADO</div>
-            <p style="margin-top: 10px;">${contratoData.candidato_nome}</p>
-            <p>CPF: ${contratoData.candidato_cpf_formatado}</p>
+            <p style="margin-top: 10px;">${sanitizedData.candidato_nome}</p>
+            <p>CPF: ${sanitizedData.candidato_cpf_formatado}</p>
           </div>
         </div>
         
         <p style="text-align: center; margin-top: 50px; font-size: 12px; color: #666;">
-          Documento gerado eletronicamente em ${contratoData.sistema_data_atual}
+          Documento gerado eletronicamente em ${sanitizedData.sistema_data_atual}
         </p>
       </body>
       </html>
     `;
+    
+    // Sanitizar encoding UTF-8
+    let contratoHTML = sanitizeUTF8(contratoHTMLRaw);
+
+    // Verificar tamanho e truncar se necessário
+    const MAX_HTML_SIZE = 250 * 1024; // 250 KB
+    const encoder = new TextEncoder();
+    const htmlBytes = encoder.encode(contratoHTML);
+
+    if (htmlBytes.length > MAX_HTML_SIZE) {
+      logEvent('warn', 'html_truncated', {
+        original_size: htmlBytes.length,
+        max_size: MAX_HTML_SIZE,
+        inscricao_id
+      });
+      
+      contratoHTML = truncateByBytes(contratoHTML, MAX_HTML_SIZE);
+    }
+
+    logEvent('info', 'html_generated', {
+      size_bytes: encoder.encode(contratoHTML).length,
+      inscricao_id
+    });
 
     // ========================================
     // PASSO 6: SALVAR CONTRATO NO BANCO
     // ========================================
     const numeroContrato = `CONT-${new Date().getFullYear()}-${Math.floor(Math.random() * 999999).toString().padStart(6, '0')}`;
+
+    // Garantir que contratoHTML é válido JSON (sem caracteres problemáticos)
+    const contratoHTMLFinal = contratoHTML.replace(/\u0000/g, ''); // Remove nulls residuais
 
     const { data: contrato, error: contratoError } = await supabase
       .from('contratos')
@@ -509,10 +603,11 @@ serve(async (req) => {
         documento_url: publicUrl,
         dados_contrato: {
           ...contratoData,
-          contratoHTML: contratoHTML,
+          contratoHTML: contratoHTMLFinal, // HTML sanitizado e validado
           pdf_gerado_em: new Date().toISOString(),
           metodo_geracao: 'jspdf_direto',
-          tamanho_bytes: contratoPDFBytes.length
+          tamanho_bytes: contratoPDFBytes.length,
+          html_size_bytes: encoder.encode(contratoHTMLFinal).length // Metadata útil
         },
         gerado_em: new Date().toISOString(),
         analise_id: null,
@@ -525,6 +620,10 @@ serve(async (req) => {
       .single();
 
     if (contratoError || !contrato) {
+      logEvent('error', 'contract_save_failed', {
+        error: contratoError?.message,
+        inscricao_id
+      });
       throw new Error(`Erro ao criar/atualizar contrato: ${contratoError?.message}`);
     }
 
