@@ -241,10 +241,10 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
       case 'consultorio':
         fieldsToValidate = [
           'endereco_consultorio',
-          'telefone_consultorio',
+          // 'telefone_consultorio', // ✅ PARTE 5: Agora é opcional
           'especialidades_ids',
           'quantidade_consultas_minima',
-          'horarios',
+          // 'horarios', // ✅ PARTE 5: Agora é opcional
         ];
         break;
       case 'consultorios':

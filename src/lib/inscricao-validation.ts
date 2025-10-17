@@ -117,22 +117,23 @@ export const pessoaJuridicaSchema = z.object({
 // Schema completo de endereço de correspondência (estruturado)
 export const enderecoCorrespondenciaSchema = z.object({
   cep_correspondencia: z.string()
-    .min(1, 'CEP é obrigatório')
-    .refine(validateCEPMask, 'CEP inválido')
-    .transform(cleanMask),
-  logradouro_correspondencia: z.string().min(3, 'Logradouro é obrigatório'),
-  numero_correspondencia: z.string().min(1, 'Número é obrigatório'),
+    .optional()
+    .transform(val => val ? cleanMask(val) : ''),
+  logradouro_correspondencia: z.string().optional(),
+  numero_correspondencia: z.string().optional(),
   complemento_correspondencia: z.string().optional(),
-  bairro_correspondencia: z.string().min(2, 'Bairro é obrigatório'),
-  cidade_correspondencia: z.string().min(2, 'Cidade é obrigatória'),
-  uf_correspondencia: z.string().length(2, 'UF deve ter 2 caracteres'),
+  bairro_correspondencia: z.string().optional(),
+  cidade_correspondencia: z.string().optional(),
+  uf_correspondencia: z.string().optional(),
   telefone_correspondencia: z.string()
     .optional()
     .transform(val => val ? cleanMask(val) : ''),
   celular_correspondencia: z.string()
     .optional()
     .transform(val => val ? cleanMask(val) : ''),
-  email_correspondencia: z.string().email('Email inválido'),
+  email_correspondencia: z.string()
+    .optional()
+    .refine(val => !val || z.string().email().safeParse(val).success, 'Email inválido'),
 });
 
 export const horarioAtendimento = z.object({
@@ -143,8 +144,9 @@ export const horarioAtendimento = z.object({
 
 export const consultorioHorariosSchema = z.object({
   especialidades_ids: z.array(z.string().uuid())
-    .min(1, 'Selecione ao menos uma especialidade')
-    .max(10, 'Você pode selecionar no máximo 10 especialidades'),
+    .optional()
+    .default([])
+    .refine(arr => !arr || arr.length <= 10, 'Você pode selecionar no máximo 10 especialidades'),
   quantidade_consultas_minima: z.number().min(1, 'Mínimo 1 consulta'),
   atendimento_hora_marcada: z.boolean(),
   endereco_consultorio: z.string().min(5, 'Endereço do consultório é obrigatório'),
