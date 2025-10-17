@@ -216,7 +216,7 @@ async function waitForDocumentReady(
   documentId: string, 
   apiKey: string, 
   accountId: string,
-  maxAttempts = 10
+  maxAttempts = 15
 ): Promise<boolean> {
   console.log(JSON.stringify({ 
     level: "info", 
@@ -224,8 +224,11 @@ async function waitForDocumentReady(
     document_id: documentId 
   }));
 
+  // Aguardar 3 segundos iniciais para dar tempo ao Assinafy processar
+  await new Promise(resolve => setTimeout(resolve, 3000));
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const delay = Math.min(1000 * Math.pow(1.5, attempt - 1), 10000); // 1s, 1.5s, 2.25s... max 10s
+    const delay = Math.min(2000 * Math.pow(1.3, attempt - 1), 15000); // 2s, 2.6s, 3.4s... max 15s
     
     await new Promise(resolve => setTimeout(resolve, delay));
     
@@ -242,6 +245,18 @@ async function waitForDocumentReady(
       );
 
       if (!statusResponse.ok) {
+        // 404 nas primeiras tentativas é esperado - documento ainda processando
+        if (statusResponse.status === 404 && attempt < 8) {
+          console.log(JSON.stringify({ 
+            level: "info", 
+            action: "document_still_processing", 
+            status: 404,
+            attempt,
+            message: "Aguardando processamento do documento..."
+          }));
+          continue;
+        }
+        
         console.warn(JSON.stringify({ 
           level: "warn", 
           action: "polling_failed", 
