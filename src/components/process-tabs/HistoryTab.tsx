@@ -179,31 +179,32 @@ export function HistoryTab({ processoId, dadosInscricao }: {
   const isLoading = loadingAudit || loadingWorkflow || loadingMessages || loadingDocs;
 
   const getIcon = (tipo: HistoryEvent["tipo"]) => {
+    const iconProps = "h-6 w-6";
     const icons = {
-      criacao: <Clock className="h-5 w-5 text-blue-400" />,
-      upload: <FileText className="h-5 w-5 text-purple-400" />,
-      comentario: <MessageSquare className="h-5 w-5 text-blue-400" />,
-      aprovacao: <CheckCircle className="h-5 w-5 text-green-400" />,
-      rejeicao: <XCircle className="h-5 w-5 text-red-400" />,
-      solicitacao: <AlertCircle className="h-5 w-5 text-orange-400" />,
-      atribuicao: <User className="h-5 w-5 text-cyan-400" />,
-      workflow: <Clock className="h-5 w-5 text-blue-400" />,
-      status_change: <AlertCircle className="h-5 w-5 text-yellow-400" />,
+      criacao: <Clock className={`${iconProps} text-blue-500`} strokeWidth={2.5} />,
+      upload: <FileText className={`${iconProps} text-purple-500`} strokeWidth={2.5} />,
+      comentario: <MessageSquare className={`${iconProps} text-blue-500`} strokeWidth={2.5} />,
+      aprovacao: <CheckCircle className={`${iconProps} text-green-500`} strokeWidth={2.5} />,
+      rejeicao: <XCircle className={`${iconProps} text-red-500`} strokeWidth={2.5} />,
+      solicitacao: <AlertCircle className={`${iconProps} text-orange-500`} strokeWidth={2.5} />,
+      atribuicao: <User className={`${iconProps} text-cyan-500`} strokeWidth={2.5} />,
+      workflow: <Clock className={`${iconProps} text-indigo-500`} strokeWidth={2.5} />,
+      status_change: <AlertCircle className={`${iconProps} text-yellow-500`} strokeWidth={2.5} />,
     };
     return icons[tipo];
   };
 
   const getColor = (tipo: HistoryEvent["tipo"]) => {
     const colors = {
-      criacao: "border-blue-500/30 bg-blue-500/5",
-      upload: "border-purple-500/30 bg-purple-500/5",
-      comentario: "border-blue-500/30 bg-blue-500/5",
-      aprovacao: "border-green-500/30 bg-green-500/5",
-      rejeicao: "border-red-500/30 bg-red-500/5",
-      solicitacao: "border-orange-500/30 bg-orange-500/5",
-      atribuicao: "border-cyan-500/30 bg-cyan-500/5",
-      workflow: "border-blue-500/30 bg-blue-500/5",
-      status_change: "border-yellow-500/30 bg-yellow-500/5",
+      criacao: "border-blue-500/40 bg-gradient-to-br from-blue-500/10 to-blue-600/5 shadow-lg shadow-blue-500/20",
+      upload: "border-purple-500/40 bg-gradient-to-br from-purple-500/10 to-purple-600/5 shadow-lg shadow-purple-500/20",
+      comentario: "border-blue-500/40 bg-gradient-to-br from-blue-500/10 to-blue-600/5 shadow-lg shadow-blue-500/20",
+      aprovacao: "border-green-500/40 bg-gradient-to-br from-green-500/10 to-green-600/5 shadow-lg shadow-green-500/20",
+      rejeicao: "border-red-500/40 bg-gradient-to-br from-red-500/10 to-red-600/5 shadow-lg shadow-red-500/20",
+      solicitacao: "border-orange-500/40 bg-gradient-to-br from-orange-500/10 to-orange-600/5 shadow-lg shadow-orange-500/20",
+      atribuicao: "border-cyan-500/40 bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 shadow-lg shadow-cyan-500/20",
+      workflow: "border-indigo-500/40 bg-gradient-to-br from-indigo-500/10 to-indigo-600/5 shadow-lg shadow-indigo-500/20",
+      status_change: "border-yellow-500/40 bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 shadow-lg shadow-yellow-500/20",
     };
     return colors[tipo];
   };
@@ -232,16 +233,16 @@ export function HistoryTab({ processoId, dadosInscricao }: {
     <div className="space-y-4">
       <CandidatoInfoCard dadosInscricao={dadosInscricao} />
       <div className="relative">
-        <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-border" />
+        <div className="absolute left-7 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/50 via-primary/20 to-transparent" />
         <div className="space-y-6">
           {allEvents.map((evento, index) => (
             <div key={index} className="relative flex gap-4">
-              <div className={`relative z-10 rounded-full border-2 p-2 bg-background ${getColor(evento.tipo)}`}>
+              <div className={`relative z-10 rounded-full border-2 p-3 bg-card backdrop-blur-sm transition-all duration-300 hover:scale-110 ${getColor(evento.tipo)}`}>
                 {getIcon(evento.tipo)}
               </div>
 
               <div className="flex-1 pb-6">
-                <div className="rounded-lg border bg-card p-4 hover-lift">
+                <div className="rounded-lg border bg-card p-4 hover:shadow-lg hover:border-primary/30 transition-all duration-300">
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-1">
                       <p className="font-medium text-foreground">{evento.descricao}</p>
