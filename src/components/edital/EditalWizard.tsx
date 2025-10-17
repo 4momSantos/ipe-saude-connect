@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, Save, FileText, Clock, Loader2 } from "lucide-react";
 import { InformacoesGeraisStep } from "./steps/InformacoesGeraisStep";
 import { ParticipacaoHabilitacaoStep } from "./steps/ParticipacaoHabilitacaoStep";
-import { ProcessingModeStep } from "./steps/ProcessingModeStep";
 import { WorkflowStep } from "./steps/WorkflowStep";
 import { AnexosStep } from "./steps/AnexosStep";
 import { PublicacaoStep } from "./steps/PublicacaoStep";
@@ -35,7 +34,7 @@ import {
 const STEPS = [
   { id: 1, title: "Informações Gerais", description: "Dados básicos" },
   { id: 2, title: "Participação", description: "Habilitação" },
-  { id: 3, title: "Processamento", description: "Modo de validação" },
+  { id: 3, title: "Workflow", description: "Automação (opcional)" },
   { id: 4, title: "Anexos", description: "Documentos" },
   { id: 5, title: "Publicação", description: "Revisão final" },
 ];
@@ -65,9 +64,9 @@ const editalSchema = z.object({
   status: z.enum(["rascunho", "publicado", "encerrado"]).default("rascunho"),
   // FASE 6: Campo para configuração de uploads
   uploads_config: z.record(z.any()).optional(),
-  // FASE 1: Campo processing_mode (enum: workflow, programmatic, none)
-  processing_mode: z.enum(['workflow', 'programmatic', 'none']).default('none'),
-  // Campos de workflow (CONDICIONALMENTE obrigatórios)
+  // Restaurado: use_programmatic_flow (boolean) como fonte de verdade
+  use_programmatic_flow: z.boolean().default(false),
+  // Campos de workflow (opcionais)
   workflow_id: z.string().uuid().nullable().optional(),
   workflow_version: z.number().nullable().optional(),
   formularios_vinculados: z.array(z.string().uuid()).optional(),
@@ -77,14 +76,14 @@ const editalSchema = z.object({
   anexos_administrativos: z.record(z.any()).optional(),
   anexos_processo_esperados: z.array(z.any()).optional(),
 }).refine((data) => {
-  // Validação: se processing_mode é 'workflow', workflow_id é obrigatório
-  if (data.processing_mode === 'workflow' && !data.workflow_id) {
+  // Validação anti-híbrido: NÃO permitir ambos ativos
+  if (data.use_programmatic_flow && data.workflow_id) {
     return false;
   }
   return true;
 }, {
-  message: "Selecione um workflow quando usar Workflow Engine",
-  path: ["workflow_id"]
+  message: "Não é possível usar fluxo programático e workflow simultaneamente",
+  path: ["use_programmatic_flow"]
 });
 
 type EditalFormValues = z.infer<typeof editalSchema>;
@@ -123,7 +122,7 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
       anexos_administrativos: {},
       anexos_processo_esperados: [],
       uploads_config: {}, // FASE 6: Inicializar vazio
-      processing_mode: 'none', // FASE 1: Modo padrão
+      use_programmatic_flow: false, // Restaurado: boolean
       workflow_id: null,
       workflow_version: null,
       ...initialData,
@@ -213,16 +212,8 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
         fieldsToValidate = ["participacao_permitida", "documentos_habilitacao"];
         break;
       case 3:
-        // Validar processing_mode
-        const processingMode = form.getValues("processing_mode");
-        const workflowId = form.getValues("workflow_id");
-        
-        if (processingMode === 'workflow' && !workflowId) {
-          toast.error("Selecione um workflow ao usar Workflow Engine");
-          return;
-        }
-        
-        fieldsToValidate = ["processing_mode"];
+        // Workflow é opcional, apenas trigger validation
+        fieldsToValidate = ["use_programmatic_flow"];
         break;
       case 4:
         // Anexos são opcionais
@@ -336,16 +327,15 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
         uploads_config: data.uploads_config || null,
         status: data.status,
         created_by: user.id,
-        // FASE 1: Campo processing_mode
-        processing_mode: data.processing_mode,
-        // Campos de workflow (condicionais baseados em processing_mode)
-        workflow_id: data.processing_mode === 'workflow' ? data.workflow_id : null,
-        workflow_version: data.processing_mode === 'workflow' ? data.workflow_version : null,
+        // Restaurado: use_programmatic_flow (boolean)
+        use_programmatic_flow: data.use_programmatic_flow || false,
+        // Campos de workflow (condicionalmente salvos)
+        workflow_id: data.workflow_id || null,
+        workflow_version: data.workflow_version || null,
         formularios_vinculados: data.formularios_vinculados,
         gestor_autorizador_id: data.gestor_autorizador_id,
         observacoes_autorizacao: data.observacoes_autorizacao || null,
         data_autorizacao: new Date().toISOString(),
-        // NOTA: use_programmatic_flow NÃO é salvo (é coluna COMPUTED)
       };
 
       if (editalId) {
@@ -457,7 +447,7 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
       case 2:
         return <ParticipacaoHabilitacaoStep form={form} />;
       case 3:
-        return <ProcessingModeStep form={form} />;
+        return <WorkflowStep form={form} />;
       case 4:
         return <AnexosStep form={form} />;
       case 5:
