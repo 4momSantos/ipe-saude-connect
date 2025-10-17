@@ -127,13 +127,11 @@ export const enderecoCorrespondenciaSchema = z.object({
   cidade_correspondencia: z.string().min(2, 'Cidade é obrigatória'),
   uf_correspondencia: z.string().length(2, 'UF deve ter 2 caracteres'),
   telefone_correspondencia: z.string()
-    .min(1, 'Telefone é obrigatório')
-    .refine(validatePhoneMask, 'Telefone inválido')
-    .transform(cleanMask),
+    .optional()
+    .transform(val => val ? cleanMask(val) : ''),
   celular_correspondencia: z.string()
-    .min(1, 'Celular é obrigatório')
-    .refine((val) => cleanMask(val).length === 11, 'Celular deve ter 11 dígitos')
-    .transform(cleanMask),
+    .optional()
+    .transform(val => val ? cleanMask(val) : ''),
   email_correspondencia: z.string().email('Email inválido'),
 });
 
@@ -151,11 +149,10 @@ export const consultorioHorariosSchema = z.object({
   atendimento_hora_marcada: z.boolean(),
   endereco_consultorio: z.string().min(5, 'Endereço do consultório é obrigatório'),
   telefone_consultorio: z.string()
-    .min(1, 'Telefone é obrigatório')
-    .refine(validatePhoneMask, 'Telefone inválido')
-    .transform(cleanMask),
+    .optional()
+    .transform(val => val ? cleanMask(val) : ''),
   ramal: z.string().optional(),
-  horarios: z.array(horarioAtendimento).min(1, 'Pelo menos um horário de atendimento é obrigatório'),
+  horarios: z.array(horarioAtendimento).optional().default([]),
 });
 
 export const documentoUpload = z.object({
@@ -168,17 +165,7 @@ export const documentoUpload = z.object({
 });
 
 export const documentosSchema = z.object({
-  documentos: z.array(documentoUpload).refine(
-    (docs) => {
-      const documentosObrigatorios = DOCUMENTOS_OBRIGATORIOS.filter(d => d.obrigatorio);
-      const documentosEnviados = docs.filter(d => 
-        (d.arquivo || d.url) && 
-        documentosObrigatorios.some(doc => doc.tipo === d.tipo)
-      );
-      return documentosEnviados.length >= documentosObrigatorios.length;
-    },
-    `Todos os documentos obrigatórios devem ser enviados`
-  ),
+  documentos: z.array(documentoUpload).optional().default([]),
 });
 
 // Schema unificado flexível (torna PF e PJ opcionais para compatibilidade)
@@ -203,9 +190,9 @@ export const tipoCredenciamentoSchema = z.object({
 // Schema condicional PF (dados pessoais obrigatórios, PJ opcional)
 export const inscricaoCompletaPFSchema = tipoCredenciamentoSchema
   .merge(dadosPessoaisSchema)                    // ✅ CPF, CRM, nome obrigatórios
-  .merge(enderecoCorrespondenciaSchema)          // ✅ Endereço de correspondência obrigatório
-  .merge(consultorioHorariosSchema)              // ✅ Consultório único obrigatório
-  .merge(documentosSchema)                       // ✅ Documentos obrigatórios
+  .merge(enderecoCorrespondenciaSchema.partial()) // ✅ Endereço de correspondência parcialmente opcional
+  .merge(consultorioHorariosSchema.partial())     // ✅ Consultório parcialmente opcional
+  .merge(documentosSchema)                       // ✅ Documentos opcionais
   .merge(z.object({                              // ✅ Permitir campos PJ opcionais sem validar
     cnpj: z.string().optional(),
     denominacao_social: z.string().optional(),
