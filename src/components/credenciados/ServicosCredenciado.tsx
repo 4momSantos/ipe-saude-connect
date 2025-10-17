@@ -207,19 +207,42 @@ export function ServicosCredenciado({ credenciadoId, canEdit = false }: Servicos
 
                   <div className="grid gap-2">
                     <Label htmlFor="procedimento">Procedimento *</Label>
-                    <Input
-                      id="procedimento"
-                      placeholder={especialidadeSelecionada ? "Digite o nome do procedimento" : "Selecione uma especialidade primeiro"}
+                    <Select
                       value={formData.procedimento_id}
-                      onChange={(e) => setFormData({ ...formData, procedimento_id: e.target.value })}
+                      onValueChange={(value) => setFormData({ ...formData, procedimento_id: value })}
                       disabled={!especialidadeSelecionada}
-                      className="w-full"
-                    />
-                    {especialidadeSelecionada && procedimentos && procedimentos.length > 0 && (
-                      <div className="text-xs text-muted-foreground">
-                        Sugestões: {procedimentos.slice(0, 3).map(p => p.nome).join(", ")}
-                        {procedimentos.length > 3 && "..."}
-                      </div>
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={
+                          especialidadeSelecionada 
+                            ? "Selecione o procedimento" 
+                            : "Selecione uma especialidade primeiro"
+                        } />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {procedimentos?.map((proc) => (
+                          <SelectItem key={proc.id} value={proc.id}>
+                            <div className="flex flex-col">
+                              <span>{proc.nome}</span>
+                              {proc.codigo_tuss && (
+                                <span className="text-xs text-muted-foreground">
+                                  TUSS: {proc.codigo_tuss}
+                                </span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {!especialidadeSelecionada && (
+                      <p className="text-xs text-muted-foreground">
+                        Escolha uma especialidade para ver os procedimentos disponíveis
+                      </p>
+                    )}
+                    {especialidadeSelecionada && (!procedimentos || procedimentos.length === 0) && (
+                      <p className="text-xs text-amber-600">
+                        Nenhum procedimento cadastrado para esta especialidade
+                      </p>
                     )}
                   </div>
 
