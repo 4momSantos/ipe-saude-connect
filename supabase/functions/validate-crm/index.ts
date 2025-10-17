@@ -94,6 +94,32 @@ serve(async (req) => {
     if (!response.ok) {
       console.error('Erro na API do CFM:', response.status, await response.text());
       return new Response(
+        JSON.stringify({ 
+          error: 'Erro ao consultar CRM no CFM',
+          message: 'Serviço temporariamente indisponível' 
+        }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const result = await response.json();
+    console.log('InfoSimples CFM response:', JSON.stringify(result, null, 2));
+
+    // Verificar erros de autenticação/autorização da API
+    if (result.code === 603 || result.code === 401 || result.code === 403) {
+      console.error('InfoSimples token error:', result.code_message, result.errors);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Serviço de validação de CRM temporariamente indisponível',
+          message: 'Token da API InfoSimples precisa ser renovado. Entre em contato com o suporte.'
+        }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!response.ok) {
+      console.error('Erro na API do CFM:', response.status, await response.text());
+      return new Response(
         JSON.stringify({ error: 'Erro ao consultar API do CFM' }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

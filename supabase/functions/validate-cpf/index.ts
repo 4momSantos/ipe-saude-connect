@@ -135,6 +135,19 @@ serve(async (req) => {
     const result = await response.json();
     console.log('InfoSimples response:', JSON.stringify(result, null, 2));
 
+    // Verificar erros de autenticação/autorização da API
+    if (result.code === 603 || result.code === 401 || result.code === 403) {
+      console.error('InfoSimples token error:', result.code_message, result.errors);
+      return new Response(
+        JSON.stringify({ 
+          valid: false, 
+          message: 'Serviço de validação de CPF temporariamente indisponível. Entre em contato com o suporte.',
+          details: 'Token da API InfoSimples precisa ser renovado ou está bloqueado.'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 503 }
+      );
+    }
+
     if (result.code === 200 && result.data && result.data.length > 0) {
       const cpfData = result.data[0];
       
