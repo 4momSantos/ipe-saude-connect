@@ -44,6 +44,14 @@ export function RevisaoStep({ form }: RevisaoStepProps) {
     // Debug: Mostrar erros detalhados
     if (!validationResult.success) {
       console.log('[REVISAO] Erros de validação:', validationResult.error.errors);
+      console.log('[REVISAO] Campos preenchidos:', {
+        tipo: tipoCredenciamento,
+        cpf: values.cpf,
+        cep_correspondencia: values.cep_correspondencia,
+        logradouro_correspondencia: values.logradouro_correspondencia,
+        especialidades_ids: values.especialidades_ids,
+        documentos: values.documentos?.length
+      });
     }
   } else {
     // Fallback: usar form.formState.errors se tipo não definido
@@ -111,55 +119,104 @@ export function RevisaoStep({ form }: RevisaoStepProps) {
       </Card>
 
       {/* Pessoa Jurídica */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-primary" />
-            <CardTitle>Pessoa Jurídica</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">CNPJ</p>
-              <p className="text-sm">{values.cnpj}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Denominação Social</p>
-              <p className="text-sm">{values.denominacao_social}</p>
-            </div>
-          </div>
-          <Separator />
-          <div>
-            <p className="text-sm font-medium text-muted-foreground mb-1">Endereço</p>
-            <p className="text-sm">
-              {values.logradouro}, {values.numero}
-              {values.complemento && ` - ${values.complemento}`}
-              <br />
-              {values.bairro} - {values.cidade}/{values.estado}
-              <br />
-              CEP: {values.cep}
-            </p>
-          </div>
-          <Separator />
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Telefone</p>
-              <p className="text-sm">{values.telefone}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">E-mail</p>
-              <p className="text-sm">{values.email}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Regime Fiscal</p>
-              <Badge variant={values.optante_simples ? 'default' : 'secondary'}>
-                {values.optante_simples ? 'Simples Nacional' : 'Não optante'}
-              </Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        {tipoCredenciamento === 'PF' ? (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-primary" />
+                <CardTitle>Endereço de Correspondência</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Endereço</p>
+                <p className="text-sm">
+                  {values.logradouro_correspondencia}, {values.numero_correspondencia}
+                  {values.complemento_correspondencia && ` - ${values.complemento_correspondencia}`}
+                  <br />
+                  {values.bairro_correspondencia} - {values.cidade_correspondencia}/{values.uf_correspondencia}
+                  <br />
+                  CEP: {values.cep_correspondencia}
+                </p>
+              </div>
+              <Separator />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Telefone</p>
+                  <p className="text-sm">{values.telefone_correspondencia}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Celular</p>
+                  <p className="text-sm">{values.celular_correspondencia}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">E-mail</p>
+                  <p className="text-sm">{values.email_correspondencia}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-primary" />
+                <CardTitle>Pessoa Jurídica</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">CNPJ</p>
+                  <p className="text-sm">{values.cnpj}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Denominação Social</p>
+                  <p className="text-sm">{values.denominacao_social}</p>
+                </div>
+              </div>
+              <Separator />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Endereço</p>
+                <p className="text-sm">
+                  {values.logradouro}, {values.numero}
+                  {values.complemento && ` - ${values.complemento}`}
+                  <br />
+                  {values.bairro} - {values.cidade}/{values.estado}
+                  <br />
+                  CEP: {values.cep}
+                </p>
+              </div>
+              <Separator />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Telefone</p>
+                  <p className="text-sm">{values.telefone}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Celular</p>
+                  <p className="text-sm">{values.celular}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">E-mail</p>
+                  <p className="text-sm">{values.email}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Banco/Agência</p>
+                  <p className="text-sm">{values.banco_agencia}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Conta</p>
+                  <p className="text-sm">{values.banco_conta}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Optante Simples</p>
+                  <p className="text-sm">{values.optante_simples ? 'Sim' : 'Não'}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
       {/* Consultório e Especialidades */}
       <Card>

@@ -202,11 +202,28 @@ export const tipoCredenciamentoSchema = z.object({
 
 // Schema condicional PF (dados pessoais obrigatórios, PJ opcional)
 export const inscricaoCompletaPFSchema = tipoCredenciamentoSchema
-  .merge(dadosPessoaisSchema)
-  .merge(pessoaJuridicaSchema.partial()) // PJ opcional para PF
-  .merge(enderecoCorrespondenciaSchema)
-  .merge(consultorioHorariosSchema)
-  .merge(documentosSchema);
+  .merge(dadosPessoaisSchema)                    // ✅ CPF, CRM, nome obrigatórios
+  .merge(enderecoCorrespondenciaSchema)          // ✅ Endereço de correspondência obrigatório
+  .merge(consultorioHorariosSchema)              // ✅ Consultório único obrigatório
+  .merge(documentosSchema)                       // ✅ Documentos obrigatórios
+  .merge(z.object({                              // ✅ Permitir campos PJ opcionais sem validar
+    cnpj: z.string().optional(),
+    denominacao_social: z.string().optional(),
+    logradouro: z.string().optional(),
+    numero: z.string().optional(),
+    complemento: z.string().optional(),
+    bairro: z.string().optional(),
+    cidade: z.string().optional(),
+    estado: z.string().optional(),
+    cep: z.string().optional(),
+    telefone: z.string().optional(),
+    celular: z.string().optional(),
+    banco_agencia: z.string().optional(),
+    banco_conta: z.string().optional(),
+    optante_simples: z.boolean().optional(),
+    email: z.string().optional(),
+    sede_atende: z.boolean().optional(),
+  }));
 
 // Schema condicional PJ (PJ obrigatório, dados pessoais opcionais)
 export const inscricaoCompletaPJSchema = tipoCredenciamentoSchema
