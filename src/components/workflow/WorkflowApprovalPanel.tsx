@@ -60,6 +60,7 @@ export function WorkflowApprovalPanel() {
   const [selectedApproval, setSelectedApproval] = useState<PendingApproval | null>(null);
   const [comments, setComments] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadPendingApprovals();
@@ -159,21 +160,32 @@ export function WorkflowApprovalPanel() {
     }
   }
 
-  async function handleApprove(approval: PendingApproval) {
+  function handleApprove(approval: PendingApproval) {
+    if (processingIds.has(approval.id)) return;
     setSelectedApproval(approval);
     setComments("");
   }
 
-  async function handleReject(approval: PendingApproval) {
+  function handleReject(approval: PendingApproval) {
+    if (processingIds.has(approval.id)) return;
     setSelectedApproval(approval);
     setComments("");
   }
 
   async function submitDecision(decision: 'approved' | 'rejected') {
-    if (!selectedApproval) return;
+    if (!selectedApproval || submitting) return;
+
+    const approvalId = selectedApproval.id;
+    
+    // Prevenir múltiplas submissões
+    if (processingIds.has(approvalId)) {
+      toast.warning("Esta aprovação já está sendo processada");
+      return;
+    }
 
     try {
       setSubmitting(true);
+      setProcessingIds(prev => new Set(prev).add(approvalId));
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
@@ -186,7 +198,8 @@ export function WorkflowApprovalPanel() {
           comments,
           approver_id: user.id,
         })
-        .eq("id", selectedApproval.id);
+        .eq("id", approvalId)
+        .eq("decision", "pending"); // Garantir que só atualiza se ainda estiver pendente
 
       if (updateError) throw updateError;
 
@@ -201,33 +214,39 @@ export function WorkflowApprovalPanel() {
 
       if (stepError) throw stepError;
 
-      // Continuar workflow se aprovado
+      // Continuar workflow se aprovado (sem aguardar resposta para evitar loops)
       if (decision === 'approved') {
-        const { error: continueError } = await supabase.functions.invoke('continue-workflow', {
+        supabase.functions.invoke('continue-workflow', {
           body: {
             stepExecutionId: selectedApproval.step_execution_id,
             decision,
           }
+        }).then(({ error: continueError }) => {
+          if (continueError) {
+            console.error("Erro ao continuar workflow:", continueError);
+          }
         });
-
-        if (continueError) {
-          console.error("Erro ao continuar workflow:", continueError);
-          toast.warning("Aprovação registrada, mas houve erro ao continuar o workflow automaticamente.");
-        } else {
-          toast.success("Aprovação registrada! O workflow continuará automaticamente.");
-        }
+        
+        toast.success("Aprovação registrada! O workflow continuará automaticamente.");
       } else {
         toast.success("Rejeição registrada. O candidato será notificado.");
       }
 
       setSelectedApproval(null);
       setComments("");
-      loadPendingApprovals();
     } catch (error) {
       console.error("Erro ao processar decisão:", error);
       toast.error("Erro ao processar decisão");
     } finally {
       setSubmitting(false);
+      // Remover do processamento após 3 segundos
+      setTimeout(() => {
+        setProcessingIds(prev => {
+          const next = new Set(prev);
+          next.delete(approvalId);
+          return next;
+        });
+      }, 3000);
     }
   }
 
@@ -262,7 +281,7 @@ export function WorkflowApprovalPanel() {
   return (
     <>
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-lg font-semibold">Aprovações Pendentes</h3>
             <p className="text-sm text-muted-foreground">
@@ -275,52 +294,57 @@ export function WorkflowApprovalPanel() {
           </Badge>
         </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {approvals.map((approval) => {
           const inscricao = approval.inscricao;
           if (!inscricao) return null;
 
+          const isProcessing = processingIds.has(approval.id);
+          
           return (
-            <Card key={approval.id}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="text-base">
+            <Card key={approval.id} className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <CardTitle className="text-sm font-semibold truncate">
                       {inscricao.editais.titulo}
                     </CardTitle>
-                    <CardDescription className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <User className="h-3 w-3" />
-                        <span>{inscricao.profiles.nome}</span>
+                    <CardDescription className="space-y-0.5">
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <User className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{inscricao.profiles.nome}</span>
                       </div>
-                      <div className="text-xs">
-                        Edital: {inscricao.editais.numero_edital} • Workflow: {approval.workflow_step_executions.workflow_executions.workflows.name}
+                      <div className="text-xs truncate">
+                        {inscricao.editais.numero_edital}
                       </div>
                     </CardDescription>
                   </div>
-                  <Badge variant="outline" className="text-orange-600">
+                  <Badge variant="outline" className="text-orange-600 flex-shrink-0">
                     <AlertCircle className="h-3 w-3 mr-1" />
                     Aguardando
                   </Badge>
                 </div>
               </CardHeader>
 
-              <CardContent>
+              <CardContent className="pt-0">
                 <div className="flex items-center gap-2">
                   <Button
                     size="sm"
                     onClick={() => handleApprove(approval)}
+                    disabled={isProcessing}
                     className="flex-1"
                   >
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    <CheckCircle2 className="h-4 w-4 mr-1" />
                     Aprovar
                   </Button>
                   <Button
                     size="sm"
                     variant="destructive"
                     onClick={() => handleReject(approval)}
+                    disabled={isProcessing}
                     className="flex-1"
                   >
-                    <XCircle className="h-4 w-4 mr-2" />
+                    <XCircle className="h-4 w-4 mr-1" />
                     Rejeitar
                   </Button>
                 </div>
@@ -328,6 +352,7 @@ export function WorkflowApprovalPanel() {
             </Card>
           );
         })}
+        </div>
       </div>
 
       <Dialog open={!!selectedApproval} onOpenChange={() => setSelectedApproval(null)}>
