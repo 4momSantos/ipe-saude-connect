@@ -1,5 +1,5 @@
 import { UseFormReturn, useFieldArray } from 'react-hook-form';
-import { InscricaoCompletaForm, DOCUMENTOS_OBRIGATORIOS } from '@/lib/inscricao-validation';
+import { InscricaoCompletaForm, DOCUMENTOS_OBRIGATORIOS } from '@/lib/inscricao-schema-unificado';
 import { useUploadsConfig } from '@/hooks/useUploadsConfig';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

@@ -1,5 +1,5 @@
 import { UseFormReturn } from 'react-hook-form';
-import { InscricaoCompletaForm } from '@/lib/inscricao-validation';
+import { InscricaoCompletaForm } from '@/lib/inscricao-schema-unificado';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
