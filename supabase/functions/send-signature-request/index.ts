@@ -209,6 +209,87 @@ async function htmlToPDF(html: string, numeroContrato: string): Promise<Uint8Arr
 }
 
 /**
+ * FASE 3: Polling com Backoff Exponencial
+ * Aguarda documento estar pronto na Assinafy
+ */
+async function waitForDocumentReady(
+  documentId: string, 
+  apiKey: string, 
+  accountId: string,
+  maxAttempts = 10
+): Promise<boolean> {
+  console.log(JSON.stringify({ 
+    level: "info", 
+    action: "polling_document_status", 
+    document_id: documentId 
+  }));
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const delay = Math.min(1000 * Math.pow(1.5, attempt - 1), 10000); // 1s, 1.5s, 2.25s... max 10s
+    
+    await new Promise(resolve => setTimeout(resolve, delay));
+    
+    try {
+      const statusResponse = await fetch(
+        `https://api.assinafy.com.br/v1/accounts/${accountId}/documents/${documentId}`,
+        {
+          method: 'GET',
+          headers: {
+            'X-Api-Key': apiKey,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!statusResponse.ok) {
+        console.warn(JSON.stringify({ 
+          level: "warn", 
+          action: "polling_failed", 
+          status: statusResponse.status,
+          attempt 
+        }));
+        continue;
+      }
+
+      const statusData = await statusResponse.json();
+      
+      // Verificar se documento está pronto para assinatura
+      if (statusData.data?.status === 'pending_signature' || statusData.data?.status === 'active') {
+        console.log(JSON.stringify({ 
+          level: "info", 
+          action: "document_ready", 
+          attempts: attempt,
+          total_delay_ms: delay * attempt 
+        }));
+        return true;
+      }
+      
+      console.log(JSON.stringify({ 
+        level: "info", 
+        action: "document_processing", 
+        status: statusData.data?.status,
+        attempt 
+      }));
+      
+    } catch (err: any) {
+      console.error(JSON.stringify({ 
+        level: "error", 
+        action: "polling_exception", 
+        error: err.message,
+        attempt 
+      }));
+    }
+  }
+  
+  console.error(JSON.stringify({ 
+    level: "error", 
+    action: "polling_timeout", 
+    max_attempts: maxAttempts 
+  }));
+  return false;
+}
+
+/**
  * Envia documento para Assinafy via multipart/form-data
  */
 async function sendDocumentToAssinafy(
@@ -331,13 +412,18 @@ async function sendDocumentToAssinafy(
     documentId
   }));
   
-  // Aguardar processamento do documento antes de criar assignment
+  // FASE 3: Polling adaptativo para aguardar processamento do documento
   console.log(JSON.stringify({
     level: "info",
-    action: "waiting_document_processing"
+    action: "polling_document_start",
+    documentId
   }));
   
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  const isReady = await waitForDocumentReady(documentId, apiKey, accountId);
+  
+  if (!isReady) {
+    throw new Error("Documento não ficou pronto para assinatura após múltiplas tentativas");
+  }
   
   // ETAPA 3: Solicitar Assinatura
   console.log(JSON.stringify({
@@ -408,22 +494,18 @@ serve(async (req) => {
     const assifafyApiKey = Deno.env.get("ASSINAFY_API_KEY");
     const assifafyAccountId = Deno.env.get("ASSINAFY_ACCOUNT_ID");
     
-    // 🔍 DIAGNÓSTICO: Verificar ENVIRONMENT
-    const envValue = Deno.env.get("ENVIRONMENT");
+    // 🔍 FASE 1: Detecção correta DEV/PROD
+    const envValue = Deno.env.get("ENVIRONMENT") || "production"; // Default production
+    const DEV_MODE = envValue === "development"; // Somente true se explicitamente "development"
+    
     console.log(JSON.stringify({
       level: "info",
       action: "environment_check",
       ENVIRONMENT_raw: envValue,
-      ENVIRONMENT_exists: !!envValue,
-      ENVIRONMENT_is_production: envValue === "production",
-      ENVIRONMENT_comparison: {
-        actual: envValue,
-        expected: "production",
-        match: envValue === "production"
-      }
+      ENVIRONMENT_default: "production",
+      DEV_MODE,
+      mode: DEV_MODE ? "development" : "production"
     }));
-    
-    const DEV_MODE = envValue !== "production";
     
     const supabase = createClient(supabaseUrl, supabaseKey);
 

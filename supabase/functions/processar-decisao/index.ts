@@ -35,10 +35,15 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now(); // FASE 4: Métrica de duração
+  
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    // FASE 2: Feature toggle para rollback rápido
+    const AUTO_GERAR_CONTRATO = Deno.env.get('AUTO_GERAR_CONTRATO') !== 'false';
 
     // Autenticação
     const authHeader = req.headers.get('Authorization')!;
@@ -182,7 +187,62 @@ serve(async (req) => {
       }
     }
 
-    // 5. Criar notificação in-app para candidato
+    // 5. FASE 2: Gerar contrato automaticamente se aprovado
+    if (decisao.status === 'aprovado' && AUTO_GERAR_CONTRATO) {
+      console.log(`[DECISAO] 🚀 Iniciando geração automática de contrato para inscrição ${inscricao_id}`);
+      
+      try {
+        const { data: contratoData, error: contratoError } = await supabase.functions.invoke(
+          'gerar-contrato-assinatura',
+          {
+            body: {
+              inscricao_id: inscricao_id
+            }
+          }
+        );
+
+        if (contratoError) {
+          console.error('[DECISAO] ❌ Erro ao gerar contrato:', contratoError);
+          // ⚠️ NÃO bloqueia a aprovação, apenas registra erro
+          await supabase
+            .from('workflow_messages')
+            .insert({
+              inscricao_id,
+              sender_id: user.id,
+              sender_type: 'sistema',
+              content: `⚠️ **AVISO**: Contrato não foi gerado automaticamente. Erro: ${contratoError.message}. Solicite geração manual.`,
+              tipo_manifestacao: 'alerta',
+              visivel_para: ['analista', 'gestor'],
+              metadata: { erro: contratoError }
+            });
+        } else {
+          console.log(`[DECISAO] ✅ Contrato gerado: ${contratoData?.numero_contrato || 'N/A'}`);
+          
+          // Registrar sucesso
+          await supabase
+            .from('workflow_messages')
+            .insert({
+              inscricao_id,
+              sender_id: user.id,
+              sender_type: 'sistema',
+              content: `📄 **Contrato gerado automaticamente**: ${contratoData?.numero_contrato || 'N/A'}\n\nEnviado para assinatura via Assinafy.`,
+              tipo_manifestacao: 'info',
+              visivel_para: ['candidato', 'analista', 'gestor'],
+              metadata: { 
+                contrato_id: contratoData?.contrato_id,
+                numero_contrato: contratoData?.numero_contrato 
+              }
+            });
+        }
+      } catch (err: any) {
+        console.error('[DECISAO] 💥 Exceção ao gerar contrato:', err);
+        // Não bloqueia aprovação
+      }
+    } else if (decisao.status === 'aprovado' && !AUTO_GERAR_CONTRATO) {
+      console.log('[DECISAO] ⚠️ AUTO_GERAR_CONTRATO=false, geração manual necessária');
+    }
+
+    // 6. Criar notificação in-app para candidato
     const { data: inscricao } = await supabase
       .from('inscricoes_edital')
       .select('candidato_id')
@@ -214,7 +274,18 @@ serve(async (req) => {
         });
     }
 
-    console.log(`[DECISAO] Decisão processada: ${decisao.status} para inscrição ${inscricao_id}`);
+    // FASE 4: Log estruturado
+    console.log(JSON.stringify({
+      level: "info",
+      action: "decisao_processada",
+      inscricao_id,
+      status: decisao.status,
+      justificativa_length: decisao.justificativa.length,
+      analista_id: user.id,
+      contrato_gerado: decisao.status === 'aprovado' && AUTO_GERAR_CONTRATO,
+      duration_ms: Date.now() - startTime,
+      timestamp: new Date().toISOString()
+    }));
 
     return new Response(
       JSON.stringify({ 
