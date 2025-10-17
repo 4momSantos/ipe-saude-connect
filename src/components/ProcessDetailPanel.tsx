@@ -11,6 +11,7 @@ import { MessagesTab } from "./process-tabs/MessagesTab";
 import { HistoryTab } from "./process-tabs/HistoryTab";
 import { DadosInscricaoView } from "./analises/DadosInscricaoView";
 import { WorkflowTimeline } from "./workflow/WorkflowTimeline";
+import { SolicitarAlteracaoChatDialog } from "./workflow/SolicitarAlteracaoChatDialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { WorkflowStep, WorkflowAction } from "@/types/workflow";
@@ -44,6 +45,7 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
   const [loading, setLoading] = useState(true);
   const [dadosInscricao, setDadosInscricao] = useState<any>(null);
   const [decisaoDialogOpen, setDecisaoDialogOpen] = useState(false);
+  const [solicitacaoDialogOpen, setSolicitacaoDialogOpen] = useState(false);
   const [analiseId, setAnaliseId] = useState<string>("");
   const { unreadCount } = useUnreadMessages(processo.id);
 
@@ -230,9 +232,46 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
 
 
   const handleSolicitarInfo = () => {
-    onStatusChange(processo.id, "pendente");
-    toast.warning("Informações adicionais solicitadas");
-    setActiveTab("mensagens");
+    setSolicitacaoDialogOpen(true);
+  };
+
+  const handleEnviarSolicitacao = async (dados: any) => {
+    try {
+      // Mudar status para pendente
+      onStatusChange(processo.id, "pendente");
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Usuário não autenticado");
+        return;
+      }
+      
+      // Criar mensagem estruturada no chat
+      const { error } = await supabase
+        .from('workflow_messages')
+        .insert([{
+          sender_id: user.id,
+          sender_type: 'analista',
+          content: JSON.stringify({
+            tipo: "solicitacao_correcao",
+            dados: dados,
+            inscricaoId: processo.id
+          }),
+          visivel_para: ['candidato']
+        }]);
+
+      if (error) {
+        console.error("Erro ao inserir mensagem:", error);
+        throw error;
+      }
+
+      toast.success("Solicitação de correção enviada com sucesso");
+      setSolicitacaoDialogOpen(false);
+      setActiveTab("mensagens");
+    } catch (error) {
+      console.error("Erro ao enviar solicitação:", error);
+      toast.error("Erro ao enviar solicitação");
+    }
   };
 
   return (
@@ -461,6 +500,15 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
         analiseId={analiseId || processo.id}
         dadosInscricao={dadosInscricao || {}}
         documentos={[]}
+      />
+
+      {/* Dialog de Solicitação Estruturada */}
+      <SolicitarAlteracaoChatDialog
+        open={solicitacaoDialogOpen}
+        onOpenChange={setSolicitacaoDialogOpen}
+        dadosAtuais={dadosInscricao || {}}
+        documentosAtuais={[]}
+        onSubmit={handleEnviarSolicitacao}
       />
     </div>
   );
