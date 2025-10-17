@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Edit2, Trash2, UserCheck, Stethoscope, AlertCircle, Mail, Phone } from "lucide-react";
-import { useProfissionais, useRemoverProfissional } from "@/hooks/useProfissionais";
+import { useProfissionais, useRemoverProfissional, type Profissional } from "@/hooks/useProfissionais";
 import { AdicionarProfissionalDialog } from "./AdicionarProfissionalDialog";
+import { EditarProfissionalDialog } from "./EditarProfissionalDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +28,8 @@ export function ProfissionaisCredenciado({ credenciadoId, isCNPJ }: Profissionai
   const { mutate: removerProfissional } = useRemoverProfissional();
   
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [profissionalToEdit, setProfissionalToEdit] = useState<Profissional | null>(null);
   const [profissionalToDelete, setProfissionalToDelete] = useState<string | null>(null);
 
   if (!isCNPJ) {
@@ -155,7 +158,15 @@ export function ProfissionaisCredenciado({ credenciadoId, isCNPJ }: Profissionai
                     </div>
                     
                     <div className="flex gap-2">
-                      <Button variant="ghost" size="sm" title="Editar">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        title="Editar"
+                        onClick={() => {
+                          setProfissionalToEdit(prof);
+                          setEditDialogOpen(true);
+                        }}
+                      >
                         <Edit2 className="h-3 w-3" />
                       </Button>
                       {!prof.principal && (
@@ -182,6 +193,15 @@ export function ProfissionaisCredenciado({ credenciadoId, isCNPJ }: Profissionai
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         credenciadoId={credenciadoId}
+      />
+
+      <EditarProfissionalDialog
+        open={editDialogOpen}
+        onClose={() => {
+          setEditDialogOpen(false);
+          setProfissionalToEdit(null);
+        }}
+        profissional={profissionalToEdit}
       />
 
       <AlertDialog open={!!profissionalToDelete} onOpenChange={() => setProfissionalToDelete(null)}>
