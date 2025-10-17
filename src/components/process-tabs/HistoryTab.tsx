@@ -238,7 +238,7 @@ export function HistoryTab({ processoId, dadosInscricao }: {
           {allEvents.map((evento, index) => (
             <div 
               key={index} 
-              className="relative flex gap-6 animate-fade-in"
+              className="relative flex items-center gap-6 animate-fade-in"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               <div className={`relative z-10 flex items-center justify-center rounded-full border-2 w-14 h-14 bg-card/80 backdrop-blur-xl transition-all duration-500 hover:scale-125 hover:rotate-12 ${getColor(evento.tipo)}`}>
