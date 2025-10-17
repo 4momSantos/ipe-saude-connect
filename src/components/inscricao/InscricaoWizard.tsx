@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   InscricaoCompletaForm,
   inscricaoCompletaSchema,
+  getSchemaByTipo,
   DOCUMENTOS_OBRIGATORIOS,
 } from '@/lib/inscricao-validation';
 import { Form } from '@/components/ui/form';
@@ -62,7 +63,11 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
   } = useInscricaoFluxo();
 
   const form = useForm<InscricaoCompletaForm>({
-    resolver: zodResolver(inscricaoCompletaSchema),
+    resolver: zodResolver(
+      tipoCredenciamento 
+        ? getSchemaByTipo(tipoCredenciamento) 
+        : inscricaoCompletaSchema
+    ),
     defaultValues: {
       sexo: 'M',
       optante_simples: false,

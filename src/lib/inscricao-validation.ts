@@ -170,8 +170,9 @@ export const documentosSchema = z.object({
   ),
 });
 
-export const inscricaoCompletaSchema = dadosPessoaisSchema
-  .merge(pessoaJuridicaSchema)
+// Schema unificado flexível (torna PF e PJ opcionais para compatibilidade)
+export const inscricaoCompletaSchema = dadosPessoaisSchema.partial()
+  .merge(pessoaJuridicaSchema.partial())
   .merge(enderecoCorrespondenciaSchema)
   .merge(consultorioHorariosSchema)
   .merge(documentosSchema);
@@ -203,10 +204,10 @@ export const inscricaoCompletaPJSchema = tipoCredenciamentoSchema
   .merge(enderecoCorrespondenciaSchema.partial()) // Endereço pode ser do consultório
   .merge(documentosSchema);
 
-// Tipo unificado
-export type InscricaoCompletaForm = 
-  | z.infer<typeof inscricaoCompletaPFSchema>
-  | z.infer<typeof inscricaoCompletaPJSchema>;
+// Tipo unificado permissivo (todos os campos opcionais, exceto enderecoCorrespondencia e documentos)
+export type InscricaoCompletaForm = z.infer<typeof inscricaoCompletaSchema> & {
+  tipo_credenciamento?: 'PF' | 'PJ';
+};
 
 // Helper para validar baseado no tipo
 export function getSchemaByTipo(tipo: 'PF' | 'PJ') {

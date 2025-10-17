@@ -64,7 +64,7 @@ export async function seedInscricoes(
         .from('profiles')
         .select('nome, email')
         .eq('id', userRole.user_id)
-        .maybeSingle();
+        .single();
 
       // Gerar tipo de credenciamento aleatório
       const tipoCredenciamento = Math.random() > 0.5 ? 'PF' : 'PJ';
@@ -112,7 +112,7 @@ export async function seedInscricoes(
           is_rascunho: false
         })
         .select()
-        .maybeSingle();
+        .single();
 
       if (error && !error.message.includes('duplicate')) {
         errors.push(`Erro ao criar inscrição: ${error.message}`);
@@ -171,7 +171,7 @@ export async function seedInscricoes(
     }
 
     return { success: errors.length === 0, phase: 'inscricoes', created, errors, duration: 0 };
-  } catch (error: any) {
-    throw new Error(`Falha na fase de inscrições: ${error?.message || 'Erro desconhecido'}`);
+  } catch (error) {
+    throw new Error(`Falha na fase de inscrições: ${(error as Error).message}`);
   }
 }
