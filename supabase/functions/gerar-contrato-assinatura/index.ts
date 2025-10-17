@@ -9,6 +9,11 @@
  * - PDFs 60% menores
  * - Texto selecionável
  * 
+ * SEGURANÇA:
+ * - Sanitização completa de HTML (XSS protection)
+ * - Validação de encoding UTF-8
+ * - Limite de 250 KB para HTML
+ * 
  * Dependências:
  * - SUPABASE_URL (obrigatório)
  * - SUPABASE_SERVICE_ROLE_KEY (obrigatório)
@@ -592,6 +597,7 @@ serve(async (req) => {
 
     // Garantir que contratoHTML é válido JSON (sem caracteres problemáticos)
     const contratoHTMLFinal = contratoHTML.replace(/\u0000/g, ''); // Remove nulls residuais
+    const htmlSizeBytes = encoder.encode(contratoHTMLFinal).length;
 
     const { data: contrato, error: contratoError } = await supabase
       .from('contratos')
@@ -607,7 +613,7 @@ serve(async (req) => {
           pdf_gerado_em: new Date().toISOString(),
           metodo_geracao: 'jspdf_direto',
           tamanho_bytes: contratoPDFBytes.length,
-          html_size_bytes: encoder.encode(contratoHTMLFinal).length // Metadata útil
+          html_size_bytes: htmlSizeBytes // Metadata útil
         },
         gerado_em: new Date().toISOString(),
         analise_id: null,
