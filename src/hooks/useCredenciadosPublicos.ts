@@ -30,7 +30,7 @@ export function useCredenciadosPublicos(filtros: FiltrosPublicos = {}) {
           celular,
           email,
           categoria_id,
-          credenciado_crms!inner(crm, uf_crm, especialidade, especialidade_id)
+          credenciado_crms(crm, uf_crm, especialidade, especialidade_id)
         `)
         .eq('status', 'Ativo')
         .not('latitude', 'is', null)
@@ -46,7 +46,7 @@ export function useCredenciadosPublicos(filtros: FiltrosPublicos = {}) {
       }
 
       if (filtros.busca) {
-        query = query.or(`nome.ilike.%${filtros.busca}%,credenciado_crms.especialidade.ilike.%${filtros.busca}%`);
+        query = query.or(`nome.ilike.%${filtros.busca}%,cidade.ilike.%${filtros.busca}%,email.ilike.%${filtros.busca}%`);
       }
       
       const { data, error } = await query;
