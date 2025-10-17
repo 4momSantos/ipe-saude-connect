@@ -1,279 +1,213 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface AnalisarInscricaoRequest {
-  inscricao_id: string;
-  analista_id: string;
-  decisao: 'aprovado' | 'rejeitado';
-  comentarios?: string;
-}
-
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const startTime = new Date().toISOString();
-  console.log(`[ANALISAR_INSCRICAO] ${startTime} - Iniciando processamento`);
-
   try {
-    // Setup Supabase client
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
-    );
+    const { inscricao_id, analista_id, decisao, comentarios } = await req.json();
 
-    // Parse and validate request
-    const { 
-      inscricao_id, 
-      analista_id, 
-      decisao, 
-      comentarios 
-    }: AnalisarInscricaoRequest = await req.json();
-
-    if (!inscricao_id || !analista_id || !decisao) {
-      throw new Error("Campos obrigatórios: inscricao_id, analista_id, decisao");
+    if (!inscricao_id || !decisao) {
+      throw new Error('inscricao_id e decisao são obrigatórios');
     }
 
     if (!['aprovado', 'rejeitado'].includes(decisao)) {
-      throw new Error("Decisão deve ser 'aprovado' ou 'rejeitado'");
+      throw new Error('decisao deve ser "aprovado" ou "rejeitado"');
     }
 
-    console.log(`[ANALISAR_INSCRICAO] Processando decisão: ${decisao} para inscrição ${inscricao_id}`);
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // 1. Buscar inscrição e análise
+    console.log('[ANALISAR_INSCRICAO] Processando decisão:', { inscricao_id, decisao, analista_id });
+
+    // Buscar dados da inscrição
     const { data: inscricao, error: inscricaoError } = await supabase
-      .from("inscricoes_edital")
-      .select("*, editais(titulo), profiles:candidato_id(nome, email)")
-      .eq("id", inscricao_id)
+      .from('inscricoes_edital')
+      .select(`
+        id,
+        edital_id,
+        candidato_id,
+        status,
+        editais (
+          id,
+          titulo,
+          numero_edital
+        )
+      `)
+      .eq('id', inscricao_id)
       .single();
 
-    if (inscricaoError || !inscricao) {
-      console.error(`[ANALISAR_INSCRICAO] Erro ao buscar inscrição:`, inscricaoError);
-      throw new Error(`Inscrição não encontrada: ${inscricaoError?.message}`);
-    }
+    if (inscricaoError) throw inscricaoError;
+    if (!inscricao) throw new Error('Inscrição não encontrada');
 
-    console.log(`[ANALISAR_INSCRICAO] Inscrição encontrada - Edital: ${inscricao.editais?.titulo}`);
-
-    // 2. Buscar ou criar análise
-    let { data: analise, error: analiseError } = await supabase
-      .from("analises")
-      .select("*")
-      .eq("inscricao_id", inscricao_id)
+    // Buscar análise existente
+    const { data: analise } = await supabase
+      .from('analises')
+      .select('id')
+      .eq('inscricao_id', inscricao_id)
       .single();
 
-    if (analiseError && analiseError.code === 'PGRST116') {
-      // Análise não existe, criar uma
-      console.log(`[ANALISAR_INSCRICAO] Criando nova análise`);
-      const { data: novaAnalise, error: criarError } = await supabase
-        .from("analises")
-        .insert({
-          inscricao_id,
-          analista_id,
-          status: decisao,
-          parecer: comentarios,
-          analisado_em: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (criarError) {
-        console.error(`[ANALISAR_INSCRICAO] Erro ao criar análise:`, criarError);
-        throw new Error(`Erro ao criar análise: ${criarError.message}`);
-      }
-      analise = novaAnalise;
-    } else if (analiseError) {
-      console.error(`[ANALISAR_INSCRICAO] Erro ao buscar análise:`, analiseError);
-      throw new Error(`Erro ao buscar análise: ${analiseError.message}`);
-    } else {
-      // Atualizar análise existente
-      console.log(`[ANALISAR_INSCRICAO] Atualizando análise existente`);
-      const { error: updateError } = await supabase
-        .from("analises")
-        .update({
-          analista_id,
-          status: decisao,
-          parecer: comentarios,
-          analisado_em: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", analise.id);
-
-      if (updateError) {
-        console.error(`[ANALISAR_INSCRICAO] Erro ao atualizar análise:`, updateError);
-        throw new Error(`Erro ao atualizar análise: ${updateError.message}`);
-      }
-    }
-
-    // 3. Atualizar status da inscrição
-    const { error: updateInscricaoError } = await supabase
-      .from("inscricoes_edital")
-      .update({
-        status: decisao,
-        analisado_por: analista_id,
-        analisado_em: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", inscricao_id);
-
-    if (updateInscricaoError) {
-      console.error(`[ANALISAR_INSCRICAO] Erro ao atualizar inscrição:`, updateInscricaoError);
-      throw new Error(`Erro ao atualizar inscrição: ${updateInscricaoError.message}`);
-    }
-
-    console.log(`[ANALISAR_INSCRICAO] Análise registrada com sucesso`);
-
-    // 4. Processar ações baseadas na decisão
     if (decisao === 'aprovado') {
-      console.log(`[ANALISAR_INSCRICAO] Inscrição aprovada - gerando contrato`);
+      // ✅ APROVAR
       
-      // Chamar função para gerar contrato com assinatura
-      try {
-        const { data: contratoData, error: contratoError } = await supabase.functions.invoke(
-          "gerar-contrato-assinatura",
-          {
-            body: {
-              inscricao_id,
-            }
-          }
-        );
+      // 1. Atualizar análise
+      const { error: analiseError } = await supabase
+        .from('analises')
+        .update({
+          status: 'aprovado',
+          parecer: comentarios,
+          analisado_em: new Date().toISOString(),
+          analista_id
+        })
+        .eq('inscricao_id', inscricao_id);
 
-        if (contratoError) {
-          console.error(`[ANALISAR_INSCRICAO] Erro ao gerar contrato:`, contratoError);
-          // Não falha a operação principal
-        } else {
-          console.log(`[ANALISAR_INSCRICAO] Contrato gerado com sucesso:`, contratoData);
-        }
-      } catch (contratoError) {
-        console.error(`[ANALISAR_INSCRICAO] Erro ao invocar gerar-contrato:`, contratoError);
-        // Não falha a operação principal
+      if (analiseError) throw analiseError;
+
+      // 2. Atualizar inscrição
+      const { error: updateError } = await supabase
+        .from('inscricoes_edital')
+        .update({
+          status: 'aprovado',
+          analisado_por: analista_id,
+          analisado_em: new Date().toISOString()
+        })
+        .eq('id', inscricao_id);
+
+      if (updateError) throw updateError;
+
+      console.log('[ANALISAR_INSCRICAO] Inscrição aprovada');
+
+      // 3. Gerar contrato via edge function
+      console.log('[ANALISAR_INSCRICAO] Invocando geração de contrato...');
+      const { error: contratoError } = await supabase.functions.invoke('gerar-contrato-assinatura', {
+        body: { inscricao_id }
+      });
+
+      if (contratoError) {
+        console.error('[ANALISAR_INSCRICAO] Erro ao gerar contrato:', contratoError);
+      } else {
+        console.log('[ANALISAR_INSCRICAO] Contrato gerado com sucesso');
       }
 
-      // Migrar documentos da inscrição para o credenciado
-      console.log('[ANALISAR_INSCRICAO] Migrando documentos para credenciado');
-      
-      try {
-        // Buscar credenciado criado
-        const { data: credenciado } = await supabase
-          .from('credenciados')
-          .select('id')
-          .eq('inscricao_id', inscricao_id)
-          .single();
-        
-        if (credenciado) {
-          const { data: migracao, error: migracaoError } = await supabase.functions.invoke(
-            'migrar-documentos-inscricao',
-            {
-              body: {
-                inscricao_id,
-                credenciado_id: credenciado.id
-              }
-            }
-          );
-          
-          if (migracaoError) {
-            console.error('[ANALISAR_INSCRICAO] Erro ao migrar documentos:', migracaoError);
-          } else {
-            console.log('[ANALISAR_INSCRICAO] Documentos migrados:', migracao);
-          }
-        } else {
-          console.warn('[ANALISAR_INSCRICAO] Credenciado não encontrado para inscrição:', inscricao_id);
-        }
-      } catch (err) {
-        console.error('[ANALISAR_INSCRICAO] Erro ao invocar migração de documentos:', err);
-        // Não falha a operação principal
-      }
-
-      // Notificar candidato sobre aprovação
-      await supabase.from("app_notifications").insert({
+      // 4. Notificar candidato sobre aprovação
+      await supabase.from('app_notifications').insert({
         user_id: inscricao.candidato_id,
         type: 'success',
-        title: 'Inscrição Aprovada',
-        message: `Parabéns! Sua inscrição para o edital "${inscricao.editais?.titulo || 'N/A'}" foi aprovada. O contrato será gerado em breve.`,
+        title: 'Inscrição Aprovada! 🎉',
+        message: `Sua inscrição no edital "${(inscricao.editais as any).titulo}" foi aprovada! Em breve você receberá o contrato para assinatura.`,
         related_type: 'inscricao',
-        related_id: inscricao_id,
+        related_id: inscricao_id
       });
+
+      // 5. Notificar analista sobre aprovação
+      if (analista_id) {
+        await supabase.from('app_notifications').insert({
+          user_id: analista_id,
+          type: 'info',
+          title: 'Análise Concluída',
+          message: `Inscrição aprovada no edital "${(inscricao.editais as any).titulo}". Contrato em geração.`,
+          related_type: 'inscricao',
+          related_id: inscricao_id
+        });
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          inscricao_id,
+          decisao: 'aprovado',
+          contrato_gerado: !contratoError
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      );
 
     } else {
-      // decisao === 'rejeitado'
-      console.log(`[ANALISAR_INSCRICAO] Inscrição rejeitada - notificando candidato`);
+      // ❌ REJEITAR
       
-      // Notificar candidato sobre reprovação
-      await supabase.from("app_notifications").insert({
+      // 1. Atualizar análise
+      const { error: analiseError } = await supabase
+        .from('analises')
+        .update({
+          status: 'reprovado',
+          motivo_reprovacao: comentarios,
+          analisado_em: new Date().toISOString(),
+          analista_id
+        })
+        .eq('inscricao_id', inscricao_id);
+
+      if (analiseError) throw analiseError;
+
+      // 2. Atualizar inscrição
+      const { error: updateError } = await supabase
+        .from('inscricoes_edital')
+        .update({
+          status: 'inabilitado',
+          motivo_rejeicao: comentarios,
+          analisado_por: analista_id,
+          analisado_em: new Date().toISOString()
+        })
+        .eq('id', inscricao_id);
+
+      if (updateError) throw updateError;
+
+      console.log('[ANALISAR_INSCRICAO] Inscrição rejeitada');
+
+      // 3. Notificar candidato sobre rejeição
+      await supabase.from('app_notifications').insert({
         user_id: inscricao.candidato_id,
-        type: 'warning',
+        type: 'error',
         title: 'Inscrição Não Aprovada',
-        message: `Sua inscrição para o edital "${inscricao.editais?.titulo || 'N/A'}" não foi aprovada. ${comentarios ? 'Motivo: ' + comentarios : 'Verifique os requisitos e corrija os documentos, se necessário.'}`,
+        message: `Sua inscrição no edital "${(inscricao.editais as any).titulo}" não foi aprovada. Motivo: ${comentarios || 'Não especificado'}`,
         related_type: 'inscricao',
-        related_id: inscricao_id,
+        related_id: inscricao_id
       });
-    }
 
-    // 5. Log de auditoria
-    try {
-      await supabase.rpc("log_audit_event", {
-        p_action: `inscricao_${decisao}`,
-        p_resource_type: "analise",
-        p_resource_id: analise?.id,
-        p_metadata: {
-          inscricao_id,
-          analista_id,
-          decisao,
-          edital_id: inscricao.edital_id,
-          timestamp: new Date().toISOString(),
-        }
-      });
-    } catch (auditError) {
-      console.error(`[ANALISAR_INSCRICAO] Erro ao registrar log de auditoria:`, auditError);
-    }
-
-    const endTime = new Date().toISOString();
-    console.log(`[ANALISAR_INSCRICAO] ${endTime} - Processamento concluído com sucesso`);
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: decisao === 'aprovado' 
-          ? 'Inscrição aprovada com sucesso. Contrato será gerado.' 
-          : 'Inscrição rejeitada. Candidato foi notificado.',
-        data: {
-          inscricao_id,
-          analise_id: analise?.id,
-          decisao,
-          timestamp: endTime,
-        }
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      // 4. Notificar analista sobre rejeição
+      if (analista_id) {
+        await supabase.from('app_notifications').insert({
+          user_id: analista_id,
+          type: 'info',
+          title: 'Análise Concluída',
+          message: `Inscrição rejeitada no edital "${(inscricao.editais as any).titulo}".`,
+          related_type: 'inscricao',
+          related_id: inscricao_id
+        });
       }
-    );
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          inscricao_id,
+          decisao: 'rejeitado'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200 
+        }
+      );
+    }
 
   } catch (error: any) {
-    const errorTime = new Date().toISOString();
-    console.error(`[ANALISAR_INSCRICAO] ${errorTime} - Erro:`, error);
-    
+    console.error('[ANALISAR_INSCRICAO] Erro:', error);
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message,
-        timestamp: errorTime,
+      JSON.stringify({ 
+        success: false, 
+        error: error.message 
       }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400 
       }
     );
   }

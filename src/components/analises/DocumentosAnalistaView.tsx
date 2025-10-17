@@ -96,8 +96,8 @@ export function DocumentosAnalistaView({ inscricaoId }: DocumentosAnalistaViewPr
 
   const handleAprovarInscricao = async () => {
     try {
+      // ✅ Edge function já gera contrato automaticamente
       await aprovar({ inscricaoId, observacoes });
-      await gerarContrato({ inscricaoId });
       setAprovarDialogOpen(false);
       setObservacoes('');
     } catch (error) {
