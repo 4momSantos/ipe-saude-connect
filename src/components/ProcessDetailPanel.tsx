@@ -45,6 +45,34 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
   const { aprovar, rejeitar, isLoading } = useAnalisarInscricao();
   const { unreadCount } = useUnreadMessages(processo.id);
 
+  // Marcar mensagens como lidas ao abrir a aba de mensagens
+  useEffect(() => {
+    if (activeTab === 'mensagens') {
+      markMessagesAsRead();
+    }
+  }, [activeTab]);
+
+  const markMessagesAsRead = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Marcar todas as mensagens não lidas como lidas
+      const { error } = await supabase
+        .from('workflow_messages')
+        .update({ is_read: true, read_at: new Date().toISOString() })
+        .eq('inscricao_id', processo.id)
+        .eq('is_read', false)
+        .neq('sender_id', user.id);
+
+      if (error) {
+        console.error('[MARK_READ] Erro ao marcar mensagens como lidas:', error);
+      }
+    } catch (error) {
+      console.error('[MARK_READ] Erro:', error);
+    }
+  };
+
   useEffect(() => {
     loadWorkflowData();
 
