@@ -57,8 +57,8 @@ export function CandidatoInfoCard({
                              cpfCnpj || 'Não informado';
 
   return (
-    <Card className="mb-4 border-primary/20 bg-primary/5 sticky top-0 z-10">
-      <CardContent className="p-4">
+    <Card className="mb-4 border-primary/20 bg-card sticky top-0 z-10 shadow-sm">
+      <CardContent className="p-4 bg-card">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 space-y-2">
             <div className="flex items-center gap-3">
