@@ -21,7 +21,10 @@ import {
   validateContratoData, 
   consolidarEndereco, 
   consolidarTelefone,
-  extrairEspecialidades 
+  extrairEspecialidades,
+  determinarTipoCredenciamento,
+  formatarCPF,
+  formatarCNPJ
 } from "./validators.ts";
 import { gerarContratoPDFDireto } from "./pdf-generator.ts";
 
