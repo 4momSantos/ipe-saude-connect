@@ -219,23 +219,56 @@ export default function Analises() {
   const handleDeleteSelected = async () => {
     if (selectedIds.length === 0) return;
     
+    // Debug: Verificar permissões antes de tentar excluir
+    console.log('[DELETE_DEBUG] IDs selecionados:', selectedIds);
+    console.log('[DELETE_DEBUG] User roles:', roles);
+    
+    // Verificar se o usuário tem permissão (admin ou gestor)
+    const hasPermission = roles.includes('admin') || roles.includes('gestor');
+    
+    if (!hasPermission) {
+      console.error('[DELETE_DEBUG] Usuário sem permissão para excluir. Roles:', roles);
+      toast.error('Você não tem permissão para excluir inscrições. Apenas gestores e administradores podem fazer isso.');
+      return;
+    }
+    
     if (!confirm(`Deseja excluir ${selectedIds.length} inscrição(ões) selecionada(s)?`)) return;
     
     try {
       setIsDeleting(true);
-      const { error } = await supabase
+      
+      console.log('[DELETE_DEBUG] Tentando excluir inscrições...');
+      const { data, error } = await supabase
         .from('inscricoes_edital')
         .delete()
-        .in('id', selectedIds);
+        .in('id', selectedIds)
+        .select();
       
-      if (error) throw error;
+      if (error) {
+        console.error('[DELETE_DEBUG] Erro do Supabase:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        
+        // Mensagens de erro mais específicas
+        if (error.code === '42501') {
+          throw new Error('Permissão negada. Verifique suas roles no sistema.');
+        } else if (error.message.includes('violates foreign key constraint')) {
+          throw new Error('Não é possível excluir inscrições que possuem dados relacionados.');
+        } else {
+          throw error;
+        }
+      }
       
+      console.log('[DELETE_DEBUG] Exclusão bem-sucedida:', data);
       toast.success(`${selectedIds.length} inscrição(ões) excluída(s) com sucesso!`);
       setSelectedIds([]);
       loadInscricoes();
-    } catch (error) {
-      console.error('Erro ao excluir inscrições:', error);
-      toast.error('Erro ao excluir inscrições selecionadas');
+    } catch (error: any) {
+      console.error('[DELETE_DEBUG] Erro ao excluir inscrições:', error);
+      toast.error(error.message || 'Erro ao excluir inscrições selecionadas');
     } finally {
       setIsDeleting(false);
     }
