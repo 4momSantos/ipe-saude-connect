@@ -659,77 +659,7 @@ serve(async (req) => {
           throw new Error('Dados do contrato incompletos');
         }
 
-        // Extrair HTML do contrato (com fallback para metadata)
-        let contratoHTML = contrato.dados_contrato?.html;
-        
-        // Fallback: tentar buscar do metadata do signature_request
-        if (!contratoHTML && signatureRequest.metadata) {
-          contratoHTML = (signatureRequest.metadata as any).document_html;
-        }
-        
-        // ⏱️ Passo 3: Se HTML veio do fallback, aguardar e tentar buscar novamente
-        if (!contrato.dados_contrato?.html && contratoHTML) {
-          console.log(JSON.stringify({
-            timestamp: new Date().toISOString(),
-            level: 'info',
-            action: 'fallback_html_used_waiting_db',
-            message: 'HTML veio do fallback, aguardando 1s para tentar buscar do banco novamente'
-          }));
-          
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          // Tentar buscar contrato atualizado do banco
-          const { data: contratoAtualizado } = await supabase
-            .from('contratos')
-            .select('dados_contrato')
-            .eq('id', signatureRequest.contrato_id)
-            .single();
-            
-          if (contratoAtualizado?.dados_contrato?.html) {
-            contratoHTML = contratoAtualizado.dados_contrato.html;
-            console.log(JSON.stringify({
-              timestamp: new Date().toISOString(),
-              level: 'info',
-              action: 'html_found_after_retry',
-              message: 'HTML encontrado no banco após retry'
-            }));
-          }
-        }
-        
-        // Se ainda não tem HTML, marcar como failed e logar
-        if (!contratoHTML) {
-          const errorMsg = `HTML do contrato não encontrado. Contrato ID: ${contrato.id}, Número: ${contrato.numero_contrato}`;
-          
-          console.error(JSON.stringify({
-            timestamp: new Date().toISOString(),
-            level: 'error',
-            action: 'missing_contract_html',
-            contrato_id: contrato.id,
-            numero_contrato: contrato.numero_contrato,
-            error: errorMsg
-          }));
-
-          await supabase
-            .from('signature_requests')
-            .update({
-              status: 'failed',
-              metadata: {
-                ...(signatureRequest.metadata || {}),
-                error: errorMsg,
-                failed_at: new Date().toISOString(),
-                missing_html: true
-              }
-            })
-            .eq('id', signatureRequestId);
-
-          throw new Error(errorMsg);
-        }
-        
-        if (!contratoHTML) {
-          throw new Error('HTML do contrato não encontrado em dados_contrato.html nem em metadata.document_html');
-        }
-
-        // Obter dados do signatário
+        // Obter dados do signatário PRIMEIRO (antes de processar PDF)
         const signers = signatureRequest.signers as any[];
         if (!signers || signers.length === 0) {
           throw new Error('Nenhum signatário definido');
@@ -748,8 +678,88 @@ serve(async (req) => {
           numeroContrato: contrato.numero_contrato
         }));
 
-        // GERAR PDF
-        const pdfBytes = await htmlToPDF(contratoHTML, contrato.numero_contrato);
+        // ✅ SOLUÇÃO 2: PRIORIZAR PDF BASE64 DO METADATA
+        let pdfBytes: Uint8Array;
+        
+        // 1. Verificar se já existe PDF em base64 no metadata
+        const pdfBase64 = signatureRequest.metadata?.pdf_bytes_base64 || 
+                         contrato.dados_contrato?.pdf_bytes_base64;
+        
+        if (pdfBase64) {
+          console.log(JSON.stringify({
+            timestamp: new Date().toISOString(),
+            level: 'info',
+            action: 'using_existing_pdf_base64',
+            contrato_id: contrato.id,
+            source: signatureRequest.metadata?.pdf_bytes_base64 ? 'signature_request' : 'contrato'
+          }));
+          
+          // Converter base64 para Uint8Array
+          const binaryString = atob(pdfBase64);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          pdfBytes = bytes;
+          
+        } else {
+          // 2. Fallback: Gerar PDF a partir do HTML (se disponível)
+          console.log(JSON.stringify({
+            timestamp: new Date().toISOString(),
+            level: 'info',
+            action: 'pdf_base64_not_found_trying_html',
+            contrato_id: contrato.id
+          }));
+          
+          // Extrair HTML do contrato (com fallback para metadata)
+          let contratoHTML = contrato.dados_contrato?.html;
+          
+          // Fallback: tentar buscar do metadata do signature_request
+          if (!contratoHTML && signatureRequest.metadata) {
+            contratoHTML = (signatureRequest.metadata as any).document_html;
+          }
+          
+          // Se ainda não tem HTML, marcar como failed
+          if (!contratoHTML) {
+            const errorMsg = `PDF e HTML do contrato não encontrados. Contrato ID: ${contrato.id}, Número: ${contrato.numero_contrato}`;
+            
+            console.error(JSON.stringify({
+              timestamp: new Date().toISOString(),
+              level: 'error',
+              action: 'missing_contract_data',
+              contrato_id: contrato.id,
+              numero_contrato: contrato.numero_contrato,
+              error: errorMsg,
+              has_pdf_base64: false,
+              has_html: false
+            }));
+
+            await supabase
+              .from('signature_requests')
+              .update({
+                status: 'failed',
+                metadata: {
+                  ...(signatureRequest.metadata || {}),
+                  error: errorMsg,
+                  failed_at: new Date().toISOString(),
+                  missing_pdf_and_html: true
+                }
+              })
+              .eq('id', signatureRequestId);
+
+            throw new Error(errorMsg);
+          }
+          
+          // Gerar PDF a partir do HTML
+          console.log(JSON.stringify({
+            timestamp: new Date().toISOString(),
+            level: 'info',
+            action: 'generating_pdf_from_html',
+            contrato_id: contrato.id
+          }));
+          
+          pdfBytes = await htmlToPDF(contratoHTML, contrato.numero_contrato);
+        }
 
         // ENVIAR PARA ASSINAFY
         const { documentId, assignmentId } = await sendDocumentToAssinafy(
