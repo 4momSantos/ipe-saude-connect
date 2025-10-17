@@ -25,34 +25,9 @@ import { ptBR } from 'date-fns/locale';
 import { SuccessDialog } from './SuccessDialog';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-
-const STEPS = [
-  {
-    id: 1,
-    title: 'Dados Pessoais',
-    description: 'Informações do médico',
-  },
-  {
-    id: 2,
-    title: 'Pessoa Jurídica',
-    description: 'Dados da empresa',
-  },
-  {
-    id: 3,
-    title: 'Consultório e Horários',
-    description: 'Especialidades e atendimento',
-  },
-  {
-    id: 4,
-    title: 'Documentos',
-    description: 'Upload de arquivos',
-  },
-  {
-    id: 5,
-    title: 'Revisão e Envio',
-    description: 'Conferir e finalizar',
-  },
-];
+import { useInscricaoFluxo, TipoCredenciamento } from '@/hooks/useInscricaoFluxo';
+import { SelecionarTipoCredenciamento } from './SelecionarTipoCredenciamento';
+import { GerenciarConsultoriosStep } from './steps/GerenciarConsultoriosStep';
 
 interface InscricaoWizardProps {
   editalId?: string; // FASE 4: Obrigatório para buscar config de uploads
@@ -63,7 +38,6 @@ interface InscricaoWizardProps {
 
 export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInscricaoId }: InscricaoWizardProps) {
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasLoadedRascunho, setHasLoadedRascunho] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
@@ -73,6 +47,19 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
     emailCandidato: string;
   } | null>(null);
   const wizardContainerRef = useRef<HTMLDivElement>(null);
+
+  // Hook de fluxo condicional PF/PJ
+  const {
+    tipoCredenciamento,
+    setTipoCredenciamento,
+    etapaAtual,
+    etapas,
+    progresso,
+    proximaEtapa,
+    etapaAnterior,
+    isEtapaInicial,
+    isEtapaFinal,
+  } = useInscricaoFluxo();
 
   const form = useForm<InscricaoCompletaForm>({
     resolver: zodResolver(inscricaoCompletaSchema),
@@ -106,6 +93,17 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
     }
   });
 
+  // Salvar tipo no rascunho
+  useEffect(() => {
+    if (tipoCredenciamento && inscricaoId) {
+      supabase
+        .from('inscricoes_edital')
+        .update({ tipo_credenciamento: tipoCredenciamento })
+        .eq('id', inscricaoId)
+        .then(() => console.log('[WIZARD] Tipo salvo:', tipoCredenciamento));
+    }
+  }, [tipoCredenciamento, inscricaoId]);
+
   // Carregar rascunho ao montar
   useEffect(() => {
     const loadExistingRascunho = async () => {
@@ -119,6 +117,19 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
         Object.keys(rascunhoData).forEach((key) => {
           form.setValue(key as any, rascunhoData[key]);
         });
+
+        // Restaurar tipo se existir
+        if (inscricaoId) {
+          const { data: inscricao } = await supabase
+            .from('inscricoes_edital')
+            .select('tipo_credenciamento')
+            .eq('id', inscricaoId)
+            .single();
+          
+          if (inscricao?.tipo_credenciamento) {
+            setTipoCredenciamento(inscricao.tipo_credenciamento as TipoCredenciamento);
+          }
+        }
         
         setHasLoadedRascunho(true);
         toast.success('📝 Continuando de onde você parou');
@@ -128,7 +139,7 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
     };
 
     loadExistingRascunho();
-  }, [loadRascunho, form, hasLoadedRascunho, editalId]);
+  }, [loadRascunho, form, hasLoadedRascunho, editalId, inscricaoId]);
 
   // Scroll automático sempre que a etapa mudar
   useEffect(() => {
@@ -147,21 +158,34 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
     }, 50);
 
     // Anunciar mudança para leitores de tela
-    const announcement = `Etapa ${currentStep} de ${STEPS.length}: ${STEPS[currentStep - 1].title}`;
-    const ariaLive = document.getElementById('wizard-aria-live');
-    if (ariaLive) {
-      ariaLive.textContent = announcement;
+    const currentStepInfo = etapas[etapaAtual];
+    if (currentStepInfo) {
+      const announcement = `Etapa ${etapaAtual + 1} de ${etapas.length}: ${currentStepInfo.title}`;
+      const ariaLive = document.getElementById('wizard-aria-live');
+      if (ariaLive) {
+        ariaLive.textContent = announcement;
+      }
     }
-  }, [currentStep]);
-
-  const progress = (currentStep / STEPS.length) * 100;
+  }, [etapaAtual, etapas]);
 
   const handleNext = async () => {
+    const currentStepKey = etapas[etapaAtual]?.key;
+
+    // Etapa 0: Seleção de tipo (não precisa validação)
+    if (currentStepKey === 'tipo') {
+      if (!tipoCredenciamento) {
+        toast.error('Selecione o tipo de credenciamento');
+        return;
+      }
+      proximaEtapa();
+      return;
+    }
+
     let fieldsToValidate: (keyof InscricaoCompletaForm)[] = [];
 
-    // Validar apenas os campos da etapa atual
-    switch (currentStep) {
-      case 1:
+    // Validar baseado na etapa atual
+    switch (currentStepKey) {
+      case 'dados_pessoais':
         fieldsToValidate = [
           'cpf',
           'data_nascimento',
@@ -173,7 +197,7 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
           'uf_crm',
         ];
         break;
-      case 2:
+      case 'pessoa_juridica':
         fieldsToValidate = [
           'cnpj',
           'denominacao_social',
@@ -190,7 +214,7 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
           'banco_conta',
         ];
         break;
-      case 3:
+      case 'consultorio':
         fieldsToValidate = [
           'endereco_correspondencia',
           'telefone_correspondencia',
@@ -203,7 +227,22 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
           'horarios',
         ];
         break;
-      case 4:
+      case 'consultorios':
+        // PJ: Verificar se tem pelo menos 1 consultório
+        if (inscricaoId) {
+          const { count } = await supabase
+            .from('inscricao_consultorios')
+            .select('*', { count: 'exact', head: true })
+            .eq('inscricao_id', inscricaoId)
+            .eq('ativo', true);
+          
+          if (!count || count === 0) {
+            toast.error('Cadastre pelo menos 1 consultório para continuar');
+            return;
+          }
+        }
+        break;
+      case 'documentos':
         // FASE 4: Validar documentos dinamicamente baseado na config do edital
         if (editalId) {
           const { supabase: supabaseClient } = await import('@/integrations/supabase/client');
@@ -247,21 +286,23 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
     }
 
     // Validar os campos da etapa atual
-    const isValid = await form.trigger(fieldsToValidate as any);
+    if (fieldsToValidate.length > 0) {
+      const isValid = await form.trigger(fieldsToValidate as any);
 
-    if (!isValid) {
-      toast.error('Por favor, corrija os erros antes de continuar');
-      return;
+      if (!isValid) {
+        toast.error('Por favor, corrija os erros antes de continuar');
+        return;
+      }
     }
 
     // Salvar rascunho ao avançar etapa
     await saveRascunho();
 
-    setCurrentStep((prev) => Math.min(prev + 1, STEPS.length));
+    proximaEtapa();
   };
 
   const handlePrevious = () => {
-    setCurrentStep((prev) => Math.max(prev - 1, 1));
+    etapaAnterior();
   };
 
   const handleAcompanharInscricao = () => {
@@ -377,17 +418,46 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
   };
 
   const renderStep = () => {
-    switch (currentStep) {
-      case 1:
+    const currentStepKey = etapas[etapaAtual]?.key;
+    
+    switch (currentStepKey) {
+      case 'tipo':
+        return (
+          <SelecionarTipoCredenciamento 
+            onSelect={(tipo) => {
+              setTipoCredenciamento(tipo);
+              proximaEtapa();
+            }}
+            selectedTipo={tipoCredenciamento}
+          />
+        );
+      
+      case 'dados_pessoais':
         return <DadosPessoaisStep form={form} />;
-      case 2:
+      
+      case 'pessoa_juridica':
         return <PessoaJuridicaStep form={form} />;
-      case 3:
+      
+      case 'consultorio':
+        // PF: Consultório único
         return <ConsultorioHorariosStep form={form} editalId={editalId} />;
-      case 4:
-        return <DocumentosStep form={form} inscricaoId={inscricaoId} editalId={editalId} />;
-      case 5:
+      
+      case 'consultorios':
+        // PJ: Múltiplos consultórios
+        return <GerenciarConsultoriosStep inscricaoId={inscricaoId} />;
+      
+      case 'documentos':
+        return (
+          <DocumentosStep 
+            form={form} 
+            inscricaoId={inscricaoId} 
+            editalId={editalId}
+          />
+        );
+      
+      case 'revisao':
         return <RevisaoStep form={form} />;
+      
       default:
         return null;
     }
@@ -446,41 +516,41 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
         <CardContent className="pt-6">
           <div className="space-y-4">
             <div className="flex items-center justify-between text-sm">
-              <span className="font-medium">Etapa {currentStep} de {STEPS.length}</span>
-              <span className="text-muted-foreground">{Math.round(progress)}% completo</span>
+              <span className="font-medium">Etapa {etapaAtual + 1} de {etapas.length}</span>
+              <span className="text-muted-foreground">{Math.round(progresso)}% completo</span>
             </div>
-            <Progress value={progress} className="h-2" />
+            <Progress value={progresso} className="h-2" />
           </div>
         </CardContent>
       </Card>
 
       {/* Steps Indicator */}
-      <div className="grid grid-cols-5 gap-2">
-        {STEPS.map((step) => (
+      <div className={`grid gap-2 ${etapas.length === 6 ? 'grid-cols-6' : 'grid-cols-5'}`}>
+        {etapas.map((step) => (
           <div
             key={step.id}
-            data-step={step.id === currentStep ? 'current' : step.id < currentStep ? 'completed' : 'pending'}
+            data-step={step.id === etapaAtual ? 'current' : step.id < etapaAtual ? 'completed' : 'pending'}
             className={`relative flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all duration-300 ${
-              step.id === currentStep
+              step.id === etapaAtual
                 ? 'border-primary bg-primary/10 animate-pulse'
-                : step.id < currentStep
+                : step.id < etapaAtual
                 ? 'border-[hsl(var(--green-approved))] bg-[hsl(var(--green-approved)_/_0.1)]'
                 : 'border-border'
             }`}
           >
             <div
               className={`flex h-8 w-8 items-center justify-center rounded-full font-semibold transition-all ${
-                step.id === currentStep
+                step.id === etapaAtual
                   ? 'bg-primary text-primary-foreground'
-                  : step.id < currentStep
+                  : step.id < etapaAtual
                   ? 'bg-[hsl(var(--green-approved))] text-white'
                   : 'bg-muted text-muted-foreground'
               }`}
             >
-              {step.id < currentStep ? (
+              {step.id < etapaAtual ? (
                 <Check className="h-4 w-4" />
               ) : (
-                <span>{step.id}</span>
+                <span>{step.id + 1}</span>
               )}
             </div>
             <div className="text-center">
@@ -496,8 +566,8 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
       {/* Current Step Content */}
       <Card>
         <CardHeader>
-          <CardTitle>{STEPS[currentStep - 1].title}</CardTitle>
-          <CardDescription>{STEPS[currentStep - 1].description}</CardDescription>
+          <CardTitle>{etapas[etapaAtual]?.title}</CardTitle>
+          <CardDescription>{etapas[etapaAtual]?.description}</CardDescription>
         </CardHeader>
         <Separator />
         <CardContent className="pt-6">
@@ -515,7 +585,7 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
           type="button"
           variant="outline"
           onClick={handlePrevious}
-          disabled={currentStep === 1 || isSubmitting}
+          disabled={isEtapaInicial || isSubmitting}
           className="gap-2"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -543,7 +613,7 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
           )}
         </Button>
 
-        {currentStep < STEPS.length ? (
+        {!isEtapaFinal ? (
           <Button type="button" onClick={handleNext} disabled={isSubmitting} className="gap-2 ml-auto">
             Próximo
             <ChevronRight className="h-4 w-4" />

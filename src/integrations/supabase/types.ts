@@ -1466,6 +1466,129 @@ export type Database = {
           },
         ]
       }
+      credenciado_consultorios: {
+        Row: {
+          ativo: boolean | null
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          cnes: string
+          complemento: string | null
+          created_at: string | null
+          credenciado_id: string
+          especialidades_ids: string[] | null
+          estado: string | null
+          geocoded_at: string | null
+          horarios: Json | null
+          id: string
+          inscricao_consultorio_id: string | null
+          is_principal: boolean | null
+          latitude: number | null
+          logradouro: string | null
+          longitude: number | null
+          nome_consultorio: string
+          numero: string | null
+          ramal: string | null
+          responsavel_tecnico_crm: string | null
+          responsavel_tecnico_nome: string | null
+          responsavel_tecnico_uf: string | null
+          telefone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnes: string
+          complemento?: string | null
+          created_at?: string | null
+          credenciado_id: string
+          especialidades_ids?: string[] | null
+          estado?: string | null
+          geocoded_at?: string | null
+          horarios?: Json | null
+          id?: string
+          inscricao_consultorio_id?: string | null
+          is_principal?: boolean | null
+          latitude?: number | null
+          logradouro?: string | null
+          longitude?: number | null
+          nome_consultorio: string
+          numero?: string | null
+          ramal?: string | null
+          responsavel_tecnico_crm?: string | null
+          responsavel_tecnico_nome?: string | null
+          responsavel_tecnico_uf?: string | null
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnes?: string
+          complemento?: string | null
+          created_at?: string | null
+          credenciado_id?: string
+          especialidades_ids?: string[] | null
+          estado?: string | null
+          geocoded_at?: string | null
+          horarios?: Json | null
+          id?: string
+          inscricao_consultorio_id?: string | null
+          is_principal?: boolean | null
+          latitude?: number | null
+          logradouro?: string | null
+          longitude?: number | null
+          nome_consultorio?: string
+          numero?: string | null
+          ramal?: string | null
+          responsavel_tecnico_crm?: string | null
+          responsavel_tecnico_nome?: string | null
+          responsavel_tecnico_uf?: string | null
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credenciado_consultorios_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credenciado_consultorios_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "credenciado_consultorios_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "credenciado_consultorios_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credenciado_consultorios_inscricao_consultorio_id_fkey"
+            columns: ["inscricao_consultorio_id"]
+            isOneToOne: false
+            referencedRelation: "inscricao_consultorios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credenciado_crms: {
         Row: {
           created_at: string | null
@@ -1757,6 +1880,7 @@ export type Database = {
           suspensao_fim: string | null
           suspensao_inicio: string | null
           telefone: string | null
+          tipo_credenciamento: string | null
           updated_at: string | null
           zona_id: string | null
         }
@@ -1796,6 +1920,7 @@ export type Database = {
           suspensao_fim?: string | null
           suspensao_inicio?: string | null
           telefone?: string | null
+          tipo_credenciamento?: string | null
           updated_at?: string | null
           zona_id?: string | null
         }
@@ -1835,6 +1960,7 @@ export type Database = {
           suspensao_fim?: string | null
           suspensao_inicio?: string | null
           telefone?: string | null
+          tipo_credenciamento?: string | null
           updated_at?: string | null
           zona_id?: string | null
         }
@@ -3009,6 +3135,99 @@ export type Database = {
           },
         ]
       }
+      inscricao_consultorios: {
+        Row: {
+          ativo: boolean | null
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          cnes: string | null
+          complemento: string | null
+          created_at: string | null
+          created_by: string | null
+          especialidades_ids: string[] | null
+          estado: string | null
+          horarios: Json | null
+          id: string
+          inscricao_id: string
+          is_principal: boolean | null
+          logradouro: string | null
+          nome_consultorio: string | null
+          numero: string | null
+          ramal: string | null
+          responsavel_tecnico_crm: string | null
+          responsavel_tecnico_nome: string | null
+          responsavel_tecnico_uf: string | null
+          telefone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnes?: string | null
+          complemento?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          especialidades_ids?: string[] | null
+          estado?: string | null
+          horarios?: Json | null
+          id?: string
+          inscricao_id: string
+          is_principal?: boolean | null
+          logradouro?: string | null
+          nome_consultorio?: string | null
+          numero?: string | null
+          ramal?: string | null
+          responsavel_tecnico_crm?: string | null
+          responsavel_tecnico_nome?: string | null
+          responsavel_tecnico_uf?: string | null
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnes?: string | null
+          complemento?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          especialidades_ids?: string[] | null
+          estado?: string | null
+          horarios?: Json | null
+          id?: string
+          inscricao_id?: string
+          is_principal?: boolean | null
+          logradouro?: string | null
+          nome_consultorio?: string | null
+          numero?: string | null
+          ramal?: string | null
+          responsavel_tecnico_crm?: string | null
+          responsavel_tecnico_nome?: string | null
+          responsavel_tecnico_uf?: string | null
+          telefone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inscricao_consultorios_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: false
+            referencedRelation: "inscricoes_edital"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inscricao_consultorios_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: false
+            referencedRelation: "view_inscricoes_validacao_pendente"
+            referencedColumns: ["inscricao_id"]
+          },
+        ]
+      }
       inscricao_documentos: {
         Row: {
           analisado_em: string | null
@@ -3244,6 +3463,7 @@ export type Database = {
           protocolo: string | null
           retry_count: number | null
           status: string
+          tipo_credenciamento: string | null
           updated_at: string | null
           validacao_status: string | null
           workflow_execution_id: string | null
@@ -3262,6 +3482,7 @@ export type Database = {
           protocolo?: string | null
           retry_count?: number | null
           status?: string
+          tipo_credenciamento?: string | null
           updated_at?: string | null
           validacao_status?: string | null
           workflow_execution_id?: string | null
@@ -3280,6 +3501,7 @@ export type Database = {
           protocolo?: string | null
           retry_count?: number | null
           status?: string
+          tipo_credenciamento?: string | null
           updated_at?: string | null
           validacao_status?: string | null
           workflow_execution_id?: string | null
