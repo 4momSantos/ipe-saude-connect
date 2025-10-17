@@ -38,7 +38,16 @@ export function RevisaoStep({ form }: RevisaoStepProps) {
   };
 
   // ✅ Validação inteligente baseada no tipo de credenciamento
-  const tipoCredenciamento = values.tipo_credenciamento;
+  const tipoCredenciamento = values.tipo_credenciamento || form.watch('tipo_credenciamento');
+  
+  console.log('[REVISAO] Tipo de credenciamento detectado:', tipoCredenciamento);
+  console.log('[REVISAO] Valores do formulário:', { 
+    tipo_no_values: values.tipo_credenciamento,
+    tipo_no_watch: form.watch('tipo_credenciamento'),
+    cpf: values.cpf,
+    cnpj: values.cnpj 
+  });
+  
   let hasErrors = false;
   
   if (tipoCredenciamento) {

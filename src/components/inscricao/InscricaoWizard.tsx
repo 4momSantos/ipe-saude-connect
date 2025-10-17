@@ -96,14 +96,15 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
     }
   });
 
-  // Salvar tipo no rascunho
+  // Salvar tipo no rascunho e sincronizar com formulário
   useEffect(() => {
     if (tipoCredenciamento && inscricaoId) {
+      form.setValue('tipo_credenciamento', tipoCredenciamento);
       supabase
         .from('inscricoes_edital')
         .update({ tipo_credenciamento: tipoCredenciamento })
         .eq('id', inscricaoId)
-        .then(() => console.log('[WIZARD] Tipo salvo:', tipoCredenciamento));
+        .then(() => console.log('[WIZARD] Tipo salvo e sincronizado:', tipoCredenciamento));
     }
   }, [tipoCredenciamento, inscricaoId]);
 
@@ -130,7 +131,10 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
             .single();
           
           if (inscricao?.tipo_credenciamento) {
-            setTipoCredenciamento(inscricao.tipo_credenciamento as TipoCredenciamento);
+            const tipo = inscricao.tipo_credenciamento as TipoCredenciamento;
+            setTipoCredenciamento(tipo);
+            form.setValue('tipo_credenciamento', tipo);
+            console.log('[WIZARD] Tipo carregado e sincronizado:', tipo);
           }
         }
         
@@ -442,6 +446,8 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
           <SelecionarTipoCredenciamento 
             onSelect={(tipo) => {
               setTipoCredenciamento(tipo);
+              form.setValue('tipo_credenciamento', tipo);
+              console.log('[WIZARD] Tipo selecionado e sincronizado:', tipo);
               proximaEtapa();
             }}
             selectedTipo={tipoCredenciamento}
