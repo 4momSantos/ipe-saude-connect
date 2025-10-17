@@ -335,9 +335,7 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
 
           <ScrollArea className="flex-1">
             <TabsContent value="dados" className="m-0 p-6">
-              <div className="max-w-3xl mx-auto">
-                <DadosInscricaoView dadosInscricao={dadosInscricao} />
-              </div>
+              <DadosInscricaoView dadosInscricao={dadosInscricao} />
             </TabsContent>
 
             <TabsContent value="workflow" className="m-0 p-6">
