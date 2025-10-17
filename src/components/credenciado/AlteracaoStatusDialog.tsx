@@ -142,15 +142,15 @@ export function AlteracaoStatusDialog({
 
     return (
       <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="max-w-[95vw] md:max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-[90vw] md:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Revisar Alteração de Status</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-base sm:text-lg">Revisar Alteração de Status</DialogTitle>
+            <DialogDescription className="text-sm">
               Confirme os dados antes de finalizar a alteração
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <Alert className={cn(config.bgColor, config.borderColor)}>
               <Icon className={cn("h-5 w-5", config.color)} />
               <AlertDescription>
@@ -166,32 +166,32 @@ export function AlteracaoStatusDialog({
             </Alert>
 
             {(novoStatus === 'Suspenso' || novoStatus === 'Afastado') && dataInicio && dataFim && (
-              <div className="p-4 border rounded-lg bg-muted/50">
-                <p className="text-sm font-semibold mb-2">Período:</p>
-                <p className="text-sm">
+              <div className="p-3 sm:p-4 border rounded-lg bg-muted/50">
+                <p className="text-xs sm:text-sm font-semibold mb-2">Período:</p>
+                <p className="text-xs sm:text-sm">
                   De {format(dataInicio, "PPP", { locale: ptBR })} até {format(dataFim, "PPP", { locale: ptBR })}
                 </p>
               </div>
             )}
 
             {novoStatus === 'Descredenciado' && (
-              <div className="p-4 border rounded-lg bg-muted/50">
-                <p className="text-sm font-semibold mb-2">Data Efetiva:</p>
-                <p className="text-sm">
+              <div className="p-3 sm:p-4 border rounded-lg bg-muted/50">
+                <p className="text-xs sm:text-sm font-semibold mb-2">Data Efetiva:</p>
+                <p className="text-xs sm:text-sm">
                   {descredenciarImediato ? 'Imediato (hoje)' : dataEfetiva ? format(dataEfetiva, "PPP", { locale: ptBR }) : 'Não definida'}
                 </p>
               </div>
             )}
 
-            <div className="p-4 border rounded-lg bg-muted/50">
-              <p className="text-sm font-semibold mb-2">Justificativa:</p>
-              <p className="text-sm whitespace-pre-wrap break-words">{justificativa}</p>
+            <div className="p-3 sm:p-4 border rounded-lg bg-muted/50">
+              <p className="text-xs sm:text-sm font-semibold mb-2">Justificativa:</p>
+              <p className="text-xs sm:text-sm whitespace-pre-wrap break-words">{justificativa}</p>
             </div>
 
             {motivoDetalhado && (
-              <div className="p-4 border rounded-lg bg-muted/50">
-                <p className="text-sm font-semibold mb-2">Motivo Detalhado:</p>
-                <p className="text-sm whitespace-pre-wrap">{motivoDetalhado}</p>
+              <div className="p-3 sm:p-4 border rounded-lg bg-muted/50">
+                <p className="text-xs sm:text-sm font-semibold mb-2">Motivo Detalhado:</p>
+                <p className="text-xs sm:text-sm whitespace-pre-wrap break-words">{motivoDetalhado}</p>
               </div>
             )}
 
@@ -205,12 +205,12 @@ export function AlteracaoStatusDialog({
               </Alert>
             )}
 
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <Button 
                 variant="outline" 
                 onClick={() => setShowPreview(false)}
                 disabled={mutation.isPending}
-                className="flex-1"
+                className="w-full sm:flex-1"
               >
                 Voltar e Editar
               </Button>
@@ -218,7 +218,7 @@ export function AlteracaoStatusDialog({
                 onClick={handleConfirmar}
                 disabled={mutation.isPending}
                 variant={novoStatus === 'Descredenciado' ? 'destructive' : 'default'}
-                className="flex-1"
+                className="w-full sm:flex-1"
               >
                 {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Confirmar Alteração
@@ -232,18 +232,20 @@ export function AlteracaoStatusDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] md:max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-[90vw] md:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-base md:text-lg">Alterar Status - {credenciadoNome}</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-sm sm:text-base md:text-lg break-words pr-6">
+            Alterar Status - {credenciadoNome}
+          </DialogTitle>
+          <DialogDescription className="text-xs sm:text-sm">
             Status Atual: <span className="font-semibold">{statusAtual}</span>
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Seleção de Status */}
-          <div className="space-y-3">
-            <Label className="text-base font-semibold">Novo Status *</Label>
+          <div className="space-y-2 sm:space-y-3">
+            <Label className="text-sm sm:text-base font-semibold">Novo Status *</Label>
             <RadioGroup value={novoStatus} onValueChange={(v) => setNovoStatus(v as StatusCredenciado)}>
               {(['Ativo', 'Suspenso', 'Afastado', 'Descredenciado', 'Inativo'] as StatusCredenciado[]).map((status) => {
                 const config = getStatusConfig(status);
@@ -253,16 +255,16 @@ export function AlteracaoStatusDialog({
                   <div 
                     key={status}
                     className={cn(
-                      "flex items-center space-x-3 p-4 border rounded-lg cursor-pointer transition-all",
+                      "flex items-center space-x-2 sm:space-x-3 p-3 sm:p-4 border rounded-lg cursor-pointer transition-all",
                       novoStatus === status ? cn(config.bgColor, config.borderColor) : "hover:bg-accent/50"
                     )}
                   >
                     <RadioGroupItem value={status} id={status} />
-                    <Label htmlFor={status} className="flex items-center gap-3 cursor-pointer flex-1">
-                      <Icon className={cn("h-5 w-5", config.color)} />
-                      <div>
-                        <div className="font-semibold">{config.label}</div>
-                        <div className="text-sm text-muted-foreground">{config.description}</div>
+                    <Label htmlFor={status} className="flex items-center gap-2 sm:gap-3 cursor-pointer flex-1">
+                      <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0", config.color)} />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm sm:text-base font-semibold">{config.label}</div>
+                        <div className="text-xs sm:text-sm text-muted-foreground break-words">{config.description}</div>
                       </div>
                     </Label>
                   </div>
@@ -273,25 +275,27 @@ export function AlteracaoStatusDialog({
 
           {/* Datas para Suspenso/Afastado */}
           {(novoStatus === 'Suspenso' || novoStatus === 'Afastado') && (
-            <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-              <Label className="text-base font-semibold">Período de {novoStatus} *</Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-3 sm:space-y-4 p-3 sm:p-4 border rounded-lg bg-muted/30">
+              <Label className="text-sm sm:text-base font-semibold">Período de {novoStatus} *</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-2">
-                  <Label>Data Início</Label>
+                  <Label className="text-xs sm:text-sm">Data Início</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full justify-start text-left font-normal",
+                          "w-full justify-start text-left font-normal text-xs sm:text-sm",
                           !dataInicio && "text-muted-foreground"
                         )}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dataInicio ? format(dataInicio, "PPP", { locale: ptBR }) : "Selecione"}
+                        <CalendarIcon className="mr-2 h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                        <span className="truncate">
+                          {dataInicio ? format(dataInicio, "dd/MM/yyyy") : "Selecione"}
+                        </span>
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
                         selected={dataInicio}
@@ -302,21 +306,23 @@ export function AlteracaoStatusDialog({
                   </Popover>
                 </div>
                 <div className="space-y-2">
-                  <Label>Data Fim</Label>
+                  <Label className="text-xs sm:text-sm">Data Fim</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full justify-start text-left font-normal",
+                          "w-full justify-start text-left font-normal text-xs sm:text-sm",
                           !dataFim && "text-muted-foreground"
                         )}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dataFim ? format(dataFim, "PPP", { locale: ptBR }) : "Selecione"}
+                        <CalendarIcon className="mr-2 h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                        <span className="truncate">
+                          {dataFim ? format(dataFim, "dd/MM/yyyy") : "Selecione"}
+                        </span>
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
                         selected={dataFim}
@@ -333,44 +339,46 @@ export function AlteracaoStatusDialog({
 
           {/* Data Efetiva para Descredenciado */}
           {novoStatus === 'Descredenciado' && (
-            <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
-              <Label className="text-base font-semibold">Descredenciamento *</Label>
+            <div className="space-y-3 sm:space-y-4 p-3 sm:p-4 border rounded-lg bg-muted/30">
+              <Label className="text-sm sm:text-base font-semibold">Descredenciamento *</Label>
               
               <RadioGroup value={descredenciarImediato ? 'imediato' : 'programado'} onValueChange={(v) => setDescredenciarImediato(v === 'imediato')}>
-                <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                <div className="flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 border rounded-lg">
                   <RadioGroupItem value="imediato" id="imediato" />
                   <Label htmlFor="imediato" className="cursor-pointer flex-1">
-                    <div className="font-semibold">Imediato</div>
-                    <div className="text-sm text-muted-foreground">Descredenciar hoje</div>
+                    <div className="text-sm sm:text-base font-semibold">Imediato</div>
+                    <div className="text-xs sm:text-sm text-muted-foreground">Descredenciar hoje</div>
                   </Label>
                 </div>
                 
-                <div className="flex items-center space-x-3 p-3 border rounded-lg">
+                <div className="flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 border rounded-lg">
                   <RadioGroupItem value="programado" id="programado" />
                   <Label htmlFor="programado" className="cursor-pointer flex-1">
-                    <div className="font-semibold">Programado</div>
-                    <div className="text-sm text-muted-foreground">Definir data futura</div>
+                    <div className="text-sm sm:text-base font-semibold">Programado</div>
+                    <div className="text-xs sm:text-sm text-muted-foreground">Definir data futura</div>
                   </Label>
                 </div>
               </RadioGroup>
 
               {!descredenciarImediato && (
                 <div className="space-y-2">
-                  <Label>Data de Descredenciamento</Label>
+                  <Label className="text-xs sm:text-sm">Data de Descredenciamento</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full justify-start text-left font-normal",
+                          "w-full justify-start text-left font-normal text-xs sm:text-sm",
                           !dataEfetiva && "text-muted-foreground"
                         )}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dataEfetiva ? format(dataEfetiva, "PPP", { locale: ptBR }) : "Selecione a data"}
+                        <CalendarIcon className="mr-2 h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                        <span className="truncate">
+                          {dataEfetiva ? format(dataEfetiva, "dd/MM/yyyy") : "Selecione a data"}
+                        </span>
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
                         selected={dataEfetiva}
@@ -386,10 +394,10 @@ export function AlteracaoStatusDialog({
           )}
 
           {/* Justificativa */}
-          <div className="space-y-3">
-            <Label htmlFor="justificativa" className="text-base font-semibold">
+          <div className="space-y-2 sm:space-y-3">
+            <Label htmlFor="justificativa" className="text-sm sm:text-base font-semibold block">
               Justificativa * 
-              <span className="text-sm font-normal text-muted-foreground ml-2">
+              <span className="text-xs sm:text-sm font-normal text-muted-foreground ml-1 sm:ml-2">
                 (mínimo 100 caracteres - {justificativa.length}/100)
               </span>
             </Label>
@@ -399,12 +407,12 @@ export function AlteracaoStatusDialog({
               onChange={(e) => setJustificativa(e.target.value)}
               placeholder="Descreva detalhadamente o motivo da alteração de status..."
               className={cn(
-                "min-h-[120px] break-words",
+                "min-h-[100px] sm:min-h-[120px] text-xs sm:text-sm resize-none",
                 !isJustificativaValida && justificativa.length > 0 && "border-red-500"
               )}
             />
             {!isJustificativaValida && justificativa.length > 0 && (
-              <p className="text-sm text-red-600">
+              <p className="text-xs sm:text-sm text-red-600">
                 Ainda faltam {100 - justificativa.length} caracteres
               </p>
             )}
@@ -412,8 +420,8 @@ export function AlteracaoStatusDialog({
 
           {/* Motivo Detalhado (opcional, só para Descredenciado) */}
           {novoStatus === 'Descredenciado' && (
-            <div className="space-y-3">
-              <Label htmlFor="motivoDetalhado" className="text-base font-semibold">
+            <div className="space-y-2 sm:space-y-3">
+              <Label htmlFor="motivoDetalhado" className="text-sm sm:text-base font-semibold">
                 Motivo Detalhado (Opcional)
               </Label>
               <Textarea
@@ -421,7 +429,7 @@ export function AlteracaoStatusDialog({
                 value={motivoDetalhado}
                 onChange={(e) => setMotivoDetalhado(e.target.value)}
                 placeholder="Informações adicionais sobre o descredenciamento..."
-                className="min-h-[80px]"
+                className="min-h-[70px] sm:min-h-[80px] text-xs sm:text-sm resize-none"
               />
             </div>
           )}
@@ -447,14 +455,14 @@ export function AlteracaoStatusDialog({
           )}
 
           {/* Botões */}
-          <div className="flex gap-3 pt-4">
-            <Button variant="outline" onClick={onClose} className="flex-1">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2 sm:pt-4">
+            <Button variant="outline" onClick={onClose} className="w-full sm:flex-1 text-xs sm:text-sm">
               Cancelar
             </Button>
             <Button 
               onClick={handleRevisar} 
               disabled={!isFormValido || (statusAtual === 'Descredenciado' && novoStatus === 'Ativo')}
-              className="flex-1"
+              className="w-full sm:flex-1 text-xs sm:text-sm"
             >
               Revisar Alteração
             </Button>
