@@ -383,39 +383,25 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
         // 1️⃣ Executar onSubmit PRIMEIRO
         await onSubmit(data);
         
-        // 2️⃣ SÓ DEPOIS marcar como enviado e iniciar workflow
+        // 2️⃣ SÓ DEPOIS enviar via Edge Function
         if (inscricaoId && editalId) {
-          console.log('[INSCRICAO] Atualizando rascunho existente:', inscricaoId);
+          console.log('[INSCRICAO] Enviando inscrição via edge function:', inscricaoId);
           const { supabase } = await import('@/integrations/supabase/client');
           
-          // Marcar como não-rascunho
-          const { error: updateError } = await supabase
-            .from('inscricoes_edital')
-            .update({ 
-              is_rascunho: false,
-              status: 'em_analise'
-            })
-            .eq('id', inscricaoId);
+          // ✅ Chamar edge function que valida, atualiza status e notifica
+          const { data: envioData, error: envioError } = await supabase.functions.invoke(
+            'enviar-inscricao',
+            {
+              body: { inscricao_id: inscricaoId }
+            }
+          );
           
-          if (updateError) {
-            console.error('❌ Erro ao atualizar rascunho:', updateError);
-            throw updateError;
+          if (envioError) {
+            console.error('❌ Erro ao enviar inscrição:', envioError);
+            throw new Error(envioError.message || 'Erro ao enviar inscrição');
           }
-          console.log('✅ Rascunho marcado como enviado:', inscricaoId);
           
-          // Buscar workflow do edital
-          const { data: edital } = await supabase
-            .from('editais')
-            .select('workflow_id')
-            .eq('id', editalId)
-            .single();
-          
-          // O workflow será iniciado automaticamente pelo trigger
-          console.log('[WIZARD] Inscrição enviada, workflow será processado pela fila automaticamente');
-          
-          if (edital?.workflow_id) {
-            console.log('✅ Workflow será processado: ', edital.workflow_id);
-          }
+          console.log('✅ Inscrição enviada via edge function:', envioData);
         }
       })();
 
