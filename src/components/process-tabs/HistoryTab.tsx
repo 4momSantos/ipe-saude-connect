@@ -241,7 +241,7 @@ export function HistoryTab({ processoId, dadosInscricao }: {
               className="relative flex gap-6 animate-fade-in"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
-              <div className={`relative z-10 rounded-full border-2 p-3.5 bg-card/80 backdrop-blur-xl transition-all duration-500 hover:scale-125 hover:rotate-12 ${getColor(evento.tipo)}`}>
+              <div className={`relative z-10 flex items-center justify-center rounded-full border-2 w-14 h-14 bg-card/80 backdrop-blur-xl transition-all duration-500 hover:scale-125 hover:rotate-12 ${getColor(evento.tipo)}`}>
                 <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/20 to-transparent" />
                 {getIcon(evento.tipo)}
               </div>
