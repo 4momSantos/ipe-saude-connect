@@ -181,9 +181,75 @@ export type PessoaJuridicaForm = z.infer<typeof pessoaJuridicaSchema>;
 export type EnderecoCorrespondenciaForm = z.infer<typeof enderecoCorrespondenciaSchema>;
 export type ConsultorioHorariosForm = z.infer<typeof consultorioHorariosSchema>;
 export type DocumentosForm = z.infer<typeof documentosSchema>;
-export type InscricaoCompletaForm = z.infer<typeof inscricaoCompletaSchema>;
+// Schema para tipo de credenciamento
+export const tipoCredenciamentoSchema = z.object({
+  tipo_credenciamento: z.enum(['PF', 'PJ'], {
+    required_error: 'Tipo de credenciamento é obrigatório'
+  })
+});
 
-// Lista de documentos obrigatórios
+// Schema condicional PF (dados pessoais obrigatórios, PJ opcional)
+export const inscricaoCompletaPFSchema = tipoCredenciamentoSchema
+  .merge(dadosPessoaisSchema)
+  .merge(pessoaJuridicaSchema.partial()) // PJ opcional para PF
+  .merge(enderecoCorrespondenciaSchema)
+  .merge(consultorioHorariosSchema)
+  .merge(documentosSchema);
+
+// Schema condicional PJ (PJ obrigatório, dados pessoais opcionais)
+export const inscricaoCompletaPJSchema = tipoCredenciamentoSchema
+  .merge(dadosPessoaisSchema.partial()) // Dados pessoais opcionais para PJ
+  .merge(pessoaJuridicaSchema)
+  .merge(enderecoCorrespondenciaSchema.partial()) // Endereço pode ser do consultório
+  .merge(documentosSchema);
+
+// Tipo unificado
+export type InscricaoCompletaForm = 
+  | z.infer<typeof inscricaoCompletaPFSchema>
+  | z.infer<typeof inscricaoCompletaPJSchema>;
+
+// Helper para validar baseado no tipo
+export function getSchemaByTipo(tipo: 'PF' | 'PJ') {
+  return tipo === 'PF' ? inscricaoCompletaPFSchema : inscricaoCompletaPJSchema;
+}
+
+// Schema original (mantido para compatibilidade)
+export type InscricaoCompletaFormLegacy = z.infer<typeof inscricaoCompletaSchema>;
+
+// Documentos específicos de Pessoa Física
+export const DOCUMENTOS_PF = [
+  { tipo: 'identidade_medica', label: 'Carteira de identidade médica', obrigatorio: true, ocrConfig: { enabled: true, documentType: 'crm' as const } },
+  { tipo: 'cpf', label: 'CPF', obrigatorio: true, ocrConfig: { enabled: true, documentType: 'cpf' as const } },
+  { tipo: 'rg', label: 'RG', obrigatorio: false, ocrConfig: { enabled: true, documentType: 'rg' as const } },
+  { tipo: 'cert_regularidade_crm', label: 'Certificado de Regularidade no CRM', obrigatorio: true, ocrConfig: { enabled: false, documentType: 'certidao' as const } },
+  { tipo: 'diploma', label: 'Diploma de Graduação', obrigatorio: true, ocrConfig: { enabled: true, documentType: 'diploma' as const } },
+  { tipo: 'comp_bancario', label: 'Comprovante Bancário', obrigatorio: true, ocrConfig: { enabled: false, documentType: 'comprovante' as const } },
+];
+
+// Documentos específicos de Pessoa Jurídica
+export const DOCUMENTOS_PJ = [
+  { tipo: 'cnpj', label: 'Cartão CNPJ', obrigatorio: true, ocrConfig: { enabled: true, documentType: 'cnpj' as const } },
+  { tipo: 'contrato_social', label: 'Contrato Social', obrigatorio: true, ocrConfig: { enabled: false, documentType: 'certidao' as const } },
+  { tipo: 'alvara_sanitario', label: 'Alvará Sanitário', obrigatorio: true, ocrConfig: { enabled: false, documentType: 'certidao' as const } },
+  { tipo: 'certidoes_negativas', label: 'Certidões Negativas (Federal, Estadual, Municipal)', obrigatorio: true, ocrConfig: { enabled: false, documentType: 'certidao' as const } },
+  { tipo: 'cert_fgts', label: 'Certificado de Regularidade FGTS', obrigatorio: true, ocrConfig: { enabled: false, documentType: 'certidao' as const } },
+  { tipo: 'comp_bancario', label: 'Comprovante Bancário (Banrisul)', obrigatorio: true, ocrConfig: { enabled: false, documentType: 'comprovante' as const } },
+  { tipo: 'simples_nacional', label: 'Comprovante Simples Nacional', obrigatorio: false, ocrConfig: { enabled: false, documentType: 'certidao' as const } },
+];
+
+// Documentos por consultório (apenas PJ)
+export const DOCUMENTOS_POR_CONSULTORIO = [
+  { tipo: 'cnes', label: 'Certificado CNES', obrigatorio: true, ocrConfig: { enabled: false, documentType: 'certidao' as const } },
+  { tipo: 'alvara_local', label: 'Alvará do Consultório', obrigatorio: true, ocrConfig: { enabled: false, documentType: 'certidao' as const } },
+  { tipo: 'crm_responsavel', label: 'CRM do Responsável Técnico', obrigatorio: true, ocrConfig: { enabled: true, documentType: 'crm' as const } },
+];
+
+// Helper para obter documentos baseado no tipo
+export function getDocumentosByTipo(tipo: 'PF' | 'PJ') {
+  return tipo === 'PF' ? DOCUMENTOS_PF : DOCUMENTOS_PJ;
+}
+
+// Lista de documentos obrigatórios (mantida para compatibilidade)
 export const DOCUMENTOS_OBRIGATORIOS = [
   { 
     tipo: 'ficha_cadastral', 

@@ -47,7 +47,9 @@ export async function seedInscricoes(
       return { success: true, phase: 'inscricoes', created: 0, errors: [], duration: 0 };
     }
 
-    for (const userRole of userRoles) {
+    for (let i = 0; i < userRoles.length; i++) {
+      const userRole = userRoles[i];
+      
       // Verificar se já tem inscrição aprovada
       const { count: existingCount } = await supabase
         .from('inscricoes_edital')
@@ -64,34 +66,105 @@ export async function seedInscricoes(
         .eq('id', userRole.user_id)
         .single();
 
+      // Gerar tipo de credenciamento aleatório
+      const tipoCredenciamento = Math.random() > 0.5 ? 'PF' : 'PJ';
+
       const dadosInscricao = {
         dados_pessoais: {
-          nome_completo: profile?.nome || 'Candidato Seed',
+          nome_completo: profile?.nome || `Candidato Seed ${i + 1}`,
           email: profile?.email || `seed${created}@example.com`,
           cpf: `${Math.floor(Math.random() * 100000000000)}`,
-          data_nascimento: '1985-05-15'
+          data_nascimento: '1985-05-15',
+          crm: `${100000 + i}`,
+          uf_crm: 'RS',
         },
+        pessoa_juridica: tipoCredenciamento === 'PJ' ? {
+          cnpj: '12345678000100',
+          denominacao_social: `Clínica Seed ${i + 1}`,
+          nome_fantasia: `Clínica ${i + 1}`,
+        } : undefined,
         endereco_correspondencia: {
           endereco: 'Rua Exemplo, 123',
           cidade: 'Porto Alegre',
           estado: 'RS',
           cep: '90000-000'
-        }
+        },
+        consultorio: tipoCredenciamento === 'PF' ? {
+          especialidades_ids: [],
+          horarios: [
+            {
+              dia_semana: 'Segunda',
+              horario_inicio: '08:00',
+              horario_fim: '12:00',
+            },
+          ],
+        } : undefined,
       };
 
-      const { error } = await supabase
+      const { data: inscricaoData, error } = await supabase
         .from('inscricoes_edital')
         .insert({
           edital_id: editalId,
           candidato_id: userRole.user_id,
+          tipo_credenciamento: tipoCredenciamento,
           dados_inscricao: dadosInscricao,
           status: 'aprovado',
           is_rascunho: false
-        });
+        })
+        .select()
+        .single();
 
       if (error && !error.message.includes('duplicate')) {
         errors.push(`Erro ao criar inscrição: ${error.message}`);
         continue;
+      }
+
+      // Se PJ, criar consultórios de exemplo
+      if (tipoCredenciamento === 'PJ' && inscricaoData) {
+        const consultoriosExemplo = [
+          {
+            inscricao_id: inscricaoData.id,
+            nome_consultorio: 'Clínica Principal',
+            cnes: `${1000000 + i}`,
+            telefone: '51999999999',
+            cep: '90000-000',
+            logradouro: 'Rua Principal',
+            numero: '100',
+            bairro: 'Centro',
+            cidade: 'Porto Alegre',
+            estado: 'RS',
+            responsavel_tecnico_nome: `Dr. Responsável ${i + 1}`,
+            responsavel_tecnico_crm: `${200000 + i}`,
+            responsavel_tecnico_uf: 'RS',
+            is_principal: true,
+            ativo: true,
+          },
+          {
+            inscricao_id: inscricaoData.id,
+            nome_consultorio: 'Clínica Filial',
+            cnes: `${2000000 + i}`,
+            telefone: '51988888888',
+            cep: '91000-000',
+            logradouro: 'Rua Secundária',
+            numero: '200',
+            bairro: 'Bom Fim',
+            cidade: 'Porto Alegre',
+            estado: 'RS',
+            responsavel_tecnico_nome: `Dr. Secundário ${i + 1}`,
+            responsavel_tecnico_crm: `${300000 + i}`,
+            responsavel_tecnico_uf: 'RS',
+            is_principal: false,
+            ativo: true,
+          },
+        ];
+
+        const { error: consultorioError } = await supabase
+          .from('inscricao_consultorios')
+          .insert(consultoriosExemplo);
+
+        if (consultorioError) {
+          console.error('[SEED-INSCRICOES] Erro ao criar consultórios:', consultorioError);
+        }
       }
 
       created++;
