@@ -8,6 +8,7 @@ const corsHeaders = {
 interface CFMResponse {
   code: number;
   code_message: string;
+  errors?: string[]; // ✅ Adicionar campo opcional de erros
   data: Array<{
     nome: string;
     inscricao: string;
@@ -91,8 +92,9 @@ serve(async (req) => {
     
     const response = await fetch(apiUrl);
     
+    // ✅ LER JSON UMA ÚNICA VEZ
     if (!response.ok) {
-      console.error('Erro na API do CFM:', response.status, await response.text());
+      console.error('Erro na API do CFM:', response.status, response.statusText);
       return new Response(
         JSON.stringify({ 
           error: 'Erro ao consultar CRM no CFM',
@@ -102,12 +104,13 @@ serve(async (req) => {
       );
     }
 
-    const result = await response.json();
-    console.log('InfoSimples CFM response:', JSON.stringify(result, null, 2));
+    // ✅ LER O BODY APENAS UMA VEZ
+    const data: CFMResponse = await response.json();
+    console.log('InfoSimples CFM response:', JSON.stringify(data, null, 2));
 
     // Verificar erros de autenticação/autorização da API
-    if (result.code === 603 || result.code === 401 || result.code === 403) {
-      console.error('InfoSimples token error:', result.code_message, result.errors);
+    if (data.code === 603 || data.code === 401 || data.code === 403) {
+      console.error('InfoSimples token error:', data.code_message, data.errors);
       return new Response(
         JSON.stringify({ 
           error: 'Serviço de validação de CRM temporariamente indisponível',
@@ -117,16 +120,7 @@ serve(async (req) => {
       );
     }
 
-    if (!response.ok) {
-      console.error('Erro na API do CFM:', response.status, await response.text());
-      return new Response(
-        JSON.stringify({ error: 'Erro ao consultar API do CFM' }),
-        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const data: CFMResponse = await response.json();
-
+    // ✅ VERIFICAR RESPOSTA DA API (não do HTTP)
     if (data.code !== 200 || !data.data || data.data.length === 0) {
       return new Response(
         JSON.stringify({ 
