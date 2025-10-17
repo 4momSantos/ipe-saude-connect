@@ -58,6 +58,7 @@ export function WorkflowApprovalPanel() {
   const [approvals, setApprovals] = useState<PendingApproval[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedApproval, setSelectedApproval] = useState<PendingApproval | null>(null);
+  const [selectedAction, setSelectedAction] = useState<'approved' | 'rejected' | null>(null);
   const [comments, setComments] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
@@ -163,19 +164,28 @@ export function WorkflowApprovalPanel() {
   function handleApprove(approval: PendingApproval) {
     if (processingIds.has(approval.id)) return;
     setSelectedApproval(approval);
+    setSelectedAction('approved');
     setComments("");
   }
 
   function handleReject(approval: PendingApproval) {
     if (processingIds.has(approval.id)) return;
     setSelectedApproval(approval);
+    setSelectedAction('rejected');
+    setComments("");
+  }
+  
+  function closeDialog() {
+    setSelectedApproval(null);
+    setSelectedAction(null);
     setComments("");
   }
 
-  async function submitDecision(decision: 'approved' | 'rejected') {
-    if (!selectedApproval || submitting) return;
+  async function submitDecision() {
+    if (!selectedApproval || !selectedAction || submitting) return;
 
     const approvalId = selectedApproval.id;
+    const decision = selectedAction;
     
     // Prevenir múltiplas submissões
     if (processingIds.has(approvalId)) {
@@ -232,8 +242,7 @@ export function WorkflowApprovalPanel() {
         toast.success("Rejeição registrada. O candidato será notificado.");
       }
 
-      setSelectedApproval(null);
-      setComments("");
+      closeDialog();
     } catch (error) {
       console.error("Erro ao processar decisão:", error);
       toast.error("Erro ao processar decisão");
@@ -355,50 +364,102 @@ export function WorkflowApprovalPanel() {
         </div>
       </div>
 
-      <Dialog open={!!selectedApproval} onOpenChange={() => setSelectedApproval(null)}>
+      <Dialog open={!!selectedApproval && !!selectedAction} onOpenChange={closeDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              Confirmar Decisão
+            <DialogTitle className="flex items-center gap-2">
+              {selectedAction === 'approved' ? (
+                <>
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  Confirmar Aprovação
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-5 w-5 text-destructive" />
+                  Confirmar Rejeição
+                </>
+              )}
             </DialogTitle>
             <DialogDescription>
-              Adicione comentários sobre sua decisão (opcional).
+              {selectedAction === 'approved' 
+                ? 'Você está prestes a aprovar esta solicitação. Adicione comentários se necessário.'
+                : 'Você está prestes a rejeitar esta solicitação. Por favor, adicione uma justificativa.'}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
+          {selectedApproval && (
+            <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+              <div className="text-sm">
+                <span className="font-medium">Candidato:</span>{' '}
+                {selectedApproval.inscricao?.profiles.nome}
+              </div>
+              <div className="text-sm">
+                <span className="font-medium">Edital:</span>{' '}
+                {selectedApproval.inscricao?.editais.numero_edital}
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              Comentários {selectedAction === 'rejected' && <span className="text-destructive">*</span>}
+            </label>
             <Textarea
-              placeholder="Comentários sobre a decisão..."
+              placeholder={selectedAction === 'approved' 
+                ? "Adicione comentários sobre a aprovação (opcional)..." 
+                : "Explique o motivo da rejeição..."}
               value={comments}
               onChange={(e) => setComments(e.target.value)}
               rows={4}
+              className="resize-none"
             />
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2">
             <Button
               variant="outline"
-              onClick={() => setSelectedApproval(null)}
+              onClick={closeDialog}
               disabled={submitting}
             >
               Cancelar
             </Button>
-            <Button
-              onClick={() => submitDecision('approved')}
-              disabled={submitting}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              Aprovar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => submitDecision('rejected')}
-              disabled={submitting}
-            >
-              <XCircle className="h-4 w-4 mr-2" />
-              Rejeitar
-            </Button>
+            {selectedAction === 'approved' ? (
+              <Button
+                onClick={submitDecision}
+                disabled={submitting}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                {submitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                    Processando...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Confirmar Aprovação
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button
+                variant="destructive"
+                onClick={submitDecision}
+                disabled={submitting || !comments.trim()}
+              >
+                {submitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                    Processando...
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Confirmar Rejeição
+                  </>
+                )}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
