@@ -36,7 +36,7 @@ export function BuscaDocumentos({
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [documentoOCRSelecionado, setDocumentoOCRSelecionado] = useState<ResultadoBusca | null>(null);
   
-  const { resultados, credenciadosAgrupados, isLoading, tempoExecucao, buscar, limpar } = useBuscarDocumentos();
+  const { resultados, credenciadosAgrupados, isLoading, isLoadingMore, hasMore, tempoExecucao, buscar, carregarMais, limpar } = useBuscarDocumentos();
 
   const { data: tiposDisponiveis = [] } = useTiposDocumentos();
 
@@ -48,6 +48,21 @@ export function BuscaDocumentos({
       agrupar_por: 'credenciado'
     }, { incluirPrazos, incluirOCR });
   }, [incluirPrazos, incluirOCR]);
+
+  // Scroll infinito
+  useEffect(() => {
+    const handleScroll = () => {
+      const bottom = window.innerHeight + window.scrollY >= 
+        document.documentElement.scrollHeight - 200;
+      
+      if (bottom && !isLoadingMore && hasMore && !isLoading) {
+        carregarMais(termo, filtros, { incluirPrazos, incluirOCR });
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isLoadingMore, hasMore, termo, filtros, isLoading, incluirPrazos, incluirOCR]);
 
   // Agrupar resultados por tipo
   const resultadosAgrupados = useMemo(() => {
@@ -402,6 +417,13 @@ export function BuscaDocumentos({
             </Card>
           )}
         </>
+      )}
+
+      {/* Loading more indicator */}
+      {isLoadingMore && (
+        <Card className="p-4 text-center">
+          <p className="text-sm text-muted-foreground">Carregando mais documentos...</p>
+        </Card>
       )}
 
       {/* Estado vazio */}

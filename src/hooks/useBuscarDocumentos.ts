@@ -57,7 +57,11 @@ export function useBuscarDocumentos() {
   const [resultados, setResultados] = useState<ResultadoBusca[]>([]);
   const [credenciadosAgrupados, setCredenciadosAgrupados] = useState<CredenciadoAgrupado[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
   const [tempoExecucao, setTempoExecucao] = useState<number>(0);
+  const LIMIT = 50;
 
   const ordenarResultados = (docs: ResultadoBusca[], tipo: OrdenacaoTipo): ResultadoBusca[] => {
     const sorted = [...docs];
@@ -99,9 +103,26 @@ export function useBuscarDocumentos() {
     );
   };
 
-  const buscar = async (termo: string, filtros: FiltrosBusca = {}, opcoes?: { incluirPrazos?: boolean; incluirOCR?: boolean }) => {
-    setIsLoading(true);
+  const buscar = async (
+    termo: string, 
+    filtros: FiltrosBusca = {}, 
+    opcoes?: {
+      incluirPrazos?: boolean;
+      incluirOCR?: boolean;
+    },
+    loadMore = false
+  ) => {
+    if (loadMore) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+      setOffset(0);
+      setTempoExecucao(0);
+    }
+
     try {
+      const currentOffset = loadMore ? offset : 0;
+      
       const { data, error } = await supabase.functions.invoke('buscar-documentos', {
         body: { 
           termo: termo || null,
@@ -111,48 +132,80 @@ export function useBuscarDocumentos() {
           status_credenciado: filtros.status_credenciado || null,
           apenas_habilitados: filtros.apenas_habilitados ?? null,
           apenas_com_numero: filtros.apenas_com_numero ?? null,
-          incluir_nao_credenciados: filtros.incluir_nao_credenciados ?? false
+          incluir_nao_credenciados: filtros.incluir_nao_credenciados ?? false,
+          limit: LIMIT,
+          offset: currentOffset
         }
       });
 
       if (error) throw error;
 
-      const docs = data.data || [];
+      const novosResultados = data.data || [];
       const ordenacao = filtros.ordenacao || 'data_desc';
-      const docsOrdenados = ordenarResultados(docs, ordenacao);
+      const docsOrdenados = ordenarResultados(novosResultados, ordenacao);
       
-      setResultados(docsOrdenados);
-      
-      // Agrupar por credenciado se solicitado
-      if (filtros.agrupar_por === 'credenciado') {
-        setCredenciadosAgrupados(agruparPorCredenciado(docsOrdenados));
+      if (loadMore) {
+        const todosResultados = [...resultados, ...docsOrdenados];
+        setResultados(todosResultados);
+        
+        if (filtros.agrupar_por === 'credenciado') {
+          setCredenciadosAgrupados(agruparPorCredenciado(todosResultados));
+        }
       } else {
-        setCredenciadosAgrupados([]);
+        setResultados(docsOrdenados);
+        
+        if (filtros.agrupar_por === 'credenciado') {
+          setCredenciadosAgrupados(agruparPorCredenciado(docsOrdenados));
+        } else {
+          setCredenciadosAgrupados([]);
+        }
       }
       
+      setHasMore(data.meta?.has_more ?? false);
+      setOffset(currentOffset + LIMIT);
       setTempoExecucao(data.meta?.tempo_ms || 0);
       
       const total = data.meta?.total || 0;
       
-      // Só mostrar toast de sucesso se foi uma busca explícita (com termo)
-      if (termo.trim()) {
+      if (!loadMore && termo.trim()) {
         toast.success(`${total} documento${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`);
       }
     } catch (error: any) {
       console.error('Erro ao buscar documentos:', error);
       toast.error('Erro na busca: ' + error.message);
-      setResultados([]);
-      setCredenciadosAgrupados([]);
+      if (!loadMore) {
+        setResultados([]);
+        setCredenciadosAgrupados([]);
+      }
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
+    }
+  };
+
+  const carregarMais = (termo: string, filtros: FiltrosBusca, opcoes?: any) => {
+    if (!isLoadingMore && hasMore) {
+      buscar(termo, filtros, opcoes, true);
     }
   };
 
   const limpar = () => {
     setResultados([]);
     setCredenciadosAgrupados([]);
+    setOffset(0);
+    setHasMore(true);
     setTempoExecucao(0);
   };
 
-  return { resultados, credenciadosAgrupados, isLoading, tempoExecucao, buscar, limpar };
+  return {
+    resultados,
+    credenciadosAgrupados,
+    isLoading,
+    isLoadingMore,
+    hasMore,
+    tempoExecucao,
+    buscar,
+    carregarMais,
+    limpar
+  };
 }
