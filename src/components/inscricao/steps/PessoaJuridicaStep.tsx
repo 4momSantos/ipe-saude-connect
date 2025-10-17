@@ -461,23 +461,44 @@ export function PessoaJuridicaStep({ form }: PessoaJuridicaStepProps) {
         </div>
       </div>
 
-      <FormField
-        control={form.control}
-        name="optante_simples"
-        render={({ field }) => (
-          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-            <FormControl>
-              <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-            </FormControl>
-            <div className="space-y-1 leading-none">
-              <FormLabel>Optante pelo Simples Nacional</FormLabel>
-              <FormDescription>
-                Marque esta opção se a empresa é optante pelo Simples Nacional
-              </FormDescription>
-            </div>
-          </FormItem>
-        )}
-      />
+      <div className="space-y-4">
+        <FormField
+          control={form.control}
+          name="optante_simples"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+              <FormControl>
+                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel>Optante pelo Simples Nacional</FormLabel>
+                <FormDescription>
+                  Marque esta opção se a empresa é optante pelo Simples Nacional
+                </FormDescription>
+              </div>
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="sede_atende"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+              <FormControl>
+                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel>A sede é local de atendimento?</FormLabel>
+                <FormDescription>
+                  Marque se a sede da empresa também é utilizada para atendimento aos pacientes.
+                  Se marcado, o endereço da sede será geocodificado e exibido no mapa público.
+                </FormDescription>
+              </div>
+            </FormItem>
+          )}
+        />
+      </div>
     </div>
   );
 }

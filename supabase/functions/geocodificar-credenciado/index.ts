@@ -11,7 +11,10 @@ const corsHeaders = {
 
 interface GeocodingRequest {
   credenciado_id?: string;
+  consultorio_id?: string;
   endereco?: string;
+  endereco_completo?: string;
+  cep?: string;
   force_refresh?: boolean;
 }
 
@@ -276,18 +279,18 @@ Deno.serve(async (req) => {
     const body: GeocodingRequest = await req.json();
 
     // Validação de entrada
-    if (!body.credenciado_id && !body.endereco) {
+    if (!body.credenciado_id && !body.consultorio_id && !body.endereco && !body.endereco_completo) {
       log({
         timestamp: new Date().toISOString(),
         action: 'validation_error',
         request_id: requestId,
-        error: 'credenciado_id ou endereco obrigatório',
+        error: 'credenciado_id, consultorio_id ou endereco obrigatório',
       } as any);
 
       return new Response(
         JSON.stringify({
           success: false,
-          message: 'credenciado_id ou endereco é obrigatório',
+          message: 'credenciado_id, consultorio_id ou endereco é obrigatório',
         } as GeocodingResponse),
         { 
           status: 400,
@@ -296,8 +299,38 @@ Deno.serve(async (req) => {
       );
     }
 
-    let endereco = body.endereco;
+    let endereco = body.endereco || body.endereco_completo;
     let credenciadoId = body.credenciado_id;
+    let consultorioId = body.consultorio_id;
+
+    // Buscar dados do consultório se fornecido ID
+    if (consultorioId) {
+      const { data: consultorio, error } = await supabase
+        .from('credenciado_consultorios')
+        .select('logradouro, numero, bairro, cidade, estado, cep')
+        .eq('id', consultorioId)
+        .single();
+
+      if (error) {
+        log({
+          timestamp: new Date().toISOString(),
+          action: 'consultorio_not_found',
+          request_id: requestId,
+          consultorio_id: consultorioId,
+        } as any);
+
+        throw new Error(`Consultório não encontrado: ${error.message}`);
+      }
+
+      endereco = [
+        consultorio.logradouro,
+        consultorio.numero,
+        consultorio.bairro,
+        consultorio.cidade,
+        consultorio.estado,
+        'Brasil'
+      ].filter(Boolean).join(', ');
+    }
 
     // Buscar dados do credenciado se fornecido ID
     if (credenciadoId) {
@@ -452,6 +485,28 @@ Deno.serve(async (req) => {
         request_id: requestId,
         error: cacheInsertError.message,
       } as any);
+    }
+
+    // Atualizar consultório se fornecido
+    if (consultorioId) {
+      const { error: updateError } = await supabase
+        .from('credenciado_consultorios')
+        .update({
+          latitude: location.lat,
+          longitude: location.lon,
+          geocoded_at: new Date().toISOString(),
+        })
+        .eq('id', consultorioId);
+
+      if (updateError) {
+        log({
+          timestamp: new Date().toISOString(),
+          action: 'consultorio_update_error',
+          request_id: requestId,
+          consultorio_id: consultorioId,
+          error: updateError.message,
+        } as any);
+      }
     }
 
     // Atualizar credenciado se fornecido

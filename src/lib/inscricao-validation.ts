@@ -111,10 +111,21 @@ export const pessoaJuridicaSchema = z.object({
   banco_conta: z.string().min(3, 'Conta Banrisul é obrigatória'),
   optante_simples: z.boolean(),
   email: z.string().email('Email inválido'),
+  sede_atende: z.boolean().optional().default(false),
 });
 
+// Schema completo de endereço de correspondência (estruturado)
 export const enderecoCorrespondenciaSchema = z.object({
-  endereco_correspondencia: z.string().min(5, 'Endereço é obrigatório'),
+  cep_correspondencia: z.string()
+    .min(1, 'CEP é obrigatório')
+    .refine(validateCEPMask, 'CEP inválido')
+    .transform(cleanMask),
+  logradouro_correspondencia: z.string().min(3, 'Logradouro é obrigatório'),
+  numero_correspondencia: z.string().min(1, 'Número é obrigatório'),
+  complemento_correspondencia: z.string().optional(),
+  bairro_correspondencia: z.string().min(2, 'Bairro é obrigatório'),
+  cidade_correspondencia: z.string().min(2, 'Cidade é obrigatória'),
+  uf_correspondencia: z.string().length(2, 'UF deve ter 2 caracteres'),
   telefone_correspondencia: z.string()
     .min(1, 'Telefone é obrigatório')
     .refine(validatePhoneMask, 'Telefone inválido')

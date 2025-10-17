@@ -15,6 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { ChevronLeft, ChevronRight, Send, Check, FileText, Save, Clock } from 'lucide-react';
 import { DadosPessoaisStep } from './steps/DadosPessoaisStep';
 import { PessoaJuridicaStep } from './steps/PessoaJuridicaStep';
+import { EnderecoCorrespondenciaStep } from './steps/EnderecoCorrespondenciaStep';
 import { ConsultorioHorariosStep } from './steps/ConsultorioHorariosStep';
 import { DocumentosStep } from './steps/DocumentosStep';
 import { RevisaoStep } from './steps/RevisaoStep';
@@ -219,12 +220,21 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
           'banco_conta',
         ];
         break;
-      case 'consultorio':
+      case 'endereco_correspondencia':
         fieldsToValidate = [
-          'endereco_correspondencia',
+          'cep_correspondencia',
+          'logradouro_correspondencia',
+          'numero_correspondencia',
+          'bairro_correspondencia',
+          'cidade_correspondencia',
+          'uf_correspondencia',
           'telefone_correspondencia',
           'celular_correspondencia',
           'email_correspondencia',
+        ];
+        break;
+      case 'consultorio':
+        fieldsToValidate = [
           'endereco_consultorio',
           'telefone_consultorio',
           'especialidades_ids',
@@ -442,6 +452,9 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
       
       case 'pessoa_juridica':
         return <PessoaJuridicaStep form={form} />;
+      
+      case 'endereco_correspondencia':
+        return <EnderecoCorrespondenciaStep form={form} />;
       
       case 'consultorio':
         // PF: Consultório único
