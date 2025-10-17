@@ -169,7 +169,37 @@ export const documentoUpload = z.object({
 export const documentosSchema = z.object({
   documentos: z.array(documentoUpload)
     .optional()
-    .default([]),
+    .default([])
+    .superRefine((docs, ctx) => {
+      // Acessa o formulário pai para obter tipo_credenciamento
+      const formData = (ctx as any).parent || {};
+      const tipo = formData.tipo_credenciamento;
+      
+      // Se não houver tipo, pula validação (formulário ainda incompleto)
+      if (!tipo) return;
+      
+      // Busca documentos obrigatórios baseado no tipo
+      const obrigatorios = tipo === 'PJ' 
+        ? DOCUMENTOS_PJ.filter(d => d.obrigatorio)
+        : DOCUMENTOS_PF.filter(d => d.obrigatorio);
+      
+      // Verifica documentos enviados
+      const enviados = docs?.filter(d => d.arquivo || d.url) || [];
+      
+      // Encontra documentos faltantes
+      const faltantes = obrigatorios.filter(obrig => 
+        !enviados.some(env => env.tipo === obrig.tipo)
+      );
+      
+      // Adiciona erro se houver faltantes
+      if (faltantes.length > 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Faltam documentos obrigatórios ${tipo}: ${faltantes.map(f => f.label).join(', ')}`,
+          path: []
+        });
+      }
+    })
 });
 
 // Schema unificado flexível (torna PF e PJ opcionais para compatibilidade)

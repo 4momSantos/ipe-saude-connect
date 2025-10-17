@@ -1,5 +1,5 @@
 import { UseFormReturn, useFieldArray } from 'react-hook-form';
-import { InscricaoCompletaForm, DOCUMENTOS_OBRIGATORIOS } from '@/lib/inscricao-schema-unificado';
+import { InscricaoCompletaForm, DOCUMENTOS_OBRIGATORIOS, getDocumentosByTipo } from '@/lib/inscricao-schema-unificado';
 import { useUploadsConfig } from '@/hooks/useUploadsConfig';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -67,8 +67,12 @@ export function DocumentosStep({ form, inscricaoId, editalId }: DocumentosStepPr
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   const [ocrResults, setOcrResults] = useState<Record<number, OCRValidationResult>>({});
 
-  // FASE 3: Usar config dinâmica ou fallback para DOCUMENTOS_OBRIGATORIOS
-  const documentosParaExibir = uploadsConfig || DOCUMENTOS_OBRIGATORIOS;
+  // Obter tipo de credenciamento do formulário
+  const tipoCredenciamento = form.watch('tipo_credenciamento');
+  
+  // Usar documentos dinâmicos ou baseado no tipo
+  const documentosParaExibir = uploadsConfig || 
+    (tipoCredenciamento ? getDocumentosByTipo(tipoCredenciamento) : DOCUMENTOS_OBRIGATORIOS);
   const documentosObrigatorios = documentosParaExibir.filter(d => d.obrigatorio);
 
   if (isLoadingConfig) {
