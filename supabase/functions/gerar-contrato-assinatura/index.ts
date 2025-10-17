@@ -286,7 +286,132 @@ serve(async (req) => {
     });
 
     // ========================================
-    // PASSO 5: SALVAR CONTRATO NO BANCO
+    // PASSO 5: GERAR HTML DO CONTRATO (para backup/regeneração)
+    // ========================================
+    const contratoHTML = `
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8">
+        <title>Contrato de Credenciamento - ${contratoData.edital_numero}</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; margin: 40px; }
+          h1 { text-align: center; color: #333; }
+          h2 { color: #6366f1; margin-top: 30px; }
+          .section { margin-bottom: 20px; }
+          .info-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          .info-table th { background: #6366f1; color: white; padding: 10px; text-align: left; }
+          .info-table td { border: 1px solid #ddd; padding: 8px; }
+          .clausula { margin: 15px 0; }
+          .clausula-titulo { font-weight: bold; margin-bottom: 8px; }
+          .assinaturas { margin-top: 50px; display: flex; justify-content: space-around; }
+          .assinatura { text-align: center; }
+          .linha-assinatura { border-top: 1px solid #000; padding-top: 5px; margin-top: 40px; }
+        </style>
+      </head>
+      <body>
+        <h1>CONTRATO DE CREDENCIAMENTO</h1>
+        <p style="text-align: center;"><strong>Edital:</strong> ${contratoData.edital_numero}</p>
+        <p style="text-align: center;"><strong>Data:</strong> ${contratoData.sistema_data_extenso}</p>
+        
+        <h2>1. DAS PARTES</h2>
+        <div class="section">
+          <p><strong>CONTRATANTE:</strong></p>
+          <p>[Nome da Instituição], pessoa jurídica de direito público, inscrita no CNPJ sob nº [CNPJ], com sede na [Endereço], neste ato representada por [Representante Legal].</p>
+          
+          <p><strong>CONTRATADO:</strong></p>
+          <p>${contratoData.candidato_nome}, CPF ${contratoData.candidato_cpf_formatado}, RG ${contratoData.candidato_rg || 'não informado'}, 
+          residente em ${contratoData.candidato_endereco_completo}, e-mail ${contratoData.candidato_email}, 
+          telefone ${contratoData.candidato_telefone || contratoData.candidato_celular}.</p>
+        </div>
+        
+        <h2>2. DO OBJETO</h2>
+        <div class="section">
+          <p>O presente contrato tem por objeto o credenciamento do CONTRATADO para prestação de serviços de saúde, 
+          conforme especificado no ${contratoData.edital_numero}, publicado em ${contratoData.edital_data_publicacao_formatada}.</p>
+          <p><strong>Objeto do Edital:</strong> ${contratoData.edital_objeto}</p>
+        </div>
+        
+        ${contratoData.especialidades && contratoData.especialidades.length > 0 ? `
+          <h2>3. DAS ESPECIALIDADES</h2>
+          <div class="section">
+            <p>O CONTRATADO prestará serviços nas seguintes especialidades:</p>
+            <table class="info-table">
+              <thead>
+                <tr><th>#</th><th>Especialidade</th></tr>
+              </thead>
+              <tbody>
+                ${contratoData.especialidades.map((esp, idx) => 
+                  `<tr><td>${idx + 1}</td><td>${esp}</td></tr>`
+                ).join('')}
+              </tbody>
+            </table>
+          </div>
+        ` : ''}
+        
+        <h2>4. DAS OBRIGAÇÕES</h2>
+        <div class="section">
+          <div class="clausula">
+            <div class="clausula-titulo">CLÁUSULA PRIMEIRA - DA VIGÊNCIA</div>
+            <p>O presente contrato terá vigência de 12 (doze) meses, contados a partir da data de sua assinatura, 
+            podendo ser prorrogado por iguais períodos mediante acordo entre as partes.</p>
+          </div>
+          
+          <div class="clausula">
+            <div class="clausula-titulo">CLÁUSULA SEGUNDA - DO VALOR</div>
+            <p>Os valores dos serviços prestados serão conforme tabela anexa, conforme especificado no edital de credenciamento.</p>
+          </div>
+          
+          <div class="clausula">
+            <div class="clausula-titulo">CLÁUSULA TERCEIRA - DAS OBRIGAÇÕES DO CONTRATADO</div>
+            <p>O CONTRATADO obriga-se a: (a) Prestar os serviços com qualidade e dentro dos padrões técnicos; 
+            (b) Manter cadastro atualizado; (c) Cumprir as normas e regulamentos vigentes; (d) Emitir documentação fiscal adequada.</p>
+          </div>
+          
+          <div class="clausula">
+            <div class="clausula-titulo">CLÁUSULA QUARTA - DAS OBRIGAÇÕES DO CONTRATANTE</div>
+            <p>O CONTRATANTE obriga-se a: (a) Efetuar o pagamento pelos serviços prestados; 
+            (b) Fornecer as informações necessárias; (c) Fiscalizar a execução dos serviços.</p>
+          </div>
+          
+          <div class="clausula">
+            <div class="clausula-titulo">CLÁUSULA QUINTA - DA RESCISÃO</div>
+            <p>O presente contrato poderá ser rescindido por qualquer das partes, mediante notificação prévia de 30 (trinta) dias, 
+            sem ônus ou multas.</p>
+          </div>
+          
+          <div class="clausula">
+            <div class="clausula-titulo">CLÁUSULA SEXTA - DO FORO</div>
+            <p>Fica eleito o foro da Comarca [Local] para dirimir quaisquer questões decorrentes deste contrato, 
+            renunciando as partes a qualquer outro, por mais privilegiado que seja.</p>
+          </div>
+        </div>
+        
+        <div class="section" style="margin-top: 40px;">
+          <p>E, por estarem assim justos e contratados, assinam o presente instrumento em 2 (duas) vias de igual teor e forma.</p>
+          <p>[Local], ${contratoData.sistema_data_extenso}</p>
+        </div>
+        
+        <div class="assinaturas">
+          <div class="assinatura">
+            <div class="linha-assinatura">CONTRATANTE</div>
+          </div>
+          <div class="assinatura">
+            <div class="linha-assinatura">CONTRATADO</div>
+            <p style="margin-top: 10px;">${contratoData.candidato_nome}</p>
+            <p>CPF: ${contratoData.candidato_cpf_formatado}</p>
+          </div>
+        </div>
+        
+        <p style="text-align: center; margin-top: 50px; font-size: 12px; color: #666;">
+          Documento gerado eletronicamente em ${contratoData.sistema_data_atual}
+        </p>
+      </body>
+      </html>
+    `;
+
+    // ========================================
+    // PASSO 6: SALVAR CONTRATO NO BANCO
     // ========================================
     const numeroContrato = `CONT-${new Date().getFullYear()}-${Math.floor(Math.random() * 999999).toString().padStart(6, '0')}`;
 
@@ -300,6 +425,7 @@ serve(async (req) => {
         documento_url: publicUrl,
         dados_contrato: {
           ...contratoData,
+          contratoHTML: contratoHTML,
           pdf_gerado_em: new Date().toISOString(),
           metodo_geracao: 'jspdf_direto',
           tamanho_bytes: contratoPDFBytes.length
