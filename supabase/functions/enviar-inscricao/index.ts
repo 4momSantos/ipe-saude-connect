@@ -152,11 +152,17 @@ serve(async (req) => {
       related_id: inscricao_id
     });
 
+    // Buscar email do candidato
+    const emailCandidato = inscricao.dados_inscricao?.endereco_correspondencia?.email || 
+                           inscricao.dados_inscricao?.dados_pessoais?.email || 
+                           'Não disponível';
+
     return new Response(
       JSON.stringify({ 
         success: true, 
         inscricao_id,
-        status: 'aguardando_analise' 
+        status: 'aguardando_analise',
+        email_candidato: emailCandidato
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

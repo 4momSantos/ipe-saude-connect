@@ -384,6 +384,8 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
         await onSubmit(data);
         
         // 2️⃣ SÓ DEPOIS enviar via Edge Function
+        let emailRetornado: string | null = null;
+        
         if (inscricaoId && editalId) {
           console.log('[INSCRICAO] Enviando inscrição via edge function:', inscricaoId);
           const { supabase } = await import('@/integrations/supabase/client');
@@ -402,14 +404,19 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
           }
           
           console.log('✅ Inscrição enviada via edge function:', envioData);
+          
+          // Capturar email retornado pela edge function
+          if (envioData?.email_candidato) {
+            emailRetornado = envioData.email_candidato;
+          }
         }
+        
+        return emailRetornado;
       })();
 
-      await Promise.race([submitPromise, timeoutPromise]);
+      const emailCandidato = (await Promise.race([submitPromise, timeoutPromise])) as string | null;
       
-      // Buscar protocolo e dados do usuário
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      // Buscar protocolo
       let protocolo = `IPE-${new Date().getFullYear()}-XXXXX`;
       if (inscricaoId) {
         const { data: inscricaoData } = await supabase
@@ -426,7 +433,7 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
       setInscricaoEnviada({
         protocolo,
         dataEnvio: new Date(),
-        emailCandidato: user?.email || 'Não disponível',
+        emailCandidato: emailCandidato || 'Não disponível',
       });
 
       setShowSuccessDialog(true);
