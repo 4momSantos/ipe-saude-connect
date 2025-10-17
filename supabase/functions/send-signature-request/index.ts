@@ -463,18 +463,18 @@ async function sendDocumentToAssinafy(
   const assignmentData = await assignmentResponse.json();
   
   // Extrair ID com fallback para compatibilidade com API Assinafy
-  const assignmentId = assignmentData.data?.id || assignmentData.id;
+  const assignmentId = (assignmentData.data && assignmentData.data.id) || assignmentData.id;
   
   console.log(JSON.stringify({
     level: "info",
     action: "signature_requested",
-    assignmentId,
+    assignmentId: assignmentId,
     response_structure: assignmentData.data ? 'nested' : 'flat'
   }));
   
   return {
     documentId,
-    assignmentId
+    assignmentId: assignmentId
   };
 }
 
