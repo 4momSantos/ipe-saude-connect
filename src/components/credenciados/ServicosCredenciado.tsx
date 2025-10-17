@@ -49,8 +49,14 @@ export function ServicosCredenciado({ credenciadoId, canEdit = false }: Servicos
 
   const { data: servicos, isLoading } = useServicosCredenciado(credenciadoId);
   const { data: especialidades } = useEspecialidades();
-  const { data: procedimentos } = useProcedimentos(especialidadeSelecionada || undefined);
+  const { data: procedimentos, isLoading: isLoadingProcedimentos, error: errorProcedimentos } = useProcedimentos(especialidadeSelecionada || undefined);
   const { data: profissionais } = useProfissionais(credenciadoId);
+
+  // Debug logging
+  console.log("Especialidade selecionada:", especialidadeSelecionada);
+  console.log("Procedimentos carregados:", procedimentos);
+  console.log("Loading procedimentos:", isLoadingProcedimentos);
+  console.log("Erro procedimentos:", errorProcedimentos);
   
   // Extrair CRMs dos profissionais para exibição
   const profissionaisComCRM = profissionais?.flatMap(prof => 
@@ -210,28 +216,40 @@ export function ServicosCredenciado({ credenciadoId, canEdit = false }: Servicos
                     <Select
                       value={formData.procedimento_id}
                       onValueChange={(value) => setFormData({ ...formData, procedimento_id: value })}
-                      disabled={!especialidadeSelecionada}
+                      disabled={!especialidadeSelecionada || isLoadingProcedimentos}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder={
-                          especialidadeSelecionada 
-                            ? "Selecione o procedimento" 
-                            : "Selecione uma especialidade primeiro"
+                          !especialidadeSelecionada
+                            ? "Selecione uma especialidade primeiro"
+                            : isLoadingProcedimentos
+                            ? "Carregando procedimentos..."
+                            : procedimentos && procedimentos.length > 0
+                            ? "Selecione o procedimento"
+                            : "Nenhum procedimento disponível"
                         } />
                       </SelectTrigger>
                       <SelectContent>
-                        {procedimentos?.map((proc) => (
-                          <SelectItem key={proc.id} value={proc.id}>
-                            <div className="flex flex-col">
-                              <span>{proc.nome}</span>
-                              {proc.codigo_tuss && (
-                                <span className="text-xs text-muted-foreground">
-                                  TUSS: {proc.codigo_tuss}
-                                </span>
-                              )}
-                            </div>
-                          </SelectItem>
-                        ))}
+                        {isLoadingProcedimentos ? (
+                          <div className="p-2 text-sm text-muted-foreground">Carregando...</div>
+                        ) : procedimentos && procedimentos.length > 0 ? (
+                          procedimentos.map((proc) => (
+                            <SelectItem key={proc.id} value={proc.id}>
+                              <div className="flex flex-col">
+                                <span>{proc.nome}</span>
+                                {proc.codigo_tuss && (
+                                  <span className="text-xs text-muted-foreground">
+                                    TUSS: {proc.codigo_tuss}
+                                  </span>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="p-2 text-sm text-muted-foreground">
+                            Nenhum procedimento encontrado
+                          </div>
+                        )}
                       </SelectContent>
                     </Select>
                     {!especialidadeSelecionada && (
@@ -239,9 +257,14 @@ export function ServicosCredenciado({ credenciadoId, canEdit = false }: Servicos
                         Escolha uma especialidade para ver os procedimentos disponíveis
                       </p>
                     )}
-                    {especialidadeSelecionada && (!procedimentos || procedimentos.length === 0) && (
+                    {especialidadeSelecionada && !isLoadingProcedimentos && (!procedimentos || procedimentos.length === 0) && (
                       <p className="text-xs text-amber-600">
-                        Nenhum procedimento cadastrado para esta especialidade
+                        Nenhum procedimento cadastrado para esta especialidade. Entre em contato com o administrador para cadastrar procedimentos.
+                      </p>
+                    )}
+                    {errorProcedimentos && (
+                      <p className="text-xs text-destructive">
+                        Erro ao carregar procedimentos: {errorProcedimentos.message}
                       </p>
                     )}
                   </div>
