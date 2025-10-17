@@ -336,7 +336,15 @@ Deno.serve(async (req) => {
     if (credenciadoId) {
       const { data: credenciado, error } = await supabase
         .from('credenciados')
-        .select('endereco, cidade, estado, cep')
+        .select(`
+          id,
+          endereco,
+          cidade,
+          estado,
+          cep,
+          inscricao_id,
+          inscricoes_edital!inner(dados_inscricao)
+        `)
         .eq('id', credenciadoId)
         .single();
 
@@ -351,9 +359,41 @@ Deno.serve(async (req) => {
         throw new Error(`Credenciado não encontrado: ${error.message}`);
       }
 
-      endereco = [credenciado.endereco, credenciado.cidade, credenciado.estado, 'Brasil']
-        .filter(Boolean)
-        .join(', ');
+      // Extrair endereço de correspondência estruturado (PRIORIDADE)
+      const dadosInscricao = (credenciado as any).inscricoes_edital?.dados_inscricao;
+      const enderecoCorresp = dadosInscricao?.endereco_correspondencia;
+
+      if (enderecoCorresp && enderecoCorresp.cep) {
+        // Montar endereço completo com campos estruturados
+        endereco = [
+          enderecoCorresp.logradouro,
+          enderecoCorresp.numero,
+          enderecoCorresp.complemento,
+          enderecoCorresp.bairro,
+          enderecoCorresp.cidade,
+          enderecoCorresp.uf,
+          'Brasil'
+        ].filter(Boolean).join(', ');
+        
+        log({
+          timestamp: new Date().toISOString(),
+          action: 'endereco_estruturado_usado',
+          credenciado_id: credenciadoId,
+          source: 'endereco_correspondencia'
+        } as any);
+      } else {
+        // Fallback: usar campos legados da tabela credenciados
+        endereco = [credenciado.endereco, credenciado.cidade, credenciado.estado, 'Brasil']
+          .filter(Boolean)
+          .join(', ');
+        
+        log({
+          timestamp: new Date().toISOString(),
+          action: 'endereco_legado_usado',
+          credenciado_id: credenciadoId,
+          warning: 'Endereço estruturado não encontrado'
+        } as any);
+      }
     }
 
     if (!endereco) {

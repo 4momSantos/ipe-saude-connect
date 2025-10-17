@@ -6228,6 +6228,19 @@ export type Database = {
       }
     }
     Functions: {
+      analisar_inscricoes_legadas: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          credenciado_nome: string
+          endereco_legado: string
+          inscricao_id: string
+          protocolo: string
+          status: string
+          tem_cep: boolean
+          tem_endereco_estruturado: boolean
+          tem_endereco_legado: boolean
+        }[]
+      }
       atualizar_status_prazos: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -6483,6 +6496,20 @@ export type Database = {
           result_message: string
           result_status: string
           result_workflow_id: string
+        }[]
+      }
+      estatisticas_geocodificacao: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          consultorios_geocodificados: number
+          consultorios_pendentes: number
+          credenciados_geocodificados: number
+          credenciados_pendentes: number
+          inscricoes_sem_cep: number
+          percentual_consultorios: number
+          percentual_credenciados: number
+          total_consultorios: number
+          total_credenciados: number
         }[]
       }
       generate_address_hash: {
