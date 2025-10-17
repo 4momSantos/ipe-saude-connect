@@ -407,7 +407,7 @@ export function AlteracaoStatusDialog({
               onChange={(e) => setJustificativa(e.target.value)}
               placeholder="Descreva detalhadamente o motivo da alteração de status..."
               className={cn(
-                "min-h-[100px] sm:min-h-[120px] text-xs sm:text-sm resize-none",
+                "min-h-[100px] sm:min-h-[120px] text-xs sm:text-sm resize-none w-full break-words whitespace-pre-wrap overflow-wrap-anywhere",
                 !isJustificativaValida && justificativa.length > 0 && "border-red-500"
               )}
             />
@@ -429,7 +429,7 @@ export function AlteracaoStatusDialog({
                 value={motivoDetalhado}
                 onChange={(e) => setMotivoDetalhado(e.target.value)}
                 placeholder="Informações adicionais sobre o descredenciamento..."
-                className="min-h-[70px] sm:min-h-[80px] text-xs sm:text-sm resize-none"
+                className="min-h-[70px] sm:min-h-[80px] text-xs sm:text-sm resize-none w-full break-words whitespace-pre-wrap overflow-wrap-anywhere"
               />
             </div>
           )}
