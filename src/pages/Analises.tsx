@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ProcessDetailPanel } from "@/components/ProcessDetailPanel";
-import { WorkflowApprovalPanel } from "@/components/workflow/WorkflowApprovalPanel";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { MessageCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -353,10 +352,6 @@ export default function Analises() {
           )}
         </div>
 
-        {/* Seção de Aprovações Pendentes */}
-        {(roles.includes('analista') || roles.includes('gestor') || roles.includes('admin')) && (
-          <WorkflowApprovalPanel />
-        )}
 
         <div className="grid gap-4 md:grid-cols-3">
           <Card className="border bg-card">
