@@ -102,3 +102,6 @@ verify_jwt = false
 [functions.gerar-certificado-regularidade]
 verify_jwt = false
 
+[functions.resend-signature-emails]
+verify_jwt = true
+
