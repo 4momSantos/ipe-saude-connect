@@ -569,7 +569,8 @@ serve(async (req) => {
           method: 'virtual',
           signer_ids: [signerId],
           message: `Por favor, assine o contrato ${contrato.numero_contrato}.`,
-          expires_at: null
+          expires_at: null,
+          auto_place: true
         })
       }
     );
@@ -583,9 +584,12 @@ serve(async (req) => {
     const assignmentId = assignmentData.data?.id || assignmentData.id;
     
     console.log(JSON.stringify({
+      trace_id: traceId,
       level: 'info',
-      action: 'assignment_created',
-      assignment_id: assignmentId
+      action: 'assignment_created_with_auto_place',
+      assignment_id: assignmentId,
+      signature_config: { auto_place: true },
+      assignment_response: assignmentData
     }));
     
     // 5. Buscar URL de assinatura
