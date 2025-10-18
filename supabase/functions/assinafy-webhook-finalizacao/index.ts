@@ -259,8 +259,7 @@ serve(async (req) => {
                 method: 'virtual',
                 signer_ids: [signerId],
                 message: `Por favor, assine o contrato ${contrato.numero_contrato}.`,
-                expires_at: null,
-                auto_place: true
+                expires_at: null
               })
             }
           );
