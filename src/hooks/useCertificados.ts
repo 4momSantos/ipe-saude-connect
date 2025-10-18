@@ -12,7 +12,7 @@ export function useCertificados(credenciadoId?: string) {
         .from("certificados")
         .select(`
           *,
-          credenciado:credenciados(
+          credenciado:credenciados!inner(
             id,
             nome,
             cpf,
@@ -27,6 +27,10 @@ export function useCertificados(credenciadoId?: string) {
         .maybeSingle();
 
       if (error) throw error;
+      
+      console.log('[useCertificados] Dados do certificado:', data);
+      console.log('[useCertificados] Status do credenciado:', data?.credenciado?.status);
+      
       return data;
     },
     enabled: !!credenciadoId
