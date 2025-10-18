@@ -1,5 +1,6 @@
 /**
  * Gerador de PDF de Contratos usando jsPDF puro
+ * Version: 2025-10-18-v3-jspdf-only
  * Sem dependências externas problemáticas
  */
 import jsPDF from "https://esm.sh/jspdf@2.5.1";
@@ -53,7 +54,10 @@ function formatCPF(cpf: string): string {
 export async function gerarContratoPDFDireto(contratoData: ContratoData): Promise<Uint8Array> {
   console.log(JSON.stringify({
     level: 'info',
-    action: 'pdf_generation_start',
+    action: 'jspdf_generation_start_v3',
+    library: 'jsPDF',
+    version: '2.5.1',
+    timestamp: new Date().toISOString(),
     inscricao_id: contratoData.inscricao_id
   }));
 
