@@ -198,31 +198,87 @@ serve(async (req) => {
       size_bytes: pdfBytes.length
     }));
     
-    // 1. Criar signatário
-    const signerResponse = await fetch(`https://api.assinafy.com.br/v1/accounts/${assignafyAccountId}/signers`, {
-      method: 'POST',
-      headers: {
-        'X-Api-Key': assignafyApiKey,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        full_name: candidato.nome || candidato.email,
-        email: candidato.email
-      })
-    });
-    
-    if (!signerResponse.ok) {
-      const errorText = await signerResponse.text();
-      throw new Error(`Erro ao criar signatário: ${errorText}`);
+    // ===== HELPER: Get or Create Signer (Idempotente) =====
+    async function getOrCreateSigner(
+      assignafyApiKey: string,
+      assignafyAccountId: string,
+      email: string,
+      fullName: string
+    ): Promise<{ id: string; created: boolean }> {
+      
+      // 1. Tentar buscar signatário existente
+      const searchResponse = await fetch(
+        `https://api.assinafy.com.br/v1/accounts/${assignafyAccountId}/signers?email=${encodeURIComponent(email)}`,
+        {
+          method: 'GET',
+          headers: {
+            'X-Api-Key': assignafyApiKey,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      if (searchResponse.ok) {
+        const searchData = await searchResponse.json();
+        const existingSigner = searchData.data?.find((s: any) => s.email === email);
+        
+        if (existingSigner) {
+          console.log(JSON.stringify({
+            level: 'info',
+            action: 'signer_found',
+            signer_id: existingSigner.id,
+            email
+          }));
+          
+          return { id: existingSigner.id, created: false };
+        }
+      }
+      
+      // 2. Se não existe, criar novo
+      const createResponse = await fetch(
+        `https://api.assinafy.com.br/v1/accounts/${assignafyAccountId}/signers`,
+        {
+          method: 'POST',
+          headers: {
+            'X-Api-Key': assignafyApiKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            full_name: fullName,
+            email: email
+          })
+        }
+      );
+      
+      if (!createResponse.ok) {
+        const errorText = await createResponse.text();
+        throw new Error(`Erro ao criar signatário: ${errorText}`);
+      }
+      
+      const createData = await createResponse.json();
+      console.log(JSON.stringify({
+        level: 'info',
+        action: 'signer_created',
+        signer_id: createData.data.id,
+        email
+      }));
+      
+      return { id: createData.data.id, created: true };
     }
     
-    const signerData = await signerResponse.json();
-    const signerId = signerData.data.id;
-    
+    // 1. Get or Create Signatário (idempotente)
+    const { id: signerId, created: signerCreated } = await getOrCreateSigner(
+      assignafyApiKey,
+      assignafyAccountId,
+      candidato.email,
+      candidato.nome || candidato.email
+    );
+
     console.log(JSON.stringify({
       level: 'info',
-      action: 'signer_created',
-      signer_id: signerId
+      action: signerCreated ? 'signer_created' : 'signer_reused',
+      signer_id: signerId,
+      email: candidato.email
     }));
     
     // 2. Upload do documento
@@ -499,6 +555,7 @@ serve(async (req) => {
           ...signatureRequest.metadata,
           assinafy_document_id: documentId,
           assinafy_assignment_id: assignmentId,
+          assinafy_signer_id: signerId,
           signature_url: signatureUrl,
           sent_at: new Date().toISOString()
         }
