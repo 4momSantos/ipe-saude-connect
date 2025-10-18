@@ -38,7 +38,7 @@ import {
   formatarCPF,
   formatarCNPJ
 } from "./validators.ts";
-import { gerarContratoPDFDireto } from "./pdf-generator.ts";
+import { gerarContratoPDFA } from "./pdf-generator-pdfa.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -343,7 +343,7 @@ serve(async (req) => {
       timestamp: new Date().toISOString()
     });
 
-    const contratoPDFBytes = await gerarContratoPDFDireto(contratoData);
+    const contratoPDFBytes = await gerarContratoPDFA(contratoData);
     
     logEvent('info', 'pdf_generation_success', { 
       size_bytes: contratoPDFBytes.length,
