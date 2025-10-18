@@ -194,9 +194,17 @@ export function DashboardContratos() {
         inscricao?.dados_inscricao?.dadosPessoais?.nome ||
         inscricao?.dados_inscricao?.dados_pessoais?.nome_completo;
       
-      // Verificar se contrato foi enviado (tem signature_requests)
+      // Verificar se contrato foi enviado (tem signature_requests VÁLIDOS)
       const signatureRequests = (c as any).signature_requests;
-      const naoEnviado = !signatureRequests || (Array.isArray(signatureRequests) && signatureRequests.length === 0);
+      const temSignatureRequest = signatureRequests && Array.isArray(signatureRequests) && signatureRequests.length > 0;
+      
+      // Considerar "não enviado" se:
+      // 1. Não tem signature_request OU
+      // 2. Tem signature_request mas está stuck (status='pending' sem assignment_id)
+      const naoEnviado = !temSignatureRequest || 
+        (temSignatureRequest && signatureRequests.some((sr: any) => 
+          sr.status === 'pending' && !sr.metadata?.assignment_id
+        ));
       
       // Filtros
       let matchesStatus = true;
@@ -377,7 +385,12 @@ export function DashboardContratos() {
                     
                     // Verificar se contrato foi enviado para assinatura
                     const signatureRequests = (contrato as any).signature_requests;
-                    const naoEnviado = !signatureRequests || (Array.isArray(signatureRequests) && signatureRequests.length === 0);
+                    const temSignatureRequest = signatureRequests && Array.isArray(signatureRequests) && signatureRequests.length > 0;
+                    
+                    const naoEnviado = !temSignatureRequest || 
+                      (temSignatureRequest && signatureRequests.some((sr: any) => 
+                        sr.status === 'pending' && !sr.metadata?.assignment_id
+                      ));
 
                     return (
                       <TableRow key={contrato.id}>
@@ -391,9 +404,13 @@ export function DashboardContratos() {
                           {naoEnviado && contrato.status === 'pendente_assinatura' && (
                             <Badge 
                               variant="outline" 
-                              className="ml-2 text-xs border-amber-500 bg-amber-50 text-amber-700 font-semibold"
+                              className={`ml-2 text-xs font-semibold ${
+                                temSignatureRequest 
+                                  ? 'border-red-500 bg-red-50 text-red-700' 
+                                  : 'border-amber-500 bg-amber-50 text-amber-700'
+                              }`}
                             >
-                              ⚠️ Pendente Envio
+                              {temSignatureRequest ? '🔴 Stuck - Reenviar' : '⚠️ Pendente Envio'}
                             </Badge>
                           )}
                         </TableCell>
@@ -529,6 +546,7 @@ export function DashboardContratos() {
                                     });
                                   }}
                                   disabled={resendingContratoId === contrato.id}
+                                  title="Reenviar e-mail de assinatura para contratos já enviados corretamente"
                                 >
                                   <Mail className={`h-4 w-4 mr-2 ${resendingContratoId === contrato.id ? 'animate-spin' : ''}`} />
                                   Reenviar E-mail
@@ -563,7 +581,11 @@ export function DashboardContratos() {
                 <div className="text-2xl font-bold text-yellow-600">
                   {contratos.filter(c => {
                     const signatureRequests = (c as any).signature_requests;
-                    const naoEnviado = !signatureRequests || (Array.isArray(signatureRequests) && signatureRequests.length === 0);
+                    const temSignatureRequest = signatureRequests && Array.isArray(signatureRequests) && signatureRequests.length > 0;
+                    const naoEnviado = !temSignatureRequest || 
+                      (temSignatureRequest && signatureRequests.some((sr: any) => 
+                        sr.status === 'pending' && !sr.metadata?.assignment_id
+                      ));
                     return c.status === 'pendente_assinatura' && naoEnviado;
                   }).length}
                 </div>
