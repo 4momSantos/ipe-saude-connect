@@ -187,11 +187,12 @@ export function DashboardContratos() {
   const contratosFiltrados = contratos
     .filter(c => {
       const inscricao = c.inscricao as any;
+      const candidato = inscricao?.candidato;
       const candidatoNome = 
-        inscricao?.candidato?.nome || 
+        candidato?.nome || 
+        candidato?.email ||
         inscricao?.dados_inscricao?.dadosPessoais?.nome ||
-        inscricao?.dados_inscricao?.dados_pessoais?.nome_completo ||
-        inscricao?.candidato?.email;
+        inscricao?.dados_inscricao?.dados_pessoais?.nome_completo;
       
       // Verificar se contrato foi enviado (tem signature_requests)
       const signatureRequests = (c as any).signature_requests;
@@ -362,12 +363,12 @@ export function DashboardContratos() {
                     const edital = inscricao?.edital;
                     const candidato = inscricao?.candidato;
                     
-                    // Fallbacks inteligentes para nome do candidato
+                    // Ordem correta de prioridade para nome do candidato
                     const candidatoNome = 
-                      candidato?.nome || 
-                      inscricao?.dados_inscricao?.dadosPessoais?.nome ||
+                      candidato?.nome || // Primeiro: profile.nome
+                      candidato?.email || // Segundo: profile.email
+                      inscricao?.dados_inscricao?.dadosPessoais?.nome || // Terceiro: dados da inscrição
                       inscricao?.dados_inscricao?.dados_pessoais?.nome_completo ||
-                      candidato?.email?.split('@')[0] ||
                       "Candidato sem nome";
 
                     // Verificar problemas no contrato (PDF missing)
