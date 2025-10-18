@@ -87,6 +87,7 @@ async function getOrCreateSigner(
   return { id: createData.data.id, created: true };
 }
 
+// Force redeploy: 2025-10-18T00:16:00Z
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
