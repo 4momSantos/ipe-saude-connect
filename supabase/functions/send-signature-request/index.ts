@@ -312,6 +312,35 @@ serve(async (req) => {
       document_id: documentId
     }));
     
+    // ✅ FASE 1.1: Salvar external_id IMEDIATAMENTE após upload
+    const { error: updateExternalIdError } = await supabaseAdmin
+      .from('signature_requests')
+      .update({ 
+        external_id: documentId,
+        metadata: {
+          ...signatureRequest.metadata,
+          uploaded_at: new Date().toISOString(),
+          document_id: documentId
+        },
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', signatureRequestId);
+
+    if (updateExternalIdError) {
+      console.error(JSON.stringify({
+        level: 'error',
+        action: 'update_external_id_failed',
+        error: updateExternalIdError.message
+      }));
+    } else {
+      console.log(JSON.stringify({
+        level: 'info',
+        action: 'external_id_saved',
+        document_id: documentId,
+        signature_request_id: signatureRequestId
+      }));
+    }
+    
     // 3. Aguardar processamento com backoff exponencial
     console.log(JSON.stringify({
       level: 'info',
@@ -426,6 +455,28 @@ serve(async (req) => {
             attempt,
             status: statusData.data?.status
           }));
+          
+          // ✅ FASE 1.2: Atualizar status para 'sent' quando documento estiver pronto
+          await supabaseAdmin
+            .from('signature_requests')
+            .update({
+              status: 'sent',
+              external_status: statusData.data?.status,
+              metadata: {
+                ...signatureRequest.metadata,
+                ready_at: new Date().toISOString(),
+                polling_attempts: attempt
+              },
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', signatureRequestId);
+          
+          console.log(JSON.stringify({
+            level: 'info',
+            action: 'status_updated_to_sent',
+            signature_request_id: signatureRequestId
+          }));
+          
           break;
         }
         
@@ -467,6 +518,7 @@ serve(async (req) => {
         .from('signature_requests')
         .update({ 
           status: 'needs_retry',
+          external_id: documentId, // ✅ FASE 1.3: Garantir external_id no timeout
           metadata: {
             ...signatureRequest.metadata,
             timeout_at: new Date().toISOString(),
