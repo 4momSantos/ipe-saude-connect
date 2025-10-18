@@ -83,7 +83,7 @@ export function useCredenciadosPublicos(filtros: FiltrosPublicos = {}) {
           return {
             ...cred,
             estatisticas: {
-              nota_media_publica: notaMedia,
+              nota_media_publica: notaMedia || 0, // Garantir 0 em vez de null/undefined
               total_avaliacoes_publicas: stats?.length || 0
             }
           };

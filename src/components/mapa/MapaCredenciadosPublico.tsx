@@ -136,11 +136,12 @@ export function MapaCredenciadosPublico({
       } else {
         // Criar marcador individual
         const credenciado = feature.properties.credenciado;
-        const color = getMarkerColor(credenciado.estatisticas.nota_media_publica);
-        const size = Math.max(
-          24,
-          Math.min(40, 24 + credenciado.estatisticas.total_avaliacoes_publicas * 2)
-        );
+        const notaMedia = credenciado.estatisticas?.nota_media_publica || 0;
+        const totalAvaliacoes = credenciado.estatisticas?.total_avaliacoes_publicas || 0;
+        const color = totalAvaliacoes > 0 ? getMarkerColor(notaMedia) : "#94a3b8"; // Cinza neutro para sem avaliações
+        const size = totalAvaliacoes > 0 
+          ? Math.max(24, Math.min(40, 24 + totalAvaliacoes * 2))
+          : 28; // Tamanho fixo para sem avaliações
 
         const el = document.createElement("div");
         el.className = "marker";
@@ -241,9 +242,10 @@ export function MapaCredenciadosPublico({
 }
 
 function getMarkerColor(notaMedia: number): string {
-  if (notaMedia >= 4.5) return "#10b981"; // green
-  if (notaMedia >= 4.0) return "#3b82f6"; // blue
-  if (notaMedia >= 3.5) return "#eab308"; // yellow
-  if (notaMedia >= 3.0) return "#f97316"; // orange
-  return "#ef4444"; // red
+  if (notaMedia === 0) return "#94a3b8"; // Cinza para sem avaliações
+  if (notaMedia >= 4.5) return "#10b981"; // verde
+  if (notaMedia >= 4.0) return "#3b82f6"; // azul
+  if (notaMedia >= 3.5) return "#eab308"; // amarelo
+  if (notaMedia >= 3.0) return "#f97316"; // laranja
+  return "#ef4444"; // vermelho
 }

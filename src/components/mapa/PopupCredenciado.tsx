@@ -40,15 +40,21 @@ export function PopupCredenciado({ credenciado }: PopupCredenciadoProps) {
         
         <div className="flex-1 min-w-0">
           <h3 className="font-bold text-lg truncate">{credenciado.nome}</h3>
-          <div className="flex items-center gap-1">
-            <Stars value={credenciado.estatisticas.nota_media_publica} size="sm" readonly />
-            <span className="text-sm font-medium">
-              {credenciado.estatisticas.nota_media_publica.toFixed(1)}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              ({credenciado.estatisticas.total_avaliacoes_publicas})
-            </span>
-          </div>
+          {credenciado.estatisticas.total_avaliacoes_publicas > 0 ? (
+            <div className="flex items-center gap-1">
+              <Stars value={credenciado.estatisticas.nota_media_publica} size="sm" readonly />
+              <span className="text-sm font-medium">
+                {credenciado.estatisticas.nota_media_publica.toFixed(1)}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                ({credenciado.estatisticas.total_avaliacoes_publicas})
+              </span>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Ainda sem avaliações
+            </p>
+          )}
         </div>
       </div>
 
