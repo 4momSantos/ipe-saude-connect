@@ -914,49 +914,59 @@ export default function WorkflowEditor() {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      {/* Header */}
-      <div className="border-b bg-card px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate("/workflows")}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
-          </Button>
-          <Input
-            value={workflowName}
-            onChange={(e) => setWorkflowName(e.target.value)}
-            className="max-w-xs"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="secondary" 
-            size="sm" 
-            onClick={loadCredenciamentoTemplate}
-            className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-purple-500/20 hover:border-purple-500/40"
-          >
-            🚀 Criar Fluxo de Credenciamento
-          </Button>
-          <TriggerManagementDialog workflowId={searchParams.get("id") || undefined} />
-          <Button variant="outline" size="sm" onClick={testWorkflow}>
-            <Play className="h-4 w-4 mr-2" />
-            Testar
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => navigate(`/analises?workflow=${searchParams.get("id")}`)}
-          >
-            <Eye className="h-4 w-4 mr-2" />
-            Ver Execuções
-          </Button>
-          <Button size="sm" onClick={saveWorkflow}>
-            <Save className="h-4 w-4 mr-2" />
-            Salvar
-          </Button>
+      {/* Header - Responsivo */}
+      <div className="border-b px-3 md:px-6 py-3 md:py-4 bg-card/50 backdrop-blur">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          {/* Linha 1: Voltar e Nome do Workflow */}
+          <div className="flex items-center gap-2 md:gap-4 w-full sm:w-auto">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/workflows")}
+              className="shrink-0"
+            >
+              <ArrowLeft className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Voltar</span>
+            </Button>
+            <Input
+              value={workflowName}
+              onChange={(e) => setWorkflowName(e.target.value)}
+              className="flex-1 sm:max-w-xs text-sm"
+              placeholder="Nome do workflow"
+            />
+          </div>
+          
+          {/* Linha 2: Botões de Ação - Scroll horizontal em mobile */}
+          <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0 scrollbar-thin">
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              onClick={loadCredenciamentoTemplate}
+              className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-purple-500/20 hover:border-purple-500/40 shrink-0 text-xs md:text-sm"
+            >
+              <span className="hidden sm:inline">🚀 Criar Fluxo de Credenciamento</span>
+              <span className="sm:hidden">🚀 Template</span>
+            </Button>
+            <TriggerManagementDialog workflowId={searchParams.get("id") || undefined} />
+            <Button variant="outline" size="sm" onClick={testWorkflow} className="shrink-0">
+              <Play className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Testar</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate(`/analises?workflow=${searchParams.get("id")}`)}
+              className="shrink-0"
+            >
+              <Eye className="h-4 w-4 md:mr-2" />
+              <span className="hidden lg:inline">Ver Execuções</span>
+              <span className="lg:hidden hidden md:inline">Execuções</span>
+            </Button>
+            <Button size="sm" onClick={saveWorkflow} className="shrink-0">
+              <Save className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Salvar</span>
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -996,21 +1006,21 @@ export default function WorkflowEditor() {
                 const data = node.data as WorkflowNodeData;
                 return data.color;
               }}
-              className="bg-card border rounded-lg shadow-sm"
+              className="hidden md:block bg-card border rounded-lg shadow-sm"
               maskColor="hsl(var(--background) / 0.8)"
             />
             
-            {/* Node Palette */}
-            <Panel position="top-left" className="space-y-2">
-              <Card className="p-4 max-w-md shadow-lg">
-                <div className="mb-4">
-                  <h3 className="text-sm font-bold text-foreground">Adicionar Etapas</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
+            {/* Node Palette - Responsivo */}
+            <Panel position="top-left" className="space-y-2 m-2 md:m-0">
+              <Card className="p-2 md:p-4 max-w-[calc(100vw-2rem)] md:max-w-md shadow-lg">
+                <div className="mb-2 md:mb-4">
+                  <h3 className="text-xs md:text-sm font-bold text-foreground">Adicionar Etapas</h3>
+                  <p className="text-[10px] md:text-xs text-muted-foreground mt-1 hidden sm:block">
                     Arraste ou clique para adicionar ao fluxo
                   </p>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-2 gap-1.5 md:gap-2 max-h-[60vh] md:max-h-none overflow-y-auto pr-1">
                   {nodeTemplates.map((template) => {
                     const IconComponent = {
                       FileText,
@@ -1030,24 +1040,24 @@ export default function WorkflowEditor() {
                       <Button
                         key={template.type}
                         variant="outline"
-                        className="h-auto p-3 flex flex-col items-start gap-2 hover:scale-105 transition-all duration-200 hover:shadow-md group"
+                        className="h-auto p-2 md:p-3 flex flex-col items-start gap-1 md:gap-2 hover:scale-105 transition-all duration-200 hover:shadow-md group text-left"
                         onClick={() => addNode(template)}
                       >
-                        <div className="flex items-center gap-2 w-full">
+                        <div className="flex items-center gap-1.5 md:gap-2 w-full">
                           <div 
-                            className="p-1.5 rounded-md transition-transform duration-200 group-hover:scale-110"
+                            className="p-1 md:p-1.5 rounded-md transition-transform duration-200 group-hover:scale-110 shrink-0"
                             style={{ backgroundColor: `${template.color}15` }}
                           >
                             <IconComponent 
-                              className="h-4 w-4" 
+                              className="h-3 w-3 md:h-4 md:w-4" 
                               style={{ color: template.color }}
                             />
                           </div>
-                          <span className="text-xs font-semibold text-left flex-1">
+                          <span className="text-[10px] md:text-xs font-semibold text-left flex-1 leading-tight">
                             {template.label}
                           </span>
                         </div>
-                        <p className="text-[10px] text-muted-foreground text-left leading-tight">
+                        <p className="text-[9px] md:text-[10px] text-muted-foreground text-left leading-tight hidden sm:block">
                           {template.description}
                         </p>
                       </Button>
@@ -1059,9 +1069,9 @@ export default function WorkflowEditor() {
           </ReactFlow>
         </div>
 
-        {/* Config Panel Dialog */}
+        {/* Config Panel Dialog - Responsivo */}
         <Dialog open={selectedNode !== null} onOpenChange={(open) => !open && setSelectedNode(null)}>
-          <DialogContent className="max-w-[90vw] w-full h-[90vh] max-h-[90vh] p-0 gap-0">
+          <DialogContent className="max-w-[95vw] md:max-w-[90vw] w-full h-[95vh] md:h-[90vh] max-h-[95vh] md:max-h-[90vh] p-0 gap-0">
             {selectedNode && (
               <ConfigPanel
                 nodeData={selectedNode.data}
