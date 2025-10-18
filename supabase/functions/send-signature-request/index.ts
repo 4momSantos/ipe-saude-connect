@@ -313,84 +313,17 @@ serve(async (req) => {
       document_id: documentId
     }));
     
-    // 3. Criar assignment imediatamente (não esperar webhook)
-    let assignmentId = '';
-    let signatureUrl = '';
-    
-    try {
-      const assignmentResponse = await fetch(
-        `https://api.assinafy.com.br/v1/documents/${documentId}/assignments`,
-        {
-          method: 'POST',
-          headers: {
-            'X-Api-Key': assignafyApiKey,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            method: 'virtual',
-            signer_ids: [signerId],
-            message: `Por favor, assine o contrato ${contrato.numero_contrato}.`,
-            expires_at: null,
-            auto_place: true
-          })
-        }
-      );
-
-      if (!assignmentResponse.ok) {
-        throw new Error(`Erro ao criar assignment: ${await assignmentResponse.text()}`);
-      }
-
-      const assignmentData = await assignmentResponse.json();
-      assignmentId = assignmentData.data?.id || assignmentData.id;
-
-      console.log(JSON.stringify({
-        trace_id: traceId,
-        level: 'info',
-        action: 'assignment_created',
-        assignment_id: assignmentId
-      }));
-
-      // 4. Buscar URL de assinatura
-      const docDetailsResponse = await fetch(
-        `https://api.assinafy.com.br/v1/accounts/${assignafyAccountId}/documents/${documentId}`,
-        { headers: { 'X-Api-Key': assignafyApiKey } }
-      );
-
-      if (docDetailsResponse.ok) {
-        const docDetails = await docDetailsResponse.json();
-        signatureUrl = docDetails.data?.assignments?.[0]?.signature_url || '';
-        
-        console.log(JSON.stringify({
-          trace_id: traceId,
-          level: 'info',
-          action: 'signature_url_retrieved',
-          has_url: !!signatureUrl
-        }));
-      }
-    } catch (assignmentError: any) {
-      console.warn(JSON.stringify({
-        trace_id: traceId,
-        level: 'warn',
-        action: 'assignment_creation_failed',
-        error: assignmentError.message,
-        note: 'Webhook pode criar assignment posteriormente'
-      }));
-    }
-    
-    // 5. Salvar external_id, assignment e atualizar status
+    // 3. Salvar external_id e atualizar status para 'processing'
     let updateSuccess = false;
     for (let retry = 0; retry < 2; retry++) {
       const { data, error } = await supabaseAdmin
         .from('signature_requests')
         .update({ 
           external_id: documentId,
-          status: assignmentId ? 'pending' : 'processing',
-          external_status: assignmentId ? 'pending_signature' : 'processing',
+          status: 'processing',
           metadata: {
             ...signatureRequest.metadata,
             assinafy_signer_id: signerId,
-            assinafy_assignment_id: assignmentId || undefined,
-            signature_url: signatureUrl || undefined,
             contrato_id: contrato.id,
             uploaded_at: new Date().toISOString(),
             document_id: documentId,
@@ -431,75 +364,24 @@ serve(async (req) => {
       throw new Error('CRITICAL: Falha ao salvar external_id após 2 tentativas');
     }
     
-    // 6. Enviar email com link de assinatura (se disponível)
-    if (signatureUrl && candidato.email) {
-      try {
-        const resendApiKey = Deno.env.get('RESEND_API_KEY');
-        if (!resendApiKey) {
-          throw new Error('RESEND_API_KEY não configurada');
-        }
-
-        const emailHtml = `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;"><h1 style="color: white; margin: 0;">🖊️ Contrato Pronto para Assinatura</h1></div><div style="padding: 30px; background: #f9fafb;"><h2 style="color: #1f2937;">Olá ${candidato.nome || 'Candidato'},</h2><p style="font-size: 16px; color: #4b5563; line-height: 1.6;">Seu contrato de credenciamento está pronto e aguardando sua assinatura digital.</p><div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea;"><p style="margin: 5px 0;"><strong>Número do Contrato:</strong> ${contrato.numero_contrato}</p><p style="margin: 5px 0;"><strong>Provedor:</strong> Assinafy (Assinatura Digital Segura)</p></div><div style="text-align: center; margin: 30px 0;"><a href="${signatureUrl}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">🖊️ Assinar Contrato Agora</a></div><p style="font-size: 14px; color: #6b7280; text-align: center;">Ou copie e cole este link no navegador:<br/><code style="background: #e5e7eb; padding: 8px; border-radius: 4px; display: inline-block; margin-top: 8px; word-break: break-all; font-size: 12px;">${signatureUrl}</code></p><div style="background: #fffbeb; padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #f59e0b;"><p style="margin: 0; font-size: 14px; color: #92400e;">⏰ <strong>Atenção:</strong> Este link é válido por 30 dias.</p></div></div><div style="background: #1f2937; padding: 20px; text-align: center;"><p style="color: #9ca3af; margin: 0; font-size: 14px;">Sistema de Credenciamento<br/>Em caso de dúvidas, entre em contato com nossa equipe.</p></div></div>`;
-
-        const emailResponse = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${resendApiKey}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            from: "Contratos <onboarding@resend.dev>",
-            to: [candidato.email],
-            subject: "🖊️ Contrato Pronto para Assinatura Digital",
-            html: emailHtml
-          })
-        });
-
-        if (emailResponse.ok) {
-          console.log(JSON.stringify({
-            trace_id: traceId,
-            level: 'info',
-            action: 'email_sent',
-            email: candidato.email
-          }));
-        } else {
-          console.warn(JSON.stringify({
-            trace_id: traceId,
-            level: 'warn',
-            action: 'email_failed',
-            status: emailResponse.status
-          }));
-        }
-      } catch (emailError: any) {
-        console.warn(JSON.stringify({
-          trace_id: traceId,
-          level: 'warn',
-          action: 'email_error',
-          error: emailError.message
-        }));
-      }
-    }
-    
     console.log(JSON.stringify({
       trace_id: traceId,
       level: 'info',
-      action: 'upload_complete_sync',
+      action: 'upload_complete_async',
       document_id: documentId,
-      assignment_id: assignmentId,
-      has_signature_url: !!signatureUrl,
-      email_sent: !!(signatureUrl && candidato.email)
+      message: 'PDF enviado. Assinafy processará e enviará webhook document_metadata_ready'
     }));
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: assignmentId ? 'Contrato pronto para assinatura' : 'Documento enviado. Aguardando processamento.',
-        status: assignmentId ? 'pending' : 'processing',
+        message: 'Documento enviado com sucesso. Aguardando processamento do Assinafy.',
+        status: 'processing',
         signatureRequestId,
         documentId,
-        assignmentId: assignmentId || undefined,
-        signatureUrl: signatureUrl || undefined,
-        trace_id: traceId
+        externalId: documentId,
+        trace_id: traceId,
+        next_step: 'Assinafy enviará webhook document_metadata_ready quando processar o PDF'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
