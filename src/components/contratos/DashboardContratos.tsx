@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTodosContratos } from "@/hooks/useContratos";
-import { useReprocessSignatures } from "@/hooks/useReprocessSignatures";
+import { useReprocessLegacyInscricoes } from "@/hooks/useReprocessLegacyInscricoes";
 import { useResendSignatureEmail } from "@/hooks/useResendSignatureEmail";
 import { useRegenerateContract } from "@/hooks/useRegenerateContract";
 import { useGerarContrato } from "@/hooks/useGerarContrato";
@@ -43,7 +43,7 @@ import { TesteAssinatura } from "./TesteAssinatura";
 
 export function DashboardContratos() {
   const { contratos, filtrar, isLoading, refetch } = useTodosContratos();
-  const { mutate: reprocessSignatures, isPending } = useReprocessSignatures();
+  const { mutate: reprocessLegacy, isPending } = useReprocessLegacyInscricoes();
   const { mutate: resendEmail, isPending: isResending } = useResendSignatureEmail();
   const { mutate: regenerateContract, isPending: isRegenerating } = useRegenerateContract();
   const { gerar: gerarContrato, isLoading: isGerandoContrato } = useGerarContrato();
@@ -82,7 +82,7 @@ export function DashboardContratos() {
 
   const handleReprocess = () => {
     setShowConfirmDialog(false);
-    reprocessSignatures();
+    reprocessLegacy();
   };
 
   const contratosFiltrados = contratos
