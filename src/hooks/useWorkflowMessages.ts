@@ -22,6 +22,7 @@ interface Message {
   read_at: string | null;
   sender_name?: string;
   sender_email?: string;
+  lido_por?: string[];
 }
 
 interface UseWorkflowMessagesOptions {
@@ -92,16 +93,20 @@ export function useWorkflowMessages({
             
             // Adicionar apenas se não é do usuário atual
             if (newMsg.sender_id !== currentUserId) {
+              const lidoPorArray = newMsg.lido_por || [];
+              const isReadForCurrentUser = currentUserId ? lidoPorArray.includes(currentUserId) : false;
+              
               const formattedMsg: Message = {
                 id: newMsg.id,
                 sender_id: newMsg.sender_id,
                 sender_type: newMsg.sender_type,
                 content: newMsg.content || newMsg.mensagem,
                 created_at: newMsg.created_at,
-                is_read: newMsg.is_read,
+                is_read: isReadForCurrentUser,
                 read_at: newMsg.read_at,
                 sender_name: newMsg.usuario_nome || "Usuário",
                 sender_email: newMsg.usuario_email,
+                lido_por: lidoPorArray,
               };
               
               setMessages(prev => [...prev, formattedMsg]);
@@ -190,7 +195,8 @@ export function useWorkflowMessages({
           is_read,
           read_at,
           usuario_nome,
-          usuario_email
+          usuario_email,
+          lido_por
         `,
           { count: 'exact' }
         )
@@ -200,17 +206,24 @@ export function useWorkflowMessages({
 
       if (error) throw error;
 
-      const formattedMessages: Message[] = (data || []).map((msg: any) => ({
-        id: msg.id,
-        sender_id: msg.sender_id,
-        sender_type: msg.sender_type,
-        content: msg.content || msg.mensagem,
-        created_at: msg.created_at,
-        is_read: msg.is_read,
-        read_at: msg.read_at,
-        sender_name: msg.usuario_nome || "Usuário",
-        sender_email: msg.usuario_email,
-      })).reverse(); // Reverter para ordem cronológica
+      const formattedMessages: Message[] = (data || []).map((msg: any) => {
+        // Calcular is_read baseado em lido_por para o usuário atual
+        const lidoPorArray = msg.lido_por || [];
+        const isReadForCurrentUser = currentUserId ? lidoPorArray.includes(currentUserId) : msg.is_read;
+        
+        return {
+          id: msg.id,
+          sender_id: msg.sender_id,
+          sender_type: msg.sender_type,
+          content: msg.content || msg.mensagem,
+          created_at: msg.created_at,
+          is_read: isReadForCurrentUser,
+          read_at: msg.read_at,
+          sender_name: msg.usuario_nome || "Usuário",
+          sender_email: msg.usuario_email,
+          lido_por: lidoPorArray,
+        };
+      }).reverse(); // Reverter para ordem cronológica
 
       if (append) {
         setMessages(prev => [...formattedMessages, ...prev]);
@@ -225,15 +238,20 @@ export function useWorkflowMessages({
         setOffset(MESSAGE_PAGE_SIZE);
       }
 
-      // Contar não lidas de forma otimizada
-      const { count: unreadTotal } = await supabase
-        .from("workflow_messages")
-        .select('*', { count: 'exact', head: true })
-        .eq("inscricao_id", inscricaoId)
-        .eq("is_read", false)
-        .neq("sender_id", currentUserId || '');
+      // Contar não lidas baseado em lido_por (usando filtro negativo)
+      if (currentUserId) {
+        const { data: allMessages } = await supabase
+          .from("workflow_messages")
+          .select('lido_por, sender_id')
+          .eq("inscricao_id", inscricaoId)
+          .neq("sender_id", currentUserId);
 
-      setUnreadCount(unreadTotal || 0);
+        const unreadTotal = (allMessages || []).filter(
+          (msg: any) => !(msg.lido_por || []).includes(currentUserId)
+        ).length;
+
+        setUnreadCount(unreadTotal);
+      }
     } catch (error) {
       console.error("[WORKFLOW_MESSAGES] Error loading messages:", error);
       toast.error("Erro ao carregar mensagens");
@@ -258,13 +276,11 @@ export function useWorkflowMessages({
 
       if (unreadMessages.length === 0) return;
 
-      const { error } = await supabase
-        .from("workflow_messages")
-        .update({ is_read: true, read_at: new Date().toISOString() })
-        .in(
-          "id",
-          unreadMessages.map((m) => m.id)
-        );
+      // Usar SQL function para adicionar user_id ao array lido_por
+      const { error } = await supabase.rpc('mark_messages_read', {
+        message_ids: unreadMessages.map((m) => m.id),
+        user_id: currentUserId
+      });
 
       if (error) throw error;
     } catch (error) {
@@ -273,11 +289,13 @@ export function useWorkflowMessages({
   };
 
   const markAsRead = async (messageId: string) => {
+    if (!currentUserId) return;
+
     try {
-      const { error } = await supabase
-        .from("workflow_messages")
-        .update({ is_read: true, read_at: new Date().toISOString() })
-        .eq("id", messageId);
+      const { error } = await supabase.rpc('mark_messages_read', {
+        message_ids: [messageId],
+        user_id: currentUserId
+      });
 
       if (error) throw error;
 
@@ -302,10 +320,10 @@ export function useWorkflowMessages({
 
       if (unreadIds.length === 0) return;
 
-      const { error } = await supabase
-        .from("workflow_messages")
-        .update({ is_read: true, read_at: new Date().toISOString() })
-        .in("id", unreadIds);
+      const { error } = await supabase.rpc('mark_messages_read', {
+        message_ids: unreadIds,
+        user_id: currentUserId
+      });
 
       if (error) throw error;
 
@@ -333,6 +351,7 @@ export function useWorkflowMessages({
         tipo: 'comentario',
         visivel_para: ['todos'],
         usuario_papel: currentUserType,
+        lido_por: [currentUserId], // Marcar como lida para o remetente
       };
 
       const { error } = await supabase.from("workflow_messages").insert(insertData);

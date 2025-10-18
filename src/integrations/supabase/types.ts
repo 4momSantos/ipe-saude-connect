@@ -6705,6 +6705,10 @@ export type Database = {
         Args: { p_mensagem_id: string; p_usuario_id?: string }
         Returns: boolean
       }
+      mark_messages_read: {
+        Args: { message_ids: string[]; user_id: string }
+        Returns: undefined
+      }
       migrar_prazos_existentes: {
         Args: Record<PropertyKey, never>
         Returns: {

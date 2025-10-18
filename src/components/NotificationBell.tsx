@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
 
 interface Notification {
   id: string;
@@ -27,6 +28,7 @@ interface Notification {
 export function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadNotifications();
@@ -91,6 +93,28 @@ export function NotificationBell() {
     loadNotifications();
   };
 
+  const handleNotificationClick = (notification: Notification) => {
+    // Marcar como lida se não estiver
+    if (!notification.is_read) {
+      markAsRead(notification.id);
+    }
+    
+    // Navegar baseado no tipo de notificação
+    if (notification.related_type === 'inscricao' && notification.related_id) {
+      if (notification.type === 'success' || notification.type === 'approval') {
+        navigate(`/fluxo-credenciamento/${notification.related_id}`);
+      } else if (notification.type === 'error') {
+        navigate(`/minhas-inscricoes/${notification.related_id}`);
+      } else {
+        navigate(`/minhas-inscricoes/${notification.related_id}`);
+      }
+    } else if (notification.related_type === 'workflow_approval' && notification.related_id) {
+      navigate(`/analises?inscricao=${notification.related_id}`);
+    } else if (notification.related_type === 'contrato' && notification.related_id) {
+      navigate(`/contratos`);
+    }
+  };
+
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case "signature":
@@ -145,7 +169,7 @@ export function NotificationBell() {
                 className={`p-3 cursor-pointer ${
                   !notification.is_read ? "bg-muted/50" : ""
                 }`}
-                onClick={() => !notification.is_read && markAsRead(notification.id)}
+                onClick={() => handleNotificationClick(notification)}
               >
                 <div className="flex gap-3 w-full">
                   <span className="text-2xl">{getNotificationIcon(notification.type)}</span>

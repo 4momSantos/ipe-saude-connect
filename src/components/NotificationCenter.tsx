@@ -171,15 +171,34 @@ export function NotificationCenter() {
     
     if (notificacao.related_type && notificacao.related_id) {
       setAberto(false);
-      // Navegar baseado no tipo
+      
       switch (notificacao.related_type) {
         case 'inscricao':
-          navigate(`/inscricoes/${notificacao.related_id}`);
+          // Se for aprovação/sucesso, mostrar fluxo de credenciamento
+          if (notificacao.type === 'success' || notificacao.type === 'approval') {
+            navigate(`/fluxo-credenciamento/${notificacao.related_id}`);
+          } else if (notificacao.type === 'error') {
+            // Se for rejeição, mostrar detalhes
+            navigate(`/minhas-inscricoes/${notificacao.related_id}`);
+          } else {
+            // Fallback
+            navigate(`/minhas-inscricoes/${notificacao.related_id}`);
+          }
           break;
-        case 'documento':
-          navigate(`/documentos/${notificacao.related_id}`);
+          
+        case 'workflow_approval':
+          // Para analistas - ir para página de análises
+          navigate(`/analises?inscricao=${notificacao.related_id}`);
           break;
+          
+        case 'contrato':
+          // Se for relacionado a contrato
+          navigate(`/contratos`);
+          break;
+          
         default:
+          // Fallback para dashboard
+          navigate('/dashboard');
           break;
       }
     }
