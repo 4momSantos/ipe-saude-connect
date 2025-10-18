@@ -152,8 +152,8 @@ const App = () => (
                   <div className="flex min-h-screen w-full">
                     <AppSidebar />
                     <SidebarWidthObserver />
-                    <div className="flex-1 flex flex-col">
-                      <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-border bg-background/95 backdrop-blur px-3 md:px-6">
+                    <div className="flex-1 flex flex-col overflow-x-hidden">
+                      <header className="sticky top-0 flex h-16 items-center gap-4 border-b border-border bg-background/95 backdrop-blur px-3 md:px-6">
                         <SidebarTrigger className="lg:hidden">
                           <Menu className="h-5 w-5" />
                         </SidebarTrigger>
