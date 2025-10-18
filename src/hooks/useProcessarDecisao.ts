@@ -34,42 +34,46 @@ export function useProcessarDecisao() {
 
       if (error) throw error;
       
-      // Se aprovado, buscar contrato gerado
+      // ✅ Se aprovado, buscar contrato gerado
       if (decisao.status === 'aprovado' && onAprovado) {
         console.log('🔍 Buscando contrato gerado para inscrição:', inscricaoId);
         
-        // Aguardar 1 segundo para garantir que contrato foi criado
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const { data: contratoData, error: contratoError } = await supabase
-          .from('contratos')
-          .select(`
-            id,
-            numero_contrato,
-            documento_url,
-            inscricoes_edital (
-              profiles (
-                nome,
-                email
-              )
-            )
-          `)
-          .eq('inscricao_id', inscricaoId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-        
-        if (!contratoError && contratoData) {
-          const profile = contratoData.inscricoes_edital?.profiles;
+        // ✅ Polling inteligente: buscar com retry (mais eficiente)
+        let contratoData = null;
+        let attempts = 0;
+        const maxAttempts = 10;
+
+        while (!contratoData && attempts < maxAttempts) {
+          const { data, error } = await supabase
+            .from('contratos')
+            .select('id, numero_contrato, documento_url, dados_contrato')
+            .eq('inscricao_id', inscricaoId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          
+          if (!error && data) {
+            contratoData = data;
+            break;
+          }
+          
+          attempts++;
+          await new Promise(resolve => setTimeout(resolve, 300)); // 300ms entre tentativas
+        }
+
+        if (contratoData) {
+          // ✅ Extrair dados corretos do JSON dados_contrato
+          const dadosContrato = contratoData.dados_contrato;
+          
           onAprovado({
             id: contratoData.id,
             numero_contrato: contratoData.numero_contrato,
-            candidato_nome: profile?.nome || 'Candidato',
-            candidato_email: profile?.email || '',
+            candidato_nome: dadosContrato?.candidato_nome || 'Candidato',
+            candidato_email: dadosContrato?.candidato_email || '',
             documento_url: contratoData.documento_url
           });
         } else {
-          console.warn('⚠️ Contrato não encontrado ou ainda não foi gerado');
+          console.warn('⚠️ Contrato não encontrado após 10 tentativas (3s total)');
         }
       }
       

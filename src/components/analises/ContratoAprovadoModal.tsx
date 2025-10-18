@@ -61,10 +61,6 @@ export function ContratoAprovadoModal({
     setShowPDF(true);
   };
 
-  const handlePular = () => {
-    onOpenChange(false);
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
@@ -123,17 +119,16 @@ export function ContratoAprovadoModal({
           )}
         </div>
 
+        {/* Aviso: Envio obrigatório */}
+        <Alert className="border-amber-200 bg-amber-50">
+          <AlertCircle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-sm text-amber-800">
+            É necessário enviar o contrato para assinatura para concluir a aprovação.
+          </AlertDescription>
+        </Alert>
+
         {/* Botões de Ação */}
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button
-            variant="outline"
-            onClick={handlePular}
-            disabled={isPending}
-            className="w-full sm:w-auto"
-          >
-            Pular - Enviar Depois
-          </Button>
-          
           <Button
             variant="secondary"
             onClick={handleRevisarContrato}

@@ -241,27 +241,30 @@ export function extrairDadosContratado(dadosInscricao: any, tipo: 'PF' | 'PJ') {
 }
 
 /**
- * Extrai especialidades formatadas
+ * Extrai especialidades (retorna IDs para resolução posterior)
  */
 export function extrairEspecialidades(dadosInscricao: any): string[] {
   const consultorio = dadosInscricao?.consultorio;
   
-  if (!consultorio) return ['Não especificada'];
+  if (!consultorio) return [];
   
-  // Tentar pegar de crms
+  // Tentar pegar de crms primeiro (já vem com nomes)
   const crms = consultorio.crms || [];
   if (Array.isArray(crms) && crms.length > 0) {
-    return crms
+    const nomesEspecialidades = crms
       .map((crm: any) => crm.especialidade || crm.especialidade_nome)
       .filter(Boolean);
+    
+    if (nomesEspecialidades.length > 0) {
+      return nomesEspecialidades;
+    }
   }
   
-  // Tentar pegar de especialidades_ids
+  // ✅ Retornar IDs para resolução posterior
   const especialidadesIds = consultorio.especialidades_ids || consultorio.especialidades;
   if (Array.isArray(especialidadesIds) && especialidadesIds.length > 0) {
-    // Retorna os IDs, pois a resolução será feita no edge function
-    return especialidadesIds;
+    return especialidadesIds; // IDs serão resolvidos no edge function
   }
   
-  return ['Não especificada'];
+  return [];
 }

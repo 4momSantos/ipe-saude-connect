@@ -37,7 +37,7 @@ serve(async (req) => {
     }
     
     // 1. Buscar contratos órfãos (todos ou específico)
-    let query = supabaseAdmin
+    let queryBuilder = supabaseAdmin
       .from('signature_requests')
       .select(`
         *,
@@ -52,15 +52,14 @@ serve(async (req) => {
       .is('metadata->>assinafy_assignment_id', null)
       .in('status', ['processing', 'pending']);
 
-    // Se contrato_id fornecido, filtrar apenas esse contrato
+    // ✅ Aplicar filtros condicionalmente
     if (contrato_id) {
-      query = query.eq('contrato_id', contrato_id);
+      queryBuilder = queryBuilder.eq('contrato_id', contrato_id);
     } else {
-      // Limitar a 20 apenas no processamento em lote
-      query = query.order('created_at', { ascending: false }).limit(20);
+      queryBuilder = queryBuilder.order('created_at', { ascending: false }).limit(20);
     }
 
-    const { data: signatureRequests, error: fetchError } = await query;
+    const { data: signatureRequests, error: fetchError } = await queryBuilder;
     
     if (fetchError) throw fetchError;
 

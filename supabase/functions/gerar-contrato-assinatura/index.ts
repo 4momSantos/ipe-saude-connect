@@ -248,38 +248,62 @@ serve(async (req) => {
     const candidato_endereco_completo = consolidarEndereco(dadosInscricao);
     const { telefone: candidato_telefone, celular: candidato_celular } = consolidarTelefone(dadosInscricao);
 
+    // ✅ Função para resolver IDs de especialidades para nomes
+    async function resolverEspecialidades(especialidadesIds: string[]): Promise<string[]> {
+      if (!especialidadesIds || especialidadesIds.length === 0) {
+        return ['Não especificada'];
+      }
+      
+      const { data, error } = await supabase
+        .from('especialidades_medicas')
+        .select('nome')
+        .in('id', especialidadesIds);
+      
+      if (error || !data || data.length === 0) {
+        console.warn('⚠️ Erro ao buscar especialidades:', error);
+        return ['Não especificada'];
+      }
+      
+      return data.map((e: any) => e.nome);
+    }
+
     // Buscar consultórios (se houver)
     const consultorios_raw = (inscricao as any).consultorios || [];
     const consultorios_ativos = consultorios_raw.filter((c: any) => c.ativo !== false);
     
-    const consultorios = consultorios_ativos.map((c: any) => {
-      const endereco_parts = [
-        c.logradouro,
-        c.numero || 'S/N',
-        c.complemento,
-        c.bairro,
-        c.cidade,
-        c.estado,
-        c.cep
-      ].filter(Boolean);
-      
-      const especialidades_nomes: string[] = [];
-      if (c.especialidades_ids && Array.isArray(c.especialidades_ids)) {
-        especialidades_nomes.push(...c.especialidades_ids.map((id: string) => `Especialidade ${id.substring(0, 8)}`));
-      }
-      
-      return {
-        nome: c.nome_consultorio || 'Consultório',
-        cnes: c.cnes || 'Não informado',
-        endereco_completo: endereco_parts.join(', '),
-        telefone: c.telefone ? `${c.telefone}${c.ramal ? ` Ramal: ${c.ramal}` : ''}` : 'Não informado',
-        especialidades: especialidades_nomes.length > 0 ? especialidades_nomes : ['Não especificada'],
-        is_principal: c.is_principal || false
-      };
-    });
+    // ✅ Processar consultórios com especialidades resolvidas
+    const consultorios = await Promise.all(
+      consultorios_ativos.map(async (c: any) => {
+        const endereco_parts = [
+          c.logradouro,
+          c.numero || 'S/N',
+          c.complemento,
+          c.bairro,
+          c.cidade,
+          c.estado,
+          c.cep
+        ].filter(Boolean);
+        
+        // ✅ RESOLVER ESPECIALIDADES AQUI
+        let especialidades_nomes: string[] = [];
+        if (c.especialidades_ids && Array.isArray(c.especialidades_ids)) {
+          especialidades_nomes = await resolverEspecialidades(c.especialidades_ids);
+        }
+        
+        return {
+          nome: c.nome_consultorio || 'Consultório',
+          cnes: c.cnes || 'Não informado',
+          endereco_completo: endereco_parts.join(', '),
+          telefone: c.telefone ? `${c.telefone}${c.ramal ? ` Ramal: ${c.ramal}` : ''}` : 'Não informado',
+          especialidades: especialidades_nomes.length > 0 ? especialidades_nomes : ['Não especificada'],
+          is_principal: c.is_principal || false
+        };
+      })
+    );
 
-    // Extrair especialidades (para PF ou geral)
-    const especialidades = extrairEspecialidades(dadosInscricao);
+    // ✅ Resolver especialidades gerais também
+    const especialidadesIds = extrairEspecialidades(dadosInscricao);
+    const especialidades = await resolverEspecialidades(especialidadesIds);
 
     // Formatações
     const dataNascimento = dadosPessoais.data_nascimento ? new Date(dadosPessoais.data_nascimento) : null;
