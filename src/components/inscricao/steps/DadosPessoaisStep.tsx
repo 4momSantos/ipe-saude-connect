@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import { useValidatedData } from '@/contexts/ValidatedDataContext';
 import type { CPFValidationData, CRMValidationData } from '@/lib/validators';
 import { useRef } from 'react';
-import { isSameDateIgnoringTime, parseISODateSafe } from '@/utils/dateComparison';
+import { isSameDateIgnoringTime, parseISODateSafe, parseBrazilianDate } from '@/utils/dateComparison';
 
 interface DadosPessoaisStepProps {
   form: UseFormReturn<InscricaoCompletaForm>;
@@ -123,10 +123,32 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
       form.setValue('nome_completo', result.data.nome, { shouldValidate: true });
       
       // Verificar se a data de nascimento bate (comparar apenas dia, mês e ano)
-      const apiDateString = result.data.data_nascimento; // YYYY-MM-DD da API
-      const formDateString = format(dataNascimento, 'yyyy-MM-dd');
+      const apiDateString = result.data.data_nascimento; // Pode vir como "DD/MM/YYYY" (brasileiro) ou "YYYY-MM-DD" (ISO)
+      const formDateString = format(dataNascimento, 'yyyy-MM-dd'); // "YYYY-MM-DD" formato ISO
+
+      // Converter data brasileira para ISO se necessário
+      const apiDateISO = apiDateString.includes('/') ? parseBrazilianDate(apiDateString) : apiDateString;
+
+      if (!apiDateISO) {
+        console.error('Formato de data inválido retornado pela API:', apiDateString);
+        setCpfState({ 
+          status: 'error', 
+          code: 'api-error',
+          message: 'Erro ao processar data de nascimento da API' 
+        });
+        toast.error('Erro de processamento', {
+          description: 'Formato de data retornado pela Receita Federal é inválido. Tente novamente.',
+        });
+        return;
+      }
+
+      console.log('[CPF_VALIDATION] Comparando datas:', {
+        api_formato_original: apiDateString,
+        api_formato_iso: apiDateISO,
+        formulario: formDateString
+      });
       
-      if (!isSameDateIgnoringTime(apiDateString, formDateString)) {
+      if (!isSameDateIgnoringTime(apiDateISO, formDateString)) {
         setBirthDateMismatch(true);
         setCpfState({ 
           status: 'error', 
@@ -134,7 +156,7 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
           message: 'A data de nascimento não corresponde ao CPF informado' 
         });
         toast.error('Data de nascimento divergente', {
-          description: `A data informada (${format(dataNascimento, 'dd/MM/yyyy')}) não confere com os registros da Receita Federal (${format(parseISODateSafe(apiDateString), 'dd/MM/yyyy')}). Verifique se digitou corretamente.`,
+          description: `A data informada (${format(dataNascimento, 'dd/MM/yyyy')}) não confere com os registros da Receita Federal (${apiDateString.includes('/') ? apiDateString : format(parseISODateSafe(apiDateISO), 'dd/MM/yyyy')}). Verifique se digitou corretamente.`,
           duration: 10000
         });
         return;

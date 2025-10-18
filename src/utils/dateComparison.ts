@@ -28,6 +28,22 @@ export function parseISODateSafe(dateString: string): Date {
 }
 
 /**
+ * Converte data do formato brasileiro DD/MM/YYYY para ISO YYYY-MM-DD
+ * @param brDate Data no formato DD/MM/YYYY
+ * @returns Data no formato YYYY-MM-DD ou null se inválido
+ */
+export function parseBrazilianDate(brDate: string): string | null {
+  // Regex para validar DD/MM/YYYY
+  const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+  const match = brDate.match(regex);
+  
+  if (!match) return null;
+  
+  const [, day, month, year] = match;
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * Calcula idade em anos considerando apenas dia, mês e ano
  */
 export function calculateAge(birthdate: Date | string): number {

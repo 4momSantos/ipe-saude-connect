@@ -5,6 +5,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+/**
+ * Converte data do formato brasileiro DD/MM/YYYY para ISO YYYY-MM-DD
+ */
+function convertBRDateToISO(brDate: string): string {
+  const [day, month, year] = brDate.split('/');
+  return `${year}-${month}-${day}`;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -207,13 +215,24 @@ serve(async (req) => {
     if (result.code === 200 && result.data && result.data.length > 0) {
       const cpfData = result.data[0];
       
+      // Normalizar data para formato ISO YYYY-MM-DD
+      const dataNascimentoBR = cpfData.normalizado_data_nascimento || cpfData.data_nascimento;
+      const dataNascimentoISO = dataNascimentoBR && dataNascimentoBR.includes('/') 
+        ? convertBRDateToISO(dataNascimentoBR) 
+        : dataNascimentoBR;
+
+      console.log('[CPF_VALIDATION] Convertendo data de nascimento:', {
+        formato_original: dataNascimentoBR,
+        formato_iso: dataNascimentoISO
+      });
+
       return new Response(
         JSON.stringify({ 
           valid: true, 
           data: {
             nome: cpfData.nome || cpfData.nome_civil || cpfData.nome_social,
             cpf: cpfData.cpf,
-            data_nascimento: cpfData.data_nascimento,
+            data_nascimento: dataNascimentoISO,
             situacao_cadastral: cpfData.situacao_cadastral,
             data_inscricao: cpfData.data_inscricao,
           },
