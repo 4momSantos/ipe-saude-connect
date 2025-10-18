@@ -109,10 +109,22 @@ export async function gerarContratoPDFA(contratoData: ContratoData): Promise<Uin
     const iccProfileResponse = await fetch(
       "https://raw.githubusercontent.com/saucelabs/sRGB-IEC61966-2.1/master/sRGB-IEC61966-2.1.icc"
     );
+    
+    if (!iccProfileResponse.ok) {
+      throw new Error(`Failed to fetch ICC profile: ${iccProfileResponse.status}`);
+    }
+    
     const iccProfileBytes = await iccProfileResponse.arrayBuffer();
     
+    if (!iccProfileBytes || iccProfileBytes.byteLength === 0) {
+      throw new Error('ICC profile is empty');
+    }
+    
+    // Usar context.stream ao invés de flateStream para dados binários
     const iccStreamRef = context.register(
-      context.flateStream(new Uint8Array(iccProfileBytes))
+      context.stream(new Uint8Array(iccProfileBytes), {
+        Filter: 'FlateDecode',
+      })
     );
 
     const outputIntentDict = context.obj({
