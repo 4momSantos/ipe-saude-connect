@@ -105,3 +105,6 @@ verify_jwt = false
 [functions.resend-signature-emails]
 verify_jwt = true
 
+[functions.reprocessar-metadata-ready]
+verify_jwt = true
+
