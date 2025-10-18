@@ -6461,6 +6461,18 @@ export type Database = {
           valido_ate: string
         }[]
       }
+      corrigir_inscricoes_orfas: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          credenciado_criado: boolean
+          credenciado_id: string
+          edital_numero: string
+          erro: string
+          inscricao_id: string
+          protocolo: string
+          status_anterior: string
+        }[]
+      }
       create_rollout_snapshot: {
         Args: {
           p_environment?: string
