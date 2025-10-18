@@ -7,6 +7,7 @@ import { useGerarContrato } from "@/hooks/useGerarContrato";
 import { useAutoRefreshContratos } from "@/hooks/useAutoRefreshContratos";
 import { useCorrigirInscricoesOrfas } from "@/hooks/useCorrigirInscricoesOrfas";
 import { useReprocessStuckContracts } from "@/hooks/useReprocessStuckContracts";
+import { useSendSingleContractToSign } from "@/hooks/useSendSingleContractToSign";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -51,6 +52,7 @@ export function DashboardContratos() {
   const { gerar: gerarContrato, isLoading: isGerandoContrato } = useGerarContrato();
   const { mutate: corrigirOrfas, isPending: isCorrigindo } = useCorrigirInscricoesOrfas();
   const { mutate: reprocessStuck, isPending: isReprocessingStuck } = useReprocessStuckContracts();
+  const { mutate: sendSingleContract } = useSendSingleContractToSign();
   
   // ✅ Ativar auto-refresh para contratos pendentes
   useAutoRefreshContratos({ 
@@ -84,6 +86,23 @@ export function DashboardContratos() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [resendingContratoId, setResendingContratoId] = useState<string | null>(null);
+  const [sendingContratoId, setSendingContratoId] = useState<string | null>(null);
+
+  const handleSendSingleContract = (contratoId: string) => {
+    setSendingContratoId(contratoId);
+    sendSingleContract(contratoId, {
+      onSuccess: () => {
+        toast.success('✅ Contrato enviado para assinatura!');
+        refetch();
+      },
+      onError: () => {
+        toast.error('❌ Erro ao enviar contrato');
+      },
+      onSettled: () => {
+        setSendingContratoId(null);
+      }
+    });
+  };
 
   const handleReprocess = async () => {
     setShowConfirmDialog(false);
@@ -369,8 +388,11 @@ export function DashboardContratos() {
                             </Badge>
                           )}
                           {naoEnviado && contrato.status === 'pendente_assinatura' && (
-                            <Badge variant="outline" className="ml-2 text-xs border-yellow-500 text-yellow-700">
-                              Não Enviado
+                            <Badge 
+                              variant="outline" 
+                              className="ml-2 text-xs border-amber-500 bg-amber-50 text-amber-700 font-semibold"
+                            >
+                              ⚠️ Pendente Envio
                             </Badge>
                           )}
                         </TableCell>
@@ -445,18 +467,22 @@ export function DashboardContratos() {
                               <Button
                                 size="sm"
                                 variant="default"
-                                onClick={async () => {
-                                  try {
-                                    await gerarContrato({ inscricaoId: contrato.inscricao_id });
-                                    refetch();
-                                  } catch (error) {
-                                    console.error('Erro ao enviar contrato:', error);
-                                  }
-                                }}
-                                disabled={isGerandoContrato}
+                                onClick={() => handleSendSingleContract(contrato.id)}
+                                disabled={sendingContratoId === contrato.id}
+                                className="bg-green-600 hover:bg-green-700"
+                                title="Enviar contrato para assinatura digital"
                               >
-                                <Mail className="h-4 w-4 mr-2" />
-                                Enviar para Assinatura
+                                {sendingContratoId === contrato.id ? (
+                                  <>
+                                    <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                                    Enviando...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Mail className="h-4 w-4 mr-1" />
+                                    📤 Enviar
+                                  </>
+                                )}
                               </Button>
                             )}
                             

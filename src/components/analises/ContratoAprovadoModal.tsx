@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useSendSingleContractToSign } from "@/hooks/useSendSingleContractToSign";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "sonner";
 
 interface ContratoAprovadoModalProps {
   open: boolean;
@@ -39,6 +40,7 @@ export function ContratoAprovadoModal({
   onContratoEnviado
 }: ContratoAprovadoModalProps) {
   const [showPDF, setShowPDF] = useState(false);
+  const [contratoEnviado, setContratoEnviado] = useState(false);
   const { mutate: sendContract, isPending } = useSendSingleContractToSign();
 
   if (!contrato) return null;
@@ -46,12 +48,38 @@ export function ContratoAprovadoModal({
   const handleEnviarAgora = () => {
     sendContract(contrato.id, {
       onSuccess: () => {
+        setContratoEnviado(true);
         onContratoEnviado?.();
         setTimeout(() => {
           onOpenChange(false);
         }, 2000);
       }
     });
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    if (!open && !contratoEnviado && !isPending) {
+      const confirmar = window.confirm(
+        '⚠️ ATENÇÃO!\n\n' +
+        'O contrato foi gerado mas ainda não foi enviado para assinatura.\n\n' +
+        'Se fechar agora, você precisará enviar manualmente pela página de Contratos.\n\n' +
+        'Deseja realmente fechar sem enviar?'
+      );
+      
+      if (!confirmar) {
+        return;
+      }
+      
+      toast.info(
+        '📋 Contrato não enviado',
+        {
+          description: 'Você pode enviar depois em /contratos',
+          duration: 8000
+        }
+      );
+    }
+    
+    onOpenChange(open);
   };
 
   const handleRevisarContrato = () => {
@@ -62,7 +90,7 @@ export function ContratoAprovadoModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <div className="flex items-center gap-3 mb-2">
@@ -120,10 +148,10 @@ export function ContratoAprovadoModal({
         </div>
 
         {/* Aviso: Envio obrigatório */}
-        <Alert className="border-amber-200 bg-amber-50">
-          <AlertCircle className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-sm text-amber-800">
-            É necessário enviar o contrato para assinatura para concluir a aprovação.
+        <Alert className="border-red-200 bg-red-50">
+          <AlertCircle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-sm text-red-800 font-medium">
+            ⚠️ IMPORTANTE: Não feche este modal sem enviar o contrato! Se fechar, precisará enviar manualmente depois.
           </AlertDescription>
         </Alert>
 
