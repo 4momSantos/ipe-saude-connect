@@ -970,6 +970,54 @@ export default function WorkflowEditor() {
         </div>
       </div>
 
+      {/* Barra de Etapas */}
+      <div className="border-b px-3 md:px-6 py-3 bg-card/50 backdrop-blur">
+        <div className="flex items-center gap-2 md:gap-4">
+          <h3 className="text-xs md:text-sm font-bold text-foreground shrink-0">Adicionar Etapas:</h3>
+          <div className="flex items-center gap-1.5 md:gap-2 overflow-x-auto scrollbar-thin pb-2">
+            {nodeTemplates.map((template) => {
+              const IconComponent = {
+                FileText,
+                Webhook,
+                Globe,
+                PenTool,
+                Mail,
+                Database,
+                CheckCircle,
+                GitBranch,
+                StopCircle,
+                Repeat,
+                Code2
+              }[template.icon] || FileText;
+
+              return (
+                <Button
+                  key={template.type}
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 gap-1.5 md:gap-2 hover:scale-105 transition-all duration-200"
+                  onClick={() => addNode(template)}
+                  title={template.description}
+                >
+                  <div 
+                    className="p-1 rounded-md shrink-0"
+                    style={{ backgroundColor: `${template.color}15` }}
+                  >
+                    <IconComponent 
+                      className="h-3 w-3 md:h-4 md:w-4" 
+                      style={{ color: template.color }}
+                    />
+                  </div>
+                  <span className="text-[10px] md:text-xs font-semibold whitespace-nowrap">
+                    {template.label}
+                  </span>
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Canvas */}
@@ -1009,63 +1057,6 @@ export default function WorkflowEditor() {
               className="hidden md:block bg-card border rounded-lg shadow-sm"
               maskColor="hsl(var(--background) / 0.8)"
             />
-            
-            {/* Node Palette - Responsivo */}
-            <Panel position="top-left" className="space-y-2 m-2 md:m-0">
-              <Card className="p-2 md:p-4 max-w-[calc(100vw-2rem)] md:max-w-md shadow-lg">
-                <div className="mb-2 md:mb-4">
-                  <h3 className="text-xs md:text-sm font-bold text-foreground">Adicionar Etapas</h3>
-                  <p className="text-[10px] md:text-xs text-muted-foreground mt-1 hidden sm:block">
-                    Arraste ou clique para adicionar ao fluxo
-                  </p>
-                </div>
-                
-                <div className="grid grid-cols-2 sm:grid-cols-2 gap-1.5 md:gap-2 max-h-[60vh] md:max-h-none overflow-y-auto pr-1">
-                  {nodeTemplates.map((template) => {
-                    const IconComponent = {
-                      FileText,
-                      Webhook,
-                      Globe,
-                      PenTool,
-                      Mail,
-                      Database,
-                      CheckCircle,
-                      GitBranch,
-                      StopCircle,
-                      Repeat,
-                      Code2
-                    }[template.icon] || FileText;
-
-                    return (
-                      <Button
-                        key={template.type}
-                        variant="outline"
-                        className="h-auto p-2 md:p-3 flex flex-col items-start gap-1 md:gap-2 hover:scale-105 transition-all duration-200 hover:shadow-md group text-left"
-                        onClick={() => addNode(template)}
-                      >
-                        <div className="flex items-center gap-1.5 md:gap-2 w-full">
-                          <div 
-                            className="p-1 md:p-1.5 rounded-md transition-transform duration-200 group-hover:scale-110 shrink-0"
-                            style={{ backgroundColor: `${template.color}15` }}
-                          >
-                            <IconComponent 
-                              className="h-3 w-3 md:h-4 md:w-4" 
-                              style={{ color: template.color }}
-                            />
-                          </div>
-                          <span className="text-[10px] md:text-xs font-semibold text-left flex-1 leading-tight">
-                            {template.label}
-                          </span>
-                        </div>
-                        <p className="text-[9px] md:text-[10px] text-muted-foreground text-left leading-tight hidden sm:block">
-                          {template.description}
-                        </p>
-                      </Button>
-                    );
-                  })}
-                </div>
-              </Card>
-            </Panel>
           </ReactFlow>
         </div>
 
