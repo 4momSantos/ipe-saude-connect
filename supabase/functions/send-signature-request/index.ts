@@ -1,14 +1,13 @@
 /**
- * Edge Function: send-signature-request (V2 - PDF Direct)
+ * Edge Function: send-signature-request (V3 - Async Webhook)
  * 
- * Envia contratos para assinatura na Assinafy usando PDF direto (sem HTML).
+ * Envia contratos para assinatura na Assinafy usando arquitetura assíncrona.
  * 
  * Features:
  * - PDF direto via base64 ou download de Storage
- * - Polling com backoff exponencial (15 tentativas)
- * - Logs estruturados em JSON
- * - Modo DEV com auto-simulação
- * - Envio de e-mail via Resend
+ * - Upload rápido (~2s)
+ * - Assinafy processa PDF e envia webhook document_metadata_ready
+ * - Webhook cria assignment e envia email
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -87,7 +86,6 @@ async function getOrCreateSigner(
   return { id: createData.data.id, created: true };
 }
 
-// Force redeploy: 2025-10-18T00:16:00Z
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -107,8 +105,6 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
-    
-    const resendApiKey = Deno.env.get('RESEND_API_KEY')!;
     
     const assignafyApiKey = Deno.env.get('ASSINAFY_API_KEY');
     const assignafyAccountId = Deno.env.get('ASSINAFY_ACCOUNT_ID');
@@ -317,15 +313,18 @@ serve(async (req) => {
       document_id: documentId
     }));
     
-    // ✅ CRITICAL: Salvar external_id IMEDIATAMENTE com retry automático
+    // 3. Salvar external_id e atualizar status para 'processing'
     let updateSuccess = false;
     for (let retry = 0; retry < 2; retry++) {
       const { data, error } = await supabaseAdmin
         .from('signature_requests')
         .update({ 
           external_id: documentId,
+          status: 'processing',
           metadata: {
             ...signatureRequest.metadata,
+            assinafy_signer_id: signerId,
+            contrato_id: contrato.id,
             uploaded_at: new Date().toISOString(),
             document_id: documentId,
             trace_id: traceId
@@ -365,323 +364,24 @@ serve(async (req) => {
       throw new Error('CRITICAL: Falha ao salvar external_id após 2 tentativas');
     }
     
-    // 3. Aguardar processamento com backoff exponencial
-    const pollingStartTime = Date.now();
-    
     console.log(JSON.stringify({
       trace_id: traceId,
       level: 'info',
-      action: 'polling_start',
+      action: 'upload_complete_async',
       document_id: documentId,
-      max_attempts: 20
-    }));
-
-    await new Promise(resolve => setTimeout(resolve, 5000)); // ✅ Delay inicial de 5s (compromisso)
-    
-    let documentReady = false;
-    const maxAttempts = 20;
-    
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      console.log(JSON.stringify({
-        trace_id: traceId,
-        level: 'info',
-        action: 'polling_attempt',
-        document_id: documentId,
-        attempt,
-        elapsed_seconds: Math.floor((Date.now() - pollingStartTime) / 1000)
-      }));
-      
-      try {
-        const statusResponse = await fetch(
-          `https://api.assinafy.com.br/v1/accounts/${assignafyAccountId}/documents/${documentId}`,
-          {
-            method: 'GET',
-            headers: {
-              'X-Api-Key': assignafyApiKey,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-
-        // 404: Documento processando (normal)
-        if (statusResponse.status === 404) {
-          if (attempt <= 6) { // ✅ Tolerar até 30s
-            console.log(JSON.stringify({
-              trace_id: traceId,
-              level: 'info',
-              action: 'document_processing',
-              attempt,
-              message: '404 - aguardando processamento Assinafy'
-            }));
-            
-            // Backoff 1.5
-            const delay = Math.min(2000 * Math.pow(1.5, attempt - 1), 20000);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            continue;
-          } else {
-            throw new Error('Documento não encontrado após 30s - possível falha no upload');
-          }
-        }
-
-        // 5xx: Erro servidor Assinafy
-        if (statusResponse.status >= 500) {
-          console.warn(JSON.stringify({
-            trace_id: traceId,
-            level: 'warn',
-            action: 'assinafy_server_error',
-            status: statusResponse.status,
-            attempt
-          }));
-          
-          if (attempt <= 10) {
-            await new Promise(resolve => setTimeout(resolve, 5000));
-            continue;
-          }
-          throw new Error(`Assinafy server error: ${statusResponse.status}`);
-        }
-
-        // 4xx (exceto 404): Erro permanente
-        if (statusResponse.status >= 400) {
-          throw new Error(`Assinafy client error: ${statusResponse.status}`);
-        }
-
-        // 200 OK: Processar resposta
-        const statusData = await statusResponse.json();
-        
-        // Verificar se documento está pronto
-        if (statusData.data?.status === 'pending_signature' || statusData.data?.status === 'active') {
-          console.log(JSON.stringify({
-            trace_id: traceId,
-            level: 'info',
-            action: 'document_ready',
-            document_id: documentId,
-            assinafy_status: statusData.data.status,
-            elapsed_seconds: Math.floor((Date.now() - pollingStartTime) / 1000),
-            polling_attempts: attempt
-          }));
-
-          // ✅ Atualizar status para 'sent'
-          await supabaseAdmin
-            .from('signature_requests')
-            .update({
-              status: 'sent',
-              external_status: statusData.data.status,
-              metadata: {
-                ...signatureRequest.metadata,
-                ready_at: new Date().toISOString(),
-                polling_attempts: attempt,
-                total_duration_seconds: Math.floor((Date.now() - pollingStartTime) / 1000),
-                trace_id: traceId
-              },
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', signatureRequestId);
-
-          documentReady = true;
-          break;
-        }
-
-        console.log(JSON.stringify({
-          trace_id: traceId,
-          level: 'info',
-          action: 'document_still_processing',
-          attempt,
-          status: statusData.data?.status
-        }));
-
-      } catch (error: any) {
-        console.error(JSON.stringify({
-          trace_id: traceId,
-          level: 'error',
-          action: 'polling_error',
-          attempt,
-          error: error.message
-        }));
-
-        if (attempt === maxAttempts) {
-          throw error;
-        }
-      }
-
-      // Backoff 1.5
-      const delay = Math.min(2000 * Math.pow(1.5, attempt - 1), 20000);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-    
-    if (!documentReady) {
-      console.warn(JSON.stringify({
-        trace_id: traceId,
-        level: 'warn',
-        action: 'polling_timeout',
-        document_id: documentId,
-        attempts: maxAttempts,
-        elapsed_seconds: Math.floor((Date.now() - pollingStartTime) / 1000),
-        message: 'Documento ainda processando - marcando para retry manual'
-      }));
-      
-      // Atualizar signature_request como "needs_retry"
-      await supabaseAdmin
-        .from('signature_requests')
-        .update({ 
-          status: 'needs_retry',
-          external_id: documentId,
-          metadata: {
-            ...signatureRequest.metadata,
-            timeout_at: new Date().toISOString(),
-            retry_available: true,
-            last_attempt_info: {
-              max_attempts: maxAttempts,
-              document_id: documentId,
-              message: 'Timeout aguardando processamento Assinafy'
-            },
-            trace_id: traceId
-          },
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', signatureRequestId);
-      
-      return new Response(
-        JSON.stringify({
-          success: false,
-          retry_available: true,
-          message: 'Timeout aguardando Assinafy. Aguarde 1-2min e tente reenviar.',
-          signatureRequestId,
-          externalId: documentId,
-          trace_id: traceId
-        }),
-        { 
-          status: 202,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-    
-    // 4. Solicitar assinatura
-    const assignmentResponse = await fetch(
-      `https://api.assinafy.com.br/v1/documents/${documentId}/assignments`,
-      {
-        method: 'POST',
-        headers: {
-          'X-Api-Key': assignafyApiKey,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          method: 'virtual',
-          signer_ids: [signerId],
-          message: `Por favor, assine o contrato ${contrato.numero_contrato}.`,
-          expires_at: null
-        })
-      }
-    );
-    
-    if (!assignmentResponse.ok) {
-      const errorText = await assignmentResponse.text();
-      throw new Error(`Erro ao criar assignment: ${errorText}`);
-    }
-    
-    const assignmentData = await assignmentResponse.json();
-    const assignmentId = assignmentData.data?.id || assignmentData.id;
-    
-    console.log(JSON.stringify({
-      trace_id: traceId,
-      level: 'info',
-      action: 'assignment_created',
-      assignment_id: assignmentId,
-      method: 'virtual'
-    }));
-    
-    // 5. Buscar URL de assinatura
-    const docDetailsResponse = await fetch(
-      `https://api.assinafy.com.br/v1/accounts/${assignafyAccountId}/documents/${documentId}`,
-      {
-        headers: {
-          'X-Api-Key': assignafyApiKey
-        }
-      }
-    );
-    
-    let signatureUrl = '';
-    if (docDetailsResponse.ok) {
-      const docDetails = await docDetailsResponse.json();
-      signatureUrl = docDetails.data?.assignments?.[0]?.signature_url || '';
-    }
-    
-    // 6. Atualizar signature_request
-    await supabaseAdmin
-      .from('signature_requests')
-      .update({
-        external_id: documentId,
-        status: 'sent',
-        external_status: 'sent',
-        metadata: {
-          ...signatureRequest.metadata,
-          assinafy_document_id: documentId,
-          assinafy_assignment_id: assignmentId,
-          assinafy_signer_id: signerId,
-          signature_url: signatureUrl,
-          sent_at: new Date().toISOString()
-        }
-      })
-      .eq('id', signatureRequestId);
-    
-    // 7. Enviar e-mail se houver URL de assinatura
-    if (signatureUrl) {
-      try {
-        // Declarar HTML como constante (evita erro de JSON multi-linha)
-        const emailHtml = `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;"><h1 style="color: white; margin: 0;">🖊️ Contrato Pronto para Assinatura</h1></div><div style="padding: 30px; background: #f9fafb;"><h2 style="color: #1f2937;">Olá ${candidato.nome || 'Candidato'},</h2><p style="font-size: 16px; color: #4b5563; line-height: 1.6;">Seu contrato de credenciamento está pronto e aguardando sua assinatura digital.</p><div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea;"><p style="margin: 5px 0;"><strong>Número do Contrato:</strong> ${contrato.numero_contrato}</p><p style="margin: 5px 0;"><strong>Provedor:</strong> Assinafy (Assinatura Digital Segura)</p></div><div style="text-align: center; margin: 30px 0;"><a href="${signatureUrl}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">🖊️ Assinar Contrato Agora</a></div><p style="font-size: 14px; color: #6b7280; text-align: center;">Ou copie e cole este link no navegador:<br/><code style="background: #e5e7eb; padding: 8px; border-radius: 4px; display: inline-block; margin-top: 8px; word-break: break-all; font-size: 12px;">${signatureUrl}</code></p><div style="background: #fffbeb; padding: 15px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #f59e0b;"><p style="margin: 0; font-size: 14px; color: #92400e;">⏰ <strong>Atenção:</strong> Este link é válido por 30 dias.</p></div></div><div style="background: #1f2937; padding: 20px; text-align: center;"><p style="color: #9ca3af; margin: 0; font-size: 14px;">Sistema de Credenciamento<br/>Em caso de dúvidas, entre em contato com nossa equipe.</p></div></div>`;
-        
-        const emailResponse = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${resendApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from: "Contratos <onboarding@resend.dev>",
-            to: [candidato.email],
-            subject: "🖊️ Contrato Pronto para Assinatura Digital",
-            html: emailHtml
-          })
-        });
-        
-        if (!emailResponse.ok) {
-          throw new Error(`Erro ao enviar e-mail: ${emailResponse.status}`);
-        }
-        
-        console.log(JSON.stringify({
-          level: 'info',
-          action: 'signature_email_sent',
-          contrato_id: contrato.id,
-          email: candidato.email
-        }));
-      } catch (emailError) {
-        console.error(JSON.stringify({
-          level: 'error',
-          action: 'email_send_failed',
-          error: emailError instanceof Error ? emailError.message : 'Unknown'
-        }));
-        // Não falha a operação se e-mail falhar
-      }
-    }
-    
-    console.log(JSON.stringify({
-      trace_id: traceId,
-      level: 'info',
-      action: 'signature_flow_complete',
-      signature_request_id: signatureRequestId,
-      document_id: documentId,
-      total_duration_seconds: Math.floor((Date.now() - pollingStartTime) / 1000)
+      message: 'PDF enviado. Assinafy processará e enviará webhook document_metadata_ready'
     }));
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Documento enviado para assinatura com sucesso',
+        message: 'Documento enviado com sucesso. Aguardando processamento do Assinafy.',
+        status: 'processing',
         signatureRequestId,
         documentId,
         externalId: documentId,
-        signatureUrl,
-        trace_id: traceId
+        trace_id: traceId,
+        next_step: 'Assinafy enviará webhook document_metadata_ready quando processar o PDF'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );

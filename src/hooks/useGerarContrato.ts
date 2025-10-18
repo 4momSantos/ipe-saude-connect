@@ -25,8 +25,10 @@ export function useGerarContrato() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["contratos"] });
-      toast.success("Contrato gerado com sucesso!", {
-        description: `Número: ${data.numero_contrato}`
+      toast.success("Contrato enviado para assinatura!", {
+        description: data.status === 'processing' 
+          ? "Aguardando processamento do Assinafy. O email será enviado em breve."
+          : `Número: ${data.numero_contrato || 'Em processamento'}`
       });
     },
     onError: (error: Error) => {
