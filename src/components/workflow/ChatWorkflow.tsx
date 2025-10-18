@@ -232,45 +232,67 @@ export function ChatWorkflow({
           filter: `inscricao_id=eq.${inscricaoId}`
         },
         async (payload) => {
-          console.log('Nova mensagem recebida:', payload);
+          console.log('[REALTIME] Nova mensagem recebida:', payload.new.id);
           
-          // Realtime incremental: adicionar apenas nova mensagem
           const novaMensagem = payload.new as any;
           
-          // Buscar dados complementares apenas da nova mensagem
-          const { data: anexosData } = await supabase
-            .from('anexos_mensagens')
-            .select('*')
-            .eq('mensagem_id', novaMensagem.id);
+          // ✅ Verificar se é mensagem própria
+          if (novaMensagem.sender_id === currentUser?.id) {
+            console.log('[REALTIME] Ignorando mensagem própria');
+            return;
+          }
           
-          // Construir mensagem completa
-          const mensagemCompleta = {
-            id: novaMensagem.id,
-            usuario_id: novaMensagem.sender_id,
-            usuario_nome: novaMensagem.usuario_nome,
-            usuario_email: novaMensagem.usuario_email,
-            usuario_papel: novaMensagem.usuario_papel,
-            tipo: novaMensagem.tipo,
-            mensagem: novaMensagem.mensagem,
-            mensagem_html: novaMensagem.mensagem_html,
-            mencoes: novaMensagem.mencoes || [],
-            em_resposta_a: novaMensagem.em_resposta_a,
-            anexos: anexosData || [],
-            lido_por: novaMensagem.lido_por || [],
-            created_at: novaMensagem.created_at,
-            editada: novaMensagem.editada || false,
-            manifestacao_metadata: novaMensagem.manifestacao_metadata
-          };
-          
-          // Adicionar apenas se não é do usuário atual
-          if (novaMensagem.sender_id !== currentUser?.id) {
-            setMensagens(prev => [...prev, mensagemCompleta]);
+          // ✅ Verificar se já existe no estado (prevenir duplicação)
+          setMensagens(prev => {
+            const jaExiste = prev.some(m => m.id === novaMensagem.id);
+            if (jaExiste) {
+              console.log('[REALTIME] Mensagem já existe, ignorando');
+              return prev;
+            }
+            
+            console.log('[REALTIME] Adicionando nova mensagem de outro usuário');
+            
+            // Buscar anexos de forma assíncrona e atualizar depois
+            supabase
+              .from('anexos_mensagens')
+              .select('*')
+              .eq('mensagem_id', novaMensagem.id)
+              .then(({ data: anexosData }) => {
+                setMensagens(prevMensagens => 
+                  prevMensagens.map(m => 
+                    m.id === novaMensagem.id 
+                      ? { ...m, anexos: anexosData || [] }
+                      : m
+                  )
+                );
+              });
+            
+            // Adicionar mensagem imediatamente (sem anexos primeiro)
+            const mensagemCompleta = {
+              id: novaMensagem.id,
+              usuario_id: novaMensagem.sender_id,
+              usuario_nome: novaMensagem.usuario_nome,
+              usuario_email: novaMensagem.usuario_email,
+              usuario_papel: novaMensagem.usuario_papel,
+              tipo: novaMensagem.tipo,
+              mensagem: novaMensagem.mensagem,
+              mensagem_html: novaMensagem.mensagem_html,
+              mencoes: novaMensagem.mencoes || [],
+              em_resposta_a: novaMensagem.em_resposta_a,
+              anexos: [], // Carregará depois
+              lido_por: novaMensagem.lido_por || [],
+              created_at: novaMensagem.created_at,
+              editada: novaMensagem.editada || false,
+              manifestacao_metadata: novaMensagem.manifestacao_metadata
+            };
             
             // Marcar como lida
             if (currentUser) {
               marcarComoLida(novaMensagem.id);
             }
-          }
+            
+            return [...prev, mensagemCompleta];
+          });
         }
       )
       .subscribe();
@@ -421,6 +443,8 @@ export function ChatWorkflow({
 
       if (error) throw error;
 
+      console.log('[SEND_MESSAGE] Mensagem inserida no banco:', data.id);
+
       // Registrar anexos
       if (anexosUpload.length > 0 && data) {
         await Promise.all(
@@ -439,6 +463,28 @@ export function ChatWorkflow({
         );
       }
 
+      // ✅ Adicionar mensagem otimisticamente ao estado
+      const novaMensagemCompleta = {
+        id: data.id,
+        usuario_id: data.sender_id,
+        usuario_nome: data.usuario_nome,
+        usuario_email: data.usuario_email,
+        usuario_papel: data.usuario_papel,
+        tipo: data.tipo,
+        mensagem: data.mensagem,
+        mensagem_html: data.mensagem_html,
+        mencoes: data.mencoes || [],
+        em_resposta_a: data.em_resposta_a,
+        anexos: anexosUpload,
+        lido_por: [user.id], // Já lida pelo remetente
+        created_at: data.created_at,
+        editada: false,
+        manifestacao_metadata: data.manifestacao_metadata
+      };
+
+      console.log('[SEND_MESSAGE] Adicionando mensagem otimisticamente:', data.id);
+      setMensagens(prev => [...prev, novaMensagemCompleta]);
+
       // Limpar form
       setNovaMensagem('');
       setAnexos([]);
@@ -450,9 +496,6 @@ export function ChatWorkflow({
           ? `Mensagem enviada e ${mencoes.length} pessoa(s) mencionada(s)!` 
           : 'Mensagem enviada!'
       );
-
-      // Recarregar mensagens
-      await carregarMensagens();
     } catch (error: any) {
       toast.error('Erro ao enviar: ' + error.message);
     } finally {
