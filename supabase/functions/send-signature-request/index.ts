@@ -99,6 +99,9 @@ serve(async (req) => {
     const requestData = await req.json();
     signatureRequestId = requestData.signatureRequestId;
     
+    // ✅ Gerar trace_id para correlacionar logs
+    const traceId = crypto.randomUUID();
+    
     // Inicializar clientes
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -112,6 +115,7 @@ serve(async (req) => {
     const isDev = Deno.env.get('ENVIRONMENT') === 'development';
     
     console.log(JSON.stringify({ 
+      trace_id: traceId,
       level: "info", 
       action: "signature_request_init", 
       signatureRequestId,
@@ -307,218 +311,220 @@ serve(async (req) => {
     const documentId = uploadData.data.id;
     
     console.log(JSON.stringify({
+      trace_id: traceId,
       level: 'info',
       action: 'assinafy_upload_complete',
       document_id: documentId
     }));
     
-    // ✅ FASE 1.1: Salvar external_id IMEDIATAMENTE após upload
-    const { error: updateExternalIdError } = await supabaseAdmin
-      .from('signature_requests')
-      .update({ 
-        external_id: documentId,
-        metadata: {
-          ...signatureRequest.metadata,
-          uploaded_at: new Date().toISOString(),
-          document_id: documentId
-        },
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', signatureRequestId);
+    // ✅ CRITICAL: Salvar external_id IMEDIATAMENTE com retry automático
+    let updateSuccess = false;
+    for (let retry = 0; retry < 2; retry++) {
+      const { data, error } = await supabaseAdmin
+        .from('signature_requests')
+        .update({ 
+          external_id: documentId,
+          metadata: {
+            ...signatureRequest.metadata,
+            uploaded_at: new Date().toISOString(),
+            document_id: documentId,
+            trace_id: traceId
+          },
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', signatureRequestId)
+        .select();
 
-    if (updateExternalIdError) {
-      console.error(JSON.stringify({
-        level: 'error',
-        action: 'update_external_id_failed',
-        error: updateExternalIdError.message
-      }));
-    } else {
-      console.log(JSON.stringify({
-        level: 'info',
-        action: 'external_id_saved',
-        document_id: documentId,
-        signature_request_id: signatureRequestId
-      }));
+      if (!error && data && data.length > 0) {
+        updateSuccess = true;
+        console.log(JSON.stringify({
+          trace_id: traceId,
+          level: 'info',
+          action: 'external_id_saved',
+          document_id: documentId,
+          signature_request_id: signatureRequestId,
+          retry_attempt: retry
+        }));
+        break;
+      } else if (error) {
+        console.error(JSON.stringify({
+          trace_id: traceId,
+          level: 'error',
+          action: 'update_external_id_failed',
+          error: error.message,
+          retry_attempt: retry
+        }));
+        
+        if (retry === 0) {
+          await new Promise(r => setTimeout(r, 500));
+        }
+      }
+    }
+
+    if (!updateSuccess) {
+      throw new Error('CRITICAL: Falha ao salvar external_id após 2 tentativas');
     }
     
     // 3. Aguardar processamento com backoff exponencial
+    const pollingStartTime = Date.now();
+    
     console.log(JSON.stringify({
+      trace_id: traceId,
       level: 'info',
-      action: 'polling_document_start',
-      documentId
+      action: 'polling_start',
+      document_id: documentId,
+      max_attempts: 20
     }));
 
-    await new Promise(resolve => setTimeout(resolve, 10000)); // Delay inicial de 10s (Fase 1)
+    await new Promise(resolve => setTimeout(resolve, 5000)); // ✅ Delay inicial de 5s (compromisso)
     
     let documentReady = false;
-    const maxAttempts = 20; // Aumentado de 15 para 20
+    const maxAttempts = 20;
     
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      const delay = Math.min(2000 * Math.pow(1.3, attempt - 1), 20000); // Max 20s (aumentado)
-      await new Promise(resolve => setTimeout(resolve, delay));
-
       console.log(JSON.stringify({
+        trace_id: traceId,
         level: 'info',
-        action: 'polling_document_status',
+        action: 'polling_attempt',
         document_id: documentId,
-        attempt
+        attempt,
+        elapsed_seconds: Math.floor((Date.now() - pollingStartTime) / 1000)
       }));
       
-      const statusResponse = await fetch(
-        `https://api.assinafy.com.br/v1/accounts/${assignafyAccountId}/documents/${documentId}`,
-        {
-          method: 'GET',
-          headers: {
-            'X-Api-Key': assignafyApiKey,
-            'Content-Type': 'application/json'
+      try {
+        const statusResponse = await fetch(
+          `https://api.assinafy.com.br/v1/accounts/${assignafyAccountId}/documents/${documentId}`,
+          {
+            method: 'GET',
+            headers: {
+              'X-Api-Key': assignafyApiKey,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        // 404: Documento processando (normal)
+        if (statusResponse.status === 404) {
+          if (attempt <= 6) { // ✅ Tolerar até 30s
+            console.log(JSON.stringify({
+              trace_id: traceId,
+              level: 'info',
+              action: 'document_processing',
+              attempt,
+              message: '404 - aguardando processamento Assinafy'
+            }));
+            
+            // Backoff 1.5
+            const delay = Math.min(2000 * Math.pow(1.5, attempt - 1), 20000);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          } else {
+            throw new Error('Documento não encontrado após 30s - possível falha no upload');
           }
         }
-      );
 
-      if (statusResponse.status === 404) {
-        const errorText = await statusResponse.text();
-        console.log(JSON.stringify({
-          level: 'warn',
-          action: '404_detail',
-          attempt,
-          response_body: errorText,
-          document_id: documentId
-        }));
-        
-        // Tolerar 404 nos primeiros 5 attempts (60s com novo delay de 10s)
-        if (attempt <= 5) {
-          console.log(JSON.stringify({
-            level: 'info',
-            action: 'document_still_processing',
-            attempt,
-            message: 'Aguardando processamento - PDF complexo pode levar até 2 minutos'
-          }));
-          continue;
-        }
-        
-        // Após 5 attempts: verificar se documento realmente foi criado
-        if (attempt === 6) {
-          console.log(JSON.stringify({
-            level: 'info',
-            action: 'verify_document_exists',
+        // 5xx: Erro servidor Assinafy
+        if (statusResponse.status >= 500) {
+          console.warn(JSON.stringify({
+            trace_id: traceId,
+            level: 'warn',
+            action: 'assinafy_server_error',
+            status: statusResponse.status,
             attempt
           }));
           
-          const allDocsResponse = await fetch(
-            `https://api.assinafy.com.br/v1/accounts/${assignafyAccountId}/documents?page=1&per_page=50`,
-            {
-              method: 'GET',
-              headers: {
-                'X-Api-Key': assignafyApiKey,
-                'Content-Type': 'application/json'
-              }
-            }
-          );
-          
-          if (allDocsResponse.ok) {
-            const allDocs = await allDocsResponse.json();
-            const found = allDocs.data?.find((d: any) => d.id === documentId);
-            
-            if (!found) {
-              console.error(JSON.stringify({
-                level: 'error',
-                action: 'document_not_found_in_assinafy',
-                document_id: documentId,
-                message: 'Upload pode ter falhado - documento não existe na Assinafy'
-              }));
-              throw new Error(`Documento ${documentId} não encontrado na Assinafy após upload`);
-            } else {
-              console.log(JSON.stringify({
-                level: 'info',
-                action: 'document_exists_but_not_ready',
-                document_id: documentId,
-                status: found.status,
-                message: 'Documento existe mas ainda não está pronto'
-              }));
-            }
+          if (attempt <= 10) {
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            continue;
           }
+          throw new Error(`Assinafy server error: ${statusResponse.status}`);
         }
-        
-        // Continuar tentando
-        continue;
-      }
-      
-      if (statusResponse.ok) {
+
+        // 4xx (exceto 404): Erro permanente
+        if (statusResponse.status >= 400) {
+          throw new Error(`Assinafy client error: ${statusResponse.status}`);
+        }
+
+        // 200 OK: Processar resposta
         const statusData = await statusResponse.json();
         
         // Verificar se documento está pronto
         if (statusData.data?.status === 'pending_signature' || statusData.data?.status === 'active') {
-          documentReady = true;
           console.log(JSON.stringify({
+            trace_id: traceId,
             level: 'info',
             action: 'document_ready',
-            attempt,
-            status: statusData.data?.status
+            document_id: documentId,
+            assinafy_status: statusData.data.status,
+            elapsed_seconds: Math.floor((Date.now() - pollingStartTime) / 1000),
+            polling_attempts: attempt
           }));
-          
-          // ✅ FASE 1.2: Atualizar status para 'sent' quando documento estiver pronto
+
+          // ✅ Atualizar status para 'sent'
           await supabaseAdmin
             .from('signature_requests')
             .update({
               status: 'sent',
-              external_status: statusData.data?.status,
+              external_status: statusData.data.status,
               metadata: {
                 ...signatureRequest.metadata,
                 ready_at: new Date().toISOString(),
-                polling_attempts: attempt
+                polling_attempts: attempt,
+                total_duration_seconds: Math.floor((Date.now() - pollingStartTime) / 1000),
+                trace_id: traceId
               },
               updated_at: new Date().toISOString()
             })
             .eq('id', signatureRequestId);
-          
-          console.log(JSON.stringify({
-            level: 'info',
-            action: 'status_updated_to_sent',
-            signature_request_id: signatureRequestId
-          }));
-          
+
+          documentReady = true;
           break;
         }
-        
+
         console.log(JSON.stringify({
+          trace_id: traceId,
           level: 'info',
-          action: 'document_processing',
+          action: 'document_still_processing',
           attempt,
           status: statusData.data?.status
         }));
-        continue;
+
+      } catch (error: any) {
+        console.error(JSON.stringify({
+          trace_id: traceId,
+          level: 'error',
+          action: 'polling_error',
+          attempt,
+          error: error.message
+        }));
+
+        if (attempt === maxAttempts) {
+          throw error;
+        }
       }
-      
-      console.log(JSON.stringify({
-        level: 'error',
-        action: 'polling_error',
-        status: statusResponse.status,
-        statusText: statusResponse.statusText,
-        attempt
-      }));
+
+      // Backoff 1.5
+      const delay = Math.min(2000 * Math.pow(1.5, attempt - 1), 20000);
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
     
     if (!documentReady) {
       console.warn(JSON.stringify({
+        trace_id: traceId,
         level: 'warn',
         action: 'polling_timeout',
         document_id: documentId,
         attempts: maxAttempts,
+        elapsed_seconds: Math.floor((Date.now() - pollingStartTime) / 1000),
         message: 'Documento ainda processando - marcando para retry manual'
       }));
       
-      // Buscar supabase client para atualizar
-      const supabaseAdmin = createClient(
-        Deno.env.get('SUPABASE_URL')!,
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-      );
-      
-      // Atualizar signature_request como "needs_retry" (não "failed")
+      // Atualizar signature_request como "needs_retry"
       await supabaseAdmin
         .from('signature_requests')
         .update({ 
           status: 'needs_retry',
-          external_id: documentId, // ✅ FASE 1.3: Garantir external_id no timeout
+          external_id: documentId,
           metadata: {
             ...signatureRequest.metadata,
             timeout_at: new Date().toISOString(),
@@ -527,23 +533,24 @@ serve(async (req) => {
               max_attempts: maxAttempts,
               document_id: documentId,
               message: 'Timeout aguardando processamento Assinafy'
-            }
+            },
+            trace_id: traceId
           },
           updated_at: new Date().toISOString()
         })
         .eq('id', signatureRequestId);
       
-      // Retornar 202 (Accepted) ao invés de 500 (Server Error)
       return new Response(
         JSON.stringify({
           success: false,
           retry_available: true,
-          message: 'Documento ainda processando na Assinafy. Aguarde 2-3 minutos e tente reenviar manualmente.',
+          message: 'Timeout aguardando Assinafy. Aguarde 1-2min e tente reenviar.',
           signatureRequestId,
-          action_required: 'manual_retry'
+          externalId: documentId,
+          trace_id: traceId
         }),
         { 
-          status: 202, // Accepted (processamento assíncrono pendente)
+          status: 202,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
@@ -655,15 +662,24 @@ serve(async (req) => {
       }
     }
     
+    console.log(JSON.stringify({
+      trace_id: traceId,
+      level: 'info',
+      action: 'signature_flow_complete',
+      signature_request_id: signatureRequestId,
+      document_id: documentId,
+      total_duration_seconds: Math.floor((Date.now() - pollingStartTime) / 1000)
+    }));
+
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Signature request processed successfully',
+        message: 'Documento enviado para assinatura com sucesso',
         signatureRequestId,
-        provider: 'assinafy',
-        assinafy_document_id: documentId,
-        assinafy_assignment_id: assignmentId,
-        signature_url: signatureUrl
+        documentId,
+        externalId: documentId,
+        signatureUrl,
+        trace_id: traceId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
