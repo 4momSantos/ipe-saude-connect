@@ -104,44 +104,16 @@ export async function gerarContratoPDFA(contratoData: ContratoData): Promise<Uin
 
   pdfDoc.catalog.set(context.obj({ Metadata: metadataStreamRef }));
 
-  // Adicionar Output Intent com ICC Profile sRGB
-  try {
-    const iccProfileResponse = await fetch(
-      "https://raw.githubusercontent.com/saucelabs/sRGB-IEC61966-2.1/master/sRGB-IEC61966-2.1.icc"
-    );
-    
-    if (!iccProfileResponse.ok) {
-      throw new Error(`Failed to fetch ICC profile: ${iccProfileResponse.status}`);
-    }
-    
-    const iccProfileBytes = await iccProfileResponse.arrayBuffer();
-    
-    if (!iccProfileBytes || iccProfileBytes.byteLength === 0) {
-      throw new Error('ICC profile is empty');
-    }
-    
-    // Usar context.stream ao invés de flateStream para dados binários
-    const iccStreamRef = context.register(
-      context.stream(new Uint8Array(iccProfileBytes), {
-        Filter: 'FlateDecode',
-      })
-    );
-
-    const outputIntentDict = context.obj({
-      Type: 'OutputIntent',
-      S: 'GTS_PDFA1',
-      OutputConditionIdentifier: 'sRGB IEC61966-2.1',
-      Info: 'sRGB IEC61966-2.1',
-      DestOutputProfile: iccStreamRef,
-    });
-
-    const outputIntentRef = context.register(outputIntentDict);
-    pdfDoc.catalog.set(context.obj({ OutputIntents: [outputIntentRef] }));
-    
-    console.log('[PDF/A] ICC Profile sRGB adicionado com sucesso');
-  } catch (iccError) {
-    console.warn('[PDF/A] Falha ao adicionar ICC Profile (não crítico):', iccError);
-  }
+  // Output Intent temporariamente desabilitado devido a incompatibilidade Deno/pdf-lib
+  // O Assinafy aceita PDF/A-1b sem ICC Profile desde que tenha XMP metadata correto
+  console.warn('[PDF/A] ICC Profile desabilitado temporariamente - XMP metadata mantido');
+  console.log(JSON.stringify({
+    level: 'info',
+    action: 'pdfa_compliance_mode',
+    xmp_metadata: 'present',
+    icc_profile: 'disabled',
+    reason: 'deno_pdf-lib_compatibility'
+  }));
 
   // Configurar página A4
   let page = pdfDoc.addPage([595.28, 841.89]); // A4 em pontos
@@ -400,9 +372,9 @@ export async function gerarContratoPDFA(contratoData: ContratoData): Promise<Uin
     size_bytes: pdfBytes.length,
     pages: pages.length,
     pdf_version: '1.7',
-    pdfa_compliance: 'PDF/A-1b',
+    pdfa_compliance: 'PDF/A-1b (XMP only)',
     xmp_embedded: true,
-    icc_profile_embedded: true
+    icc_profile_embedded: false
   }));
 
   return pdfBytes;
