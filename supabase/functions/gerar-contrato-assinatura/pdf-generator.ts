@@ -63,7 +63,8 @@ export async function gerarContratoPDFDireto(contratoData: ContratoData): Promis
     format: 'a4',
     compress: true,
     putOnlyUsedFonts: true,
-    precision: 2
+    precision: 2,
+    pdfVersion: '1.4'
   });
 
   // Adicionar metadados PDF/A para compatibilidade com Assinafy
@@ -71,11 +72,47 @@ export async function gerarContratoPDFDireto(contratoData: ContratoData): Promis
     title: 'Contrato de Credenciamento',
     subject: 'Credenciamento de Prestador de Serviços de Saúde',
     author: 'Sistema de Gestão de Credenciamentos',
-    keywords: 'contrato, credenciamento, saúde, assinatura digital',
-    creator: 'Supabase Edge Functions - jsPDF v2.5.1',
-    producer: 'jsPDF + Lovable Cloud PDF Generator',
+    keywords: 'contrato, credenciamento, saúde, PDF/A-1b',
+    creator: 'Sistema Lovable + jsPDF PDF/A-1b',
+    producer: 'jsPDF 2.5.1',
     creationDate: new Date()
   });
+
+  // Adicionar XMP metadata para PDF/A-1b
+  (doc as any).internal.metadata = `<?xpacket begin='' id='W5M0MpCehiHzreSzNTczkc9d'?>
+<x:xmpmeta xmlns:x='adobe:ns:meta/'>
+  <rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
+    <rdf:Description rdf:about='' xmlns:dc='http://purl.org/dc/elements/1.1/'>
+      <dc:format>application/pdf</dc:format>
+      <dc:title>
+        <rdf:Alt>
+          <rdf:li xml:lang='pt-BR'>Contrato de Credenciamento</rdf:li>
+        </rdf:Alt>
+      </dc:title>
+      <dc:creator>
+        <rdf:Seq>
+          <rdf:li>Sistema de Gestão de Credenciamentos</rdf:li>
+        </rdf:Seq>
+      </dc:creator>
+      <dc:subject>
+        <rdf:Bag>
+          <rdf:li>credenciamento</rdf:li>
+          <rdf:li>saúde</rdf:li>
+        </rdf:Bag>
+      </dc:subject>
+    </rdf:Description>
+    <rdf:Description rdf:about='' xmlns:xmp='http://ns.adobe.com/xap/1.0/'>
+      <xmp:CreateDate>${new Date().toISOString()}</xmp:CreateDate>
+      <xmp:CreatorTool>jsPDF 2.5.1 PDF/A-1b Generator</xmp:CreatorTool>
+      <xmp:ModifyDate>${new Date().toISOString()}</xmp:ModifyDate>
+    </rdf:Description>
+    <rdf:Description rdf:about='' xmlns:pdfaid='http://www.aiim.org/pdfa/ns/id/'>
+      <pdfaid:part>1</pdfaid:part>
+      <pdfaid:conformance>B</pdfaid:conformance>
+    </rdf:Description>
+  </rdf:RDF>
+</x:xmpmeta>
+<?xpacket end='w'?>`;
 
   // Definir encoding UTF-8 explícito
   doc.setFont('helvetica', 'normal');
