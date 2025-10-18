@@ -60,8 +60,36 @@ export async function gerarContratoPDFDireto(contratoData: ContratoData): Promis
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
-    format: 'a4'
+    format: 'a4',
+    compress: true,
+    putOnlyUsedFonts: true,
+    precision: 2
   });
+
+  // Adicionar metadados PDF/A para compatibilidade com Assinafy
+  doc.setProperties({
+    title: 'Contrato de Credenciamento',
+    subject: 'Credenciamento de Prestador de Serviços de Saúde',
+    author: 'Sistema de Gestão de Credenciamentos',
+    keywords: 'contrato, credenciamento, saúde, assinatura digital',
+    creator: 'Supabase Edge Functions - jsPDF v2.5.1',
+    producer: 'jsPDF + Lovable Cloud PDF Generator',
+    creationDate: new Date()
+  });
+
+  // Definir encoding UTF-8 explícito
+  doc.setFont('helvetica', 'normal');
+  doc.setLanguage('pt-BR');
+
+  console.log(JSON.stringify({
+    level: 'info',
+    action: 'pdf_metadata_added',
+    title: 'Contrato de Credenciamento',
+    producer: 'jsPDF + Lovable Cloud',
+    creation_date: new Date().toISOString(),
+    pdf_version: '1.3',
+    target_standard: 'PDF/A-1b simulation'
+  }));
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -350,9 +378,12 @@ export async function gerarContratoPDFDireto(contratoData: ContratoData): Promis
 
   console.log(JSON.stringify({
     level: 'info',
-    action: 'pdf_generated',
+    action: 'pdf_generation_complete',
     size_bytes: uint8Array.length,
-    pages: totalPages
+    pages: totalPages,
+    has_metadata: true,
+    compression_enabled: true,
+    target_standard: 'PDF/A-1b simulation'
   }));
 
   return uint8Array;
