@@ -81,6 +81,7 @@ export function DashboardContratos() {
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [searchQuery, setSearchQuery] = useState("");
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [resendingContratoId, setResendingContratoId] = useState<string | null>(null);
 
   const handleReprocess = () => {
     setShowConfirmDialog(false);
@@ -404,10 +405,15 @@ export function DashboardContratos() {
                                  <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => resendEmail([contrato.id])}
-                                  disabled={isResending}
+                                  onClick={() => {
+                                    setResendingContratoId(contrato.id);
+                                    resendEmail([contrato.id], {
+                                      onSettled: () => setResendingContratoId(null)
+                                    });
+                                  }}
+                                  disabled={resendingContratoId === contrato.id}
                                 >
-                                  <Mail className="h-4 w-4 mr-2" />
+                                  <Mail className={`h-4 w-4 mr-2 ${resendingContratoId === contrato.id ? 'animate-spin' : ''}`} />
                                   Reenviar E-mail
                                 </Button>
                               )
