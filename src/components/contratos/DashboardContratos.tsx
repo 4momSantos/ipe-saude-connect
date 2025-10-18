@@ -202,9 +202,10 @@ export function DashboardContratos() {
       // 1. Não tem signature_request OU
       // 2. Tem signature_request mas está stuck (status='pending' sem assignment_id)
       const naoEnviado = !temSignatureRequest || 
-        (temSignatureRequest && signatureRequests.some((sr: any) => 
-          sr.status === 'pending' && !sr.metadata?.assignment_id
-        ));
+        (temSignatureRequest && signatureRequests.some((sr: any) => {
+          const hasAssignment = sr.metadata?.assinafy_assignment_id || sr.metadata?.assignment_id;
+          return sr.status === 'pending' && !hasAssignment;
+        }));
       
       // Filtros
       let matchesStatus = true;
@@ -388,9 +389,10 @@ export function DashboardContratos() {
                     const temSignatureRequest = signatureRequests && Array.isArray(signatureRequests) && signatureRequests.length > 0;
                     
                     const naoEnviado = !temSignatureRequest || 
-                      (temSignatureRequest && signatureRequests.some((sr: any) => 
-                        sr.status === 'pending' && !sr.metadata?.assignment_id
-                      ));
+                      (temSignatureRequest && signatureRequests.some((sr: any) => {
+                        const hasAssignment = sr.metadata?.assinafy_assignment_id || sr.metadata?.assignment_id;
+                        return sr.status === 'pending' && !hasAssignment;
+                      }));
 
                     return (
                       <TableRow key={contrato.id}>
@@ -583,9 +585,10 @@ export function DashboardContratos() {
                     const signatureRequests = (c as any).signature_requests;
                     const temSignatureRequest = signatureRequests && Array.isArray(signatureRequests) && signatureRequests.length > 0;
                     const naoEnviado = !temSignatureRequest || 
-                      (temSignatureRequest && signatureRequests.some((sr: any) => 
-                        sr.status === 'pending' && !sr.metadata?.assignment_id
-                      ));
+                      (temSignatureRequest && signatureRequests.some((sr: any) => {
+                        const hasAssignment = sr.metadata?.assinafy_assignment_id || sr.metadata?.assignment_id;
+                        return sr.status === 'pending' && !hasAssignment;
+                      }));
                     return c.status === 'pendente_assinatura' && naoEnviado;
                   }).length}
                 </div>

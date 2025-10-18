@@ -36,7 +36,7 @@ serve(async (req) => {
       console.log('🔍 Buscando todos os contratos órfãos...');
     }
     
-    // 1. Buscar contratos órfãos (todos ou específico)
+    // 1. Buscar contratos stuck/órfãos (todos ou específico)
     let queryBuilder = supabaseAdmin
       .from('signature_requests')
       .select(`
@@ -65,7 +65,8 @@ serve(async (req) => {
 
     // Validação específica para processamento individual
     if (contrato_id && (!signatureRequests || signatureRequests.length === 0)) {
-      throw new Error(`Contrato ${contrato_id} não encontrado ou não é órfão`);
+      console.error(`❌ Nenhum signature_request encontrado para contrato_id: ${contrato_id}`);
+      throw new Error(`Contrato ${contrato_id} não encontrado, já foi processado, ou não está stuck/órfão`);
     }
     
     console.log(`📊 Encontrados ${signatureRequests?.length || 0} contrato(s)`);
