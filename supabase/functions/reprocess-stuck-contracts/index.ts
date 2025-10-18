@@ -12,6 +12,16 @@ serve(async (req) => {
   }
 
   try {
+    // Extrair contrato_id se fornecido
+    let requestBody = {};
+    try {
+      requestBody = await req.json();
+    } catch {
+      // Body vazio ou inválido, usar comportamento padrão
+    }
+    
+    const { contrato_id } = requestBody as { contrato_id?: string };
+    
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -20,10 +30,14 @@ serve(async (req) => {
     const assignafyApiKey = Deno.env.get('ASSINAFY_API_KEY');
     const assignafyAccountId = Deno.env.get('ASSINAFY_ACCOUNT_ID');
     
-    console.log('🔍 Buscando contratos órfãos...');
+    if (contrato_id) {
+      console.log(`🔍 Processando contrato específico: ${contrato_id}`);
+    } else {
+      console.log('🔍 Buscando todos os contratos órfãos...');
+    }
     
-    // 1. Buscar contratos órfãos
-    const { data: signatureRequests, error: fetchError } = await supabaseAdmin
+    // 1. Buscar contratos órfãos (todos ou específico)
+    let query = supabaseAdmin
       .from('signature_requests')
       .select(`
         *,
@@ -36,13 +50,26 @@ serve(async (req) => {
       `)
       .not('external_id', 'is', null)
       .is('metadata->>assinafy_assignment_id', null)
-      .in('status', ['processing', 'pending'])
-      .order('created_at', { ascending: false })
-      .limit(20);
+      .in('status', ['processing', 'pending']);
+
+    // Se contrato_id fornecido, filtrar apenas esse contrato
+    if (contrato_id) {
+      query = query.eq('contrato_id', contrato_id);
+    } else {
+      // Limitar a 20 apenas no processamento em lote
+      query = query.order('created_at', { ascending: false }).limit(20);
+    }
+
+    const { data: signatureRequests, error: fetchError } = await query;
     
     if (fetchError) throw fetchError;
+
+    // Validação específica para processamento individual
+    if (contrato_id && (!signatureRequests || signatureRequests.length === 0)) {
+      throw new Error(`Contrato ${contrato_id} não encontrado ou não é órfão`);
+    }
     
-    console.log(`📊 Encontrados ${signatureRequests?.length || 0} contratos órfãos`);
+    console.log(`📊 Encontrados ${signatureRequests?.length || 0} contrato(s)`);
     
     const results = [];
     
@@ -197,13 +224,17 @@ serve(async (req) => {
       total: signatureRequests?.length || 0,
       success: results.filter(r => r.status === 'success').length,
       failed: results.filter(r => r.status === 'failed').length,
-      details: results
+      details: results,
+      single_contract: !!contrato_id
     };
     
     console.log('\n📊 RESUMO FINAL:');
     console.log(`   Total: ${summary.total}`);
     console.log(`   ✅ Sucesso: ${summary.success}`);
     console.log(`   ❌ Falhas: ${summary.failed}`);
+    if (contrato_id) {
+      console.log(`   🎯 Processamento individual: ${contrato_id}`);
+    }
     
     return new Response(
       JSON.stringify(summary, null, 2),
