@@ -197,8 +197,26 @@ serve(async (req) => {
           timestamp: new Date().toISOString(),
           event: 'document_metadata_ready',
           requestId,
-          documentId
+          documentId,
+          metadata_check: 'Verificando se assignment já existe'
         }));
+
+        // Se já tem assignment_id no metadata, pular criação (idempotência)
+        if (metadata.assinafy_assignment_id) {
+          console.log(JSON.stringify({
+            timestamp: new Date().toISOString(),
+            event: 'assignment_already_exists',
+            requestId,
+            assignmentId: metadata.assinafy_assignment_id,
+            message: 'Assignment já foi criado pelo send-signature-request'
+          }));
+          
+          // Retornar OK sem processar novamente
+          return new Response(
+            JSON.stringify({ received: true, message: 'Assignment already created' }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
 
         try {
           const assignafyApiKey = Deno.env.get('ASSINAFY_API_KEY');
