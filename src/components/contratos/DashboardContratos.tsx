@@ -5,6 +5,7 @@ import { useResendSignatureEmail } from "@/hooks/useResendSignatureEmail";
 import { useRegenerateContract } from "@/hooks/useRegenerateContract";
 import { useGerarContrato } from "@/hooks/useGerarContrato";
 import { useAutoRefreshContratos } from "@/hooks/useAutoRefreshContratos";
+import { useCorrigirInscricoesOrfas } from "@/hooks/useCorrigirInscricoesOrfas";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -47,6 +48,7 @@ export function DashboardContratos() {
   const { mutate: resendEmail, isPending: isResending } = useResendSignatureEmail();
   const { mutate: regenerateContract, isPending: isRegenerating } = useRegenerateContract();
   const { gerar: gerarContrato, isLoading: isGerandoContrato } = useGerarContrato();
+  const { mutate: corrigirOrfas, isPending: isCorrigindo } = useCorrigirInscricoesOrfas();
   
   // ✅ Ativar auto-refresh para contratos pendentes
   useAutoRefreshContratos({ 
@@ -155,19 +157,34 @@ export function DashboardContratos() {
                 </Badge>
               )}
             </div>
-            <Button
-              onClick={() => setShowConfirmDialog(true)}
-              variant="outline"
-              size="sm"
-              disabled={isPending}
-            >
-              {isPending ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4 mr-2" />
-              )}
-              Reprocessar Assinaturas Pendentes
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => corrigirOrfas()}
+                variant="default"
+                size="sm"
+                disabled={isCorrigindo}
+              >
+                {isCorrigindo ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Corrigir Inscrições Órfãs
+              </Button>
+              <Button
+                onClick={() => setShowConfirmDialog(true)}
+                variant="outline"
+                size="sm"
+                disabled={isPending}
+              >
+                {isPending ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Reprocessar Assinaturas Pendentes
+              </Button>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
