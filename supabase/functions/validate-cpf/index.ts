@@ -7,9 +7,15 @@ const corsHeaders = {
 
 /**
  * Converte data do formato brasileiro DD/MM/YYYY para ISO YYYY-MM-DD
+ * Garante compatibilidade com fuso horário brasileiro
  */
 function convertBRDateToISO(brDate: string): string {
-  const [day, month, year] = brDate.split('/');
+  const parts = brDate.split('/');
+  if (parts.length !== 3) {
+    console.error('[convertBRDateToISO] Formato inválido:', brDate);
+    return brDate; // Retorna original se formato for inválido
+  }
+  const [day, month, year] = parts;
   return `${year}-${month}-${day}`;
 }
 
@@ -139,7 +145,7 @@ serve(async (req) => {
       birthdate,
       birthdate_parsed: new Date(birthdate + 'T12:00:00').toISOString(),
       calculated_age: calculateAge(birthdate),
-      timezone_offset: new Date().getTimezoneOffset()
+      timezone: 'America/Sao_Paulo'
     });
 
     const url = new URL('https://api.infosimples.com/api/v2/consultas/receita-federal/cpf');
@@ -215,16 +221,27 @@ serve(async (req) => {
     if (result.code === 200 && result.data && result.data.length > 0) {
       const cpfData = result.data[0];
       
-      // Normalizar data para formato ISO YYYY-MM-DD
+      // Normalizar data de nascimento para formato ISO YYYY-MM-DD
       const dataNascimentoBR = cpfData.normalizado_data_nascimento || cpfData.data_nascimento;
-      const dataNascimentoISO = dataNascimentoBR && dataNascimentoBR.includes('/') 
-        ? convertBRDateToISO(dataNascimentoBR) 
-        : dataNascimentoBR;
-
-      console.log('[CPF_VALIDATION] Convertendo data de nascimento:', {
-        formato_original: dataNascimentoBR,
-        formato_iso: dataNascimentoISO
+      
+      console.log('[CPF_VALIDATION] Data recebida da API:', {
+        data_nascimento: cpfData.data_nascimento,
+        normalizado_data_nascimento: cpfData.normalizado_data_nascimento,
+        dataNascimentoBR: dataNascimentoBR
       });
+
+      let dataNascimentoISO = dataNascimentoBR;
+      
+      // Converter apenas se estiver no formato brasileiro DD/MM/YYYY
+      if (dataNascimentoBR && dataNascimentoBR.includes('/')) {
+        dataNascimentoISO = convertBRDateToISO(dataNascimentoBR);
+        console.log('[CPF_VALIDATION] Data convertida:', {
+          formato_original: dataNascimentoBR,
+          formato_iso: dataNascimentoISO
+        });
+      } else {
+        console.log('[CPF_VALIDATION] Data já está em formato ISO:', dataNascimentoISO);
+      }
 
       return new Response(
         JSON.stringify({ 
