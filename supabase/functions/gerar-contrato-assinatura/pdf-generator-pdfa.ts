@@ -1,3 +1,8 @@
+/**
+ * PDF/A-1b Generator usando pdf-lib
+ * Versão: 2025-10-18-v2 (ICC Profile desabilitado temporariamente)
+ * Deploy forçado para aplicar correção do bug sizeInBytes
+ */
 import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 
 interface ContratoData {
@@ -43,6 +48,8 @@ export async function gerarContratoPDFA(contratoData: ContratoData): Promise<Uin
     level: 'info',
     action: 'pdfa_generation_start',
     library: 'pdf-lib',
+    version: '2025-10-18-v2',
+    icc_profile_disabled: true,
     inscricao_id: contratoData.inscricao_id
   }));
 
