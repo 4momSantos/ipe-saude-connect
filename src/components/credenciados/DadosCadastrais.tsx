@@ -191,21 +191,44 @@ export function DadosCadastrais({
       </Card>
 
       {/* Endereço */}
-      <Card className="card-glow md:col-span-2">
+      <Card className="card-glow md:col-span-2 border-primary/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MapPin className="h-4 w-4 md:h-5 md:w-5 text-primary shrink-0" />
-            <span className="truncate">Endereço</span>
+            <span className="truncate">Endereço para Geocodificação</span>
+            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-[10px] ml-auto">
+              Usado no Mapa
+            </Badge>
           </CardTitle>
-          <CardDescription className="text-xs md:text-sm">Localização do estabelecimento</CardDescription>
+          <CardDescription className="text-xs md:text-sm">
+            Dados essenciais para localização no mapa - CEP é o campo principal
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
             <div className="sm:col-span-2">
               {renderCampoEditavel("Logradouro", credenciado.endereco, "endereco", MapPin)}
             </div>
-            <div>
-              {renderCampoEditavel("CEP", credenciado.cep, "cep")}
+            <div className="space-y-1">
+              <label className="text-xs md:text-sm font-semibold text-primary flex items-center gap-1.5 md:gap-2">
+                <MapPin className="h-3 w-3 md:h-4 md:w-4 shrink-0 fill-primary" />
+                <span className="truncate">CEP (Principal para Geocodificação)</span>
+              </label>
+              <div className="flex items-start justify-between gap-2 mt-1">
+                <p className="text-sm md:text-base font-bold text-primary break-words flex-1 min-w-0">
+                  {credenciado.cep}
+                </p>
+                {isCandidato && onSolicitarAlteracao && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onSolicitarAlteracao("cep", credenciado.cep)}
+                    className="h-6 w-6 md:h-8 md:w-8 p-0 shrink-0"
+                  >
+                    <Edit2 className="h-2.5 w-2.5 md:h-3 md:w-3" />
+                  </Button>
+                )}
+              </div>
             </div>
             {renderCampoEditavel("Cidade", credenciado.cidade, "cidade")}
             {renderCampoEditavel("Estado", credenciado.estado, "estado")}
