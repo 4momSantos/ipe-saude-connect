@@ -16,7 +16,8 @@ export function useCertificados(credenciadoId?: string) {
             id,
             nome,
             cpf,
-            inscricao_id
+            inscricao_id,
+            status
           )
         `)
         .eq("credenciado_id", credenciadoId)
@@ -123,7 +124,8 @@ export function useCertificadoPorInscricao(inscricaoId?: string) {
             id,
             nome,
             cpf,
-            inscricao_id
+            inscricao_id,
+            status
           )
         `)
         .eq("credenciado.inscricao_id", inscricaoId)

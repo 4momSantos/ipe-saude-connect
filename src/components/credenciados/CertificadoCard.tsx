@@ -157,11 +157,14 @@ export function CertificadoCard({ credenciadoId }: CertificadoCardProps) {
           )}
           
           <div>
-            <p className="text-sm text-muted-foreground">Status</p>
+            <p className="text-sm text-muted-foreground">Status do Credenciamento</p>
             <p className={`font-semibold ${
-              certificado.status === 'ativo' ? 'text-green-600' : 'text-gray-500'
+              certificado.credenciado?.status === 'Ativo' ? 'text-green-600' : 
+              certificado.credenciado?.status === 'Suspenso' || certificado.credenciado?.status === 'Suspenso Temporariamente' ? 'text-orange-600' :
+              certificado.credenciado?.status === 'Descredenciado' ? 'text-red-600' :
+              'text-gray-500'
             }`}>
-              {certificado.status === 'ativo' ? 'Ativo' : 'Inativo'}
+              {certificado.credenciado?.status || 'Indefinido'}
             </p>
           </div>
         </div>
