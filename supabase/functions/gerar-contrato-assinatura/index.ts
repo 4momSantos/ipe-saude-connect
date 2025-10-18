@@ -1,6 +1,5 @@
 /**
  * Edge Function: gerar-contrato-assinatura
- * Version: 2025-10-18-v3-jspdf-only
  * 
  * Gera um contrato de credenciamento em PDF e envia para assinatura via Assinafy.
  * 
