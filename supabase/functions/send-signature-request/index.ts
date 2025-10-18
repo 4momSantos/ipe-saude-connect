@@ -19,6 +19,74 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// ===== HELPER: Get or Create Signer (Idempotente) =====
+async function getOrCreateSigner(
+  assignafyApiKey: string,
+  assignafyAccountId: string,
+  email: string,
+  fullName: string
+): Promise<{ id: string; created: boolean }> {
+  
+  // 1. Tentar buscar signatário existente
+  const searchResponse = await fetch(
+    `https://api.assinafy.com.br/v1/accounts/${assignafyAccountId}/signers?email=${encodeURIComponent(email)}`,
+    {
+      method: 'GET',
+      headers: {
+        'X-Api-Key': assignafyApiKey,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+  
+  if (searchResponse.ok) {
+    const searchData = await searchResponse.json();
+    const existingSigner = searchData.data?.find((s: any) => s.email === email);
+    
+    if (existingSigner) {
+      console.log(JSON.stringify({
+        level: 'info',
+        action: 'signer_found',
+        signer_id: existingSigner.id,
+        email
+      }));
+      
+      return { id: existingSigner.id, created: false };
+    }
+  }
+  
+  // 2. Se não existe, criar novo
+  const createResponse = await fetch(
+    `https://api.assinafy.com.br/v1/accounts/${assignafyAccountId}/signers`,
+    {
+      method: 'POST',
+      headers: {
+        'X-Api-Key': assignafyApiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        full_name: fullName,
+        email: email
+      })
+    }
+  );
+  
+  if (!createResponse.ok) {
+    const errorText = await createResponse.text();
+    throw new Error(`Erro ao criar signatário: ${errorText}`);
+  }
+  
+  const createData = await createResponse.json();
+  console.log(JSON.stringify({
+    level: 'info',
+    action: 'signer_created',
+    signer_id: createData.data.id,
+    email
+  }));
+  
+  return { id: createData.data.id, created: true };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -197,74 +265,6 @@ serve(async (req) => {
       contrato_id: contrato.id,
       size_bytes: pdfBytes.length
     }));
-    
-    // ===== HELPER: Get or Create Signer (Idempotente) =====
-    async function getOrCreateSigner(
-      assignafyApiKey: string,
-      assignafyAccountId: string,
-      email: string,
-      fullName: string
-    ): Promise<{ id: string; created: boolean }> {
-      
-      // 1. Tentar buscar signatário existente
-      const searchResponse = await fetch(
-        `https://api.assinafy.com.br/v1/accounts/${assignafyAccountId}/signers?email=${encodeURIComponent(email)}`,
-        {
-          method: 'GET',
-          headers: {
-            'X-Api-Key': assignafyApiKey,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-      
-      if (searchResponse.ok) {
-        const searchData = await searchResponse.json();
-        const existingSigner = searchData.data?.find((s: any) => s.email === email);
-        
-        if (existingSigner) {
-          console.log(JSON.stringify({
-            level: 'info',
-            action: 'signer_found',
-            signer_id: existingSigner.id,
-            email
-          }));
-          
-          return { id: existingSigner.id, created: false };
-        }
-      }
-      
-      // 2. Se não existe, criar novo
-      const createResponse = await fetch(
-        `https://api.assinafy.com.br/v1/accounts/${assignafyAccountId}/signers`,
-        {
-          method: 'POST',
-          headers: {
-            'X-Api-Key': assignafyApiKey,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            full_name: fullName,
-            email: email
-          })
-        }
-      );
-      
-      if (!createResponse.ok) {
-        const errorText = await createResponse.text();
-        throw new Error(`Erro ao criar signatário: ${errorText}`);
-      }
-      
-      const createData = await createResponse.json();
-      console.log(JSON.stringify({
-        level: 'info',
-        action: 'signer_created',
-        signer_id: createData.data.id,
-        email
-      }));
-      
-      return { id: createData.data.id, created: true };
-    }
     
     // 1. Get or Create Signatário (idempotente)
     const { id: signerId, created: signerCreated } = await getOrCreateSigner(
