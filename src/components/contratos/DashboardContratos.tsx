@@ -6,6 +6,7 @@ import { useRegenerateContract } from "@/hooks/useRegenerateContract";
 import { useGerarContrato } from "@/hooks/useGerarContrato";
 import { useAutoRefreshContratos } from "@/hooks/useAutoRefreshContratos";
 import { useCorrigirInscricoesOrfas } from "@/hooks/useCorrigirInscricoesOrfas";
+import { useReprocessStuckContracts } from "@/hooks/useReprocessStuckContracts";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -49,6 +50,7 @@ export function DashboardContratos() {
   const { mutate: regenerateContract, isPending: isRegenerating } = useRegenerateContract();
   const { gerar: gerarContrato, isLoading: isGerandoContrato } = useGerarContrato();
   const { mutate: corrigirOrfas, isPending: isCorrigindo } = useCorrigirInscricoesOrfas();
+  const { mutate: reprocessStuck, isPending: isReprocessingStuck } = useReprocessStuckContracts();
   
   // ✅ Ativar auto-refresh para contratos pendentes
   useAutoRefreshContratos({ 
@@ -234,6 +236,19 @@ export function DashboardContratos() {
               )}
             </div>
             <div className="flex gap-2">
+              <Button
+                onClick={() => reprocessStuck()}
+                variant="destructive"
+                size="sm"
+                disabled={isReprocessingStuck}
+              >
+                {isReprocessingStuck ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                🔧 Reprocessar Órfãos
+              </Button>
               <Button
                 onClick={() => corrigirOrfas()}
                 variant="default"
