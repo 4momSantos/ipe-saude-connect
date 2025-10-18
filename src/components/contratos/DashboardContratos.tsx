@@ -83,9 +83,84 @@ export function DashboardContratos() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [resendingContratoId, setResendingContratoId] = useState<string | null>(null);
 
-  const handleReprocess = () => {
+  const handleReprocess = async () => {
     setShowConfirmDialog(false);
-    reprocessLegacy();
+    
+    // IDs dos 6 contratos antigos com problema no auto_place
+    const problematicContractIds = [
+      '989b786a-c049-4e56-a0a1-b6582fc3c624', // CONT-2025-363742
+      '7979f582-8e59-4059-8383-98c0d7162d90', // CONT-2025-924195
+      '658f7ab0-0b80-4da0-92c3-5bdae0a2c998', // CONT-2025-358380
+      'de3eb547-16a4-4375-8771-8784c1679703', // CONT-2025-803944
+      '3e3a5267-4794-4284-a5f8-e34673a7e88c', // CONT-2025-686159
+      'dbcdc8ce-70d2-4c4e-9253-92eac963fa17'  // CONT-2025-325932
+    ];
+    
+    toast.loading('Reprocessando 6 contratos antigos...', { id: 'reprocess' });
+    
+    try {
+      // Buscar eventos antes do reprocessamento
+      const { data: eventosAntes } = await supabase.functions.invoke('check-assinafy-status', {
+        body: { contratoIds: problematicContractIds, detailed: true }
+      });
+      
+      console.log('[REPROCESS] Eventos ANTES:', eventosAntes);
+      
+      // Chamar resend-signature-emails
+      const { data, error } = await supabase.functions.invoke('resend-signature-emails', {
+        body: { contratoIds: problematicContractIds }
+      });
+      
+      if (error) throw error;
+      
+      console.log('[REPROCESS] Resultado:', data);
+      
+      // Mostrar relatório detalhado
+      if (data) {
+        const { total_success, total_errors, results } = data;
+        
+        // Mostrar toast com resumo
+        if (total_errors === 0) {
+          toast.success(
+            `✅ Todos os ${total_success} contratos reprocessados com sucesso!`,
+            { id: 'reprocess', duration: 5000 }
+          );
+        } else {
+          toast.warning(
+            `⚠️ ${total_success} sucessos, ${total_errors} erros`,
+            { id: 'reprocess', duration: 5000 }
+          );
+        }
+        
+        // Log detalhado de cada contrato
+        console.group('📋 RELATÓRIO DETALHADO DE REPROCESSAMENTO');
+        results.forEach((result: any, index: number) => {
+          if (result.success) {
+            console.log(`✅ ${index + 1}. Contrato ${result.contrato_id.substring(0, 8)}...`);
+            console.log(`   Email: ${result.email}`);
+            console.log(`   ✓ Signature request criado com sucesso`);
+          } else {
+            console.error(`❌ ${index + 1}. Contrato ${result.contrato_id.substring(0, 8)}...`);
+            console.error(`   ERRO: ${result.error}`);
+          }
+        });
+        console.groupEnd();
+        
+        // Buscar eventos após o reprocessamento (com delay)
+        setTimeout(async () => {
+          const { data: eventosDepois } = await supabase.functions.invoke('check-assinafy-status', {
+            body: { contratoIds: problematicContractIds, detailed: true }
+          });
+          
+          console.log('[REPROCESS] Eventos DEPOIS:', eventosDepois);
+        }, 3000);
+      }
+      
+      refetch();
+    } catch (error: any) {
+      console.error('[REPROCESS] Erro fatal:', error);
+      toast.error(`Erro ao reprocessar: ${error.message}`, { id: 'reprocess' });
+    }
   };
 
   const contratosFiltrados = contratos
@@ -183,7 +258,7 @@ export function DashboardContratos() {
                 ) : (
                   <RefreshCw className="h-4 w-4 mr-2" />
                 )}
-                Reprocessar Assinaturas Pendentes
+                Reprocessar 6 Contratos Antigos
               </Button>
             </div>
           </CardTitle>
@@ -478,11 +553,16 @@ export function DashboardContratos() {
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Reprocessar Assinaturas Pendentes</AlertDialogTitle>
+            <AlertDialogTitle>Reprocessar 6 Contratos Antigos</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação irá identificar contratos com status "Pendente de Assinatura" que não
-              possuem solicitação de assinatura vinculada e enviará os emails de assinatura
-              automaticamente.
+              Esta ação irá reprocessar os 6 contratos antigos que estavam com o parâmetro 
+              <code className="bg-muted px-1 rounded">auto_place: true</code> inválido.
+              <br /><br />
+              <strong>Contratos:</strong> CONT-2025-363742, CONT-2025-924195, CONT-2025-358380, 
+              CONT-2025-803944, CONT-2025-686159, CONT-2025-325932
+              <br /><br />
+              Serão criadas novas solicitações de assinatura SEM o parâmetro inválido e os emails 
+              serão reenviados. Um relatório detalhado será exibido no console.
               <br /><br />
               Deseja continuar?
             </AlertDialogDescription>
