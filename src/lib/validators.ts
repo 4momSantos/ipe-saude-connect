@@ -1,4 +1,5 @@
 // Validation utilities for CPF, CNPJ, and CEP
+import { calculateAge, parseISODateSafe } from '@/utils/dateComparison';
 
 export const validateCPF = (cpf: string): boolean => {
   const cleanCPF = cpf.replace(/\D/g, "");
@@ -266,7 +267,7 @@ export const validateCPFData = async (
   }
 
   // Validar que a data é do passado
-  const birthdateDate = new Date(birthdate);
+  const birthdateDate = parseISODateSafe(birthdate);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
@@ -280,14 +281,19 @@ export const validateCPFData = async (
 
   // Validar idade mínima (18 anos)
   const minAge = 18;
-  const minBirthdate = new Date();
-  minBirthdate.setFullYear(minBirthdate.getFullYear() - minAge);
+  const age = calculateAge(birthdate);
   
-  if (birthdateDate > minBirthdate) {
+  console.log('[CPF_VALIDATION] Validando idade:', {
+    birthdate,
+    calculatedAge: age,
+    minAge
+  });
+  
+  if (age < minAge) {
     return { 
       valid: false,
       code: 'age-restriction',
-      message: `É necessário ter pelo menos ${minAge} anos` 
+      message: `É necessário ter pelo menos ${minAge} anos (idade calculada: ${age} anos)` 
     };
   }
 

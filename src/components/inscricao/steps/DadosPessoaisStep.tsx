@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { useValidatedData } from '@/contexts/ValidatedDataContext';
 import type { CPFValidationData, CRMValidationData } from '@/lib/validators';
 import { useRef } from 'react';
+import { isSameDateIgnoringTime, parseISODateSafe } from '@/utils/dateComparison';
 
 interface DadosPessoaisStepProps {
   form: UseFormReturn<InscricaoCompletaForm>;
@@ -94,7 +95,12 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
         if (result.code === 'birthdate-mismatch') {
           setBirthDateMismatch(true);
           toast.error('Data de nascimento divergente', {
-            description: 'A data informada não confere com o cadastro da Receita Federal. Verifique se digitou corretamente.',
+            description: 'A data informada não confere com os registros da Receita Federal. Isso pode acontecer se:\n• Você digitou a data errada\n• Há um erro no seu cadastro na Receita Federal\n\nVerifique sua certidão de nascimento e tente novamente.',
+            duration: 10000
+          });
+        } else if (result.code === 'age-restriction') {
+          toast.error('Restrição de Idade', {
+            description: 'É necessário ter pelo menos 18 anos completos para se inscrever neste edital.',
             duration: 6000
           });
         } else {
@@ -116,18 +122,21 @@ export function DadosPessoaisStep({ form }: DadosPessoaisStepProps) {
       // Auto-preencher nome completo
       form.setValue('nome_completo', result.data.nome, { shouldValidate: true });
       
-      // Verificar se a data de nascimento bate
-      const apiDate = new Date(result.data.data_nascimento);
-      const formDate = new Date(dataNascimento);
+      // Verificar se a data de nascimento bate (comparar apenas dia, mês e ano)
+      const apiDateString = result.data.data_nascimento; // YYYY-MM-DD da API
+      const formDateString = format(dataNascimento, 'yyyy-MM-dd');
       
-      if (apiDate.getTime() !== formDate.getTime()) {
+      if (!isSameDateIgnoringTime(apiDateString, formDateString)) {
         setBirthDateMismatch(true);
         setCpfState({ 
           status: 'error', 
           code: 'birthdate-mismatch',
           message: 'A data de nascimento não corresponde ao CPF informado' 
         });
-        toast.error('A data de nascimento não corresponde ao CPF informado');
+        toast.error('Data de nascimento divergente', {
+          description: `A data informada (${format(dataNascimento, 'dd/MM/yyyy')}) não confere com os registros da Receita Federal (${format(parseISODateSafe(apiDateString), 'dd/MM/yyyy')}). Verifique se digitou corretamente.`,
+          duration: 10000
+        });
         return;
       }
 

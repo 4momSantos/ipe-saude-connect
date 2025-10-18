@@ -83,17 +83,32 @@ serve(async (req) => {
       );
     }
 
+    // Função para calcular idade sem problemas de timezone
+    const calculateAge = (birthdate: string): number => {
+      const birth = new Date(birthdate + 'T12:00:00'); // Adicionar horário para evitar timezone
+      const today = new Date();
+      
+      let age = today.getFullYear() - birth.getFullYear();
+      const monthDiff = today.getMonth() - birth.getMonth();
+      
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+        age--;
+      }
+      
+      return age;
+    };
+
     // Validar idade mínima (18 anos)
     const minAge = 18;
-    const minBirthdate = new Date();
-    minBirthdate.setFullYear(minBirthdate.getFullYear() - minAge);
+    const age = calculateAge(birthdate);
     
-    if (birthdateDate > minBirthdate) {
-      console.error('Age below minimum:', birthdate);
+    if (age < minAge) {
+      console.error('Age below minimum:', { birthdate, calculatedAge: age });
       return new Response(
         JSON.stringify({ 
-          valid: false, 
-          message: `É necessário ter pelo menos ${minAge} anos` 
+          valid: false,
+          code: 'age-restriction',
+          message: `É necessário ter pelo menos ${minAge} anos (idade calculada: ${age} anos)` 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
@@ -111,7 +126,13 @@ serve(async (req) => {
       );
     }
 
-    console.log('Validating CPF:', { cpf: cleanCPF, birthdate });
+    console.log('[VALIDATE_CPF] Request details:', {
+      cpf_masked: cleanCPF.substring(0, 3) + '***' + cleanCPF.substring(9),
+      birthdate,
+      birthdate_parsed: new Date(birthdate + 'T12:00:00').toISOString(),
+      calculated_age: calculateAge(birthdate),
+      timezone_offset: new Date().getTimezoneOffset()
+    });
 
     const url = new URL('https://api.infosimples.com/api/v2/consultas/receita-federal/cpf');
     url.searchParams.append('token', apiToken);
