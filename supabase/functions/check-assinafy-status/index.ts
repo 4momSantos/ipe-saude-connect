@@ -47,20 +47,32 @@ serve(async (req) => {
       .from('signature_requests')
       .select('id, external_id, status, external_status, contrato_id, metadata')
       .eq('contrato_id', contratoId)
-      .single();
+      .maybeSingle();
 
-    if (srError || !signatureRequest) {
+    if (srError) {
+      console.error('[CHECK_ASSINAFY] Erro ao buscar signature_request:', srError);
+      throw new Error(`Erro ao buscar signature_request: ${srError.message}`);
+    }
+
+    if (!signatureRequest) {
       throw new Error('Signature request não encontrado para este contrato');
     }
 
-    if (!signatureRequest.external_id) {
+    // Buscar document_id do external_id ou metadata
+    const documentId = signatureRequest.external_id || 
+                      (signatureRequest.metadata as any)?.document_id ||
+                      (signatureRequest.metadata as any)?.assinafy_document_id;
+
+    if (!documentId) {
       throw new Error('Signature request ainda não possui external_id da Assinafy');
     }
 
-    console.log('[CHECK_ASSINAFY] External ID:', signatureRequest.external_id);
+    console.log('[CHECK_ASSINAFY] Document ID:', documentId);
 
     // Consultar Assinafy
-    const assifafyUrl = `https://api.assinafy.com.br/v1/accounts/${assifafyAccountId}/documents/${signatureRequest.external_id}`;
+    const assifafyUrl = `https://api.assinafy.com.br/v1/accounts/${assifafyAccountId}/documents/${documentId}`;
+    
+    console.log('[CHECK_ASSINAFY] Consultando Assinafy URL:', assifafyUrl);
     
     const assifafyResponse = await fetch(assifafyUrl, {
       method: 'GET',
