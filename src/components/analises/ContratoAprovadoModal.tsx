@@ -16,7 +16,7 @@ import {
   Loader2,
   AlertCircle
 } from "lucide-react";
-import { useSendSingleContractToSign } from "@/hooks/useSendSingleContractToSign";
+import { useSmartContractSend } from "@/hooks/useSmartContractSend";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 
@@ -41,7 +41,7 @@ export function ContratoAprovadoModal({
 }: ContratoAprovadoModalProps) {
   const [showPDF, setShowPDF] = useState(false);
   const [contratoEnviado, setContratoEnviado] = useState(false);
-  const { mutate: sendContract, isPending } = useSendSingleContractToSign();
+  const { mutate: sendContract, isPending } = useSmartContractSend();
 
   if (!contrato) return null;
 
