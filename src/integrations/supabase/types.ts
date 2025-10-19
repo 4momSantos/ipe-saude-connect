@@ -2074,6 +2074,66 @@ export type Database = {
         }
         Relationships: []
       }
+      document_templates: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          created_by: string | null
+          descricao: string | null
+          dias_validade: number | null
+          id: string
+          nome: string
+          requer_assinatura: boolean | null
+          template_html: string
+          tipo_documento: string
+          updated_at: string | null
+          versao: number | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          dias_validade?: number | null
+          id?: string
+          nome: string
+          requer_assinatura?: boolean | null
+          template_html: string
+          tipo_documento: string
+          updated_at?: string | null
+          versao?: number | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          dias_validade?: number | null
+          id?: string
+          nome?: string
+          requer_assinatura?: boolean | null
+          template_html?: string
+          tipo_documento?: string
+          updated_at?: string | null
+          versao?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
+      }
       documentos_credenciados: {
         Row: {
           arquivo_nome: string | null
@@ -2730,6 +2790,135 @@ export type Database = {
           usage_count?: number | null
         }
         Relationships: []
+      }
+      generated_documents: {
+        Row: {
+          assinado: boolean | null
+          assinado_em: string | null
+          created_at: string | null
+          credenciado_id: string | null
+          documento_html: string | null
+          documento_pdf_path: string | null
+          documento_pdf_url: string | null
+          generated_by: string | null
+          id: string
+          metadata: Json | null
+          motivo: string | null
+          requer_assinatura: boolean | null
+          signature_request_id: string | null
+          status_anterior: string | null
+          status_novo: string | null
+          template_id: string | null
+          tipo_documento: string
+          trigger_event: string | null
+          updated_at: string | null
+          valido_ate: string | null
+          valido_de: string | null
+        }
+        Insert: {
+          assinado?: boolean | null
+          assinado_em?: string | null
+          created_at?: string | null
+          credenciado_id?: string | null
+          documento_html?: string | null
+          documento_pdf_path?: string | null
+          documento_pdf_url?: string | null
+          generated_by?: string | null
+          id?: string
+          metadata?: Json | null
+          motivo?: string | null
+          requer_assinatura?: boolean | null
+          signature_request_id?: string | null
+          status_anterior?: string | null
+          status_novo?: string | null
+          template_id?: string | null
+          tipo_documento: string
+          trigger_event?: string | null
+          updated_at?: string | null
+          valido_ate?: string | null
+          valido_de?: string | null
+        }
+        Update: {
+          assinado?: boolean | null
+          assinado_em?: string | null
+          created_at?: string | null
+          credenciado_id?: string | null
+          documento_html?: string | null
+          documento_pdf_path?: string | null
+          documento_pdf_url?: string | null
+          generated_by?: string | null
+          id?: string
+          metadata?: Json | null
+          motivo?: string | null
+          requer_assinatura?: boolean | null
+          signature_request_id?: string | null
+          status_anterior?: string | null
+          status_novo?: string | null
+          template_id?: string | null
+          tipo_documento?: string
+          trigger_event?: string | null
+          updated_at?: string | null
+          valido_ate?: string | null
+          valido_de?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_documents_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "credenciados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "generated_documents_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "v_dados_regularidade"
+            referencedColumns: ["credenciado_id"]
+          },
+          {
+            foreignKeyName: "generated_documents_credenciado_id_fkey"
+            columns: ["credenciado_id"]
+            isOneToOne: false
+            referencedRelation: "view_geocode_failures_last_24h"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_generated_by_fkey"
+            columns: ["generated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_generated_by_fkey"
+            columns: ["generated_by"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+          {
+            foreignKeyName: "generated_documents_signature_request_id_fkey"
+            columns: ["signature_request_id"]
+            isOneToOne: false
+            referencedRelation: "signature_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       geocode_cache: {
         Row: {
@@ -6605,6 +6794,10 @@ export type Database = {
           numero_contrato: string
           signature_request_id: string
         }[]
+      }
+      get_document_type_for_status_change: {
+        Args: { new_status: string; old_status: string }
+        Returns: string
       }
       get_documento_historico: {
         Args: { p_documento_id: string }
