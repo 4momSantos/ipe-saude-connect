@@ -7,7 +7,7 @@ import { useGerarContrato } from "@/hooks/useGerarContrato";
 import { useAutoRefreshContratos } from "@/hooks/useAutoRefreshContratos";
 import { useCorrigirInscricoesOrfas } from "@/hooks/useCorrigirInscricoesOrfas";
 import { useReprocessStuckContracts } from "@/hooks/useReprocessStuckContracts";
-import { useSendSingleContractToSign } from "@/hooks/useSendSingleContractToSign";
+import { useSmartContractSend } from "@/hooks/useSmartContractSend";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -52,7 +52,7 @@ export function DashboardContratos() {
   const { gerar: gerarContrato, isLoading: isGerandoContrato } = useGerarContrato();
   const { mutate: corrigirOrfas, isPending: isCorrigindo } = useCorrigirInscricoesOrfas();
   const { mutate: reprocessStuck, isPending: isReprocessingStuck } = useReprocessStuckContracts();
-  const { mutate: sendSingleContract } = useSendSingleContractToSign();
+  const { mutate: sendSingleContract } = useSmartContractSend();
   
   // ✅ Ativar auto-refresh para contratos pendentes
   useAutoRefreshContratos({ 
