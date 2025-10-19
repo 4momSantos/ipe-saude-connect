@@ -1,5 +1,6 @@
 /**
  * Edge Function: assinafy-webhook-finalizacao
+ * Version: 2.0.0 - Deploy 2025-10-19
  * Processa callbacks da Assinafy para finalizar o credenciamento
  * 
  * Fluxo:
@@ -27,7 +28,7 @@ const corsHeaders = {
 };
 
 interface WebhookPayload {
-  event: 'document.signed' | 'document.rejected' | 'document.expired' | 'document.viewed' | 'document.metadata_ready';
+  event: 'document.signed' | 'document.rejected' | 'document.expired' | 'document.viewed';
   document: {
     id: string;
     status?: string;
