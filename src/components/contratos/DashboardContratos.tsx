@@ -153,11 +153,30 @@ export function DashboardContratos() {
       return false;
     }
     
+    const now = new Date().getTime();
+    const TWO_MINUTES = 2 * 60 * 1000; // 2 minutos em milissegundos
+    
     // Verificar se existe alguma signature ativa (pending ou sent)
-    return signatureRequests.some((sr: any) => 
-      (sr.status === 'pending' || sr.status === 'sent') && 
-      (sr.metadata?.assinafy_assignment_id || sr.metadata?.assignment_id)
-    );
+    return signatureRequests.some((sr: any) => {
+      const hasAssignment = sr.metadata?.assinafy_assignment_id || sr.metadata?.assignment_id;
+      const isActivStatus = sr.status === 'pending' || sr.status === 'sent';
+      
+      if (!isActivStatus) return false;
+      
+      // Se tem assignment_id, considerar ativa
+      if (hasAssignment) return true;
+      
+      // Se não tem assignment_id MAS foi criada recentemente (< 2 min), considerar ativa
+      const createdAt = new Date(sr.created_at).getTime();
+      const isRecent = (now - createdAt) < TWO_MINUTES;
+      
+      if (isRecent) {
+        console.log(`[ANTI-DUP] SR ${sr.id} sem assignment_id mas criada há ${Math.floor((now - createdAt) / 1000)}s - considerando ativa`);
+        return true;
+      }
+      
+      return false;
+    });
   };
 
   // 🛡️ Helper para obter a signature request mais recente
@@ -542,11 +561,13 @@ export function DashboardContratos() {
                     const signatureRequests = (contrato as any).signature_requests;
                     const temSignatureRequest = signatureRequests && Array.isArray(signatureRequests) && signatureRequests.length > 0;
                     
+                    // Considerar "não enviado" apenas se:
+                    // 1. Não tem signature_request OU
+                    // 2. Todas as SRs estão com status cancelled/expired/failed
                     const naoEnviado = !temSignatureRequest || 
-                      (temSignatureRequest && signatureRequests.some((sr: any) => {
-                        const hasAssignment = sr.metadata?.assinafy_assignment_id || sr.metadata?.assignment_id;
-                        return sr.status === 'pending' && !hasAssignment;
-                      }));
+                      (temSignatureRequest && signatureRequests.every((sr: any) => 
+                        ['cancelled', 'expired', 'failed'].includes(sr.status)
+                      ));
 
                     return (
                       <TableRow key={contrato.id}>
@@ -669,7 +690,7 @@ export function DashboardContratos() {
                                 size="sm"
                                 variant="default"
                                 onClick={() => handleSendSingleContract(contrato.id)}
-                                disabled={sendingContratoId === contrato.id || hasPendingSignature(contrato)}
+                                disabled={sendingContratoId === contrato.id || hasPendingSignature(contrato) || recentlySent.has(contrato.id)}
                                 className="bg-green-600 hover:bg-green-700"
                                 title={
                                   hasPendingSignature(contrato)
@@ -785,7 +806,7 @@ export function DashboardContratos() {
                                 </Button>
                               )
                             )}
-                            {contrato.status === "pendente_assinatura" && !naoEnviado && (
+                            {contrato.status === "pendente_assinatura" && temSignatureRequest && (
                               <Button
                                 size="sm"
                                 variant="default"
