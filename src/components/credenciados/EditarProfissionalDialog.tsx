@@ -41,6 +41,7 @@ export function EditarProfissionalDialog({
     uf_crm: "",
     especialidade: "",
     principal: false,
+    responsavel_tecnico: false,
   });
 
   useEffect(() => {
@@ -57,6 +58,7 @@ export function EditarProfissionalDialog({
         uf_crm: profissional.uf_crm || "",
         especialidade: profissional.especialidade || "",
         principal: profissional.principal || false,
+        responsavel_tecnico: profissional.responsavel_tecnico || false,
       });
       setCpfValidationState('idle');
       setCrmValidationState('idle');
@@ -130,6 +132,28 @@ export function EditarProfissionalDialog({
     e.preventDefault();
     
     if (!profissional?.id) return;
+
+    // Validações obrigatórias
+    if (cpfValidationState !== 'valid') {
+      toast.error("Validação obrigatória", {
+        description: "Você precisa validar o CPF antes de salvar"
+      });
+      return;
+    }
+    
+    if (crmValidationState !== 'valid') {
+      toast.error("Validação obrigatória", {
+        description: "Você precisa validar o CRM antes de salvar"
+      });
+      return;
+    }
+    
+    if (!formData.especialidade) {
+      toast.error("Campo obrigatório", {
+        description: "Selecione uma especialidade"
+      });
+      return;
+    }
     
     try {
       await editar({
@@ -356,11 +380,35 @@ export function EditarProfissionalDialog({
             </Label>
           </div>
 
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="responsavel_tecnico"
+              checked={formData.responsavel_tecnico}
+              onCheckedChange={(checked) =>
+                setFormData({ ...formData, responsavel_tecnico: checked === true })
+              }
+            />
+            <Label
+              htmlFor="responsavel_tecnico"
+              className="text-sm font-normal cursor-pointer"
+            >
+              Marcar como Responsável Técnico (RT)
+            </Label>
+          </div>
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isPending}>
+            <Button 
+              type="submit" 
+              disabled={
+                isPending || 
+                cpfValidationState !== 'valid' || 
+                crmValidationState !== 'valid' ||
+                !formData.especialidade
+              }
+            >
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Salvar Alterações
             </Button>

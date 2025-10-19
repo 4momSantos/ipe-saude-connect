@@ -17,6 +17,7 @@ export interface Profissional {
   especialidade?: string;
   ativo?: boolean;
   principal?: boolean;
+  responsavel_tecnico?: boolean;
   created_at?: string;
   updated_at?: string;
   credenciado_crms?: Array<{

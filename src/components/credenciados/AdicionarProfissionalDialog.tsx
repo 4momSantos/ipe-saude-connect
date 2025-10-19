@@ -44,6 +44,7 @@ export function AdicionarProfissionalDialog({
     uf_crm: "",
     especialidade: "",
     principal: false,
+    responsavel_tecnico: false,
   });
 
   const handleValidateCPF = async () => {
@@ -126,7 +127,29 @@ export function AdicionarProfissionalDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validações obrigatórias
+    if (cpfValidationState !== 'valid') {
+      toast.error("Validação obrigatória", {
+        description: "Você precisa validar o CPF antes de salvar"
+      });
+      return;
+    }
     
+    if (crmValidationState !== 'valid') {
+      toast.error("Validação obrigatória", {
+        description: "Você precisa validar o CRM antes de salvar"
+      });
+      return;
+    }
+    
+    if (!formData.especialidade) {
+      toast.error("Campo obrigatório", {
+        description: "Selecione uma especialidade"
+      });
+      return;
+    }
+
     try {
       await adicionar({
         ...formData,
@@ -147,6 +170,7 @@ export function AdicionarProfissionalDialog({
         uf_crm: "",
         especialidade: "",
         principal: false,
+        responsavel_tecnico: false,
       });
       
       setCpfValidationState('idle');
@@ -372,11 +396,35 @@ export function AdicionarProfissionalDialog({
             </Label>
           </div>
 
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="responsavel_tecnico"
+              checked={formData.responsavel_tecnico}
+              onCheckedChange={(checked) =>
+                setFormData({ ...formData, responsavel_tecnico: checked === true })
+              }
+            />
+            <Label
+              htmlFor="responsavel_tecnico"
+              className="text-sm font-normal cursor-pointer"
+            >
+              Marcar como Responsável Técnico (RT)
+            </Label>
+          </div>
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isPending}>
+            <Button 
+              type="submit" 
+              disabled={
+                isPending || 
+                cpfValidationState !== 'valid' || 
+                crmValidationState !== 'valid' ||
+                !formData.especialidade
+              }
+            >
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Adicionar
             </Button>

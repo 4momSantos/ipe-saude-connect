@@ -4090,6 +4090,7 @@ export type Database = {
           id: string
           nome: string
           principal: boolean | null
+          responsavel_tecnico: boolean | null
           rg: string | null
           telefone: string | null
           uf_crm: string
@@ -4111,6 +4112,7 @@ export type Database = {
           id?: string
           nome: string
           principal?: boolean | null
+          responsavel_tecnico?: boolean | null
           rg?: string | null
           telefone?: string | null
           uf_crm: string
@@ -4132,6 +4134,7 @@ export type Database = {
           id?: string
           nome?: string
           principal?: boolean | null
+          responsavel_tecnico?: boolean | null
           rg?: string | null
           telefone?: string | null
           uf_crm?: string
