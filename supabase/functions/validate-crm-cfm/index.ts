@@ -78,6 +78,23 @@ Deno.serve(async (req) => {
         }
       )
 
+      // Se retornou 404, CRM não existe
+      if (cfmResponse.status === 404) {
+        console.log('[VALIDATE_CRM] ❌ CRM não encontrado no CFM')
+        
+        const result: CRMValidationResponse = {
+          valid: false,
+          crm,
+          uf,
+          error: 'CRM não encontrado no cadastro do CFM'
+        }
+        
+        return new Response(
+          JSON.stringify(result),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        )
+      }
+
       if (!cfmResponse.ok) {
         throw new Error(`CFM API retornou ${cfmResponse.status}`)
       }

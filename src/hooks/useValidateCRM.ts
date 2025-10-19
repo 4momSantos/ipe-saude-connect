@@ -34,11 +34,6 @@ export function useValidateCRM() {
         toast.success("CRM Válido", {
           description: `${data.nome} - ${data.situacao || 'ATIVO'}`
         });
-      } else if (data.valid && data.error) {
-        // Fallback: formato válido mas sem dados do CFM
-        toast.warning("CRM com formato válido", {
-          description: "API do CFM indisponível - apenas formato validado"
-        });
       } else {
         toast.error("CRM Inválido", {
           description: data.error || "CRM não encontrado ou inativo no CFM"

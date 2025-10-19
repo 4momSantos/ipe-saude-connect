@@ -88,24 +88,20 @@ export function AdicionarProfissionalDialog({
     try {
       const result = await validarCRM({ crm: formData.crm, uf: formData.uf_crm });
       
-      if (result.valid) {
+      if (result.valid && result.nome) {
         setCrmValidationState('valid');
         
-        // ✅ AUTO-PREENCHER apenas se tiver dados reais do CFM (não fallback)
-        if (result.nome && !result.error) {
-          setFormData(prev => ({
-            ...prev,
-            nome: result.nome || prev.nome, // Não sobrescrever se já tiver nome do CPF
-            especialidade: result.especialidades?.[0] || prev.especialidade
-          }));
-          
-          console.log('📋 Dados do CRM preenchidos:', { 
-            nome: result.nome, 
-            especialidades: result.especialidades 
-          });
-        } else if (result.error) {
-          console.log('⚠️ CRM validado por formato (fallback) - sem auto-preenchimento');
-        }
+        // ✅ AUTO-PREENCHER com dados do CFM
+        setFormData(prev => ({
+          ...prev,
+          nome: result.nome || prev.nome, // Não sobrescrever se já tiver nome do CPF
+          especialidade: result.especialidades?.[0] || prev.especialidade
+        }));
+        
+        console.log('📋 Dados do CRM preenchidos:', { 
+          nome: result.nome, 
+          especialidades: result.especialidades 
+        });
       } else {
         setCrmValidationState('invalid');
       }
