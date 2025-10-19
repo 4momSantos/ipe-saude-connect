@@ -146,7 +146,64 @@ export function DashboardContratos() {
   const [sendingContratoId, setSendingContratoId] = useState<string | null>(null);
   const [recentlySent, setRecentlySent] = useState<Set<string>>(new Set());
 
+  // 🛡️ Helper para verificar se contrato tem signature ativa
+  const hasPendingSignature = (contrato: any) => {
+    const signatureRequests = contrato.signature_requests;
+    if (!signatureRequests || !Array.isArray(signatureRequests) || signatureRequests.length === 0) {
+      return false;
+    }
+    
+    // Verificar se existe alguma signature ativa (pending ou sent)
+    return signatureRequests.some((sr: any) => 
+      (sr.status === 'pending' || sr.status === 'sent') && 
+      (sr.metadata?.assinafy_assignment_id || sr.metadata?.assignment_id)
+    );
+  };
+
+  // 🛡️ Helper para obter a signature request mais recente
+  const getLatestSignatureRequest = (contrato: any) => {
+    const signatureRequests = contrato.signature_requests;
+    if (!signatureRequests || !Array.isArray(signatureRequests) || signatureRequests.length === 0) {
+      return null;
+    }
+    
+    // Ordenar por created_at descendente e pegar o mais recente
+    return [...signatureRequests].sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )[0];
+  };
+
   const handleSendSingleContract = (contratoId: string) => {
+    // 🛡️ VALIDAÇÃO ANTI-DUPLICAÇÃO
+    const contrato = contratos?.find(c => c.id === contratoId);
+    
+    if (!contrato) {
+      toast.error('❌ Contrato não encontrado');
+      return;
+    }
+    
+    // Verificar se já tem signature ativa
+    if (hasPendingSignature(contrato)) {
+      const latestSR = getLatestSignatureRequest(contrato);
+      const dataEnvio = latestSR?.created_at 
+        ? new Date(latestSR.created_at).toLocaleString('pt-BR')
+        : 'desconhecida';
+      
+      const emailDestinatario = (contrato as any).inscricao?.candidato?.email || 
+                                (contrato as any).inscricao?.dados_inscricao?.dados_pessoais?.email ||
+                                'email não encontrado';
+      
+      toast.error(
+        '❌ Este contrato já foi enviado para assinatura',
+        {
+          description: `Último envio: ${dataEnvio}\nPara: ${emailDestinatario}\n\n💡 Use "Reenviar E-mail" se o candidato não recebeu.`,
+          duration: 8000
+        }
+      );
+      return;
+    }
+    
+    // Continuar com envio normal
     setSendingContratoId(contratoId);
     sendSingleContract(contratoId, {
       onSuccess: () => {
@@ -503,6 +560,25 @@ export function DashboardContratos() {
                             </Badge>
                           )}
                           
+                          {/* 🆕 Badge de múltiplos envios */}
+                          {(() => {
+                            const signatureRequests = (contrato as any).signature_requests;
+                            const count = signatureRequests?.length || 0;
+                            
+                            if (count > 1) {
+                              return (
+                                <Badge 
+                                  variant="outline" 
+                                  className="ml-2 text-xs border-orange-500 bg-orange-50 text-orange-700 font-semibold"
+                                  title={`Este contrato foi enviado ${count} vezes. Pode indicar tentativas de reenvio ou duplicação.`}
+                                >
+                                  📨 {count} envios
+                                </Badge>
+                              );
+                            }
+                            return null;
+                          })()}
+                          
                           {statusProblematico && (
                             <Badge variant="destructive" className="ml-2 text-xs">
                               Sem PDF
@@ -593,9 +669,13 @@ export function DashboardContratos() {
                                 size="sm"
                                 variant="default"
                                 onClick={() => handleSendSingleContract(contrato.id)}
-                                disabled={sendingContratoId === contrato.id}
+                                disabled={sendingContratoId === contrato.id || hasPendingSignature(contrato)}
                                 className="bg-green-600 hover:bg-green-700"
-                                title="Enviar contrato para assinatura digital"
+                                title={
+                                  hasPendingSignature(contrato)
+                                    ? `⚠️ Este contrato já foi enviado. Use "Reenviar E-mail" se necessário.`
+                                    : "Enviar contrato para assinatura digital"
+                                }
                               >
                                 {sendingContratoId === contrato.id ? (
                                   <>
@@ -647,16 +727,61 @@ export function DashboardContratos() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => {
-                                    setResendingContratoId(contrato.id);
-                                    resendEmail([contrato.id], {
-                                      onSettled: () => setResendingContratoId(null)
-                                    });
+                                    // Obter informações para confirmação
+                                    const latestSR = getLatestSignatureRequest(contrato);
+                                    const dataEnvio = latestSR?.created_at 
+                                      ? new Date(latestSR.created_at).toLocaleString('pt-BR', {
+                                          day: '2-digit',
+                                          month: '2-digit',
+                                          year: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        })
+                                      : 'desconhecida';
+                                    
+                                    const emailDestinatario = (contrato as any).inscricao?.candidato?.email || 
+                                                              (contrato as any).inscricao?.dados_inscricao?.dados_pessoais?.email ||
+                                                              'email não encontrado';
+                                    
+                                    // Confirmar antes de reenviar
+                                    const confirmMsg = 
+                                      `🔄 Reenviar e-mail de assinatura?\n\n` +
+                                      `📧 Para: ${emailDestinatario}\n` +
+                                      `📅 Último envio: ${dataEnvio}\n\n` +
+                                      `⚠️ IMPORTANTE: Isso NÃO cria um novo documento.\n` +
+                                      `O candidato receberá o MESMO link de assinatura.\n\n` +
+                                      `Deseja continuar?`;
+                                    
+                                    if (confirm(confirmMsg)) {
+                                      setResendingContratoId(contrato.id);
+                                      resendEmail([contrato.id], {
+                                        onSuccess: () => {
+                                          toast.success('✅ E-mail reenviado com sucesso!', {
+                                            description: `Para: ${emailDestinatario}`
+                                          });
+                                        },
+                                        onSettled: () => setResendingContratoId(null)
+                                      });
+                                    }
                                   }}
                                   disabled={resendingContratoId === contrato.id}
-                                  title="Reenviar e-mail de assinatura para contratos já enviados corretamente"
+                                  title={`Reenviar mesmo link de assinatura (último envio: ${
+                                    getLatestSignatureRequest(contrato)?.created_at 
+                                      ? new Date(getLatestSignatureRequest(contrato)!.created_at).toLocaleString('pt-BR')
+                                      : 'desconhecido'
+                                  })`}
                                 >
-                                  <Mail className={`h-4 w-4 mr-2 ${resendingContratoId === contrato.id ? 'animate-spin' : ''}`} />
-                                  Reenviar E-mail
+                                  {resendingContratoId === contrato.id ? (
+                                    <>
+                                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                      Reenviando...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Mail className="h-4 w-4 mr-2" />
+                                      🔄 Reenviar E-mail
+                                    </>
+                                  )}
                                 </Button>
                               )
                             )}
