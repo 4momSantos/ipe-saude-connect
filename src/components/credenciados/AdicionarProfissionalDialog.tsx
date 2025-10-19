@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAdicionarProfissional, type Profissional } from "@/hooks/useProfissionais";
 import { useEspecialidades } from "@/hooks/useEspecialidades";
 import { useValidateCRM } from "@/hooks/useValidateCRM";
-import { validateCPF } from "@/lib/validators";
+import { useValidateCPF } from "@/hooks/useValidateCPF";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -26,6 +26,7 @@ export function AdicionarProfissionalDialog({
   const { mutateAsync: adicionar, isPending } = useAdicionarProfissional();
   const { data: especialidades } = useEspecialidades();
   const { validar: validarCRM, isLoading: isValidatingCRM, data: crmData } = useValidateCRM();
+  const { validar: validarCPF, isLoading: isValidatingCPF, data: cpfData } = useValidateCPF();
   
   const [cpfValidationState, setCpfValidationState] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
   const [crmValidationState, setCrmValidationState] = useState<'idle' | 'valid' | 'invalid'>('idle');
@@ -45,21 +46,36 @@ export function AdicionarProfissionalDialog({
   });
 
   const handleValidateCPF = async () => {
-    if (!formData.cpf) {
-      toast.error("Digite um CPF para validar");
+    if (!formData.cpf || !formData.data_nascimento) {
+      toast.error("Digite CPF e data de nascimento para validar");
       return;
     }
 
     setCpfValidationState('validating');
     
-    const isValid = validateCPF(formData.cpf);
-    
-    if (isValid) {
-      setCpfValidationState('valid');
-      toast.success("CPF válido");
-    } else {
+    try {
+      const result = await validarCPF({ 
+        cpf: formData.cpf, 
+        birthdate: formData.data_nascimento 
+      });
+      
+      if (result.valid && result.data) {
+        setCpfValidationState('valid');
+        
+        // ✅ AUTO-PREENCHER campos com dados da Receita Federal
+        setFormData(prev => ({
+          ...prev,
+          nome: result.data.nome,
+          cpf: result.data.cpf,
+          data_nascimento: result.data.data_nascimento
+        }));
+        
+        console.log('📋 Dados preenchidos automaticamente:', result.data);
+      } else {
+        setCpfValidationState('invalid');
+      }
+    } catch (error) {
       setCpfValidationState('invalid');
-      toast.error("CPF inválido");
     }
   };
 
@@ -70,8 +86,25 @@ export function AdicionarProfissionalDialog({
     }
 
     try {
-      await validarCRM({ crm: formData.crm, uf: formData.uf_crm });
-      setCrmValidationState('valid');
+      const result = await validarCRM({ crm: formData.crm, uf: formData.uf_crm });
+      
+      if (result.valid) {
+        setCrmValidationState('valid');
+        
+        // ✅ AUTO-PREENCHER campos com dados do CFM
+        setFormData(prev => ({
+          ...prev,
+          nome: result.nome || prev.nome, // Não sobrescrever se já tiver nome do CPF
+          especialidade: result.especialidades?.[0] || prev.especialidade
+        }));
+        
+        console.log('📋 Dados do CRM preenchidos:', { 
+          nome: result.nome, 
+          especialidades: result.especialidades 
+        });
+      } else {
+        setCrmValidationState('invalid');
+      }
     } catch (error) {
       setCrmValidationState('invalid');
     }
@@ -153,12 +186,12 @@ export function AdicionarProfissionalDialog({
                   variant="outline"
                   size="icon"
                   onClick={handleValidateCPF}
-                  disabled={cpfValidationState === 'validating' || !formData.cpf}
+                  disabled={isValidatingCPF || !formData.cpf || !formData.data_nascimento}
                 >
-                  {cpfValidationState === 'validating' && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {cpfValidationState === 'valid' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
-                  {cpfValidationState === 'invalid' && <XCircle className="h-4 w-4 text-red-600" />}
-                  {cpfValidationState === 'idle' && <CheckCircle2 className="h-4 w-4" />}
+                  {isValidatingCPF && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {!isValidatingCPF && cpfValidationState === 'valid' && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                  {!isValidatingCPF && cpfValidationState === 'invalid' && <XCircle className="h-4 w-4 text-red-600" />}
+                  {!isValidatingCPF && cpfValidationState === 'idle' && <CheckCircle2 className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
@@ -267,12 +300,13 @@ export function AdicionarProfissionalDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="data_nascimento">Data de Nascimento</Label>
+              <Label htmlFor="data_nascimento">Data de Nascimento *</Label>
               <Input
                 id="data_nascimento"
                 type="date"
                 value={formData.data_nascimento}
                 onChange={(e) => setFormData({ ...formData, data_nascimento: e.target.value })}
+                required
               />
             </div>
 
