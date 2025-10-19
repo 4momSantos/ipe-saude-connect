@@ -81,6 +81,43 @@ export function DashboardContratos() {
       toast.error(`Erro ao verificar status: ${error.message}`);
     }
   });
+
+  const { mutate: checkAllSignatures, isPending: isCheckingAll } = useMutation({
+    mutationFn: async () => {
+      const pendingContracts = contratos
+        .filter(c => c.status === 'pendente_assinatura')
+        .map(c => c.id);
+      
+      if (pendingContracts.length === 0) {
+        throw new Error('Nenhum contrato pendente de assinatura encontrado');
+      }
+
+      const results = [];
+      for (const contratoId of pendingContracts) {
+        const { data, error } = await supabase.functions.invoke('check-assinafy-status', {
+          body: { contratoId }
+        });
+        if (!error && data) {
+          results.push({ contratoId, ...data });
+        }
+      }
+      return results;
+    },
+    onSuccess: (results) => {
+      const signed = results.filter(r => r.signed).length;
+      const total = results.length;
+      
+      if (signed > 0) {
+        toast.success(`✅ ${signed} de ${total} contratos já assinados foram sincronizados!`);
+      } else {
+        toast.info(`Verificados ${total} contratos. Nenhum novo assinado encontrado.`);
+      }
+      refetch();
+    },
+    onError: (error: Error) => {
+      toast.error(`Erro ao verificar assinaturas: ${error.message}`);
+    }
+  });
   
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [searchQuery, setSearchQuery] = useState("");
@@ -265,6 +302,19 @@ export function DashboardContratos() {
               )}
             </div>
             <div className="flex gap-2">
+              <Button
+                onClick={() => checkAllSignatures()}
+                variant="default"
+                size="sm"
+                disabled={isCheckingAll}
+              >
+                {isCheckingAll ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                ✅ Buscar Assinadas
+              </Button>
               <Button
                 onClick={() => reprocessStuck()}
                 variant="destructive"
