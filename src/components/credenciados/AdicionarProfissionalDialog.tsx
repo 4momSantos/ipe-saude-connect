@@ -7,8 +7,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAdicionarProfissional, type Profissional } from "@/hooks/useProfissionais";
 import { useEspecialidades } from "@/hooks/useEspecialidades";
-import { useValidateCRM } from "@/hooks/useValidateCRM";
 import { useValidateCPF } from "@/hooks/useValidateCPF";
+import { validateCRM } from "@/lib/validators";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -25,8 +25,9 @@ export function AdicionarProfissionalDialog({
 }: AdicionarProfissionalDialogProps) {
   const { mutateAsync: adicionar, isPending } = useAdicionarProfissional();
   const { data: especialidades } = useEspecialidades();
-  const { validar: validarCRM, isLoading: isValidatingCRM, data: crmData } = useValidateCRM();
   const { validar: validarCPF, isLoading: isValidatingCPF, data: cpfData } = useValidateCPF();
+  
+  const [isValidatingCRM, setIsValidatingCRM] = useState(false);
   
   const [cpfValidationState, setCpfValidationState] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle');
   const [crmValidationState, setCrmValidationState] = useState<'idle' | 'valid' | 'invalid'>('idle');
@@ -85,28 +86,41 @@ export function AdicionarProfissionalDialog({
       return;
     }
 
+    setIsValidatingCRM(true);
+    setCrmValidationState('idle');
+    
     try {
-      const result = await validarCRM({ crm: formData.crm, uf: formData.uf_crm });
+      const result = await validateCRM(formData.crm, formData.uf_crm);
       
-      if (result.valid && result.nome) {
+      if (result.valid && result.data) {
         setCrmValidationState('valid');
         
         // ✅ AUTO-PREENCHER com dados do CFM
         setFormData(prev => ({
           ...prev,
-          nome: result.nome || prev.nome, // Não sobrescrever se já tiver nome do CPF
-          especialidade: result.especialidades?.[0] || prev.especialidade
+          nome: result.data.nome || prev.nome,
+          especialidade: result.data.especialidades?.[0] || prev.especialidade
         }));
         
+        toast.success("CRM Válido", {
+          description: `${result.data.nome} - ${result.data.situacao || 'ATIVO'}`
+        });
+        
         console.log('📋 Dados do CRM preenchidos:', { 
-          nome: result.nome, 
-          especialidades: result.especialidades 
+          nome: result.data.nome, 
+          especialidades: result.data.especialidades 
         });
       } else {
         setCrmValidationState('invalid');
+        toast.error("CRM Inválido", {
+          description: result.message || "CRM não encontrado"
+        });
       }
     } catch (error) {
       setCrmValidationState('invalid');
+      toast.error("Erro ao validar CRM");
+    } finally {
+      setIsValidatingCRM(false);
     }
   };
 
