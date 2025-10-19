@@ -144,12 +144,26 @@ export function DashboardContratos() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [resendingContratoId, setResendingContratoId] = useState<string | null>(null);
   const [sendingContratoId, setSendingContratoId] = useState<string | null>(null);
+  const [recentlySent, setRecentlySent] = useState<Set<string>>(new Set());
 
   const handleSendSingleContract = (contratoId: string) => {
     setSendingContratoId(contratoId);
     sendSingleContract(contratoId, {
       onSuccess: () => {
         toast.success('✅ Contrato enviado para assinatura!');
+        
+        // Adicionar à lista de recém-enviados
+        setRecentlySent(prev => new Set(prev).add(contratoId));
+        
+        // Remover badge após 10 segundos
+        setTimeout(() => {
+          setRecentlySent(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(contratoId);
+            return newSet;
+          });
+        }, 10000);
+        
         refetch();
       },
       onError: () => {
@@ -481,6 +495,14 @@ export function DashboardContratos() {
                       <TableRow key={contrato.id}>
                         <TableCell className="font-medium">
                           {contrato.numero_contrato}
+                          
+                          {/* Badge de contrato recém-enviado */}
+                          {recentlySent.has(contrato.id) && (
+                            <Badge variant="default" className="ml-2 text-xs bg-green-600 hover:bg-green-600">
+                              ✉️ Enviado agora
+                            </Badge>
+                          )}
+                          
                           {statusProblematico && (
                             <Badge variant="destructive" className="ml-2 text-xs">
                               Sem PDF
@@ -641,12 +663,22 @@ export function DashboardContratos() {
                             {contrato.status === "pendente_assinatura" && !naoEnviado && (
                               <Button
                                 size="sm"
-                                variant="secondary"
+                                variant="default"
+                                className="bg-blue-600 hover:bg-blue-700"
                                 onClick={() => checkStatus(contrato.id)}
                                 disabled={isCheckingStatus}
+                                title="Verificar se o contrato já foi assinado digitalmente"
                               >
-                                <RefreshCw className="h-4 w-4 mr-2" />
-                                Verificar Status
+                                {isCheckingStatus ? (
+                                  <>
+                                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                    Validando...
+                                  </>
+                                ) : (
+                                  <>
+                                    ✅ Validar Assinatura Digital
+                                  </>
+                                )}
                               </Button>
                             )}
                           </div>
