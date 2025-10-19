@@ -364,24 +364,105 @@ serve(async (req) => {
       throw new Error('CRITICAL: Falha ao salvar external_id após 2 tentativas');
     }
     
+    // ==================================================
+    // ✅ CRIAR ASSIGNMENT IMEDIATAMENTE
+    // ==================================================
+
     console.log(JSON.stringify({
       trace_id: traceId,
       level: 'info',
-      action: 'upload_complete_async',
+      action: 'creating_assignment_directly',
       document_id: documentId,
-      message: 'PDF enviado. Assinafy processará e enviará webhook document_metadata_ready'
+      signer_id: signerId
+    }));
+
+    // Aguardar 2s para Assinafy processar
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Criar assignment
+    const assignmentResponse = await fetch(
+      `https://api.assinafy.com.br/v1/documents/${documentId}/assignments`,
+      {
+        method: 'POST',
+        headers: {
+          'X-Api-Key': assignafyApiKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          method: 'virtual',
+          signer_ids: [signerId],
+          message: `Por favor, assine o contrato ${contrato.numero_contrato}.`,
+          expires_at: null
+        })
+      }
+    );
+
+    if (!assignmentResponse.ok) {
+      const errorText = await assignmentResponse.text();
+      throw new Error(`Erro ao criar assignment: ${errorText}`);
+    }
+
+    const assignmentData = await assignmentResponse.json();
+    const assignmentId = assignmentData.data?.id || assignmentData.id;
+
+    console.log(JSON.stringify({
+      trace_id: traceId,
+      level: 'info',
+      action: 'assignment_created',
+      assignment_id: assignmentId
+    }));
+
+    // Buscar URL de assinatura
+    const docDetailsResponse = await fetch(
+      `https://api.assinafy.com.br/v1/documents/${documentId}`,
+      { method: 'GET', headers: { 'X-Api-Key': assignafyApiKey } }
+    );
+
+    let signatureUrl = '';
+    if (docDetailsResponse.ok) {
+      const docDetails = await docDetailsResponse.json();
+      signatureUrl = docDetails.data?.signing_url || 
+                     docDetails.data?.assignments?.[0]?.signing_url || '';
+    }
+
+    // Atualizar para 'pending' com assignment_id e URL
+    await supabaseAdmin
+      .from('signature_requests')
+      .update({
+        status: 'pending',
+        metadata: {
+          ...signatureRequest.metadata,
+          assinafy_signer_id: signerId,
+          assinafy_assignment_id: assignmentId,
+          signature_url: signatureUrl,
+          contrato_id: contrato.id,
+          document_id: documentId,
+          trace_id: traceId,
+          assignment_created_at: new Date().toISOString()
+        },
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', signatureRequestId);
+
+    console.log(JSON.stringify({
+      trace_id: traceId,
+      level: 'info',
+      action: 'signature_request_ready',
+      assignment_id: assignmentId,
+      has_signature_url: !!signatureUrl
     }));
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Documento enviado com sucesso. Aguardando processamento do Assinafy.',
-        status: 'processing',
+        message: 'Contrato enviado para assinatura com sucesso!',
+        status: 'pending',
         signatureRequestId,
         documentId,
+        assignmentId,
+        signatureUrl,
         externalId: documentId,
-        trace_id: traceId,
-        next_step: 'Assinafy enviará webhook document_metadata_ready quando processar o PDF'
+        trace_id: traceId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     );
