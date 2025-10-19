@@ -61,23 +61,27 @@ serve(async (req) => {
       throw new Error(`Documento não encontrado: ${docError?.message}`);
     }
 
-    const credenciado = docRecord.credenciado;
-    const template = docRecord.template;
+    const credenciado = docRecord.credenciado as any;
+    const template = docRecord.template as any;
 
     if (!template) {
       throw new Error('Template não encontrado');
     }
 
+    if (!credenciado) {
+      throw new Error('Credenciado não encontrado');
+    }
+
     // Preparar placeholders
-    const placeholders = {
-      credenciado_nome: credenciado.nome || 'Não informado',
-      credenciado_documento: credenciado.cpf || credenciado.cnpj || 'Não informado',
-      credenciado_cpf: credenciado.cpf || '',
-      credenciado_cnpj: credenciado.cnpj || '',
-      credenciado_email: credenciado.email || '',
-      credenciado_telefone: credenciado.telefone || '',
-      credenciado_endereco: credenciado.endereco || '',
-      numero_credenciado: credenciado.numero_credenciado || credenciado.id.substring(0, 8).toUpperCase(),
+    const placeholders: Record<string, string | number> = {
+      credenciado_nome: credenciado?.nome || 'Não informado',
+      credenciado_documento: credenciado?.cpf || credenciado?.cnpj || 'Não informado',
+      credenciado_cpf: credenciado?.cpf || '',
+      credenciado_cnpj: credenciado?.cnpj || '',
+      credenciado_email: credenciado?.email || '',
+      credenciado_telefone: credenciado?.telefone || '',
+      credenciado_endereco: credenciado?.endereco || '',
+      numero_credenciado: credenciado?.numero_credenciado || credenciado?.id?.substring(0, 8).toUpperCase() || '',
       status_anterior: docRecord.status_anterior || '',
       status_novo: docRecord.status_novo || '',
       motivo_rescisao: docRecord.motivo || 'Não informado',
@@ -91,8 +95,8 @@ serve(async (req) => {
         ? Math.ceil((new Date(docRecord.valido_ate).getTime() - new Date(docRecord.valido_de).getTime()) / (1000 * 60 * 60 * 24))
         : 0,
       data_validade: docRecord.valido_ate ? new Date(docRecord.valido_ate).toLocaleDateString('pt-BR') : 'Indeterminado',
-      edital_numero: credenciado.inscricao?.edital?.numero_edital || '',
-      edital_titulo: credenciado.inscricao?.edital?.titulo || '',
+      edital_numero: credenciado?.inscricao?.edital?.numero_edital || '',
+      edital_titulo: credenciado?.inscricao?.edital?.titulo || '',
       numero_documento: generated_document_id.substring(0, 12).toUpperCase(),
       condicoes_reativacao: 'Regularização das pendências identificadas'
     };
