@@ -118,6 +118,26 @@ export function DashboardContratos() {
       toast.error(`Erro ao verificar assinaturas: ${error.message}`);
     }
   });
+
+  const { mutate: syncAllContracts, isPending: isSyncing } = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke('sync-assinafy-status');
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      if (data.totalUpdated > 0) {
+        toast.success(`🔄 ${data.totalUpdated} contratos sincronizados com Assinafy!`);
+      } else {
+        toast.info(data.message || 'Nenhum contrato precisou ser atualizado');
+      }
+      refetch();
+    },
+    onError: (error: Error) => {
+      toast.error(`Erro ao sincronizar: ${error.message}`);
+    }
+  });
   
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [searchQuery, setSearchQuery] = useState("");
@@ -314,6 +334,19 @@ export function DashboardContratos() {
                   <RefreshCw className="h-4 w-4 mr-2" />
                 )}
                 ✅ Buscar Assinadas
+              </Button>
+              <Button
+                onClick={() => syncAllContracts()}
+                variant="outline"
+                size="sm"
+                disabled={isSyncing}
+              >
+                {isSyncing ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                🔄 Sincronizar com Assinafy
               </Button>
               <Button
                 onClick={() => reprocessStuck()}
