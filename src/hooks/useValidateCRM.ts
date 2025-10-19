@@ -29,9 +29,15 @@ export function useValidateCRM() {
       return data;
     },
     onSuccess: (data) => {
-      if (data.valid) {
+      if (data.valid && data.nome) {
+        // CRM validado com sucesso pela API do CFM
         toast.success("CRM Válido", {
-          description: `${data.nome || 'Médico'} - Situação: ${data.situacao || 'ATIVO'}`
+          description: `${data.nome} - ${data.situacao || 'ATIVO'}`
+        });
+      } else if (data.valid && data.error) {
+        // Fallback: formato válido mas sem dados do CFM
+        toast.warning("CRM com formato válido", {
+          description: "API do CFM indisponível - apenas formato validado"
         });
       } else {
         toast.error("CRM Inválido", {
@@ -41,7 +47,9 @@ export function useValidateCRM() {
     },
     onError: (error: Error) => {
       console.error("Erro ao validar CRM:", error);
-      toast.error("Erro ao validar CRM: " + error.message);
+      toast.error("Erro ao validar CRM", {
+        description: "Não foi possível conectar ao serviço de validação"
+      });
     }
   });
 
