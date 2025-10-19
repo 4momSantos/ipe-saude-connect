@@ -6575,6 +6575,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_assinafy_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       get_batch_unread_counts: {
         Args: { p_inscricao_ids: string[] }
         Returns: {
