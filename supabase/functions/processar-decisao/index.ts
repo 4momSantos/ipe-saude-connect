@@ -147,9 +147,9 @@ serve(async (req) => {
         sender_id: user.id,
         sender_type: 'analista',
         content: messageContent,
-        tipo_manifestacao: 'decisao',
+        tipo: 'decisao',
         visivel_para: ['candidato', 'analista', 'gestor'],
-        metadata: {
+        manifestacao_metadata: {
           decisao: decisao,
           analista_nome: analista_nome
         }
@@ -198,9 +198,9 @@ serve(async (req) => {
               sender_id: user.id,
               sender_type: 'sistema',
               content: `⚠️ **AVISO**: Contrato não foi gerado automaticamente. Erro: ${contratoError.message}. Solicite geração manual.`,
-              tipo_manifestacao: 'alerta',
+              tipo: 'alerta',
               visivel_para: ['analista', 'gestor'],
-              metadata: { erro: contratoError }
+              manifestacao_metadata: { erro: contratoError }
             });
         } else {
           console.log(`[DECISAO] ✅ Contrato gerado: ${contratoData?.numero_contrato || 'N/A'}`);
@@ -213,9 +213,9 @@ serve(async (req) => {
               sender_id: user.id,
               sender_type: 'sistema',
               content: `📄 **Contrato gerado automaticamente**: ${contratoData?.numero_contrato || 'N/A'}\n\nEnviado para assinatura via Assinafy.`,
-              tipo_manifestacao: 'info',
+              tipo: 'info',
               visivel_para: ['candidato', 'analista', 'gestor'],
-              metadata: { 
+              manifestacao_metadata: { 
                 contrato_id: contratoData?.contrato_id,
                 numero_contrato: contratoData?.numero_contrato 
               }
