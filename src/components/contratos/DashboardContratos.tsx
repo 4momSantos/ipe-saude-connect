@@ -8,6 +8,7 @@ import { useAutoRefreshContratos } from "@/hooks/useAutoRefreshContratos";
 import { useCorrigirInscricoesOrfas } from "@/hooks/useCorrigirInscricoesOrfas";
 import { useReprocessStuckContracts } from "@/hooks/useReprocessStuckContracts";
 import { useSmartContractSend } from "@/hooks/useSmartContractSend";
+import { useSimularAssinatura } from "@/hooks/useSimularAssinatura";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -40,7 +41,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { FileText, Search, Filter, Download, ExternalLink, Mail, RefreshCw } from "lucide-react";
+import { FileText, Search, Filter, Download, ExternalLink, Mail, RefreshCw, CheckCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TesteAssinatura } from "./TesteAssinatura";
 
@@ -53,6 +54,7 @@ export function DashboardContratos() {
   const { mutate: corrigirOrfas, isPending: isCorrigindo } = useCorrigirInscricoesOrfas();
   const { mutate: reprocessStuck, isPending: isReprocessingStuck } = useReprocessStuckContracts();
   const { mutate: sendSingleContract } = useSmartContractSend();
+  const simularAssinatura = useSimularAssinatura();
   
   // ✅ Ativar auto-refresh para contratos pendentes
   useAutoRefreshContratos({ 
@@ -190,6 +192,21 @@ export function DashboardContratos() {
     return [...signatureRequests].sort((a, b) => 
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )[0];
+  };
+
+  const handleValidarAssinatura = async (contratoId: string) => {
+    if (!confirm('⚠️ Tem certeza que deseja validar esta assinatura manualmente?\n\nIsso marcará o contrato como assinado e ativará o credenciado.')) {
+      return;
+    }
+    
+    try {
+      await simularAssinatura.mutateAsync({ 
+        contratoId, 
+        force: true
+      });
+    } catch (error: any) {
+      toast.error(`Erro ao validar assinatura: ${error.message}`);
+    }
   };
 
   const handleSendSingleContract = (contratoId: string) => {
@@ -823,6 +840,28 @@ export function DashboardContratos() {
                                 ) : (
                                   <>
                                     ✅ Validar Assinatura Digital
+                                  </>
+                                )}
+                              </Button>
+                            )}
+                            {contrato.status === "pendente_assinatura" && temSignatureRequest && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleValidarAssinatura(contrato.id)}
+                                disabled={simularAssinatura.isPending}
+                                className="border-green-600 text-green-600 hover:bg-green-50"
+                                title="Marcar como assinado manualmente (sem webhook)"
+                              >
+                                {simularAssinatura.isPending ? (
+                                  <>
+                                    <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                                    Validando...
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle className="h-4 w-4 mr-1" />
+                                    Validar Assinatura
                                   </>
                                 )}
                               </Button>
