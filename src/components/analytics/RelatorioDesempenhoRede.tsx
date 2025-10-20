@@ -26,8 +26,8 @@ export function RelatorioDesempenhoRede() {
     enabled,
   });
 
-  // Dados mockados para demonstração
-  const relatorioMock: RelatorioProfissional[] = [
+  // Dados mockados para demonstração - PROFISSIONAIS
+  const relatorioMockProfissionais: RelatorioProfissional[] = [
     {
       profissional_id: '1',
       nome_profissional: 'Dr. João Silva',
@@ -125,8 +125,64 @@ export function RelatorioDesempenhoRede() {
     }
   ];
 
-  // Usar sempre dados mockados
-  const relatorio = relatorioMock as any;
+  // Dados mockados para demonstração - REDE CREDENCIADA
+  const relatorioMockRede: RelatorioCredenciado[] = [
+    {
+      credenciado_id: 'C1',
+      nome_credenciado: 'Hospital Central',
+      cnpj: '12.345.678/0001-90',
+      cidade: 'Porto Alegre',
+      estado: 'RS',
+      total_profissionais: 28,
+      media_avaliacao_rede: 4.5,
+      mediana_avaliacao_rede: 4.6,
+      media_produtividade_rede: 81.2,
+      mediana_produtividade_rede: 83.0,
+      score_rede: 84.8
+    },
+    {
+      credenciado_id: 'C2',
+      nome_credenciado: 'Clínica Saúde',
+      cnpj: '23.456.789/0001-01',
+      cidade: 'Caxias do Sul',
+      estado: 'RS',
+      total_profissionais: 15,
+      media_avaliacao_rede: 4.6,
+      mediana_avaliacao_rede: 4.7,
+      media_produtividade_rede: 83.5,
+      mediana_produtividade_rede: 84.0,
+      score_rede: 86.2
+    },
+    {
+      credenciado_id: 'C3',
+      nome_credenciado: 'Ortoclínica',
+      cnpj: '34.567.890/0001-12',
+      cidade: 'Florianópolis',
+      estado: 'SC',
+      total_profissionais: 12,
+      media_avaliacao_rede: 4.3,
+      mediana_avaliacao_rede: 4.4,
+      media_produtividade_rede: 76.8,
+      mediana_produtividade_rede: 78.0,
+      score_rede: 79.5
+    },
+    {
+      credenciado_id: 'C4',
+      nome_credenciado: 'Hospital Mulher',
+      cnpj: '45.678.901/0001-23',
+      cidade: 'Curitiba',
+      estado: 'PR',
+      total_profissionais: 22,
+      media_avaliacao_rede: 4.7,
+      mediana_avaliacao_rede: 4.8,
+      media_produtividade_rede: 87.3,
+      mediana_produtividade_rede: 88.0,
+      score_rede: 88.9
+    }
+  ];
+
+  // Usar sempre dados mockados baseado no tipo selecionado
+  const relatorio = tipo === "rede" ? relatorioMockRede : relatorioMockProfissionais;
   const isLoading = false;
 
   const handleGerar = () => {
@@ -135,19 +191,77 @@ export function RelatorioDesempenhoRede() {
   };
 
   const handleExportCSV = () => {
-    if (!relatorio) return;
+    if (!relatorio || relatorio.length === 0) return;
+    
+    // Formatar dados para exportação com nomes de colunas legíveis
+    const dadosFormatados = tipo === "rede" 
+      ? (relatorio as RelatorioCredenciado[]).map(r => ({
+          'Nome Credenciado': r.nome_credenciado,
+          'CNPJ': r.cnpj,
+          'Cidade': r.cidade,
+          'Estado': r.estado,
+          'Total Profissionais': r.total_profissionais,
+          'Média Avaliação': r.media_avaliacao_rede.toFixed(2),
+          'Mediana Avaliação': r.mediana_avaliacao_rede.toFixed(2),
+          'Média Produtividade': r.media_produtividade_rede.toFixed(1),
+          'Mediana Produtividade': r.mediana_produtividade_rede.toFixed(1),
+          'Score Rede': r.score_rede.toFixed(2)
+        }))
+      : (relatorio as RelatorioProfissional[]).map(r => ({
+          'Nome Profissional': r.nome_profissional,
+          'CRM': r.crm,
+          'UF CRM': r.uf_crm,
+          'Especialidade': r.especialidade,
+          'Credenciado': r.nome_credenciado,
+          'Total Avaliações': r.total_avaliacoes,
+          'Média Avaliação': r.media_avaliacao.toFixed(2),
+          'Mediana Avaliação': r.mediana_avaliacao.toFixed(2),
+          'Média Produtividade': r.media_produtividade.toFixed(1),
+          'Mediana Produtividade': r.mediana_produtividade.toFixed(1),
+          'Score Composto': r.score_composto.toFixed(2)
+        }));
+    
     const titulo = tipo === "rede" 
       ? "Relatorio_Desempenho_Rede" 
       : "Relatorio_Desempenho_Profissionais";
-    exportToCSV(relatorio, titulo);
+    
+    exportToCSV(dadosFormatados, titulo);
   };
 
   const handleExportPDF = () => {
-    if (!relatorio) return;
+    if (!relatorio || relatorio.length === 0) return;
+    
+    // Formatar dados para exportação com nomes de colunas legíveis
+    const dadosFormatados = tipo === "rede" 
+      ? (relatorio as RelatorioCredenciado[]).map(r => ({
+          'Nome': r.nome_credenciado,
+          'CNPJ': r.cnpj,
+          'Cidade/UF': `${r.cidade}/${r.estado}`,
+          'Profissionais': r.total_profissionais,
+          'Média Aval.': r.media_avaliacao_rede.toFixed(2),
+          'Med. Aval.': r.mediana_avaliacao_rede.toFixed(2),
+          'Média Prod.': r.media_produtividade_rede.toFixed(0),
+          'Med. Prod.': r.mediana_produtividade_rede.toFixed(0),
+          'Score': r.score_rede.toFixed(2)
+        }))
+      : (relatorio as RelatorioProfissional[]).map(r => ({
+          'Nome': r.nome_profissional,
+          'CRM/UF': `${r.crm}/${r.uf_crm}`,
+          'Especialidade': r.especialidade,
+          'Credenciado': r.nome_credenciado,
+          'Avals.': r.total_avaliacoes,
+          'Média Aval.': r.media_avaliacao.toFixed(2),
+          'Med. Aval.': r.mediana_avaliacao.toFixed(2),
+          'Média Prod.': r.media_produtividade.toFixed(0),
+          'Med. Prod.': r.mediana_produtividade.toFixed(0),
+          'Score': r.score_composto.toFixed(2)
+        }));
+    
     const titulo = tipo === "rede" 
       ? "Relatório de Desempenho - Rede Credenciada" 
       : "Relatório de Desempenho - Profissionais";
-    exportToPDF(relatorio, titulo);
+    
+    exportToPDF(dadosFormatados, titulo);
   };
 
   const getScoreColor = (score: number) => {
