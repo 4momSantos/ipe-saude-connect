@@ -26,10 +26,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSolicitacoesNotifications } from "@/hooks/useSolicitacoesNotifications";
+import { useSolicitacoesPendentes } from "@/hooks/useSolicitacoesPendentes";
+import { SolicitacoesIndicator } from "@/components/credenciados/SolicitacoesIndicator";
 
 export default function Credenciados() {
   const navigate = useNavigate();
   const { data: credenciados, isLoading, error } = useCredenciados();
+  const { data: solicitacoesPendentes } = useSolicitacoesPendentes();
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [filtroEspecialidade, setFiltroEspecialidade] = useState<string>("todas");
   const [filtroMunicipio, setFiltroMunicipio] = useState<string>("todos");
@@ -38,6 +42,9 @@ export default function Credenciados() {
   const [busca, setBusca] = useState("");
   const [credenciadosSelecionados, setCredenciadosSelecionados] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
+  
+  // Ativar notificações de solicitações
+  useSolicitacoesNotifications();
 
   const especialidades = useMemo(() => {
     if (!credenciados) return [];
@@ -412,13 +419,14 @@ export default function Credenciados() {
                   <TableHead>Especialidade</TableHead>
                   <TableHead>Município</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Solicitações</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {credenciadosFiltrados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                       Nenhum credenciado encontrado
                     </TableCell>
                   </TableRow>
@@ -523,6 +531,11 @@ export default function Credenciados() {
                         </TableCell>
                         <TableCell>
                           <StatusBadge status={credenciado.status.toLowerCase() === "ativo" ? "habilitado" : "inabilitado"} />
+                        </TableCell>
+                        <TableCell>
+                          <SolicitacoesIndicator 
+                            pendingCount={solicitacoesPendentes?.[credenciado.id] || 0}
+                          />
                         </TableCell>
                         <TableCell className="text-right">
                           <Button
