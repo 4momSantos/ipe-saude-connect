@@ -30,48 +30,86 @@ export function EditarDataVencimento({ documentoId, dataAtual, onSuccess, entida
 
   const { mutate: atualizarData, isPending } = useMutation({
     mutationFn: async ({ novaData, motivo }: { novaData: Date; motivo: string }) => {
+      console.log('🔄 [EDIT_DATA] Iniciando atualização:', {
+        documentoId,
+        entidadeTipo,
+        dataAtual,
+        novaData: format(novaData, 'yyyy-MM-dd'),
+        motivo
+      });
+
       // Atualizar data de vencimento na tabela correspondente
       if (entidadeTipo === 'documento_credenciado') {
-        const { error } = await supabase
+        const { data: updated, error } = await supabase
           .from('documentos_credenciados')
           .update({ 
-            data_vencimento: format(novaData, 'yyyy-MM-dd')
+            data_vencimento: format(novaData, 'yyyy-MM-dd'),
+            updated_at: new Date().toISOString()
           })
-          .eq('id', documentoId);
+          .eq('id', documentoId)
+          .select()
+          .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('❌ [EDIT_DATA] Erro no UPDATE:', error);
+          throw error;
+        }
+
+        console.log('✅ [EDIT_DATA] Documento atualizado:', updated);
 
         // Registrar no histórico via RPC
         await supabase.rpc('registrar_historico_manual', {
           p_documento_id: documentoId,
           p_comentario: `Data alterada para ${format(novaData, "dd/MM/yyyy", { locale: ptBR })}. Motivo: ${motivo}`
         });
+
+        return updated;
       } else {
         // Para certificados, atualizar controle_prazos diretamente
-        const { error } = await supabase
+        const { data: updated, error } = await supabase
           .from('controle_prazos')
           .update({ 
-            data_vencimento: format(novaData, 'yyyy-MM-dd')
+            data_vencimento: format(novaData, 'yyyy-MM-dd'),
+            atualizado_em: new Date().toISOString()
           })
           .eq('entidade_id', documentoId)
-          .eq('entidade_tipo', 'certificado');
+          .eq('entidade_tipo', 'certificado')
+          .select()
+          .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('❌ [EDIT_DATA] Erro no UPDATE certificado:', error);
+          throw error;
+        }
+
+        console.log('✅ [EDIT_DATA] Certificado atualizado:', updated);
+        return updated;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('✅ [EDIT_DATA] Sucesso! Invalidando TODAS as queries relacionadas...');
+
+      // Invalidar TODAS as query keys relacionadas a documentos e prazos
+      queryClient.invalidateQueries({ queryKey: ['documentos-credenciado'] });
+      queryClient.invalidateQueries({ queryKey: ['prazos-documentos'] });
+      queryClient.invalidateQueries({ queryKey: ['documentos-aprovados-agrupados'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-prazos-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-vencimentos'] });
+      queryClient.invalidateQueries({ queryKey: ['controle-prazos'] });
+
+      console.log('✅ [EDIT_DATA] Queries invalidadas com sucesso');
+
       toast({
         title: "Data atualizada!",
-        description: "A data de vencimento foi atualizada com sucesso.",
+        description: `Nova data: ${format(new Date(data.data_vencimento), "dd/MM/yyyy", { locale: ptBR })}`,
       });
-      queryClient.invalidateQueries({ queryKey: ['prazos-documentos'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-prazos-stats'] });
       setOpen(false);
       setMotivo("");
       setNovaData(undefined);
       onSuccess?.();
     },
     onError: (error) => {
+      console.error('❌ [EDIT_DATA] Falha na atualização:', error);
       toast({
         title: "Erro ao atualizar",
         description: error.message,
@@ -99,6 +137,35 @@ export function EditarDataVencimento({ documentoId, dataAtual, onSuccess, entida
       toast({
         title: "Data obrigatória",
         description: "Por favor, selecione uma nova data.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar se data está no futuro e dentro de 12 meses
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    
+    const dataEscolhida = new Date(novaData);
+    dataEscolhida.setHours(0, 0, 0, 0);
+    
+    if (dataEscolhida < hoje) {
+      toast({
+        title: "Data inválida",
+        description: "A data de vencimento não pode ser no passado.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Calcular data máxima (12 meses no futuro)
+    const dataMaxima = new Date(hoje);
+    dataMaxima.setMonth(dataMaxima.getMonth() + 12);
+    
+    if (dataEscolhida > dataMaxima) {
+      toast({
+        title: "Data muito distante",
+        description: "A validade máxima é de 12 meses a partir de hoje.",
         variant: "destructive",
       });
       return;
