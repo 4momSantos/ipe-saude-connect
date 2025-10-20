@@ -164,6 +164,7 @@ export function DashboardContratos() {
   const [resendingContratoId, setResendingContratoId] = useState<string | null>(null);
   const [sendingContratoId, setSendingContratoId] = useState<string | null>(null);
   const [recentlySent, setRecentlySent] = useState<Set<string>>(new Set());
+  const [validatingContratoId, setValidatingContratoId] = useState<string | null>(null);
 
   // 🛡️ Helper para verificar se contrato tem signature ativa
   const hasPendingSignature = (contrato: any) => {
@@ -208,6 +209,9 @@ export function DashboardContratos() {
     if (!confirm('⚠️ Tem certeza que deseja validar esta assinatura manualmente?\n\nIsso marcará o contrato como assinado e ativará o credenciado.')) {
       return;
     }
+    
+    setValidatingContratoId(contratoId);
+    
     try {
       await simularAssinatura.mutateAsync({
         contratoId,
@@ -215,6 +219,8 @@ export function DashboardContratos() {
       });
     } catch (error: any) {
       toast.error(`Erro ao validar assinatura: ${error.message}`);
+    } finally {
+      setValidatingContratoId(null);
     }
   };
   const handleSendSingleContract = (contratoId: string) => {
@@ -666,8 +672,8 @@ export function DashboardContratos() {
                                     </>}
                                 </Button>)}
                             {contrato.status === "pendente_assinatura" && temSignatureRequest}
-                            {contrato.status === "pendente_assinatura" && temSignatureRequest && <Button size="sm" variant="outline" onClick={() => handleValidarAssinatura(contrato.id)} disabled={simularAssinatura.isPending} className="border-green-600 text-green-600 hover:bg-green-50" title="Marcar como assinado manualmente (sem webhook)">
-                                {simularAssinatura.isPending ? <>
+                            {contrato.status === "pendente_assinatura" && temSignatureRequest && <Button size="sm" variant="outline" onClick={() => handleValidarAssinatura(contrato.id)} disabled={validatingContratoId === contrato.id} className="border-green-600 text-green-600 hover:bg-green-50" title="Marcar como assinado manualmente (sem webhook)">
+                                {validatingContratoId === contrato.id ? <>
                                     <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
                                     Validando...
                                   </> : <>
