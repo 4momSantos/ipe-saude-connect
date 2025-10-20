@@ -182,28 +182,25 @@ export function DashboardContratos() {
       console.log(`[ESTADO] Contrato ${contrato.numero_contrato}: ENVIADO_PENDENTE (recém-enviado)`);
       return 'ENVIADO_PENDENTE';
     }
-
     const signatureRequests = contrato.signature_requests;
-    
     if (!signatureRequests?.length) {
       return 'NAO_ENVIADO';
     }
-    
     const latestSR = getLatestSignatureRequest(contrato);
     const hasAssignment = latestSR?.metadata?.assinafy_assignment_id || latestSR?.metadata?.assignment_id;
     const isActiveStatus = ['pending', 'sent'].includes(latestSR?.status);
-    
+
     // Verificar se é recente (criado há menos de 5 minutos)
     const now = new Date().getTime();
     const createdAt = latestSR?.created_at ? new Date(latestSR.created_at).getTime() : 0;
-    const isRecent = (now - createdAt) < (5 * 60 * 1000); // 5 minutos
-    
+    const isRecent = now - createdAt < 5 * 60 * 1000; // 5 minutos
+
     // Se tem assignment_id e status ativo, definitivamente foi enviado
     if (hasAssignment && isActiveStatus) {
       console.log(`[ESTADO] Contrato ${contrato.numero_contrato}: ENVIADO_PENDENTE (tem assignment_id)`);
       return 'ENVIADO_PENDENTE';
     }
-    
+
     // Se não tem assignment_id MAS é recente e status ativo, considerar enviado
     // (pode estar esperando webhook da Assinafy processar)
     if (!hasAssignment && isActiveStatus && isRecent) {
@@ -211,13 +208,13 @@ export function DashboardContratos() {
       console.log(`[ESTADO] Contrato ${contrato.numero_contrato}: ENVIADO_PENDENTE (recente: ${minutosAtras}min atrás, aguardando assignment_id)`);
       return 'ENVIADO_PENDENTE';
     }
-    
+
     // Se não tem assignment_id, status ativo, mas NÃO é recente = está stuck
     if (!hasAssignment && isActiveStatus && !isRecent) {
       console.log(`[ESTADO] Contrato ${contrato.numero_contrato}: STUCK (sem assignment_id há muito tempo)`);
       return 'STUCK';
     }
-    
+
     // Se status não está ativo (cancelled, expired, failed)
     console.log(`[ESTADO] Contrato ${contrato.numero_contrato}: NAO_ENVIADO (status: ${latestSR?.status})`);
     return 'NAO_ENVIADO';
@@ -244,9 +241,8 @@ export function DashboardContratos() {
       toast.error('❌ Contrato não encontrado');
       return;
     }
-
     const state = getContractState(contrato);
-    
+
     // Validação anti-duplicação: só permitir envio se NAO_ENVIADO ou STUCK
     if (state === 'ENVIADO_PENDENTE') {
       const latestSR = getLatestSignatureRequest(contrato);
@@ -258,12 +254,11 @@ export function DashboardContratos() {
       });
       return;
     }
-
     setSendingContratoId(contratoId);
     sendSingleContract(contratoId, {
       onSuccess: () => {
         toast.success('✅ Contrato enviado para assinatura!');
-        
+
         // Marcar como recém-enviado por 5 minutos (tempo para webhook processar)
         setRecentlySent(prev => new Set(prev).add(contratoId));
         setTimeout(() => {
@@ -273,7 +268,7 @@ export function DashboardContratos() {
             return newSet;
           });
         }, 5 * 60 * 1000); // 5 minutos
-        
+
         refetch();
       },
       onError: () => {
@@ -547,9 +542,7 @@ export function DashboardContratos() {
                           {contrato.status === 'pendente_assinatura' && state === 'NAO_ENVIADO' && <Badge variant="outline" className="ml-2 text-xs font-semibold border-amber-500 bg-amber-50 text-amber-700">
                               ⚠️ Pendente Envio
                             </Badge>}
-                          {contrato.status === 'pendente_assinatura' && state === 'ENVIADO_PENDENTE' && <Badge variant="default" className="ml-2 text-xs bg-blue-500 hover:bg-blue-500">
-                              📧 Aguardando Assinatura
-                            </Badge>}
+                          {contrato.status === 'pendente_assinatura' && state === 'ENVIADO_PENDENTE'}
                         </TableCell>
                         <TableCell>{candidatoNome}</TableCell>
                         <TableCell>
@@ -616,25 +609,25 @@ export function DashboardContratos() {
                                     
                                     {/* Botão REGENERAR - só se não tem PDF */}
                                     {!temPDF && <Button size="sm" variant="destructive" onClick={async () => {
-                                try {
-                                  toast.loading('Gerando novo contrato...', {
-                                    id: 'regen'
-                                  });
-                                  const result = await gerarContrato({
-                                    inscricaoId: contrato.inscricao_id
-                                  });
-                                  toast.success('Contrato regenerado e enviado para assinatura', {
-                                    id: 'regen',
-                                    description: `Número: ${result.numero_contrato}`
-                                  });
-                                  refetch();
-                                } catch (error: any) {
-                                  toast.error('Erro ao regenerar contrato', {
-                                    id: 'regen',
-                                    description: error.message
-                                  });
-                                }
-                              }} disabled={isGerandoContrato}>
+                              try {
+                                toast.loading('Gerando novo contrato...', {
+                                  id: 'regen'
+                                });
+                                const result = await gerarContrato({
+                                  inscricaoId: contrato.inscricao_id
+                                });
+                                toast.success('Contrato regenerado e enviado para assinatura', {
+                                  id: 'regen',
+                                  description: `Número: ${result.numero_contrato}`
+                                });
+                                refetch();
+                              } catch (error: any) {
+                                toast.error('Erro ao regenerar contrato', {
+                                  id: 'regen',
+                                  description: error.message
+                                });
+                              }
+                            }} disabled={isGerandoContrato}>
                                         <RefreshCw className={`h-4 w-4 mr-2 ${isGerandoContrato ? 'animate-spin' : ''}`} />
                                         Regenerar PDF
                                       </Button>}
@@ -645,34 +638,33 @@ export function DashboardContratos() {
                         if (state === 'ENVIADO_PENDENTE') {
                           const latestSR = getLatestSignatureRequest(contrato);
                           const hasAssignment = latestSR?.metadata?.assinafy_assignment_id || latestSR?.metadata?.assignment_id;
-                          
+
                           // Verificar se signature request existe (pode não existir se acabou de enviar)
                           const temSignatureRequest = latestSR !== null;
-                          
                           return <>
                                     {/* Botão REENVIAR E-MAIL - só mostrar se tem SR confirmado */}
                                     {temSignatureRequest && <Button size="sm" variant="outline" onClick={() => {
-                                const dataEnvio = latestSR?.created_at ? new Date(latestSR.created_at).toLocaleString('pt-BR', {
-                                  day: '2-digit',
-                                  month: '2-digit',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                }) : 'desconhecida';
-                                const emailDestinatario = (contrato as any).inscricao?.candidato?.email || (contrato as any).inscricao?.dados_inscricao?.dados_pessoais?.email || 'email não encontrado';
-                                const confirmMsg = `🔄 Reenviar e-mail de assinatura?\n\n` + `📧 Para: ${emailDestinatario}\n` + `📅 Último envio: ${dataEnvio}\n\n` + `⚠️ IMPORTANTE: Isso NÃO cria um novo documento.\n` + `O candidato receberá o MESMO link de assinatura.\n\n` + `Deseja continuar?`;
-                                if (confirm(confirmMsg)) {
-                                  setResendingContratoId(contrato.id);
-                                  resendEmail([contrato.id], {
-                                    onSuccess: () => {
-                                      toast.success('✅ E-mail reenviado com sucesso!', {
-                                        description: `Para: ${emailDestinatario}`
-                                      });
-                                    },
-                                    onSettled: () => setResendingContratoId(null)
-                                  });
-                                }
-                              }} disabled={resendingContratoId === contrato.id} title={`Reenviar mesmo link de assinatura`}>
+                              const dataEnvio = latestSR?.created_at ? new Date(latestSR.created_at).toLocaleString('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              }) : 'desconhecida';
+                              const emailDestinatario = (contrato as any).inscricao?.candidato?.email || (contrato as any).inscricao?.dados_inscricao?.dados_pessoais?.email || 'email não encontrado';
+                              const confirmMsg = `🔄 Reenviar e-mail de assinatura?\n\n` + `📧 Para: ${emailDestinatario}\n` + `📅 Último envio: ${dataEnvio}\n\n` + `⚠️ IMPORTANTE: Isso NÃO cria um novo documento.\n` + `O candidato receberá o MESMO link de assinatura.\n\n` + `Deseja continuar?`;
+                              if (confirm(confirmMsg)) {
+                                setResendingContratoId(contrato.id);
+                                resendEmail([contrato.id], {
+                                  onSuccess: () => {
+                                    toast.success('✅ E-mail reenviado com sucesso!', {
+                                      description: `Para: ${emailDestinatario}`
+                                    });
+                                  },
+                                  onSettled: () => setResendingContratoId(null)
+                                });
+                              }
+                            }} disabled={resendingContratoId === contrato.id} title={`Reenviar mesmo link de assinatura`}>
                                       {resendingContratoId === contrato.id ? <>
                                           <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                                           Reenviando...
@@ -694,9 +686,7 @@ export function DashboardContratos() {
                                     </Button>
                                     
                                     {/* Badge de "Aguardando confirmação" se não tem assignment ainda */}
-                                    {!hasAssignment && recentlySent.has(contrato.id) && <Badge variant="outline" className="text-xs border-blue-500 bg-blue-50 text-blue-700">
-                                        ⏳ Processando envio...
-                                      </Badge>}
+                                    {!hasAssignment && recentlySent.has(contrato.id)}
                                   </>;
                         }
                         return null;
