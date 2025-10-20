@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -22,6 +22,17 @@ interface EditarDataVencimentoProps {
 
 export function EditarDataVencimento({ documentoId, dataAtual, onSuccess, entidadeTipo = 'documento_credenciado' }: EditarDataVencimentoProps) {
   const [open, setOpen] = useState(false);
+  
+  // Debug: Log quando modal abre
+  useEffect(() => {
+    if (open) {
+      console.log('📋 [EDIT_DATA] Modal aberto com:', {
+        documentoId,
+        dataAtual,
+        entidadeTipo
+      });
+    }
+  }, [open, documentoId, dataAtual, entidadeTipo]);
   const [novaData, setNovaData] = useState<Date>();
   const [motivo, setMotivo] = useState("");
   const motivoRef = useRef<HTMLTextAreaElement>(null);
@@ -38,53 +49,43 @@ export function EditarDataVencimento({ documentoId, dataAtual, onSuccess, entida
         motivo
       });
 
-      // Atualizar data de vencimento na tabela correspondente
-      if (entidadeTipo === 'documento_credenciado') {
-        const { data: updated, error } = await supabase
-          .from('documentos_credenciados')
-          .update({ 
-            data_vencimento: format(novaData, 'yyyy-MM-dd'),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', documentoId)
-          .select()
-          .single();
+      // ✅ SEMPRE atualizar controle_prazos (fonte dos dados)
+      const { data: updated, error } = await supabase
+        .from('controle_prazos')
+        .update({ 
+          data_vencimento: format(novaData, 'yyyy-MM-dd'),
+          atualizado_em: new Date().toISOString()
+        })
+        .eq('entidade_id', documentoId)
+        .eq('entidade_tipo', entidadeTipo)
+        .select()
+        .maybeSingle();
 
-        if (error) {
-          console.error('❌ [EDIT_DATA] Erro no UPDATE:', error);
-          throw error;
-        }
-
-        console.log('✅ [EDIT_DATA] Documento atualizado:', updated);
-
-        // Registrar no histórico via RPC
-        await supabase.rpc('registrar_historico_manual', {
-          p_documento_id: documentoId,
-          p_comentario: `Data alterada para ${format(novaData, "dd/MM/yyyy", { locale: ptBR })}. Motivo: ${motivo}`
-        });
-
-        return updated;
-      } else {
-        // Para certificados, atualizar controle_prazos diretamente
-        const { data: updated, error } = await supabase
-          .from('controle_prazos')
-          .update({ 
-            data_vencimento: format(novaData, 'yyyy-MM-dd'),
-            atualizado_em: new Date().toISOString()
-          })
-          .eq('entidade_id', documentoId)
-          .eq('entidade_tipo', 'certificado')
-          .select()
-          .single();
-
-        if (error) {
-          console.error('❌ [EDIT_DATA] Erro no UPDATE certificado:', error);
-          throw error;
-        }
-
-        console.log('✅ [EDIT_DATA] Certificado atualizado:', updated);
-        return updated;
+      if (error) {
+        console.error('❌ [EDIT_DATA] Erro no UPDATE:', error);
+        throw error;
       }
+
+      if (!updated) {
+        console.error('❌ [EDIT_DATA] Nenhum registro encontrado');
+        throw new Error('Registro não encontrado no controle de prazos');
+      }
+
+      console.log('✅ [EDIT_DATA] Prazo atualizado:', updated);
+
+      // Registrar histórico (apenas para documentos)
+      if (entidadeTipo === 'documento_credenciado') {
+        try {
+          await supabase.rpc('registrar_historico_manual', {
+            p_documento_id: documentoId,
+            p_comentario: `Data alterada para ${format(novaData, "dd/MM/yyyy", { locale: ptBR })}. Motivo: ${motivo}`
+          });
+        } catch (histErr) {
+          console.warn('⚠️ [EDIT_DATA] Erro ao registrar histórico:', histErr);
+        }
+      }
+
+      return updated;
     },
     onSuccess: (data) => {
       console.log('✅ [EDIT_DATA] Sucesso! Invalidando TODAS as queries relacionadas...');
