@@ -8,8 +8,35 @@ import { ListaProfissionais } from "./ListaProfissionais";
 import { useEstatisticasRede } from "@/hooks/useRedeAnalitica";
 
 export function PainelRedeAnalitico() {
-  const { data: stats, isLoading } = useEstatisticasRede();
+  const { data: statsReal, isLoading: loadingReal } = useEstatisticasRede();
   const [activeTab, setActiveTab] = useState("kpis");
+  
+  // Dados mockados para demonstração
+  const statsMock = {
+    total_profissionais: 342,
+    media_avaliacao_geral: 4.3,
+    total_credenciados: 285,
+    especialidades: [
+      'Cardiologia', 'Pediatria', 'Ortopedia', 'Clínica Geral', 
+      'Ginecologia', 'Dermatologia', 'Psiquiatria', 'Oftalmologia'
+    ],
+    top_especialidades: [
+      { especialidade: 'Cardiologia', media: 4.5, profissionais: 42 },
+      { especialidade: 'Pediatria', media: 4.4, profissionais: 38 },
+      { especialidade: 'Ortopedia', media: 4.3, profissionais: 35 },
+      { especialidade: 'Clínica Geral', media: 4.2, profissionais: 58 },
+      { especialidade: 'Ginecologia', media: 4.1, profissionais: 28 }
+    ],
+    distribuicao_geografica: [
+      { estado: 'RS', total: 156 },
+      { estado: 'SC', total: 89 },
+      { estado: 'PR', total: 97 }
+    ]
+  };
+
+  // Usar dados mockados sempre
+  const stats = statsMock;
+  const isLoading = false;
   
   if (isLoading) {
     return (

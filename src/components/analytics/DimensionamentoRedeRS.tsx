@@ -14,7 +14,7 @@ interface DimensionamentoData {
 }
 
 export function DimensionamentoRedeRS() {
-  const { data: dimensionamento, isLoading } = useQuery({
+  const { data: dimensionamentoReal, isLoading: loadingReal } = useQuery({
     queryKey: ['dimensionamento-rs'],
     queryFn: async () => {
       console.log('[DIMENSIONAMENTO] Buscando dados...');
@@ -26,8 +26,25 @@ export function DimensionamentoRedeRS() {
       console.log('[DIMENSIONAMENTO] Dados recebidos:', data);
       return (data || []) as DimensionamentoData[];
     },
-    staleTime: 5 * 60 * 1000, // 5 minutos
+    staleTime: 5 * 60 * 1000,
   });
+
+  // Dados mockados para demonstração
+  const dimensionamentoMock: DimensionamentoData[] = [
+    { municipio: 'Porto Alegre', codigo_ibge: '4314902', beneficiarios: 125000, credenciados_atuais: 342, credenciados_necessarios: 400, deficit: 58, cobertura: 85.5 },
+    { municipio: 'Caxias do Sul', codigo_ibge: '4305108', beneficiarios: 85000, credenciados_atuais: 186, credenciados_necessarios: 272, deficit: 86, cobertura: 68.4 },
+    { municipio: 'Pelotas', codigo_ibge: '4314407', beneficiarios: 62000, credenciados_atuais: 145, credenciados_necessarios: 198, deficit: 53, cobertura: 73.2 },
+    { municipio: 'Canoas', codigo_ibge: '4304606', beneficiarios: 78000, credenciados_atuais: 198, credenciados_necessarios: 250, deficit: 52, cobertura: 79.2 },
+    { municipio: 'Santa Maria', codigo_ibge: '4316907', beneficiarios: 54000, credenciados_atuais: 132, credenciados_necessarios: 173, deficit: 41, cobertura: 76.3 },
+    { municipio: 'Gravataí', codigo_ibge: '4309100', beneficiarios: 48000, credenciados_atuais: 98, credenciados_necessarios: 154, deficit: 56, cobertura: 63.6 },
+    { municipio: 'Viamão', codigo_ibge: '4323002', beneficiarios: 42000, credenciados_atuais: 76, credenciados_necessarios: 134, deficit: 58, cobertura: 56.7 },
+    { municipio: 'Novo Hamburgo', codigo_ibge: '4313409', beneficiarios: 51000, credenciados_atuais: 124, credenciados_necessarios: 163, deficit: 39, cobertura: 76.1 },
+    { municipio: 'São Leopoldo', codigo_ibge: '4318705', beneficiarios: 45000, credenciados_atuais: 112, credenciados_necessarios: 144, deficit: 32, cobertura: 77.8 },
+    { municipio: 'Alvorada', codigo_ibge: '4300604', beneficiarios: 38000, credenciados_atuais: 68, credenciados_necessarios: 122, deficit: 54, cobertura: 55.7 }
+  ];
+
+  const dimensionamento = dimensionamentoMock;
+  const isLoading = false;
 
   const totais = dimensionamento?.reduce((acc, d) => ({
     beneficiarios: acc.beneficiarios + Number(d.beneficiarios),

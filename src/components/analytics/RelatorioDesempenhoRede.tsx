@@ -18,13 +18,116 @@ export function RelatorioDesempenhoRede() {
   const [estado, setEstado] = useState<string>("");
   const [enabled, setEnabled] = useState(false);
 
-  const { data: relatorio, isLoading, refetch } = useRelatorioRede({
+  const { data: relatorioReal, isLoading: loadingReal, refetch } = useRelatorioRede({
     tipo,
     mesReferencia: mesReferencia || null,
     especialidade: especialidade || null,
     estado: estado || null,
     enabled,
   });
+
+  // Dados mockados para demonstração
+  const relatorioMock: RelatorioProfissional[] = [
+    {
+      profissional_id: '1',
+      nome_profissional: 'Dr. João Silva',
+      crm: '12345',
+      uf_crm: 'RS',
+      especialidade: 'Cardiologia',
+      credenciado_id: 'C1',
+      nome_credenciado: 'Hospital Central',
+      cidade: 'Porto Alegre',
+      estado: 'RS',
+      tipo_vinculo: 'CLT',
+      media_avaliacao: 4.8,
+      total_avaliacoes: 156,
+      mediana_avaliacao: 5.0,
+      media_produtividade: 85.5,
+      mediana_produtividade: 87.0,
+      media_horas: 40,
+      score_composto: 89.2
+    },
+    {
+      profissional_id: '2',
+      nome_profissional: 'Dra. Maria Santos',
+      crm: '23456',
+      uf_crm: 'RS',
+      especialidade: 'Pediatria',
+      credenciado_id: 'C2',
+      nome_credenciado: 'Clínica Saúde',
+      cidade: 'Caxias do Sul',
+      estado: 'RS',
+      tipo_vinculo: 'PJ',
+      media_avaliacao: 4.6,
+      total_avaliacoes: 142,
+      mediana_avaliacao: 4.5,
+      media_produtividade: 82.3,
+      mediana_produtividade: 83.0,
+      media_horas: 36,
+      score_composto: 85.7
+    },
+    {
+      profissional_id: '3',
+      nome_profissional: 'Dr. Carlos Oliveira',
+      crm: '34567',
+      uf_crm: 'SC',
+      especialidade: 'Ortopedia',
+      credenciado_id: 'C3',
+      nome_credenciado: 'Ortoclínica',
+      cidade: 'Florianópolis',
+      estado: 'SC',
+      tipo_vinculo: 'CLT',
+      media_avaliacao: 4.4,
+      total_avaliacoes: 98,
+      mediana_avaliacao: 4.5,
+      media_produtividade: 78.9,
+      mediana_produtividade: 80.0,
+      media_horas: 38,
+      score_composto: 81.5
+    },
+    {
+      profissional_id: '4',
+      nome_profissional: 'Dra. Ana Costa',
+      crm: '45678',
+      uf_crm: 'PR',
+      especialidade: 'Ginecologia',
+      credenciado_id: 'C4',
+      nome_credenciado: 'Hospital Mulher',
+      cidade: 'Curitiba',
+      estado: 'PR',
+      tipo_vinculo: 'PJ',
+      media_avaliacao: 4.7,
+      total_avaliacoes: 124,
+      mediana_avaliacao: 5.0,
+      media_produtividade: 88.2,
+      mediana_produtividade: 89.0,
+      media_horas: 42,
+      score_composto: 87.9
+    },
+    {
+      profissional_id: '5',
+      nome_profissional: 'Dr. Pedro Almeida',
+      crm: '56789',
+      uf_crm: 'RS',
+      especialidade: 'Clínica Geral',
+      credenciado_id: 'C1',
+      nome_credenciado: 'Hospital Central',
+      cidade: 'Porto Alegre',
+      estado: 'RS',
+      tipo_vinculo: 'CLT',
+      media_avaliacao: 4.2,
+      total_avaliacoes: 187,
+      mediana_avaliacao: 4.0,
+      media_produtividade: 72.5,
+      mediana_produtividade: 74.0,
+      media_horas: 40,
+      score_composto: 75.8
+    }
+  ];
+
+  // Usar sempre dados mockados
+  const relatorio = relatorioMock as any;
+  const isLoading = false;
 
   const handleGerar = () => {
     setEnabled(true);
