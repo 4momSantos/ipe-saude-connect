@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Award, TrendingUp, TrendingDown, Download, Calendar, Filter, FileSpreadsheet, FileText } from "lucide-react";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from "recharts";
 import { format, subDays, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DataExporter } from "@/utils/exportData";
@@ -427,21 +427,74 @@ export default function RelatorioAvaliacoes() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="card-glow">
           <CardHeader>
-            <CardTitle>Evolução Temporal</CardTitle>
-            <CardDescription>Média de avaliações ao longo do tempo</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Evolução Temporal
+            </CardTitle>
+            <CardDescription>Tendência de avaliações ao longo do tempo</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={evolucao || []}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="mes" />
-                <YAxis domain={[0, 5]} />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="media" stroke="#8884d8" strokeWidth={2} />
-              </LineChart>
+            <ResponsiveContainer width="100%" height={350}>
+              <AreaChart data={evolucao || []} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorMedia" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.1}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                <XAxis 
+                  dataKey="mes" 
+                  stroke="hsl(var(--muted-foreground))"
+                  style={{ fontSize: '12px' }}
+                  tickLine={false}
+                />
+                <YAxis 
+                  domain={[0, 5]} 
+                  stroke="hsl(var(--muted-foreground))"
+                  style={{ fontSize: '12px' }}
+                  tickLine={false}
+                  ticks={[0, 1, 2, 3, 4, 5]}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--popover))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                  }}
+                  labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 'bold' }}
+                  formatter={(value: any) => [`${value.toFixed(2)} ⭐`, 'Média']}
+                />
+                <Legend 
+                  wrapperStyle={{ paddingTop: '20px' }}
+                  iconType="circle"
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="media" 
+                  stroke="hsl(var(--primary))" 
+                  strokeWidth={3}
+                  fill="url(#colorMedia)"
+                  name="Média de Avaliações"
+                  animationDuration={1500}
+                  animationEasing="ease-in-out"
+                  dot={{ 
+                    fill: 'hsl(var(--primary))', 
+                    strokeWidth: 2, 
+                    r: 5,
+                    stroke: 'hsl(var(--background))'
+                  }}
+                  activeDot={{ 
+                    r: 8,
+                    fill: 'hsl(var(--primary))',
+                    stroke: 'hsl(var(--background))',
+                    strokeWidth: 3
+                  }}
+                />
+              </AreaChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
