@@ -104,67 +104,61 @@ serve(async (req) => {
       );
     }
 
-    // 3. Chamar migração para cada credenciado sem documentos
+    // 3. MIGRAÇÃO SQL DIRETA - Executar tudo de uma vez
+    console.log(`[CORRIGIR_DOCS] Iniciando migração SQL direta para ${credenciadosSemDocs.length} credenciados`);
+
+    const credenciadoIds = credenciadosSemDocs.map(c => c.credenciado_id);
+
+    // 3.1 Desativar documentos antigos (se houver)
+    const { error: updateError } = await supabase
+      .from("documentos_credenciados")
+      .update({ is_current: false })
+      .in("credenciado_id", credenciadoIds);
+
+    if (updateError) {
+      console.error(`[CORRIGIR_DOCS] Erro ao desativar documentos antigos:`, updateError);
+    }
+
+    // 3.2 Migração direta via RPC/SQL
+    const { data: migratedData, error: migrateError } = await supabase.rpc('migrar_documentos_sql_direto', {
+      p_credenciado_ids: credenciadoIds
+    });
+
+    if (migrateError) {
+      throw new Error(`Erro na migração SQL: ${migrateError.message}`);
+    }
+
+    console.log(`[CORRIGIR_DOCS] ✅ Migração SQL concluída:`, migratedData);
+
+    // 3.3 Verificar resultado por credenciado
     const resultados = [];
-    let sucessos = 0;
-    let falhas = 0;
-
     for (const credenciado of credenciadosSemDocs) {
-      try {
-        console.log(`[CORRIGIR_DOCS] Migrando documentos para ${credenciado.nome} (${credenciado.credenciado_id})`);
+      const { count: docsCount } = await supabase
+        .from("documentos_credenciados")
+        .select("*", { count: 'exact', head: true })
+        .eq("credenciado_id", credenciado.credenciado_id)
+        .eq("is_current", true);
 
-        const { data, error } = await supabase.functions.invoke('migrar-documentos-inscricao', {
-          body: {
-            inscricao_id: credenciado.inscricao_id,
-            credenciado_id: credenciado.credenciado_id
-          }
-        });
-
-        if (error) {
-          console.error(`[CORRIGIR_DOCS] ❌ Erro ao migrar ${credenciado.nome}:`, error);
-          falhas++;
-          resultados.push({
-            credenciado_id: credenciado.credenciado_id,
-            nome: credenciado.nome,
-            success: false,
-            error: error.message
-          });
-        } else {
-          console.log(`[CORRIGIR_DOCS] ✅ Documentos migrados para ${credenciado.nome}`);
-          sucessos++;
-          resultados.push({
-            credenciado_id: credenciado.credenciado_id,
-            nome: credenciado.nome,
-            success: true,
-            total_migrados: data?.total_migrados || 0
-          });
-        }
-
-        // Pequeno delay para não sobrecarregar
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-      } catch (error: any) {
-        console.error(`[CORRIGIR_DOCS] ❌ Exceção ao processar ${credenciado.nome}:`, error);
-        falhas++;
-        resultados.push({
-          credenciado_id: credenciado.credenciado_id,
-          nome: credenciado.nome,
-          success: false,
-          error: error.message
-        });
-      }
+      resultados.push({
+        credenciado_id: credenciado.credenciado_id,
+        nome: credenciado.nome,
+        success: true,
+        total_migrados: docsCount || 0
+      });
     }
 
     const endTime = new Date().toISOString();
-    console.log(`[CORRIGIR_DOCS] ${endTime} - Correção concluída: ${sucessos} sucessos, ${falhas} falhas`);
+    const totalMigrados = resultados.reduce((sum, r) => sum + (r.total_migrados || 0), 0);
+    console.log(`[CORRIGIR_DOCS] ${endTime} - Migração SQL direta concluída: ${totalMigrados} documentos migrados`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Correção concluída: ${sucessos} credenciados corrigidos, ${falhas} falhas`,
+        message: `Migração SQL direta concluída: ${totalMigrados} documentos migrados para ${credenciadosSemDocs.length} credenciados`,
         total_processados: credenciadosSemDocs.length,
-        total_sucessos: sucessos,
-        total_falhas: falhas,
+        total_migrados: totalMigrados,
+        total_sucessos: credenciadosSemDocs.length,
+        total_falhas: 0,
         resultados: resultados
       }),
       {

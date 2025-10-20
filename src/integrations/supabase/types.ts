@@ -6939,6 +6939,10 @@ export type Database = {
           resultado_uf: string
         }[]
       }
+      migrar_documentos_sql_direto: {
+        Args: { p_credenciado_ids: string[] }
+        Returns: Json
+      }
       migrar_prazos_existentes: {
         Args: Record<PropertyKey, never>
         Returns: {
