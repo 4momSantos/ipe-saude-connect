@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,14 +7,45 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Award, TrendingUp, TrendingDown, Download, Calendar, Filter } from "lucide-react";
+import { Award, TrendingUp, TrendingDown, Download, Calendar, Filter, FileSpreadsheet, FileText } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { format, subDays, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { DataExporter } from "@/utils/exportData";
 
 export default function RelatorioAvaliacoes() {
   const [periodo, setPeriodo] = useState<"7dias" | "30dias" | "90dias" | "mesatual">("30dias");
   const [categoria, setCategoria] = useState<string>("todas");
+  const [especialidade, setEspecialidade] = useState<string>("todas");
+
+  // Dados mockados completos
+  const avaliacoesMock = useMemo(() => [
+    { id: 1, credenciado: 'Hospital Central', especialidade: 'Cardiologia', pontuacao: 4.8, categoria: 'atendimento', data: '2024-01-15', comentario: 'Excelente atendimento' },
+    { id: 2, credenciado: 'Clínica Saúde', especialidade: 'Pediatria', pontuacao: 4.6, categoria: 'pontualidade', data: '2024-01-18', comentario: 'Muito pontual' },
+    { id: 3, credenciado: 'Ortoclínica', especialidade: 'Ortopedia', pontuacao: 4.4, categoria: 'qualidade', data: '2024-01-20', comentario: 'Boa qualidade técnica' },
+    { id: 4, credenciado: 'Hospital Mulher', especialidade: 'Ginecologia', pontuacao: 4.7, categoria: 'atendimento', data: '2024-01-22', comentario: 'Atendimento humanizado' },
+    { id: 5, credenciado: 'Hospital Central', especialidade: 'Clínica Geral', pontuacao: 4.2, categoria: 'pontualidade', data: '2024-01-25', comentario: 'Bom atendimento geral' },
+    { id: 6, credenciado: 'Centro Médico', especialidade: 'Dermatologia', pontuacao: 3.8, categoria: 'qualidade', data: '2024-02-01', comentario: 'Precisa melhorar' },
+    { id: 7, credenciado: 'Clínica Visão', especialidade: 'Oftalmologia', pontuacao: 4.5, categoria: 'atendimento', data: '2024-02-05', comentario: 'Muito profissional' },
+    { id: 8, credenciado: 'Neuro Centro', especialidade: 'Neurologia', pontuacao: 4.3, categoria: 'pontualidade', data: '2024-02-08', comentario: 'Consulta no horário' },
+    { id: 9, credenciado: 'Hospital São José', especialidade: 'Cardiologia', pontuacao: 3.5, categoria: 'qualidade', data: '2024-02-10', comentario: 'Pode melhorar' },
+    { id: 10, credenciado: 'Clínica Dor', especialidade: 'Ortopedia', pontuacao: 4.9, categoria: 'atendimento', data: '2024-02-12', comentario: 'Excelente profissional' },
+    { id: 11, credenciado: 'Materno Infantil', especialidade: 'Pediatria', pontuacao: 4.7, categoria: 'pontualidade', data: '2024-02-15', comentario: 'Ótimo com crianças' },
+    { id: 12, credenciado: 'Clínica Pele', especialidade: 'Dermatologia', pontuacao: 3.2, categoria: 'qualidade', data: '2024-02-18', comentario: 'Atendimento rápido demais' },
+    { id: 13, credenciado: 'Hospital Central', especialidade: 'Ginecologia', pontuacao: 4.6, categoria: 'atendimento', data: '2024-02-20', comentario: 'Médica atenciosa' },
+    { id: 14, credenciado: 'Clínica Saúde', especialidade: 'Clínica Geral', pontuacao: 4.1, categoria: 'pontualidade', data: '2024-02-22', comentario: 'Bom atendimento' },
+    { id: 15, credenciado: 'Centro Neurológico', especialidade: 'Neurologia', pontuacao: 4.8, categoria: 'qualidade', data: '2024-02-25', comentario: 'Diagnóstico preciso' },
+    { id: 16, credenciado: 'Hospital São José', especialidade: 'Ortopedia', pontuacao: 2.8, categoria: 'atendimento', data: '2024-02-28', comentario: 'Atendimento frio' },
+    { id: 17, credenciado: 'Clínica Visão', especialidade: 'Oftalmologia', pontuacao: 4.4, categoria: 'pontualidade', data: '2024-03-01', comentario: 'Consulta rápida' },
+    { id: 18, credenciado: 'Ortoclínica', especialidade: 'Ortopedia', pontuacao: 4.7, categoria: 'qualidade', data: '2024-03-03', comentario: 'Excelente tratamento' },
+    { id: 19, credenciado: 'Hospital Mulher', especialidade: 'Ginecologia', pontuacao: 4.9, categoria: 'atendimento', data: '2024-03-05', comentario: 'Melhor médica da região' },
+    { id: 20, credenciado: 'Clínica Dor', especialidade: 'Ortopedia', pontuacao: 3.9, categoria: 'pontualidade', data: '2024-03-08', comentario: 'Atraso na consulta' },
+    { id: 21, credenciado: 'Hospital Central', especialidade: 'Cardiologia', pontuacao: 5.0, categoria: 'qualidade', data: '2024-03-10', comentario: 'Perfeito!' },
+    { id: 22, credenciado: 'Materno Infantil', especialidade: 'Pediatria', pontuacao: 4.8, categoria: 'atendimento', data: '2024-03-12', comentario: 'Excelente pediatra' },
+    { id: 23, credenciado: 'Clínica Pele', especialidade: 'Dermatologia', pontuacao: 3.6, categoria: 'pontualidade', data: '2024-03-15', comentario: 'Demora no atendimento' },
+    { id: 24, credenciado: 'Centro Médico', especialidade: 'Clínica Geral', pontuacao: 4.3, categoria: 'qualidade', data: '2024-03-18', comentario: 'Bom diagnóstico' },
+    { id: 25, credenciado: 'Neuro Centro', especialidade: 'Neurologia', pontuacao: 4.5, categoria: 'atendimento', data: '2024-03-20', comentario: 'Médico atencioso' },
+  ], []);
 
   // Calcular intervalo de datas
   const getDateRange = () => {
@@ -35,128 +66,146 @@ export default function RelatorioAvaliacoes() {
 
   const { inicio, fim } = getDateRange();
 
-  // Query: Estatísticas gerais
-  const { data: stats } = useQuery({
-    queryKey: ["avaliacoes-stats", inicio, fim],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("calcular_estatisticas_avaliacoes", {
-        p_periodo_inicio: format(inicio, "yyyy-MM-dd"),
-        p_periodo_fim: format(fim, "yyyy-MM-dd"),
-      });
-      if (error) throw error;
-      return data?.[0] || { media_geral: 0, total_avaliacoes: 0, credenciados_avaliados: 0, melhor_nota: 0, pior_nota: 0 };
-    },
-  });
+  // Filtrar dados mockados
+  const dadosFiltrados = useMemo(() => {
+    return avaliacoesMock.filter(av => {
+      const dataAv = new Date(av.data);
+      const dentroPeriodo = dataAv >= inicio && dataAv <= fim;
+      const categoriaOk = categoria === 'todas' || av.categoria === categoria;
+      const especialidadeOk = especialidade === 'todas' || av.especialidade === especialidade;
+      return dentroPeriodo && categoriaOk && especialidadeOk;
+    });
+  }, [avaliacoesMock, inicio, fim, categoria, especialidade]);
 
-  // Query: Top 10 melhores
-  const { data: top10 } = useQuery({
-    queryKey: ["avaliacoes-top10", inicio, fim],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("avaliacoes_prestadores")
-        .select(`
-          id,
-          pontuacao_geral,
-          credenciado_id,
-          credenciados!inner(nome)
-        `)
-        .gte("periodo_referencia", format(inicio, "yyyy-MM-dd"))
-        .lte("periodo_referencia", format(fim, "yyyy-MM-dd"))
-        .eq("status", "finalizada")
-        .order("pontuacao_geral", { ascending: false })
-        .limit(10);
-      if (error) throw error;
-      return data || [];
-    },
-  });
+  // Calcular estatísticas
+  const stats = useMemo(() => {
+    if (dadosFiltrados.length === 0) {
+      return { media_geral: 0, total_avaliacoes: 0, credenciados_avaliados: 0, melhor_nota: 0, pior_nota: 0 };
+    }
 
-  // Query: Bottom 10 (precisam atenção)
-  const { data: bottom10 } = useQuery({
-    queryKey: ["avaliacoes-bottom10", inicio, fim],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("avaliacoes_prestadores")
-        .select(`
-          id,
-          pontuacao_geral,
-          credenciado_id,
-          credenciados!inner(nome)
-        `)
-        .gte("periodo_referencia", format(inicio, "yyyy-MM-dd"))
-        .lte("periodo_referencia", format(fim, "yyyy-MM-dd"))
-        .eq("status", "finalizada")
-        .order("pontuacao_geral", { ascending: true })
-        .limit(10);
-      if (error) throw error;
-      return data || [];
-    },
-  });
+    const notas = dadosFiltrados.map(av => av.pontuacao);
+    const credenciadosUnicos = new Set(dadosFiltrados.map(av => av.credenciado)).size;
 
-  // Query: Distribuição de notas
-  const { data: distribuicao } = useQuery({
-    queryKey: ["avaliacoes-distribuicao", inicio, fim],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("avaliacoes_prestadores")
-        .select("pontuacao_geral")
-        .gte("periodo_referencia", format(inicio, "yyyy-MM-dd"))
-        .lte("periodo_referencia", format(fim, "yyyy-MM-dd"))
-        .eq("status", "finalizada");
-      if (error) throw error;
+    return {
+      media_geral: notas.reduce((a, b) => a + b, 0) / notas.length,
+      total_avaliacoes: dadosFiltrados.length,
+      credenciados_avaliados: credenciadosUnicos,
+      melhor_nota: Math.max(...notas),
+      pior_nota: Math.min(...notas)
+    };
+  }, [dadosFiltrados]);
 
-      // Agrupar por faixas
-      const faixas = [
-        { nome: "0-1", min: 0, max: 1, count: 0 },
-        { nome: "1-2", min: 1, max: 2, count: 0 },
-        { nome: "2-3", min: 2, max: 3, count: 0 },
-        { nome: "3-4", min: 3, max: 4, count: 0 },
-        { nome: "4-5", min: 4, max: 5, count: 0 },
-      ];
+  // Top 10 melhores
+  const top10 = useMemo(() => {
+    const grouped = dadosFiltrados.reduce((acc, av) => {
+      if (!acc[av.credenciado]) {
+        acc[av.credenciado] = { credenciado: av.credenciado, pontuacoes: [] };
+      }
+      acc[av.credenciado].pontuacoes.push(av.pontuacao);
+      return acc;
+    }, {} as Record<string, { credenciado: string; pontuacoes: number[] }>);
 
-      data?.forEach((av: any) => {
-        const nota = av.pontuacao_geral;
-        const faixa = faixas.find((f) => nota >= f.min && nota < f.max);
-        if (faixa) faixa.count++;
-      });
+    return Object.values(grouped)
+      .map(g => ({
+        credenciado: g.credenciado,
+        pontuacao_geral: g.pontuacoes.reduce((a, b) => a + b, 0) / g.pontuacoes.length
+      }))
+      .sort((a, b) => b.pontuacao_geral - a.pontuacao_geral)
+      .slice(0, 10);
+  }, [dadosFiltrados]);
 
-      return faixas;
-    },
-  });
+  // Bottom 10
+  const bottom10 = useMemo(() => {
+    const grouped = dadosFiltrados.reduce((acc, av) => {
+      if (!acc[av.credenciado]) {
+        acc[av.credenciado] = { credenciado: av.credenciado, pontuacoes: [] };
+      }
+      acc[av.credenciado].pontuacoes.push(av.pontuacao);
+      return acc;
+    }, {} as Record<string, { credenciado: string; pontuacoes: number[] }>);
 
-  // Query: Evolução temporal (últimos 6 períodos)
-  const { data: evolucao } = useQuery({
-    queryKey: ["avaliacoes-evolucao", inicio, fim],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("avaliacoes_prestadores")
-        .select("pontuacao_geral, periodo_referencia")
-        .gte("periodo_referencia", format(inicio, "yyyy-MM-dd"))
-        .lte("periodo_referencia", format(fim, "yyyy-MM-dd"))
-        .eq("status", "finalizada")
-        .order("periodo_referencia", { ascending: true });
-      if (error) throw error;
+    return Object.values(grouped)
+      .map(g => ({
+        credenciado: g.credenciado,
+        pontuacao_geral: g.pontuacoes.reduce((a, b) => a + b, 0) / g.pontuacoes.length
+      }))
+      .sort((a, b) => a.pontuacao_geral - b.pontuacao_geral)
+      .slice(0, 10);
+  }, [dadosFiltrados]);
 
-      // Agrupar por mês/semana
-      const agrupado: Record<string, { total: number; count: number }> = {};
-      data?.forEach((av: any) => {
-        const mes = format(new Date(av.periodo_referencia), "MMM/yy", { locale: ptBR });
-        if (!agrupado[mes]) agrupado[mes] = { total: 0, count: 0 };
-        agrupado[mes].total += av.pontuacao_geral;
-        agrupado[mes].count += 1;
-      });
+  // Distribuição de notas
+  const distribuicao = useMemo(() => {
+    const faixas = [
+      { nome: "0-1", min: 0, max: 1, count: 0 },
+      { nome: "1-2", min: 1, max: 2, count: 0 },
+      { nome: "2-3", min: 2, max: 3, count: 0 },
+      { nome: "3-4", min: 3, max: 4, count: 0 },
+      { nome: "4-5", min: 4, max: 5.1, count: 0 },
+    ];
 
-      return Object.entries(agrupado).map(([mes, { total, count }]) => ({
-        mes,
-        media: total / count,
-      }));
-    },
-  });
+    dadosFiltrados.forEach(av => {
+      const faixa = faixas.find(f => av.pontuacao >= f.min && av.pontuacao < f.max);
+      if (faixa) faixa.count++;
+    });
+
+    return faixas;
+  }, [dadosFiltrados]);
+
+  // Evolução temporal
+  const evolucao = useMemo(() => {
+    const agrupado: Record<string, { total: number; count: number }> = {};
+    dadosFiltrados.forEach(av => {
+      const mes = format(new Date(av.data), "MMM/yy", { locale: ptBR });
+      if (!agrupado[mes]) agrupado[mes] = { total: 0, count: 0 };
+      agrupado[mes].total += av.pontuacao;
+      agrupado[mes].count += 1;
+    });
+
+    return Object.entries(agrupado).map(([mes, { total, count }]) => ({
+      mes,
+      media: total / count,
+    }));
+  }, [dadosFiltrados]);
 
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
 
-  const handleExport = () => {
-    // Implementar exportação via jsPDF ou xlsx
-    console.log("Exportar relatório");
+  // Funções de exportação
+  const handleExportExcel = () => {
+    const dadosExport = dadosFiltrados.map(av => ({
+      'Data': format(new Date(av.data), 'dd/MM/yyyy'),
+      'Credenciado': av.credenciado,
+      'Especialidade': av.especialidade,
+      'Categoria': av.categoria,
+      'Pontuação': av.pontuacao,
+      'Comentário': av.comentario
+    }));
+    DataExporter.exportarParaExcel(dadosExport, 'avaliacoes', 'Avaliações');
+  };
+
+  const handleExportPDF = () => {
+    DataExporter.exportarParaPDF(
+      dadosFiltrados,
+      [
+        { header: 'Data', dataKey: 'data' },
+        { header: 'Credenciado', dataKey: 'credenciado' },
+        { header: 'Especialidade', dataKey: 'especialidade' },
+        { header: 'Pontuação', dataKey: 'pontuacao' },
+      ],
+      'Relatório de Avaliações',
+      'relatorio_avaliacoes'
+    );
+  };
+
+  const handleExportCSV = () => {
+    const dadosExport = dadosFiltrados.map(av => ({
+      'Data': format(new Date(av.data), 'dd/MM/yyyy'),
+      'Credenciado': av.credenciado,
+      'Especialidade': av.especialidade,
+      'Categoria': av.categoria,
+      'Pontuação': av.pontuacao,
+      'Comentário': av.comentario
+    }));
+    DataExporter.exportarParaCSV(dadosExport, 'avaliacoes');
   };
 
   return (
@@ -165,12 +214,22 @@ export default function RelatorioAvaliacoes() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Relatório de Avaliações</h1>
-          <p className="text-muted-foreground">Análise de desempenho dos credenciados</p>
+          <p className="text-muted-foreground">Análise de desempenho dos credenciados ({dadosFiltrados.length} avaliações filtradas)</p>
         </div>
-        <Button onClick={handleExport} variant="outline">
-          <Download className="mr-2 h-4 w-4" />
-          Exportar Relatório
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={handleExportExcel} variant="outline" size="sm">
+            <FileSpreadsheet className="mr-2 h-4 w-4" />
+            Excel
+          </Button>
+          <Button onClick={handleExportPDF} variant="outline" size="sm">
+            <FileText className="mr-2 h-4 w-4" />
+            PDF
+          </Button>
+          <Button onClick={handleExportCSV} variant="outline" size="sm">
+            <Download className="mr-2 h-4 w-4" />
+            CSV
+          </Button>
+        </div>
       </div>
 
       {/* Filtros */}
@@ -207,6 +266,24 @@ export default function RelatorioAvaliacoes() {
                 <SelectItem value="atendimento">Atendimento</SelectItem>
                 <SelectItem value="pontualidade">Pontualidade</SelectItem>
                 <SelectItem value="qualidade">Qualidade Técnica</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex-1">
+            <label className="text-sm font-medium mb-2 block">Especialidade</label>
+            <Select value={especialidade} onValueChange={setEspecialidade}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas</SelectItem>
+                <SelectItem value="Cardiologia">Cardiologia</SelectItem>
+                <SelectItem value="Pediatria">Pediatria</SelectItem>
+                <SelectItem value="Ortopedia">Ortopedia</SelectItem>
+                <SelectItem value="Ginecologia">Ginecologia</SelectItem>
+                <SelectItem value="Dermatologia">Dermatologia</SelectItem>
+                <SelectItem value="Neurologia">Neurologia</SelectItem>
+                <SelectItem value="Oftalmologia">Oftalmologia</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -334,9 +411,9 @@ export default function RelatorioAvaliacoes() {
                 </TableHeader>
                 <TableBody>
                   {top10?.map((item: any, index: number) => (
-                    <TableRow key={item.id}>
+                    <TableRow key={index}>
                       <TableCell className="font-bold">{index + 1}</TableCell>
-                      <TableCell>{item.credenciados.nome}</TableCell>
+                      <TableCell>{item.credenciado}</TableCell>
                       <TableCell>
                         <Badge variant="default" className="bg-green-500">
                           {item.pontuacao_geral.toFixed(2)} ⭐
@@ -370,9 +447,9 @@ export default function RelatorioAvaliacoes() {
                 </TableHeader>
                 <TableBody>
                   {bottom10?.map((item: any, index: number) => (
-                    <TableRow key={item.id}>
+                    <TableRow key={index}>
                       <TableCell className="font-bold">{index + 1}</TableCell>
-                      <TableCell>{item.credenciados.nome}</TableCell>
+                      <TableCell>{item.credenciado}</TableCell>
                       <TableCell>
                         <Badge variant="destructive">
                           {item.pontuacao_geral.toFixed(2)} ⭐
