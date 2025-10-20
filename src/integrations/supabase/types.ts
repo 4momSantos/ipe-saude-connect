@@ -299,36 +299,45 @@ export type Database = {
         Row: {
           analisado_em: string | null
           analista_id: string | null
+          campos_reprovados: Json | null
           created_at: string | null
           documentos_analisados: Json | null
+          documentos_reprovados: Json | null
           id: string
           inscricao_id: string
           motivo_reprovacao: string | null
           parecer: string | null
+          prazo_correcao: string | null
           status: string
           updated_at: string | null
         }
         Insert: {
           analisado_em?: string | null
           analista_id?: string | null
+          campos_reprovados?: Json | null
           created_at?: string | null
           documentos_analisados?: Json | null
+          documentos_reprovados?: Json | null
           id?: string
           inscricao_id: string
           motivo_reprovacao?: string | null
           parecer?: string | null
+          prazo_correcao?: string | null
           status?: string
           updated_at?: string | null
         }
         Update: {
           analisado_em?: string | null
           analista_id?: string | null
+          campos_reprovados?: Json | null
           created_at?: string | null
           documentos_analisados?: Json | null
+          documentos_reprovados?: Json | null
           id?: string
           inscricao_id?: string
           motivo_reprovacao?: string | null
           parecer?: string | null
+          prazo_correcao?: string | null
           status?: string
           updated_at?: string | null
         }
