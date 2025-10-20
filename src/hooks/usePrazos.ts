@@ -131,7 +131,7 @@ export function usePrazos() {
 
         const prazo: Prazo = {
           id: doc.id,
-          entidade_tipo: 'documento',
+          entidade_tipo: 'documento_credenciado',
           entidade_id: doc.id,
           entidade_nome: doc.tipo_documento,
           credenciado_id: doc.credenciado_id,
