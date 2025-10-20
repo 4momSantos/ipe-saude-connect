@@ -105,8 +105,8 @@ serve(async (req) => {
     const analista_nome = profile?.nome || user.email;
 
     // 1. Atualizar tabela analises
-    const statusAnalise = decisao.status === 'aprovado' ? 'aprovada' : 
-                          decisao.status === 'reprovado' ? 'rejeitada' : 
+    const statusAnalise = decisao.status === 'aprovado' ? 'aprovado' : 
+                          decisao.status === 'reprovado' ? 'rejeitado' : 
                           'pendente_correcao';
 
     const { error: updateAnaliseError } = await supabase
