@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, BarChart3, FileDown, Map, Activity, Layers } from "lucide-react";
 import { MapaUnificado } from "@/components/analytics/MapaUnificado";
 import { DashboardRelatorios } from "@/components/analytics/DashboardRelatorios";
-import { DimensionamentoRede } from "@/components/analytics/DimensionamentoRede";
+import { DimensionamentoRedeRS } from "@/components/analytics/DimensionamentoRedeRS";
 import { RelatoriosCustomizaveis } from "@/components/analytics/RelatoriosCustomizaveis";
 import { GeocodingManager } from "@/components/analytics/GeocodingManager";
 import { GeocodingObservability } from "@/components/analytics/GeocodingObservability";
@@ -73,7 +73,7 @@ export default function AnalisesRelatorios() {
         </TabsContent>
 
         <TabsContent value="dimensionamento" className="mt-6">
-          <DimensionamentoRede />
+          <DimensionamentoRedeRS />
         </TabsContent>
 
         <TabsContent value="monitoramento" className="mt-6">
