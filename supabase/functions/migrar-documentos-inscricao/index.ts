@@ -150,6 +150,7 @@ serve(async (req) => {
         data_vencimento: dataVencimento ? dataVencimento.toISOString().split('T')[0] : null,
         meses_validade: mesesValidade,
         status: 'ativo',
+        is_current: true, // Definir explicitamente como documento atual
         origem: 'migrado',
         metadata: {
           migrado_em: hoje.toISOString(),
