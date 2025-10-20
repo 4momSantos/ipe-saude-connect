@@ -7,6 +7,8 @@ import { Upload, Download, FileText, Calendar, Info } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useState } from 'react';
+import { EditarDataVencimento } from '@/components/prazos/EditarDataVencimento';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface DocumentosCredenciadoTabProps {
   credenciadoId: string;
@@ -15,6 +17,7 @@ interface DocumentosCredenciadoTabProps {
 export function DocumentosCredenciadoTab({ credenciadoId }: DocumentosCredenciadoTabProps) {
   const { documentos, isLoading } = useDocumentosCredenciado(credenciadoId);
   const [solicitarDocOpen, setSolicitarDocOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const statusColors: Record<string, string> = {
     'ativo': 'bg-success/10 text-success border-success/20',
@@ -125,6 +128,15 @@ export function DocumentosCredenciadoTab({ credenciadoId }: DocumentosCredenciad
                         Baixar
                       </Button>
                     )}
+                    <EditarDataVencimento
+                      documentoId={doc.id}
+                      dataAtual={doc.data_vencimento}
+                      onSuccess={() => {
+                        queryClient.invalidateQueries({ 
+                          queryKey: ['documentos-credenciado', credenciadoId] 
+                        });
+                      }}
+                    />
                   </div>
                 </div>
               </CardContent>
