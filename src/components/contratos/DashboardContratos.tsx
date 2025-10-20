@@ -166,44 +166,42 @@ export function DashboardContratos() {
   const [recentlySent, setRecentlySent] = useState<Set<string>>(new Set());
   const [validatingContratoId, setValidatingContratoId] = useState<string | null>(null);
 
-  // 🛡️ Helper para verificar se contrato tem signature ativa
-  const hasPendingSignature = (contrato: any) => {
-    const signatureRequests = contrato.signature_requests;
-    if (!signatureRequests || !Array.isArray(signatureRequests) || signatureRequests.length === 0) {
-      return false;
-    }
-    const now = new Date().getTime();
-    const TWO_MINUTES = 2 * 60 * 1000; // 2 minutos em milissegundos
-
-    // Verificar se existe alguma signature ativa (pending ou sent)
-    return signatureRequests.some((sr: any) => {
-      const hasAssignment = sr.metadata?.assinafy_assignment_id || sr.metadata?.assignment_id;
-      const isActivStatus = sr.status === 'pending' || sr.status === 'sent';
-      if (!isActivStatus) return false;
-
-      // Se tem assignment_id, considerar ativa
-      if (hasAssignment) return true;
-
-      // Se não tem assignment_id MAS foi criada recentemente (< 2 min), considerar ativa
-      const createdAt = new Date(sr.created_at).getTime();
-      const isRecent = now - createdAt < TWO_MINUTES;
-      if (isRecent) {
-        console.log(`[ANTI-DUP] SR ${sr.id} sem assignment_id mas criada há ${Math.floor((now - createdAt) / 1000)}s - considerando ativa`);
-        return true;
-      }
-      return false;
-    });
-  };
-
-  // 🛡️ Helper para obter a signature request mais recente
+  // 🎯 Helper para obter a signature request mais recente
   const getLatestSignatureRequest = (contrato: any) => {
     const signatureRequests = contrato.signature_requests;
     if (!signatureRequests || !Array.isArray(signatureRequests) || signatureRequests.length === 0) {
       return null;
     }
-
-    // Ordenar por created_at descendente e pegar o mais recente
     return [...signatureRequests].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+  };
+
+  // 🎯 Helper para identificar o estado do contrato
+  const getContractState = (contrato: any): 'NAO_ENVIADO' | 'STUCK' | 'ENVIADO_PENDENTE' => {
+    const signatureRequests = contrato.signature_requests;
+    
+    if (!signatureRequests?.length) {
+      return 'NAO_ENVIADO';
+    }
+    
+    const latestSR = getLatestSignatureRequest(contrato);
+    const hasAssignment = latestSR?.metadata?.assinafy_assignment_id || latestSR?.metadata?.assignment_id;
+    const isActiveStatus = ['pending', 'sent'].includes(latestSR?.status);
+    
+    // Se está stuck (sem assignment_id mas status ativo)
+    if (!hasAssignment && isActiveStatus) {
+      console.log(`[ESTADO] Contrato ${contrato.numero_contrato}: STUCK (sem assignment_id)`);
+      return 'STUCK';
+    }
+    
+    // Se foi enviado com sucesso (tem assignment_id e status ativo)
+    if (hasAssignment && isActiveStatus) {
+      console.log(`[ESTADO] Contrato ${contrato.numero_contrato}: ENVIADO_PENDENTE`);
+      return 'ENVIADO_PENDENTE';
+    }
+    
+    // Se status não está ativo (cancelled, expired, failed)
+    console.log(`[ESTADO] Contrato ${contrato.numero_contrato}: NAO_ENVIADO (status: ${latestSR?.status})`);
+    return 'NAO_ENVIADO';
   };
   const handleValidarAssinatura = async (contratoId: string) => {
     if (!confirm('⚠️ Tem certeza que deseja validar esta assinatura manualmente?\n\nIsso marcará o contrato como assinado e ativará o credenciado.')) {
@@ -222,15 +220,16 @@ export function DashboardContratos() {
     }
   };
   const handleSendSingleContract = (contratoId: string) => {
-    // 🛡️ VALIDAÇÃO ANTI-DUPLICAÇÃO
     const contrato = contratos?.find(c => c.id === contratoId);
     if (!contrato) {
       toast.error('❌ Contrato não encontrado');
       return;
     }
 
-    // Verificar se já tem signature ativa
-    if (hasPendingSignature(contrato)) {
+    const state = getContractState(contrato);
+    
+    // Validação anti-duplicação: só permitir envio se NAO_ENVIADO ou STUCK
+    if (state === 'ENVIADO_PENDENTE') {
       const latestSR = getLatestSignatureRequest(contrato);
       const dataEnvio = latestSR?.created_at ? new Date(latestSR.created_at).toLocaleString('pt-BR') : 'desconhecida';
       const emailDestinatario = (contrato as any).inscricao?.candidato?.email || (contrato as any).inscricao?.dados_inscricao?.dados_pessoais?.email || 'email não encontrado';
@@ -241,16 +240,11 @@ export function DashboardContratos() {
       return;
     }
 
-    // Continuar com envio normal
     setSendingContratoId(contratoId);
     sendSingleContract(contratoId, {
       onSuccess: () => {
         toast.success('✅ Contrato enviado para assinatura!');
-
-        // Adicionar à lista de recém-enviados
         setRecentlySent(prev => new Set(prev).add(contratoId));
-
-        // Remover badge após 10 segundos
         setTimeout(() => {
           setRecentlySent(prev => {
             const newSet = new Set(prev);
@@ -372,17 +366,9 @@ export function DashboardContratos() {
     const candidato = inscricao?.candidato;
     const candidatoNome = candidato?.nome || candidato?.email || inscricao?.dados_inscricao?.dadosPessoais?.nome || inscricao?.dados_inscricao?.dados_pessoais?.nome_completo;
 
-    // Verificar se contrato foi enviado (tem signature_requests VÁLIDOS)
-    const signatureRequests = (c as any).signature_requests;
-    const temSignatureRequest = signatureRequests && Array.isArray(signatureRequests) && signatureRequests.length > 0;
-
-    // Considerar "não enviado" se:
-    // 1. Não tem signature_request OU
-    // 2. Tem signature_request mas está stuck (status='pending' sem assignment_id)
-    const naoEnviado = !temSignatureRequest || temSignatureRequest && signatureRequests.some((sr: any) => {
-      const hasAssignment = sr.metadata?.assinafy_assignment_id || sr.metadata?.assignment_id;
-      return sr.status === 'pending' && !hasAssignment;
-    });
+    // Usar nova função de estado
+    const state = getContractState(c);
+    const naoEnviado = state === 'NAO_ENVIADO' || state === 'STUCK';
 
     // Filtros
     let matchesStatus = true;
@@ -504,14 +490,10 @@ export function DashboardContratos() {
                 const temPDF = contrato.documento_url && contrato.documento_url.length > 0;
                 const statusProblematico = contrato.status === 'pendente_assinatura' && !temPDF;
 
-                // Verificar se contrato foi enviado para assinatura
-                const signatureRequests = (contrato as any).signature_requests;
-                const temSignatureRequest = signatureRequests && Array.isArray(signatureRequests) && signatureRequests.length > 0;
-
-                // Considerar "não enviado" apenas se:
-                // 1. Não tem signature_request OU
-                // 2. Todas as SRs estão com status cancelled/expired/failed
-                const naoEnviado = !temSignatureRequest || temSignatureRequest && signatureRequests.every((sr: any) => ['cancelled', 'expired', 'failed'].includes(sr.status));
+                // Obter estado do contrato
+                const state = getContractState(contrato);
+                const naoEnviado = state === 'NAO_ENVIADO' || state === 'STUCK';
+                const enviadoPendente = state === 'ENVIADO_PENDENTE';
                 return <TableRow key={contrato.id}>
                         <TableCell className="font-medium">
                           {contrato.numero_contrato}
@@ -536,8 +518,15 @@ export function DashboardContratos() {
                           {statusProblematico && <Badge variant="destructive" className="ml-2 text-xs">
                               Sem PDF
                             </Badge>}
-                          {naoEnviado && contrato.status === 'pendente_assinatura' && <Badge variant="outline" className={`ml-2 text-xs font-semibold ${temSignatureRequest ? 'border-red-500 bg-red-50 text-red-700' : 'border-amber-500 bg-amber-50 text-amber-700'}`}>
-                              {temSignatureRequest ? '🔴 Stuck - Reenviar' : '⚠️ Pendente Envio'}
+                          {/* Badges baseados no estado */}
+                          {contrato.status === 'pendente_assinatura' && state === 'STUCK' && <Badge variant="destructive" className="ml-2 text-xs font-semibold">
+                              🔴 Falha no Envio
+                            </Badge>}
+                          {contrato.status === 'pendente_assinatura' && state === 'NAO_ENVIADO' && <Badge variant="outline" className="ml-2 text-xs font-semibold border-amber-500 bg-amber-50 text-amber-700">
+                              ⚠️ Pendente Envio
+                            </Badge>}
+                          {contrato.status === 'pendente_assinatura' && state === 'ENVIADO_PENDENTE' && <Badge variant="default" className="ml-2 text-xs bg-blue-500 hover:bg-blue-500">
+                              📧 Aguardando Assinatura
                             </Badge>}
                         </TableCell>
                         <TableCell>{candidatoNome}</TableCell>
@@ -587,83 +576,100 @@ export function DashboardContratos() {
                                 <ExternalLink className="h-4 w-4" />
                               </Button>}
                             
-                            {/* Botões para contratos não enviados */}
-                            {contrato.status === "pendente_assinatura" && naoEnviado && temPDF && <Button size="sm" variant="default" onClick={() => handleSendSingleContract(contrato.id)} disabled={sendingContratoId === contrato.id || hasPendingSignature(contrato) || recentlySent.has(contrato.id)} className="bg-green-600 hover:bg-green-700" title={hasPendingSignature(contrato) ? `⚠️ Este contrato já foi enviado. Use "Reenviar E-mail" se necessário.` : "Enviar contrato para assinatura digital"}>
-                                {sendingContratoId === contrato.id ? <>
-                                    <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                                    Enviando...
-                                  </> : <>
-                                    <Mail className="h-4 w-4 mr-1" />
-                                    📤 Enviar
-                                  </>}
-                              </Button>}
-                            
-                            {contrato.status === "pendente_assinatura" && (statusProblematico ? <Button size="sm" variant="destructive" onClick={async () => {
-                        try {
-                          toast.loading('Gerando novo contrato...', {
-                            id: 'regen'
-                          });
-                          const result = await gerarContrato({
-                            inscricaoId: contrato.inscricao_id
-                          });
-                          toast.success('Contrato regenerado e enviado para assinatura', {
-                            id: 'regen',
-                            description: `Número: ${result.numero_contrato}`
-                          });
-                          refetch();
-                        } catch (error: any) {
-                          toast.error('Erro ao regenerar contrato', {
-                            id: 'regen',
-                            description: error.message
-                          });
+                            {/* ========== LÓGICA DOS BOTÕES POR ESTADO ========== */}
+                            {contrato.status === "pendente_assinatura" && (() => {
+                        // Estado: NAO_ENVIADO ou STUCK
+                        if (state === 'NAO_ENVIADO' || state === 'STUCK') {
+                          return <>
+                                    {/* Botão ENVIAR - sempre primeiro para contratos não enviados */}
+                                    {temPDF && <Button size="sm" variant="default" onClick={() => handleSendSingleContract(contrato.id)} disabled={sendingContratoId === contrato.id || recentlySent.has(contrato.id)} className="bg-green-600 hover:bg-green-700" title="Enviar contrato para assinatura digital">
+                                        {sendingContratoId === contrato.id ? <>
+                                            <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                                            Enviando...
+                                          </> : <>
+                                            <Mail className="h-4 w-4 mr-1" />
+                                            📤 Enviar
+                                          </>}
+                                      </Button>}
+                                    
+                                    {/* Botão REGENERAR - só se não tem PDF */}
+                                    {!temPDF && <Button size="sm" variant="destructive" onClick={async () => {
+                                try {
+                                  toast.loading('Gerando novo contrato...', {
+                                    id: 'regen'
+                                  });
+                                  const result = await gerarContrato({
+                                    inscricaoId: contrato.inscricao_id
+                                  });
+                                  toast.success('Contrato regenerado e enviado para assinatura', {
+                                    id: 'regen',
+                                    description: `Número: ${result.numero_contrato}`
+                                  });
+                                  refetch();
+                                } catch (error: any) {
+                                  toast.error('Erro ao regenerar contrato', {
+                                    id: 'regen',
+                                    description: error.message
+                                  });
+                                }
+                              }} disabled={isGerandoContrato}>
+                                        <RefreshCw className={`h-4 w-4 mr-2 ${isGerandoContrato ? 'animate-spin' : ''}`} />
+                                        Regenerar PDF
+                                      </Button>}
+                                  </>;
                         }
-                      }} disabled={isGerandoContrato}>
-                                  <RefreshCw className={`h-4 w-4 mr-2 ${isGerandoContrato ? 'animate-spin' : ''}`} />
-                                  Regenerar e Enviar para Assinatura
-                                </Button> : !naoEnviado && <Button size="sm" variant="outline" onClick={() => {
-                        // Obter informações para confirmação
-                        const latestSR = getLatestSignatureRequest(contrato);
-                        const dataEnvio = latestSR?.created_at ? new Date(latestSR.created_at).toLocaleString('pt-BR', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        }) : 'desconhecida';
-                        const emailDestinatario = (contrato as any).inscricao?.candidato?.email || (contrato as any).inscricao?.dados_inscricao?.dados_pessoais?.email || 'email não encontrado';
 
-                        // Confirmar antes de reenviar
-                        const confirmMsg = `🔄 Reenviar e-mail de assinatura?\n\n` + `📧 Para: ${emailDestinatario}\n` + `📅 Último envio: ${dataEnvio}\n\n` + `⚠️ IMPORTANTE: Isso NÃO cria um novo documento.\n` + `O candidato receberá o MESMO link de assinatura.\n\n` + `Deseja continuar?`;
-                        if (confirm(confirmMsg)) {
-                          setResendingContratoId(contrato.id);
-                          resendEmail([contrato.id], {
-                            onSuccess: () => {
-                              toast.success('✅ E-mail reenviado com sucesso!', {
-                                description: `Para: ${emailDestinatario}`
-                              });
-                            },
-                            onSettled: () => setResendingContratoId(null)
-                          });
+                        // Estado: ENVIADO_PENDENTE
+                        if (state === 'ENVIADO_PENDENTE') {
+                          const latestSR = getLatestSignatureRequest(contrato);
+                          const hasAssignment = latestSR?.metadata?.assinafy_assignment_id || latestSR?.metadata?.assignment_id;
+                          return <>
+                                    {/* Botão REENVIAR E-MAIL */}
+                                    <Button size="sm" variant="outline" onClick={() => {
+                                const dataEnvio = latestSR?.created_at ? new Date(latestSR.created_at).toLocaleString('pt-BR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                }) : 'desconhecida';
+                                const emailDestinatario = (contrato as any).inscricao?.candidato?.email || (contrato as any).inscricao?.dados_inscricao?.dados_pessoais?.email || 'email não encontrado';
+                                const confirmMsg = `🔄 Reenviar e-mail de assinatura?\n\n` + `📧 Para: ${emailDestinatario}\n` + `📅 Último envio: ${dataEnvio}\n\n` + `⚠️ IMPORTANTE: Isso NÃO cria um novo documento.\n` + `O candidato receberá o MESMO link de assinatura.\n\n` + `Deseja continuar?`;
+                                if (confirm(confirmMsg)) {
+                                  setResendingContratoId(contrato.id);
+                                  resendEmail([contrato.id], {
+                                    onSuccess: () => {
+                                      toast.success('✅ E-mail reenviado com sucesso!', {
+                                        description: `Para: ${emailDestinatario}`
+                                      });
+                                    },
+                                    onSettled: () => setResendingContratoId(null)
+                                  });
+                                }
+                              }} disabled={resendingContratoId === contrato.id} title={`Reenviar mesmo link de assinatura`}>
+                                      {resendingContratoId === contrato.id ? <>
+                                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                          Reenviando...
+                                        </> : <>
+                                          <Mail className="h-4 w-4 mr-2" />
+                                          🔄 Reenviar E-mail
+                                        </>}
+                                    </Button>
+                                    
+                                    {/* Botão VALIDAR ASSINATURA - só se tem assignment_id */}
+                                    {hasAssignment && <Button size="sm" variant="outline" onClick={() => handleValidarAssinatura(contrato.id)} disabled={validatingContratoId === contrato.id} className="border-green-600 text-green-600 hover:bg-green-50" title="Marcar como assinado manualmente (sem webhook)">
+                                        {validatingContratoId === contrato.id ? <>
+                                            <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                                            Validando...
+                                          </> : <>
+                                            <CheckCircle className="h-4 w-4 mr-1" />
+                                            ✅ Validar Assinatura
+                                          </>}
+                                      </Button>}
+                                  </>;
                         }
-                      }} disabled={resendingContratoId === contrato.id} title={`Reenviar mesmo link de assinatura (último envio: ${getLatestSignatureRequest(contrato)?.created_at ? new Date(getLatestSignatureRequest(contrato)!.created_at).toLocaleString('pt-BR') : 'desconhecido'})`}>
-                                  {resendingContratoId === contrato.id ? <>
-                                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                                      Reenviando...
-                                    </> : <>
-                                      <Mail className="h-4 w-4 mr-2" />
-                                      🔄 Reenviar E-mail
-                                    </>}
-                                </Button>)}
-                            {contrato.status === "pendente_assinatura" && temSignatureRequest}
-                            {contrato.status === "pendente_assinatura" && temSignatureRequest && <Button size="sm" variant="outline" onClick={() => handleValidarAssinatura(contrato.id)} disabled={validatingContratoId === contrato.id} className="border-green-600 text-green-600 hover:bg-green-50" title="Marcar como assinado manualmente (sem webhook)">
-                                {validatingContratoId === contrato.id ? <>
-                                    <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                                    Validando...
-                                  </> : <>
-                                    <CheckCircle className="h-4 w-4 mr-1" />
-                                    Validar Assinatura
-                                  </>}
-                              </Button>}
+                        return null;
+                      })()}
                           </div>
                         </TableCell>
                       </TableRow>;
@@ -678,13 +684,8 @@ export function DashboardContratos() {
               <CardContent className="pt-6">
                 <div className="text-2xl font-bold text-yellow-600">
                   {contratos.filter(c => {
-                  const signatureRequests = (c as any).signature_requests;
-                  const temSignatureRequest = signatureRequests && Array.isArray(signatureRequests) && signatureRequests.length > 0;
-                  const naoEnviado = !temSignatureRequest || temSignatureRequest && signatureRequests.some((sr: any) => {
-                    const hasAssignment = sr.metadata?.assinafy_assignment_id || sr.metadata?.assignment_id;
-                    return sr.status === 'pending' && !hasAssignment;
-                  });
-                  return c.status === 'pendente_assinatura' && naoEnviado;
+                  const state = getContractState(c);
+                  return c.status === 'pendente_assinatura' && (state === 'NAO_ENVIADO' || state === 'STUCK');
                 }).length}
                 </div>
                 <p className="text-xs text-muted-foreground">Não Enviados</p>
