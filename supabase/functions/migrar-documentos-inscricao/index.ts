@@ -56,6 +56,34 @@ serve(async (req) => {
 
     console.log(`[MIGRAR_DOCUMENTOS] Migrando documentos da inscrição ${inscricao_id} para credenciado ${credenciado_id}`);
 
+    // 0. Verificar se documentos já foram migrados (idempotência)
+    const { data: existingDocs, error: existingError } = await supabase
+      .from("documentos_credenciados")
+      .select("id")
+      .eq("credenciado_id", credenciado_id)
+      .eq("origem", "migrado")
+      .limit(1);
+
+    if (existingError) {
+      console.error(`[MIGRAR_DOCUMENTOS] Erro ao verificar documentos existentes:`, existingError);
+    }
+
+    if (existingDocs && existingDocs.length > 0) {
+      console.log(`[MIGRAR_DOCUMENTOS] ⚠️ Documentos já foram migrados anteriormente (${existingDocs.length} docs encontrados)`);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "Documentos já existem, nenhuma ação necessária",
+          total_migrados: 0,
+          skipped: true
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     // 1. Buscar todos os documentos da inscrição
     const { data: docs, error: docsError } = await supabase
       .from("inscricao_documentos")
