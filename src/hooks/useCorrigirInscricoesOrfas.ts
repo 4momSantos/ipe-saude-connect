@@ -7,7 +7,7 @@ export function useCorrigirInscricoesOrfas() {
 
   return useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.rpc('corrigir_inscricoes_orfas');
+      const { data, error } = await supabase.functions.invoke('corrigir-inscricoes-orfas');
       
       if (error) throw error;
       return data;
