@@ -2,6 +2,39 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { PDFDocument, StandardFonts, rgb } from 'https://esm.sh/pdf-lib@1.17.1';
 import { corsHeaders } from '../_shared/cors.ts';
 
+// Funções de formatação
+function formatarCPF(cpf: string): string {
+  if (!cpf) return '';
+  const cleaned = cpf.replace(/\D/g, '');
+  if (cleaned.length !== 11) return cpf;
+  return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+}
+
+function formatarCNPJ(cnpj: string): string {
+  if (!cnpj) return '';
+  const cleaned = cnpj.replace(/\D/g, '');
+  if (cleaned.length !== 14) return cnpj;
+  return cleaned.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+}
+
+function formatarTelefone(tel: string): string {
+  if (!tel) return '';
+  const cleaned = tel.replace(/\D/g, '');
+  if (cleaned.length === 11) {
+    return cleaned.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+  } else if (cleaned.length === 10) {
+    return cleaned.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+  }
+  return tel;
+}
+
+function formatarCEP(cep: string): string {
+  if (!cep) return '';
+  const cleaned = cep.replace(/\D/g, '');
+  if (cleaned.length !== 8) return cep;
+  return cleaned.replace(/(\d{5})(\d{3})/, '$1-$2');
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -21,7 +54,7 @@ Deno.serve(async (req) => {
 
     console.log('[GERAR_CERTIFICADO] 🔥 VERSÃO COM STATUS - Gerando certificado para credenciado:', credenciadoId);
 
-    // Buscar dados do credenciado (incluindo status)
+    // Buscar dados completos do credenciado
     const { data: credenciado, error: credenciadoError } = await supabase
       .from('credenciados')
       .select(`
@@ -31,6 +64,12 @@ Deno.serve(async (req) => {
           crm,
           uf_crm,
           especialidade
+        ),
+        documentos:documentos_credenciados(
+          id,
+          tipo_documento,
+          numero_documento,
+          data_vencimento
         )
       `)
       .eq('id', credenciadoId)
@@ -349,9 +388,230 @@ Deno.serve(async (req) => {
       color: blue,
     });
     
-    // Salvar PDF
+    // ===== PÁGINA 2: EXTRATO DE DADOS PESSOAIS =====
+    console.log('[GERAR_CERTIFICADO] Gerando página 2 - Extrato de Dados Pessoais...');
+    const page2 = pdfDoc.addPage([842, 595]); // A4 landscape
+    const { width: width2, height: height2 } = page2.getSize();
+    let y = height2 - 60;
+
+    // Título página 2
+    page2.drawText('EXTRATO DE DADOS PESSOAIS', {
+      x: width2 / 2 - 180,
+      y,
+      size: 24,
+      font: fontBold,
+      color: blue,
+    });
+    y -= 10;
+
+    // Linha decorativa
+    page2.drawLine({
+      start: { x: margin + 60, y },
+      end: { x: width2 - margin - 60, y },
+      thickness: 2,
+      color: blue,
+    });
+    y -= 40;
+
+    // === SEÇÃO: IDENTIFICAÇÃO ===
+    page2.drawText('IDENTIFICAÇÃO', {
+      x: margin + 20,
+      y,
+      size: 14,
+      font: fontBold,
+      color: blue,
+    });
+    y -= 25;
+
+    // Nome
+    page2.drawText('Nome Completo:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
+    page2.drawText(credenciado.nome, { x: margin + 180, y, size: 10, font, color: gray });
+    y -= 18;
+
+    // Tipo de Pessoa
+    const tipoPessoa = credenciado.cpf ? 'Pessoa Física' : 'Pessoa Jurídica';
+    page2.drawText('Tipo:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
+    page2.drawText(tipoPessoa, { x: margin + 180, y, size: 10, font, color: gray });
+    y -= 18;
+
+    // CPF/CNPJ
+    if (credenciado.cpf) {
+      page2.drawText('CPF:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
+      page2.drawText(formatarCPF(credenciado.cpf), { x: margin + 180, y, size: 10, font, color: gray });
+      y -= 18;
+    } else if (credenciado.cnpj) {
+      page2.drawText('CNPJ:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
+      page2.drawText(formatarCNPJ(credenciado.cnpj), { x: margin + 180, y, size: 10, font, color: gray });
+      y -= 18;
+    }
+
+    // Número de Credenciado
+    if (credenciado.numero_credenciado) {
+      page2.drawText('Nº Credenciado:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
+      page2.drawText(credenciado.numero_credenciado, { x: margin + 180, y, size: 10, font, color: gray });
+      y -= 25;
+    }
+
+    // === SEÇÃO: DADOS PROFISSIONAIS ===
+    if (credenciado.crms && credenciado.crms.length > 0) {
+      page2.drawText('DADOS PROFISSIONAIS', {
+        x: margin + 20,
+        y,
+        size: 14,
+        font: fontBold,
+        color: blue,
+      });
+      y -= 25;
+
+      credenciado.crms.forEach((crm: any, index: number) => {
+        page2.drawText(`CRM ${index + 1}:`, { x: margin + 40, y, size: 10, font: fontBold, color: gray });
+        page2.drawText(`${crm.crm}/${crm.uf_crm}`, { x: margin + 180, y, size: 10, font, color: gray });
+        y -= 18;
+
+        page2.drawText('Especialidade:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
+        page2.drawText(crm.especialidade, { x: margin + 180, y, size: 10, font, color: gray });
+        y -= 25;
+      });
+    }
+
+    // === SEÇÃO: CONTATO ===
+    page2.drawText('CONTATO', {
+      x: margin + 20,
+      y,
+      size: 14,
+      font: fontBold,
+      color: blue,
+    });
+    y -= 25;
+
+    if (credenciado.email) {
+      page2.drawText('E-mail:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
+      page2.drawText(credenciado.email, { x: margin + 180, y, size: 10, font, color: gray });
+      y -= 18;
+    }
+
+    if (credenciado.telefone) {
+      page2.drawText('Telefone:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
+      page2.drawText(formatarTelefone(credenciado.telefone), { x: margin + 180, y, size: 10, font, color: gray });
+      y -= 18;
+    }
+
+    if (credenciado.celular) {
+      page2.drawText('Celular:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
+      page2.drawText(formatarTelefone(credenciado.celular), { x: margin + 180, y, size: 10, font, color: gray });
+      y -= 25;
+    }
+
+    // === SEÇÃO: ENDEREÇO ===
+    if (credenciado.endereco || credenciado.cidade) {
+      page2.drawText('ENDEREÇO', {
+        x: margin + 20,
+        y,
+        size: 14,
+        font: fontBold,
+        color: blue,
+      });
+      y -= 25;
+
+      if (credenciado.endereco) {
+        page2.drawText('Logradouro:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
+        page2.drawText(credenciado.endereco, { x: margin + 180, y, size: 10, font, color: gray });
+        y -= 18;
+      }
+
+      if (credenciado.bairro) {
+        page2.drawText('Bairro:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
+        page2.drawText(credenciado.bairro, { x: margin + 180, y, size: 10, font, color: gray });
+        y -= 18;
+      }
+
+      if (credenciado.cidade && credenciado.estado) {
+        page2.drawText('Cidade/UF:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
+        page2.drawText(`${credenciado.cidade} - ${credenciado.estado}`, { x: margin + 180, y, size: 10, font, color: gray });
+        y -= 18;
+      }
+
+      if (credenciado.cep) {
+        page2.drawText('CEP:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
+        page2.drawText(formatarCEP(credenciado.cep), { x: margin + 180, y, size: 10, font, color: gray });
+        y -= 25;
+      }
+    }
+
+    // === SEÇÃO: INFORMAÇÕES DO CREDENCIAMENTO ===
+    page2.drawText('INFORMAÇÕES DO CREDENCIAMENTO', {
+      x: margin + 20,
+      y,
+      size: 14,
+      font: fontBold,
+      color: blue,
+    });
+    y -= 25;
+
+    page2.drawText('Número do Certificado:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
+    page2.drawText(numeroCertificado, { x: margin + 220, y, size: 10, font, color: gray });
+    y -= 18;
+
+    page2.drawText('Data de Emissão:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
+    page2.drawText(emitidoEm, { x: margin + 220, y, size: 10, font, color: gray });
+    y -= 18;
+
+    page2.drawText('Validade:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
+    page2.drawText(validoAteFormatted, { x: margin + 220, y, size: 10, font, color: gray });
+    y -= 18;
+
+    const statusColor2 = credenciado.status === 'Ativo' ? rgb(0.13, 0.54, 0.13) : rgb(0.8, 0.13, 0.13);
+    page2.drawText('Status:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
+    page2.drawText(credenciado.status || 'Ativo', { x: margin + 220, y, size: 10, font: fontBold, color: statusColor2 });
+    y -= 25;
+
+    // === SEÇÃO: DOCUMENTOS ANEXOS (se houver) ===
+    if (credenciado.documentos && credenciado.documentos.length > 0) {
+      page2.drawText('DOCUMENTOS ANEXOS', {
+        x: margin + 20,
+        y,
+        size: 14,
+        font: fontBold,
+        color: blue,
+      });
+      y -= 25;
+
+      credenciado.documentos.slice(0, 5).forEach((doc: any) => {
+        const textoDoc = `• ${doc.tipo_documento}`;
+        page2.drawText(textoDoc, { x: margin + 40, y, size: 9, font, color: gray });
+
+        if (doc.numero_documento) {
+          page2.drawText(`Nº ${doc.numero_documento}`, { x: margin + 280, y, size: 9, font, color: gray });
+        }
+
+        if (doc.data_vencimento) {
+          const valDoc = new Date(doc.data_vencimento).toLocaleDateString('pt-BR');
+          page2.drawText(`Val: ${valDoc}`, { x: margin + 450, y, size: 9, font, color: gray });
+        }
+
+        y -= 16;
+      });
+    }
+
+    // Rodapé página 2
+    page2.drawText('Este extrato contém informações cadastrais do credenciado.', {
+      x: width2 / 2 - 180,
+      y: 70,
+      size: 9,
+      font,
+      color: rgb(0.5, 0.5, 0.5),
+    });
+    page2.drawText(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, {
+      x: width2 / 2 - 100,
+      y: 55,
+      size: 8,
+      font,
+      color: rgb(0.5, 0.5, 0.5),
+    });
+
+    // Salvar PDF (agora com 2 páginas)
     const pdfBytes = await pdfDoc.save();
-    console.log('[GERAR_CERTIFICADO] PDF gerado, tamanho:', pdfBytes.length);
+    console.log('[GERAR_CERTIFICADO] PDF gerado com 2 páginas, tamanho:', pdfBytes.length);
     
     // === UPLOAD PARA STORAGE ===
     const fileName = `${credenciadoId}/${numeroCertificado}.pdf`;
