@@ -235,6 +235,22 @@ Deno.serve(async (req) => {
     });
     currentY -= 25;
     
+    // Status do Credenciamento
+    const statusText = `Status: ${credenciado.status || 'Ativo'}`;
+    const statusColor = credenciado.status === 'Ativo' ? rgb(0.13, 0.54, 0.13) :  // verde
+                       credenciado.status === 'Suspenso' || credenciado.status === 'Suspenso Temporariamente' ? rgb(0.85, 0.55, 0.13) :  // laranja
+                       credenciado.status === 'Descredenciado' ? rgb(0.8, 0.13, 0.13) :  // vermelho
+                       gray;
+
+    page.drawText(statusText, {
+      x: width / 2 - 60,
+      y: currentY,
+      size: 14,
+      font: fontBold,
+      color: statusColor,
+    });
+    currentY -= 25;
+    
     // CPF/CNPJ
     const cpfCnpj = credenciado.cpf || credenciado.cnpj || 'Não informado';
     page.drawText(`CPF/CNPJ: ${cpfCnpj}`, {
@@ -424,6 +440,7 @@ Deno.serve(async (req) => {
             nome: credenciado.nome,
             cpf: credenciado.cpf,
             cnpj: credenciado.cnpj,
+            status: credenciado.status,
             especialidades,
             qr_code_url: qrCodeUrl,
             verification_url: verificationUrl
@@ -459,6 +476,7 @@ Deno.serve(async (req) => {
             nome: credenciado.nome,
             cpf: credenciado.cpf,
             cnpj: credenciado.cnpj,
+            status: credenciado.status,
             especialidades,
             qr_code_url: qrCodeUrl,
             verification_url: verificationUrl

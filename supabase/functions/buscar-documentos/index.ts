@@ -51,9 +51,24 @@ serve(async (req) => {
         )
       `);
 
-    // Aplicar filtros - incluindo busca por nome do credenciado
+    // Aplicar filtros
     if (termo) {
-      query = query.or(`numero_documento.ilike.%${termo}%,observacoes.ilike.%${termo}%,credenciados.nome.ilike.%${termo}%,credenciados.cpf.ilike.%${termo}%`);
+      // Para busca por nome/CPF do credenciado, fazer busca direta na tabela credenciados
+      const { data: credenciadosEncontrados } = await supabase
+        .from('credenciados')
+        .select('id')
+        .or(`nome.ilike.%${termo}%,cpf.ilike.%${termo}%`);
+      
+      const credenciadoIds = credenciadosEncontrados?.map(c => c.id) || [];
+      
+      // Buscar documentos por termo nos campos do documento OU por credenciado_id
+      if (credenciadoIds.length > 0) {
+        query = query.or(
+          `numero_documento.ilike.%${termo}%,observacoes.ilike.%${termo}%,credenciado_id.in.(${credenciadoIds.join(',')})`
+        );
+      } else {
+        query = query.or(`numero_documento.ilike.%${termo}%,observacoes.ilike.%${termo}%`);
+      }
     }
     if (status) {
       query = query.eq('status', status);
