@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Eye, Download, Filter, Loader2 } from "lucide-react";
+import { Search, Eye, Download, Filter, Loader2, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,10 @@ import {
 import { StatusBadge } from "@/components/StatusBadge";
 import { useCredenciados } from "@/hooks/useCredenciados";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function Credenciados() {
   const navigate = useNavigate();
@@ -32,6 +36,8 @@ export default function Credenciados() {
   const [filtroAreaAtuacao, setFiltroAreaAtuacao] = useState<string>("todas");
   const [filtroServico, setFiltroServico] = useState<string>("todos");
   const [busca, setBusca] = useState("");
+  const [credenciadosSelecionados, setCredenciadosSelecionados] = useState<Set<string>>(new Set());
+  const queryClient = useQueryClient();
 
   const especialidades = useMemo(() => {
     if (!credenciados) return [];
@@ -115,6 +121,59 @@ export default function Credenciados() {
     return credenciados.filter((c) => c.status.toLowerCase() === "inativo").length;
   }, [credenciados]);
 
+  const deleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from("credenciados")
+        .delete()
+        .in("id", ids);
+      
+      if (error) throw error;
+      return ids;
+    },
+    onSuccess: (deletedIds) => {
+      queryClient.invalidateQueries({ queryKey: ["credenciados"] });
+      setCredenciadosSelecionados(new Set());
+      toast.success(`${deletedIds.length} credenciado(s) deletado(s) com sucesso`);
+    },
+    onError: (error: any) => {
+      toast.error(`Erro ao deletar credenciados: ${error.message}`);
+    },
+  });
+
+  const handleToggleSelection = (id: string) => {
+    setCredenciadosSelecionados((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleToggleAll = () => {
+    if (credenciadosSelecionados.size === credenciadosFiltrados.length) {
+      setCredenciadosSelecionados(new Set());
+    } else {
+      setCredenciadosSelecionados(new Set(credenciadosFiltrados.map((c) => c.id)));
+    }
+  };
+
+  const handleDeleteSelected = () => {
+    if (credenciadosSelecionados.size === 0) {
+      toast.error("Selecione pelo menos um credenciado");
+      return;
+    }
+
+    if (!confirm(`⚠️ Tem certeza que deseja deletar ${credenciadosSelecionados.size} credenciado(s)?\n\nEsta ação não pode ser desfeita.`)) {
+      return;
+    }
+
+    deleteMutation.mutate(Array.from(credenciadosSelecionados));
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -194,10 +253,28 @@ export default function Credenciados() {
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <CardTitle className="text-base md:text-lg lg:text-xl text-foreground">Lista de Credenciados</CardTitle>
-            <Button variant="outline" size="sm" className="border-border hover:bg-card gap-2 w-full sm:w-auto">
-              <Download className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="text-xs md:text-sm">Exportar</span>
-            </Button>
+            <div className="flex gap-2 w-full sm:w-auto">
+              {credenciadosSelecionados.size > 0 && (
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  className="gap-2 w-full sm:w-auto"
+                  onClick={handleDeleteSelected}
+                  disabled={deleteMutation.isPending}
+                >
+                  {deleteMutation.isPending ? (
+                    <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
+                  )}
+                  <span className="text-xs md:text-sm">Deletar ({credenciadosSelecionados.size})</span>
+                </Button>
+              )}
+              <Button variant="outline" size="sm" className="border-border hover:bg-card gap-2 w-full sm:w-auto">
+                <Download className="h-3 w-3 md:h-4 md:w-4" />
+                <span className="text-xs md:text-sm">Exportar</span>
+              </Button>
+            </div>
           </div>
           <div className="flex flex-col gap-4 mt-4">
             <div className="relative w-full">
@@ -284,6 +361,13 @@ export default function Credenciados() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={credenciadosSelecionados.size === credenciadosFiltrados.length && credenciadosFiltrados.length > 0}
+                      onCheckedChange={handleToggleAll}
+                      aria-label="Selecionar todos"
+                    />
+                  </TableHead>
                   <TableHead>Nº Credenciado</TableHead>
                   <TableHead>Nome</TableHead>
                   <TableHead>CNPJ</TableHead>
@@ -297,7 +381,7 @@ export default function Credenciados() {
               <TableBody>
                 {credenciadosFiltrados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                       Nenhum credenciado encontrado
                     </TableCell>
                   </TableRow>
@@ -308,7 +392,15 @@ export default function Credenciados() {
                     const primeiraEspecialidade = credenciado.crms[0]?.especialidade || "-";
 
                     return (
-                      <TableRow key={credenciado.id} className="hover:bg-muted/50 cursor-pointer transition-colors">
+                      <TableRow key={credenciado.id} className="hover:bg-muted/50 transition-colors">
+                        <TableCell className="w-12">
+                          <Checkbox
+                            checked={credenciadosSelecionados.has(credenciado.id)}
+                            onCheckedChange={() => handleToggleSelection(credenciado.id)}
+                            aria-label={`Selecionar ${credenciado.nome}`}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </TableCell>
                         <TableCell className="font-mono text-xs md:text-sm font-semibold text-primary">
                           {credenciado.numero_credenciado || "-"}
                         </TableCell>
