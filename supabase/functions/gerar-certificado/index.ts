@@ -233,9 +233,10 @@ Deno.serve(async (req) => {
       font: fontBold,
       color: gray,
     });
-    currentY -= 25;
+    currentY -= 30;
     
-    // Status do Credenciamento
+    // 🔵 Status do Credenciamento (NOVO)
+    console.log('[GERAR_CERTIFICADO] Renderizando status:', credenciado.status || 'Ativo');
     const statusText = `Status: ${credenciado.status || 'Ativo'}`;
     const statusColor = credenciado.status === 'Ativo' ? rgb(0.13, 0.54, 0.13) :  // verde
                        credenciado.status === 'Suspenso' || credenciado.status === 'Suspenso Temporariamente' ? rgb(0.85, 0.55, 0.13) :  // laranja
@@ -243,13 +244,13 @@ Deno.serve(async (req) => {
                        gray;
 
     page.drawText(statusText, {
-      x: width / 2 - 60,
+      x: width / 2 - (fontBold.widthOfTextAtSize(statusText, 14) / 2),
       y: currentY,
       size: 14,
       font: fontBold,
       color: statusColor,
     });
-    currentY -= 25;
+    currentY -= 30;
     
     // CPF/CNPJ
     const cpfCnpj = credenciado.cpf || credenciado.cnpj || 'Não informado';
