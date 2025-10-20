@@ -191,16 +191,16 @@ export function usePrazos(options: UsePrazosOptions = {}) {
             },
             documentos,
             // Propriedades legadas
-            credenciado_id: item.credenciado_id,
-            credenciado_nome: item.credenciado_nome,
+            credenciado_id: item.credenciado_id || '',
+            credenciado_nome: item.credenciado_nome || 'Nome não disponível',
             credenciado_cpf: item.credenciado_cpf || '',
             credenciado_numero: item.credenciado_numero || 'N/A',
             total_documentos: item.total_documentos || 0,
             documentos_validos: item.documentos_ativos || 0,
             documentos_vencendo: item.documentos_vencendo || 0,
             documentos_vencidos: item.documentos_vencidos || 0,
-            documentos_criticos: documentosCriticos,
-            prazos,
+            documentos_criticos: documentosCriticos || 0,
+            prazos: prazos || [],
           };
         }) as CredenciadoPrazos[];
       } else {
@@ -350,15 +350,15 @@ export function usePrazos(options: UsePrazosOptions = {}) {
         // Converter para formato final com propriedades legadas
         return Array.from(agrupamento.values()).map(item => ({
           ...item,
-          credenciado_id: item.credenciado.id,
-          credenciado_nome: item.credenciado.nome,
-          credenciado_cpf: item.credenciado.cpf || '',
-          credenciado_numero: item.credenciado.numero_credenciado || 'N/A',
-          total_documentos: item.estatisticas.total,
-          documentos_validos: item.estatisticas.ativos,
-          documentos_vencendo: item.estatisticas.vencendo,
-          documentos_vencidos: item.estatisticas.vencidos,
-          documentos_criticos: item.estatisticas.criticos,
+          credenciado_id: item.credenciado?.id || '',
+          credenciado_nome: item.credenciado?.nome || 'Nome não disponível',
+          credenciado_cpf: item.credenciado?.cpf || '',
+          credenciado_numero: item.credenciado?.numero_credenciado || 'N/A',
+          total_documentos: item.estatisticas?.total || 0,
+          documentos_validos: item.estatisticas?.ativos || 0,
+          documentos_vencendo: item.estatisticas?.vencendo || 0,
+          documentos_vencidos: item.estatisticas?.vencidos || 0,
+          documentos_criticos: item.estatisticas?.criticos || 0,
         })) as CredenciadoPrazos[];
       }
     },

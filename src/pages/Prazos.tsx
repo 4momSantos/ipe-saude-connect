@@ -72,18 +72,18 @@ export default function Prazos() {
   };
 
   const credenciadosFiltrados = prazosAgrupados.filter(cred => {
-    if (filtro === 'criticos') return cred.documentos_criticos > 0;
-    if (filtro === 'vencendo') return cred.documentos_vencendo > 0;
-    if (filtro === 'vencidos') return cred.documentos_vencidos > 0;
+    if (filtro === 'criticos') return (cred.documentos_criticos || 0) > 0;
+    if (filtro === 'vencendo') return (cred.documentos_vencendo || 0) > 0;
+    if (filtro === 'vencidos') return (cred.documentos_vencidos || 0) > 0;
     return true;
   });
 
   // Calcular totais agregados
-  const totalDocumentos = prazosAgrupados.reduce((acc, cred) => acc + cred.total_documentos, 0);
-  const totalValidos = prazosAgrupados.reduce((acc, cred) => acc + cred.documentos_validos, 0);
-  const totalVencendo = prazosAgrupados.reduce((acc, cred) => acc + cred.documentos_vencendo, 0);
-  const totalVencidos = prazosAgrupados.reduce((acc, cred) => acc + cred.documentos_vencidos, 0);
-  const totalCriticos = prazosAgrupados.reduce((acc, cred) => acc + cred.documentos_criticos, 0);
+  const totalDocumentos = prazosAgrupados.reduce((acc, cred) => acc + (cred.total_documentos || 0), 0);
+  const totalValidos = prazosAgrupados.reduce((acc, cred) => acc + (cred.documentos_validos || 0), 0);
+  const totalVencendo = prazosAgrupados.reduce((acc, cred) => acc + (cred.documentos_vencendo || 0), 0);
+  const totalVencidos = prazosAgrupados.reduce((acc, cred) => acc + (cred.documentos_vencidos || 0), 0);
+  const totalCriticos = prazosAgrupados.reduce((acc, cred) => acc + (cred.documentos_criticos || 0), 0);
 
   const dadosPizza = [
     { name: 'Válidos', value: totalValidos, color: CORES.valido },
@@ -92,14 +92,18 @@ export default function Prazos() {
   ];
 
   // Dados por credenciado para o gráfico de barras
-  const dadosBarras = credenciadosFiltrados.slice(0, 10).map(cred => ({
-    credenciado: cred.credenciado_nome.length > 20 
-      ? cred.credenciado_nome.substring(0, 20) + '...' 
-      : cred.credenciado_nome,
-    validos: cred.documentos_validos,
-    vencendo: cred.documentos_vencendo,
-    vencidos: cred.documentos_vencidos
-  }));
+  const dadosBarras = credenciadosFiltrados
+    .filter(cred => cred.credenciado_nome)
+    .slice(0, 10)
+    .map(cred => {
+      const nome = cred.credenciado_nome || 'N/A';
+      return {
+        credenciado: nome.length > 20 ? nome.substring(0, 20) + '...' : nome,
+        validos: cred.documentos_validos || 0,
+        vencendo: cred.documentos_vencendo || 0,
+        vencidos: cred.documentos_vencidos || 0
+      };
+    });
 
   if (isLoading && !dashboard) {
     return (
