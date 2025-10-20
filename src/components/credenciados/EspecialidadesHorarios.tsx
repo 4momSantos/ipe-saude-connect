@@ -1,8 +1,13 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Clock, Stethoscope, AlertCircle } from "lucide-react";
+import { Clock, Stethoscope, AlertCircle, Edit2 } from "lucide-react";
 import { useCredenciado } from "@/hooks/useCredenciados";
+import { useUserRole } from "@/hooks/useUserRole";
+import { supabase } from "@/integrations/supabase/client";
+import { HorariosEditor } from "./HorariosEditor";
 
 interface EspecialidadesHorariosProps {
   credenciadoId: string;
@@ -20,6 +25,51 @@ const diasSemanaMap: Record<number, string> = {
 
 export function EspecialidadesHorarios({ credenciadoId }: EspecialidadesHorariosProps) {
   const { data: credenciado, isLoading } = useCredenciado(credenciadoId);
+  const { hasRole } = useUserRole();
+  const [editingCrmId, setEditingCrmId] = useState<string | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
+
+  // Verificar se o usuário logado é o dono do credenciado
+  useEffect(() => {
+    const checkOwnership = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && credenciado?.inscricoes_edital) {
+        setIsOwner(credenciado.inscricoes_edital.candidato_id === user.id);
+      }
+    };
+    
+    if (credenciado) {
+      checkOwnership();
+    }
+  }, [credenciado]);
+
+  // Permissão para editar: credenciado (owner), analista, gestor ou admin
+  const canEdit = isOwner || hasRole("analista") || hasRole("gestor") || hasRole("admin");
+
+  // Realtime subscription para horários
+  useEffect(() => {
+    if (!credenciadoId) return;
+
+    const channel = supabase
+      .channel('horarios-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'horarios_atendimento'
+        },
+        () => {
+          // Recarregar dados do credenciado quando houver mudança
+          window.location.reload();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [credenciadoId]);
 
   if (isLoading) {
     return (
@@ -92,9 +142,21 @@ export function EspecialidadesHorarios({ credenciadoId }: EspecialidadesHorarios
                         CRM: {crm.crm}-{crm.uf_crm}
                       </p>
                     </div>
-                    <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-green-500/20">
-                      Ativo
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="bg-green-500/10 text-green-500 border-green-500/20">
+                        Ativo
+                      </Badge>
+                      {canEdit && editingCrmId !== crm.id && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingCrmId(crm.id)}
+                        >
+                          <Edit2 className="h-4 w-4 mr-1" />
+                          Editar Horários
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-3">
@@ -102,28 +164,50 @@ export function EspecialidadesHorarios({ credenciadoId }: EspecialidadesHorarios
                       <Clock className="h-4 w-4" />
                       Horários de Atendimento
                     </div>
-                    {!crm.horarios || crm.horarios.length === 0 ? (
-                      <div className="rounded-md bg-muted/30 p-4 text-center">
-                        <p className="text-sm text-muted-foreground">
-                          Nenhum horário de atendimento cadastrado para esta especialidade.
-                        </p>
-                      </div>
+                    
+                    {editingCrmId === crm.id ? (
+                      <HorariosEditor
+                        credenciadoCrmId={crm.id}
+                        horariosAtuais={crm.horarios || []}
+                        onCancel={() => setEditingCrmId(null)}
+                      />
                     ) : (
-                      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                        {crm.horarios.map((horario, index) => (
-                          <div
-                            key={index}
-                            className="rounded-md bg-muted/50 p-3 space-y-1"
-                          >
-                            <p className="text-sm font-medium text-foreground">
-                              {diasSemanaMap[horario.dia_semana] || horario.dia_semana}
-                            </p>
+                      <>
+                        {!crm.horarios || crm.horarios.length === 0 ? (
+                          <div className="rounded-md bg-muted/30 p-4 text-center">
                             <p className="text-sm text-muted-foreground">
-                              {horario.horario_inicio} - {horario.horario_fim}
+                              Nenhum horário de atendimento cadastrado para esta especialidade.
                             </p>
+                            {canEdit && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="mt-3"
+                                onClick={() => setEditingCrmId(crm.id)}
+                              >
+                                <Edit2 className="h-4 w-4 mr-1" />
+                                Adicionar Horários
+                              </Button>
+                            )}
                           </div>
-                        ))}
-                      </div>
+                        ) : (
+                          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                            {crm.horarios.map((horario, index) => (
+                              <div
+                                key={index}
+                                className="rounded-md bg-muted/50 p-3 space-y-1"
+                              >
+                                <p className="text-sm font-medium text-foreground">
+                                  {diasSemanaMap[horario.dia_semana] || horario.dia_semana}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {horario.horario_inicio} - {horario.horario_fim}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
