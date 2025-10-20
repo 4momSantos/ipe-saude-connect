@@ -389,229 +389,90 @@ Deno.serve(async (req) => {
     });
     
     // ===== PÁGINA 2: EXTRATO DE DADOS PESSOAIS =====
-    console.log('[GERAR_CERTIFICADO] Gerando página 2 - Extrato de Dados Pessoais...');
-    const page2 = pdfDoc.addPage([842, 595]); // A4 landscape
-    const { width: width2, height: height2 } = page2.getSize();
-    let y = height2 - 60;
+    console.log('[GERAR_CERTIFICADO] Gerando página 2...');
+    const page2 = pdfDoc.addPage([842, 595]);
+    const { width: w2, height: h2 } = page2.getSize();
+    let py = h2 - 60;
 
-    // Título página 2
-    page2.drawText('EXTRATO DE DADOS PESSOAIS', {
-      x: width2 / 2 - 180,
-      y,
-      size: 24,
-      font: fontBold,
-      color: blue,
-    });
-    y -= 10;
+    // Título
+    page2.drawText('EXTRATO DE DADOS PESSOAIS', { x: w2/2 - 180, y: py, size: 24, font: fontBold, color: blue });
+    py -= 10;
+    page2.drawLine({ start: { x: margin + 60, y: py }, end: { x: w2 - margin - 60, y: py }, thickness: 2, color: blue });
+    py -= 40;
 
-    // Linha decorativa
-    page2.drawLine({
-      start: { x: margin + 60, y },
-      end: { x: width2 - margin - 60, y },
-      thickness: 2,
-      color: blue,
-    });
-    y -= 40;
+    // Identificação
+    page2.drawText('IDENTIFICAÇÃO', { x: margin + 20, y: py, size: 14, font: fontBold, color: blue });
+    py -= 25;
+    page2.drawText('Nome:', { x: margin + 40, y: py, size: 10, font: fontBold, color: gray });
+    page2.drawText(credenciado.nome, { x: margin + 180, y: py, size: 10, font, color: gray });
+    py -= 18;
+    
+    const doc = credenciado.cpf ? `CPF: ${formatarCPF(credenciado.cpf)}` : `CNPJ: ${formatarCNPJ(credenciado.cnpj)}`;
+    page2.drawText(doc, { x: margin + 40, y: py, size: 10, font, color: gray });
+    py -= 25;
 
-    // === SEÇÃO: IDENTIFICAÇÃO ===
-    page2.drawText('IDENTIFICAÇÃO', {
-      x: margin + 20,
-      y,
-      size: 14,
-      font: fontBold,
-      color: blue,
-    });
-    y -= 25;
-
-    // Nome
-    page2.drawText('Nome Completo:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
-    page2.drawText(credenciado.nome, { x: margin + 180, y, size: 10, font, color: gray });
-    y -= 18;
-
-    // Tipo de Pessoa
-    const tipoPessoa = credenciado.cpf ? 'Pessoa Física' : 'Pessoa Jurídica';
-    page2.drawText('Tipo:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
-    page2.drawText(tipoPessoa, { x: margin + 180, y, size: 10, font, color: gray });
-    y -= 18;
-
-    // CPF/CNPJ
-    if (credenciado.cpf) {
-      page2.drawText('CPF:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
-      page2.drawText(formatarCPF(credenciado.cpf), { x: margin + 180, y, size: 10, font, color: gray });
-      y -= 18;
-    } else if (credenciado.cnpj) {
-      page2.drawText('CNPJ:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
-      page2.drawText(formatarCNPJ(credenciado.cnpj), { x: margin + 180, y, size: 10, font, color: gray });
-      y -= 18;
+    // CRMs
+    if (credenciado.crms?.length) {
+      page2.drawText('DADOS PROFISSIONAIS', { x: margin + 20, y: py, size: 14, font: fontBold, color: blue });
+      py -= 20;
+      for (const crm of credenciado.crms) {
+        page2.drawText(`CRM ${crm.crm}/${crm.uf_crm} - ${crm.especialidade}`, { x: margin + 40, y: py, size: 10, font, color: gray });
+        py -= 16;
+      }
+      py -= 10;
     }
 
-    // Número de Credenciado
-    if (credenciado.numero_credenciado) {
-      page2.drawText('Nº Credenciado:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
-      page2.drawText(credenciado.numero_credenciado, { x: margin + 180, y, size: 10, font, color: gray });
-      y -= 25;
-    }
-
-    // === SEÇÃO: DADOS PROFISSIONAIS ===
-    if (credenciado.crms && credenciado.crms.length > 0) {
-      page2.drawText('DADOS PROFISSIONAIS', {
-        x: margin + 20,
-        y,
-        size: 14,
-        font: fontBold,
-        color: blue,
-      });
-      y -= 25;
-
-      credenciado.crms.forEach((crm: any, index: number) => {
-        page2.drawText(`CRM ${index + 1}:`, { x: margin + 40, y, size: 10, font: fontBold, color: gray });
-        page2.drawText(`${crm.crm}/${crm.uf_crm}`, { x: margin + 180, y, size: 10, font, color: gray });
-        y -= 18;
-
-        page2.drawText('Especialidade:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
-        page2.drawText(crm.especialidade, { x: margin + 180, y, size: 10, font, color: gray });
-        y -= 25;
-      });
-    }
-
-    // === SEÇÃO: CONTATO ===
-    page2.drawText('CONTATO', {
-      x: margin + 20,
-      y,
-      size: 14,
-      font: fontBold,
-      color: blue,
-    });
-    y -= 25;
-
+    // Contato
+    page2.drawText('CONTATO', { x: margin + 20, y: py, size: 14, font: fontBold, color: blue });
+    py -= 20;
     if (credenciado.email) {
-      page2.drawText('E-mail:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
-      page2.drawText(credenciado.email, { x: margin + 180, y, size: 10, font, color: gray });
-      y -= 18;
+      page2.drawText(`Email: ${credenciado.email}`, { x: margin + 40, y: py, size: 10, font, color: gray });
+      py -= 16;
     }
-
     if (credenciado.telefone) {
-      page2.drawText('Telefone:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
-      page2.drawText(formatarTelefone(credenciado.telefone), { x: margin + 180, y, size: 10, font, color: gray });
-      y -= 18;
+      page2.drawText(`Tel: ${formatarTelefone(credenciado.telefone)}`, { x: margin + 40, y: py, size: 10, font, color: gray });
+      py -= 16;
     }
+    py -= 10;
 
-    if (credenciado.celular) {
-      page2.drawText('Celular:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
-      page2.drawText(formatarTelefone(credenciado.celular), { x: margin + 180, y, size: 10, font, color: gray });
-      y -= 25;
-    }
-
-    // === SEÇÃO: ENDEREÇO ===
+    // Endereço
     if (credenciado.endereco || credenciado.cidade) {
-      page2.drawText('ENDEREÇO', {
-        x: margin + 20,
-        y,
-        size: 14,
-        font: fontBold,
-        color: blue,
-      });
-      y -= 25;
-
+      page2.drawText('ENDEREÇO', { x: margin + 20, y: py, size: 14, font: fontBold, color: blue });
+      py -= 20;
       if (credenciado.endereco) {
-        page2.drawText('Logradouro:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
-        page2.drawText(credenciado.endereco, { x: margin + 180, y, size: 10, font, color: gray });
-        y -= 18;
+        page2.drawText(credenciado.endereco, { x: margin + 40, y: py, size: 10, font, color: gray });
+        py -= 16;
       }
-
-      if (credenciado.bairro) {
-        page2.drawText('Bairro:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
-        page2.drawText(credenciado.bairro, { x: margin + 180, y, size: 10, font, color: gray });
-        y -= 18;
+      if (credenciado.cidade) {
+        page2.drawText(`${credenciado.cidade} - ${credenciado.estado}`, { x: margin + 40, y: py, size: 10, font, color: gray });
+        py -= 16;
       }
-
-      if (credenciado.cidade && credenciado.estado) {
-        page2.drawText('Cidade/UF:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
-        page2.drawText(`${credenciado.cidade} - ${credenciado.estado}`, { x: margin + 180, y, size: 10, font, color: gray });
-        y -= 18;
-      }
-
       if (credenciado.cep) {
-        page2.drawText('CEP:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
-        page2.drawText(formatarCEP(credenciado.cep), { x: margin + 180, y, size: 10, font, color: gray });
-        y -= 25;
+        page2.drawText(`CEP: ${formatarCEP(credenciado.cep)}`, { x: margin + 40, y: py, size: 10, font, color: gray });
+        py -= 16;
       }
+      py -= 10;
     }
 
-    // === SEÇÃO: INFORMAÇÕES DO CREDENCIAMENTO ===
-    page2.drawText('INFORMAÇÕES DO CREDENCIAMENTO', {
-      x: margin + 20,
-      y,
-      size: 14,
-      font: fontBold,
-      color: blue,
-    });
-    y -= 25;
+    // Credenciamento
+    page2.drawText('CREDENCIAMENTO', { x: margin + 20, y: py, size: 14, font: fontBold, color: blue });
+    py -= 20;
+    page2.drawText(`Nº: ${numeroCertificado}`, { x: margin + 40, y: py, size: 10, font, color: gray });
+    py -= 16;
+    page2.drawText(`Emissão: ${emitidoEm}`, { x: margin + 40, y: py, size: 10, font, color: gray });
+    py -= 16;
+    page2.drawText(`Validade: ${validoAteFormatted}`, { x: margin + 40, y: py, size: 10, font, color: gray });
+    py -= 16;
+    const sColor = credenciado.status === 'Ativo' ? rgb(0.13, 0.54, 0.13) : rgb(0.8, 0.13, 0.13);
+    page2.drawText(`Status: ${credenciado.status || 'Ativo'}`, { x: margin + 40, y: py, size: 10, font: fontBold, color: sColor });
 
-    page2.drawText('Número do Certificado:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
-    page2.drawText(numeroCertificado, { x: margin + 220, y, size: 10, font, color: gray });
-    y -= 18;
+    // Rodapé
+    page2.drawText('Extrato de dados cadastrais do credenciado', { x: w2/2 - 130, y: 70, size: 9, font, color: rgb(0.5, 0.5, 0.5) });
+    page2.drawText(`Gerado: ${new Date().toLocaleString('pt-BR')}`, { x: w2/2 - 90, y: 55, size: 8, font, color: rgb(0.5, 0.5, 0.5) });
 
-    page2.drawText('Data de Emissão:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
-    page2.drawText(emitidoEm, { x: margin + 220, y, size: 10, font, color: gray });
-    y -= 18;
-
-    page2.drawText('Validade:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
-    page2.drawText(validoAteFormatted, { x: margin + 220, y, size: 10, font, color: gray });
-    y -= 18;
-
-    const statusColor2 = credenciado.status === 'Ativo' ? rgb(0.13, 0.54, 0.13) : rgb(0.8, 0.13, 0.13);
-    page2.drawText('Status:', { x: margin + 40, y, size: 10, font: fontBold, color: gray });
-    page2.drawText(credenciado.status || 'Ativo', { x: margin + 220, y, size: 10, font: fontBold, color: statusColor2 });
-    y -= 25;
-
-    // === SEÇÃO: DOCUMENTOS ANEXOS (se houver) ===
-    if (credenciado.documentos && credenciado.documentos.length > 0) {
-      page2.drawText('DOCUMENTOS ANEXOS', {
-        x: margin + 20,
-        y,
-        size: 14,
-        font: fontBold,
-        color: blue,
-      });
-      y -= 25;
-
-      credenciado.documentos.slice(0, 5).forEach((doc: any) => {
-        const textoDoc = `• ${doc.tipo_documento}`;
-        page2.drawText(textoDoc, { x: margin + 40, y, size: 9, font, color: gray });
-
-        if (doc.numero_documento) {
-          page2.drawText(`Nº ${doc.numero_documento}`, { x: margin + 280, y, size: 9, font, color: gray });
-        }
-
-        if (doc.data_vencimento) {
-          const valDoc = new Date(doc.data_vencimento).toLocaleDateString('pt-BR');
-          page2.drawText(`Val: ${valDoc}`, { x: margin + 450, y, size: 9, font, color: gray });
-        }
-
-        y -= 16;
-      });
-    }
-
-    // Rodapé página 2
-    page2.drawText('Este extrato contém informações cadastrais do credenciado.', {
-      x: width2 / 2 - 180,
-      y: 70,
-      size: 9,
-      font,
-      color: rgb(0.5, 0.5, 0.5),
-    });
-    page2.drawText(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, {
-      x: width2 / 2 - 100,
-      y: 55,
-      size: 8,
-      font,
-      color: rgb(0.5, 0.5, 0.5),
-    });
-
-    // Salvar PDF (agora com 2 páginas)
+    // Salvar PDF com 2 páginas
     const pdfBytes = await pdfDoc.save();
-    console.log('[GERAR_CERTIFICADO] PDF gerado com 2 páginas, tamanho:', pdfBytes.length);
+    console.log('[GERAR_CERTIFICADO] PDF gerado (2 páginas):', pdfBytes.length);
     
     // === UPLOAD PARA STORAGE ===
     const fileName = `${credenciadoId}/${numeroCertificado}.pdf`;
