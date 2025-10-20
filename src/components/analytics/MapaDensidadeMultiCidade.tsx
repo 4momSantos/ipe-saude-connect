@@ -35,41 +35,161 @@ export function MapaDensidadeMultiCidade() {
   useEffect(() => {
     if (cidades && cidades.length > 0 && !selectedCidadeId) {
       setSelectedCidadeId(cidades[0].id);
+    } else if (!cidades || cidades.length === 0) {
+      // Se não houver cidades no banco, usar cidade mockada por padrão
+      if (!selectedCidadeId) {
+        setSelectedCidadeId('porto-alegre');
+      }
     }
   }, [cidades, selectedCidadeId]);
 
   // Buscar densidade da cidade selecionada
   const { data: densidadeData, isLoading: loadingDensidade } = useDensidadeCredenciados(selectedCidadeId);
 
-  // Dados mockados para demonstração
-  const dadosMockados = {
-    cidade: {
-      nome: 'Porto Alegre',
-      uf: 'RS',
-      populacao: 1492530,
-      credenciados: 342,
-      densidade_geral: 2.29,
-      latitude: -30.0346,
-      longitude: -51.2177,
-      zoom: 11
+  // Dados mockados para múltiplas cidades
+  const cidadesMockadas = {
+    'porto-alegre': {
+      cidade: {
+        nome: 'Porto Alegre',
+        uf: 'RS',
+        populacao: 1492530,
+        credenciados: 342,
+        densidade_geral: 2.29,
+        latitude: -30.0346,
+        longitude: -51.2177,
+        zoom: 11
+      },
+      densidades: [
+        { zona_id: '1', zona: 'Centro Histórico', populacao: 45230, credenciados: 38, densidade: 8.40, cor: '#10b981', geometry: null },
+        { zona_id: '2', zona: 'Moinhos de Vento', populacao: 38540, credenciados: 35, densidade: 9.08, cor: '#10b981', geometry: null },
+        { zona_id: '3', zona: 'Bela Vista', populacao: 52180, credenciados: 28, densidade: 5.37, cor: '#10b981', geometry: null },
+        { zona_id: '4', zona: 'Petrópolis', populacao: 41290, credenciados: 22, densidade: 5.33, cor: '#10b981', geometry: null },
+        { zona_id: '5', zona: 'Zona Norte', populacao: 156420, credenciados: 45, densidade: 2.88, cor: '#84cc16', geometry: null },
+        { zona_id: '6', zona: 'Restinga', populacao: 98320, credenciados: 18, densidade: 1.83, cor: '#eab308', geometry: null },
+        { zona_id: '7', zona: 'Lomba do Pinheiro', populacao: 142560, credenciados: 24, densidade: 1.68, cor: '#eab308', geometry: null },
+        { zona_id: '8', zona: 'Partenon', populacao: 89450, credenciados: 12, densidade: 1.34, cor: '#eab308', geometry: null },
+        { zona_id: '9', zona: 'Zona Sul', populacao: 187230, credenciados: 32, densidade: 1.71, cor: '#eab308', geometry: null },
+        { zona_id: '10', zona: 'Rubem Berta', populacao: 112540, credenciados: 8, densidade: 0.71, cor: '#f97316', geometry: null },
+        { zona_id: '11', zona: 'Sarandi', populacao: 95670, credenciados: 6, densidade: 0.63, cor: '#f97316', geometry: null },
+        { zona_id: '12', zona: 'Agronomia', populacao: 78320, credenciados: 4, densidade: 0.51, cor: '#f97316', geometry: null },
+        { zona_id: '13', zona: 'Cristal', populacao: 132450, credenciados: 5, densidade: 0.38, cor: '#ef4444', geometry: null },
+        { zona_id: '14', zona: 'Vila Nova', populacao: 68920, credenciados: 2, densidade: 0.29, cor: '#ef4444', geometry: null },
+      ]
     },
-    densidades: [
-      { zona_id: '1', zona: 'Centro Histórico', populacao: 45230, credenciados: 38, densidade: 8.40, cor: '#10b981', geometry: null },
-      { zona_id: '2', zona: 'Moinhos de Vento', populacao: 38540, credenciados: 35, densidade: 9.08, cor: '#10b981', geometry: null },
-      { zona_id: '3', zona: 'Bela Vista', populacao: 52180, credenciados: 28, densidade: 5.37, cor: '#10b981', geometry: null },
-      { zona_id: '4', zona: 'Petrópolis', populacao: 41290, credenciados: 22, densidade: 5.33, cor: '#10b981', geometry: null },
-      { zona_id: '5', zona: 'Zona Norte', populacao: 156420, credenciados: 45, densidade: 2.88, cor: '#84cc16', geometry: null },
-      { zona_id: '6', zona: 'Restinga', populacao: 98320, credenciados: 18, densidade: 1.83, cor: '#eab308', geometry: null },
-      { zona_id: '7', zona: 'Lomba do Pinheiro', populacao: 142560, credenciados: 24, densidade: 1.68, cor: '#eab308', geometry: null },
-      { zona_id: '8', zona: 'Partenon', populacao: 89450, credenciados: 12, densidade: 1.34, cor: '#eab308', geometry: null },
-      { zona_id: '9', zona: 'Zona Sul', populacao: 187230, credenciados: 32, densidade: 1.71, cor: '#eab308', geometry: null },
-      { zona_id: '10', zona: 'Rubem Berta', populacao: 112540, credenciados: 8, densidade: 0.71, cor: '#f97316', geometry: null },
-      { zona_id: '11', zona: 'Sarandi', populacao: 95670, credenciados: 6, densidade: 0.63, cor: '#f97316', geometry: null },
-      { zona_id: '12', zona: 'Agronomia', populacao: 78320, credenciados: 4, densidade: 0.51, cor: '#f97316', geometry: null },
-      { zona_id: '13', zona: 'Cristal', populacao: 132450, credenciados: 5, densidade: 0.38, cor: '#ef4444', geometry: null },
-      { zona_id: '14', zona: 'Vila Nova', populacao: 68920, credenciados: 2, densidade: 0.29, cor: '#ef4444', geometry: null },
-    ]
+    'sao-paulo': {
+      cidade: {
+        nome: 'São Paulo',
+        uf: 'SP',
+        populacao: 12325232,
+        credenciados: 812,
+        densidade_geral: 0.66,
+        latitude: -23.5505,
+        longitude: -46.6333,
+        zoom: 10
+      },
+      densidades: [
+        { zona_id: '1', zona: 'Jardins', populacao: 287450, credenciados: 142, densidade: 4.94, cor: '#10b981', geometry: null },
+        { zona_id: '2', zona: 'Pinheiros', populacao: 312890, credenciados: 128, densidade: 4.09, cor: '#10b981', geometry: null },
+        { zona_id: '3', zona: 'Vila Mariana', populacao: 344620, credenciados: 98, densidade: 2.84, cor: '#84cc16', geometry: null },
+        { zona_id: '4', zona: 'Mooca', populacao: 425780, credenciados: 87, densidade: 2.04, cor: '#eab308', geometry: null },
+        { zona_id: '5', zona: 'Zona Leste', populacao: 1987540, credenciados: 176, densidade: 0.89, cor: '#f97316', geometry: null },
+        { zona_id: '6', zona: 'Zona Sul', populacao: 2145670, credenciados: 181, densidade: 0.84, cor: '#f97316', geometry: null },
+      ]
+    },
+    'curitiba': {
+      cidade: {
+        nome: 'Curitiba',
+        uf: 'PR',
+        populacao: 1948626,
+        credenciados: 421,
+        densidade_geral: 2.16,
+        latitude: -25.4284,
+        longitude: -49.2733,
+        zoom: 11
+      },
+      densidades: [
+        { zona_id: '1', zona: 'Centro', populacao: 52340, credenciados: 45, densidade: 8.60, cor: '#10b981', geometry: null },
+        { zona_id: '2', zona: 'Batel', populacao: 48920, credenciados: 42, densidade: 8.59, cor: '#10b981', geometry: null },
+        { zona_id: '3', zona: 'Água Verde', populacao: 67230, credenciados: 38, densidade: 5.65, cor: '#10b981', geometry: null },
+        { zona_id: '4', zona: 'Portão', populacao: 89450, credenciados: 32, densidade: 3.58, cor: '#84cc16', geometry: null },
+        { zona_id: '5', zona: 'CIC', populacao: 198760, credenciados: 54, densidade: 2.72, cor: '#84cc16', geometry: null },
+        { zona_id: '6', zona: 'Boqueirão', populacao: 154320, credenciados: 28, densidade: 1.81, cor: '#eab308', geometry: null },
+        { zona_id: '7', zona: 'Pinheirinho', populacao: 187450, credenciados: 32, densidade: 1.71, cor: '#eab308', geometry: null },
+        { zona_id: '8', zona: 'Cajuru', populacao: 234680, credenciados: 38, densidade: 1.62, cor: '#eab308', geometry: null },
+        { zona_id: '9', zona: 'Fazendinha', populacao: 145820, credenciados: 18, densidade: 1.23, cor: '#f97316', geometry: null },
+        { zona_id: '10', zona: 'Tatuquara', populacao: 198540, credenciados: 22, densidade: 1.11, cor: '#f97316', geometry: null },
+      ]
+    },
+    'florianopolis': {
+      cidade: {
+        nome: 'Florianópolis',
+        uf: 'SC',
+        populacao: 508826,
+        credenciados: 356,
+        densidade_geral: 7.00,
+        latitude: -27.5954,
+        longitude: -48.5480,
+        zoom: 11
+      },
+      densidades: [
+        { zona_id: '1', zona: 'Centro', populacao: 42890, credenciados: 62, densidade: 14.46, cor: '#10b981', geometry: null },
+        { zona_id: '2', zona: 'Trindade', populacao: 38920, credenciados: 48, densidade: 12.33, cor: '#10b981', geometry: null },
+        { zona_id: '3', zona: 'Agronômica', populacao: 32450, credenciados: 38, densidade: 11.71, cor: '#10b981', geometry: null },
+        { zona_id: '4', zona: 'Córrego Grande', populacao: 45780, credenciados: 42, densidade: 9.17, cor: '#10b981', geometry: null },
+        { zona_id: '5', zona: 'Lagoa', populacao: 67230, credenciados: 54, densidade: 8.03, cor: '#10b981', geometry: null },
+        { zona_id: '6', zona: 'Canasvieiras', populacao: 54320, credenciados: 32, densidade: 5.89, cor: '#10b981', geometry: null },
+        { zona_id: '7', zona: 'Ingleses', populacao: 78540, credenciados: 38, densidade: 4.84, cor: '#84cc16', geometry: null },
+        { zona_id: '8', zona: 'Campeche', populacao: 89450, credenciados: 28, densidade: 3.13, cor: '#84cc16', geometry: null },
+      ]
+    },
+    'belo-horizonte': {
+      cidade: {
+        nome: 'Belo Horizonte',
+        uf: 'MG',
+        populacao: 2521564,
+        credenciados: 489,
+        densidade_geral: 1.94,
+        latitude: -19.9167,
+        longitude: -43.9345,
+        zoom: 11
+      },
+      densidades: [
+        { zona_id: '1', zona: 'Savassi', populacao: 54230, credenciados: 68, densidade: 12.54, cor: '#10b981', geometry: null },
+        { zona_id: '2', zona: 'Centro', populacao: 87450, credenciados: 78, densidade: 8.92, cor: '#10b981', geometry: null },
+        { zona_id: '3', zona: 'Pampulha', populacao: 134680, credenciados: 82, densidade: 6.09, cor: '#10b981', geometry: null },
+        { zona_id: '4', zona: 'Barreiro', populacao: 287340, credenciados: 98, densidade: 3.41, cor: '#84cc16', geometry: null },
+        { zona_id: '5', zona: 'Venda Nova', populacao: 312890, credenciados: 87, densidade: 2.78, cor: '#84cc16', geometry: null },
+        { zona_id: '6', zona: 'Zona Norte', populacao: 456780, credenciados: 76, densidade: 1.66, cor: '#eab308', geometry: null },
+      ]
+    },
+    'rio-de-janeiro': {
+      cidade: {
+        nome: 'Rio de Janeiro',
+        uf: 'RJ',
+        populacao: 6747815,
+        credenciados: 654,
+        densidade_geral: 0.97,
+        latitude: -22.9068,
+        longitude: -43.1729,
+        zoom: 10
+      },
+      densidades: [
+        { zona_id: '1', zona: 'Zona Sul', populacao: 456780, credenciados: 187, densidade: 4.09, cor: '#10b981', geometry: null },
+        { zona_id: '2', zona: 'Barra da Tijuca', populacao: 312890, credenciados: 124, densidade: 3.96, cor: '#10b981', geometry: null },
+        { zona_id: '3', zona: 'Centro', populacao: 287340, credenciados: 98, densidade: 3.41, cor: '#84cc16', geometry: null },
+        { zona_id: '4', zona: 'Tijuca', populacao: 398540, credenciados: 112, densidade: 2.81, cor: '#84cc16', geometry: null },
+        { zona_id: '5', zona: 'Zona Norte', populacao: 1876540, credenciados: 133, densidade: 0.71, cor: '#f97316', geometry: null },
+      ]
+    }
   };
+
+  // Usar dados mockados baseado na cidade selecionada ou primeira disponível
+  const getCidadeMockada = () => {
+    const cidadeKey = selectedCidadeId || 'porto-alegre';
+    return cidadesMockadas[cidadeKey as keyof typeof cidadesMockadas] || cidadesMockadas['porto-alegre'];
+  };
+
+  const dadosMockados = getCidadeMockada();
 
   // Usar dados mockados se não houver dados reais
   const dadosExibicao = densidadeData || dadosMockados;
@@ -288,11 +408,22 @@ export function MapaDensidadeMultiCidade() {
               <SelectValue placeholder="Selecione uma cidade" />
             </SelectTrigger>
             <SelectContent>
-              {cidades?.map(cidade => (
-                <SelectItem key={cidade.id} value={cidade.id}>
-                  📍 {cidade.nome} - {cidade.uf}
-                </SelectItem>
-              ))}
+              {cidades && cidades.length > 0 ? (
+                cidades.map(cidade => (
+                  <SelectItem key={cidade.id} value={cidade.id}>
+                    📍 {cidade.nome} - {cidade.uf}
+                  </SelectItem>
+                ))
+              ) : (
+                <>
+                  <SelectItem value="porto-alegre">📍 Porto Alegre - RS</SelectItem>
+                  <SelectItem value="sao-paulo">📍 São Paulo - SP</SelectItem>
+                  <SelectItem value="curitiba">📍 Curitiba - PR</SelectItem>
+                  <SelectItem value="florianopolis">📍 Florianópolis - SC</SelectItem>
+                  <SelectItem value="belo-horizonte">📍 Belo Horizonte - MG</SelectItem>
+                  <SelectItem value="rio-de-janeiro">📍 Rio de Janeiro - RJ</SelectItem>
+                </>
+              )}
             </SelectContent>
           </Select>
         </div>

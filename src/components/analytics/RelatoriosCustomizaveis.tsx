@@ -16,70 +16,64 @@ export function RelatoriosCustomizaveis() {
   const [agrupamento, setAgrupamento] = useState<TipoAgrupamento>("especialidade");
   const [loading, setLoading] = useState(false);
 
+  // Dados mockados completos com mais cidades
+  const dadosMockados = {
+    credenciadosPorEspecialidade: [
+      { Especialidade: "Clínica Geral", Total: 524 },
+      { Especialidade: "Cardiologia", Total: 438 },
+      { Especialidade: "Pediatria", Total: 412 },
+      { Especialidade: "Ortopedia", Total: 385 },
+      { Especialidade: "Ginecologia", Total: 367 },
+      { Especialidade: "Dermatologia", Total: 298 },
+      { Especialidade: "Neurologia", Total: 276 },
+      { Especialidade: "Oftalmologia", Total: 254 },
+      { Especialidade: "Psiquiatria", Total: 231 },
+      { Especialidade: "Urologia", Total: 198 },
+    ],
+    credenciadosPorMunicipio: [
+      { Município: "Porto Alegre - RS", Total: 487 },
+      { Município: "Caxias do Sul - RS", Total: 298 },
+      { Município: "Canoas - RS", Total: 245 },
+      { Município: "Pelotas - RS", Total: 217 },
+      { Município: "Santa Maria - RS", Total: 189 },
+      { Município: "Curitiba - PR", Total: 421 },
+      { Município: "Londrina - PR", Total: 267 },
+      { Município: "Maringá - PR", Total: 198 },
+      { Município: "Florianópolis - SC", Total: 356 },
+      { Município: "Joinville - SC", Total: 289 },
+      { Município: "Blumenau - SC", Total: 234 },
+      { Município: "São Paulo - SP", Total: 812 },
+      { Município: "Rio de Janeiro - RJ", Total: 654 },
+      { Município: "Belo Horizonte - MG", Total: 489 },
+      { Município: "Brasília - DF", Total: 398 },
+      { Município: "Salvador - BA", Total: 367 },
+      { Município: "Fortaleza - CE", Total: 298 },
+      { Município: "Recife - PE", Total: 276 },
+      { Município: "Manaus - AM", Total: 234 },
+      { Município: "Belém - PA", Total: 198 },
+    ],
+    credenciadosPorRegiao: [
+      { Região: "Sul", Total: 1247 },
+      { Região: "Sudeste", Total: 1089 },
+      { Região: "Centro-Oeste", Total: 587 },
+      { Região: "Nordeste", Total: 534 },
+      { Região: "Norte", Total: 390 },
+    ],
+  };
+
   async function generateReport() {
     try {
       setLoading(true);
 
-      // Buscar dados de credenciados
-      const { data: credenciados, error: credError } = await supabase
-        .from("credenciados")
-        .select("id, nome, cidade, estado, status")
-        .eq("status", "Ativo");
-
-      if (credError) throw credError;
-
-      // Buscar especialidades
-      const { data: especialidades, error: espError } = await supabase
-        .from("credenciado_crms")
-        .select("credenciado_id, especialidade");
-
-      if (espError) throw espError;
-
-      // Processar dados baseado no agrupamento
+      // Usar dados mockados baseado no agrupamento
       let reportData: any[] = [];
 
       if (agrupamento === "especialidade") {
-        const espMap = new Map<string, number>();
-        especialidades?.forEach((esp) => {
-          espMap.set(esp.especialidade, (espMap.get(esp.especialidade) || 0) + 1);
-        });
-
-        reportData = Array.from(espMap.entries()).map(([especialidade, total]) => ({
-          Especialidade: especialidade,
-          Total: total,
-        }));
+        reportData = [...dadosMockados.credenciadosPorEspecialidade];
       } else if (agrupamento === "municipio") {
-        const cidadeMap = new Map<string, number>();
-        credenciados?.forEach((cred) => {
-          const key = `${cred.cidade} - ${cred.estado}`;
-          cidadeMap.set(key, (cidadeMap.get(key) || 0) + 1);
-        });
-
-        reportData = Array.from(cidadeMap.entries()).map(([municipio, total]) => ({
-          Município: municipio,
-          Total: total,
-        }));
+        reportData = [...dadosMockados.credenciadosPorMunicipio];
       } else if (agrupamento === "regiao") {
-        const regiaoMap: Record<string, string[]> = {
-          Norte: ["AC", "AP", "AM", "PA", "RO", "RR", "TO"],
-          Nordeste: ["AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE"],
-          "Centro-Oeste": ["DF", "GO", "MT", "MS"],
-          Sudeste: ["ES", "MG", "RJ", "SP"],
-          Sul: ["PR", "RS", "SC"],
-        };
-
-        const regiaoCount: Record<string, number> = {};
-        credenciados?.forEach((cred) => {
-          const regiao = Object.entries(regiaoMap).find(([_, estados]) =>
-            estados.includes(cred.estado || "")
-          )?.[0] || "Outros";
-          regiaoCount[regiao] = (regiaoCount[regiao] || 0) + 1;
-        });
-
-        reportData = Object.entries(regiaoCount).map(([regiao, total]) => ({
-          Região: regiao,
-          Total: total,
-        }));
+        reportData = [...dadosMockados.credenciadosPorRegiao];
       }
 
       // Aplicar cálculo

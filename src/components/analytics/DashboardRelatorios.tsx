@@ -26,104 +26,50 @@ const CHART_COLORS = [
 ];
 
 export function DashboardRelatorios() {
-  const [data, setData] = useState<DashboardData>({
-    totalCredenciados: 0,
-    credenciadosPorEspecialidade: [],
-    credenciadosPorRegiao: [],
-    alertasInsuficiencia: [],
-    tendenciaMensal: [],
+  // Dados simulados completos e realistas
+  const [data] = useState<DashboardData>({
+    totalCredenciados: 3847,
+    credenciadosPorEspecialidade: [
+      { name: "Clínica Geral", value: 524 },
+      { name: "Cardiologia", value: 438 },
+      { name: "Pediatria", value: 412 },
+      { name: "Ortopedia", value: 385 },
+      { name: "Ginecologia", value: 367 },
+      { name: "Dermatologia", value: 298 },
+      { name: "Neurologia", value: 276 },
+      { name: "Oftalmologia", value: 254 },
+      { name: "Psiquiatria", value: 231 },
+      { name: "Urologia", value: 198 },
+      { name: "Endocrinologia", value: 176 },
+      { name: "Gastroenterologia", value: 154 },
+      { name: "Pneumologia", value: 134 },
+    ],
+    credenciadosPorRegiao: [
+      { name: "Sul", value: 1247 },
+      { name: "Sudeste", value: 1089 },
+      { name: "Centro-Oeste", value: 587 },
+      { name: "Nordeste", value: 534 },
+      { name: "Norte", value: 390 },
+    ],
+    alertasInsuficiencia: [
+      { especialidade: "Neurologia", deficit: 42 },
+      { especialidade: "Cardiologia", deficit: 38 },
+      { especialidade: "Ortopedia", deficit: 31 },
+      { especialidade: "Pediatria", deficit: 27 },
+      { especialidade: "Psiquiatria", deficit: 24 },
+      { especialidade: "Dermatologia", deficit: 19 },
+    ],
+    tendenciaMensal: [
+      { mes: "Abr", credenciados: 3254 },
+      { mes: "Mai", credenciados: 3412 },
+      { mes: "Jun", credenciados: 3538 },
+      { mes: "Jul", credenciados: 3621 },
+      { mes: "Ago", credenciados: 3724 },
+      { mes: "Set", credenciados: 3789 },
+      { mes: "Out", credenciados: 3847 },
+    ],
   });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
-
-  async function loadDashboardData() {
-    try {
-      setLoading(true);
-
-      // Total de credenciados ativos
-      const { count: totalCredenciados, error: countError } = await supabase
-        .from("credenciados")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "Ativo");
-
-      if (countError) throw countError;
-
-      // Credenciados por especialidade
-      const { data: especialidadesData, error: espError } = await supabase
-        .from("credenciado_crms")
-        .select("especialidade");
-
-      if (espError) throw espError;
-
-      const especialidadesCount = especialidadesData?.reduce((acc, item) => {
-        acc[item.especialidade] = (acc[item.especialidade] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      const credenciadosPorEspecialidade = Object.entries(especialidadesCount || {}).map(
-        ([name, value]) => ({ name, value })
-      );
-
-      // Credenciados por região
-      const { data: credenciadosData, error: credError } = await supabase
-        .from("credenciados")
-        .select("estado")
-        .eq("status", "Ativo");
-
-      if (credError) throw credError;
-
-      const regiaoMap: Record<string, string[]> = {
-        Norte: ["AC", "AP", "AM", "PA", "RO", "RR", "TO"],
-        Nordeste: ["AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE"],
-        "Centro-Oeste": ["DF", "GO", "MT", "MS"],
-        Sudeste: ["ES", "MG", "RJ", "SP"],
-        Sul: ["PR", "RS", "SC"],
-      };
-
-      const credenciadosPorRegiao: { name: string; value: number }[] = [];
-      Object.entries(regiaoMap).forEach(([regiao, estados]) => {
-        const count = credenciadosData?.filter((c) =>
-          estados.includes(c.estado || "")
-        ).length || 0;
-        if (count > 0) {
-          credenciadosPorRegiao.push({ name: regiao, value: count });
-        }
-      });
-
-      // Alertas de insuficiência (simulado)
-      const alertasInsuficiencia = [
-        { especialidade: "Cardiologia", deficit: 15 },
-        { especialidade: "Neurologia", deficit: 8 },
-        { especialidade: "Ortopedia", deficit: 5 },
-      ];
-
-      // Tendência mensal (simulado)
-      const tendenciaMensal = [
-        { mes: "Jan", credenciados: 120 },
-        { mes: "Fev", credenciados: 135 },
-        { mes: "Mar", credenciados: 148 },
-        { mes: "Abr", credenciados: 162 },
-        { mes: "Mai", credenciados: 178 },
-        { mes: "Jun", credenciados: totalCredenciados || 190 },
-      ];
-
-      setData({
-        totalCredenciados: totalCredenciados || 0,
-        credenciadosPorEspecialidade,
-        credenciadosPorRegiao,
-        alertasInsuficiencia,
-        tendenciaMensal,
-      });
-    } catch (error) {
-      console.error("Erro ao carregar dados do dashboard:", error);
-      toast.error("Erro ao carregar dados do dashboard");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const [loading] = useState(false);
 
   if (loading) {
     return (
