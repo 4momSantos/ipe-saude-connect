@@ -441,7 +441,7 @@ export function EditalWizard({ editalId, initialData }: EditalWizardProps) {
           <div className="space-y-6">
             <InformacoesGeraisStep form={form} />
             {/* FASE 6: Painel de configuração de uploads */}
-            <UploadsConfigPanel form={form} />
+            <UploadsConfigPanel form={form} editalId={editalId} />
           </div>
         );
       case 2:
