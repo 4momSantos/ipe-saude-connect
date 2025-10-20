@@ -85,9 +85,12 @@ export default function Credenciados() {
   const credenciadosFiltrados = useMemo(() => {
     if (!credenciados) return [];
     return credenciados.filter((credenciado) => {
+      // Mapear status do banco para valores do filtro
+      const statusNormalizado = credenciado.status.toLowerCase() === "ativo" ? "habilitado" : "inabilitado";
+      
       const matchStatus =
         filtroStatus === "todos" || 
-        credenciado.status.toLowerCase() === filtroStatus.toLowerCase();
+        statusNormalizado === filtroStatus.toLowerCase();
       
       const matchEspecialidade =
         filtroEspecialidade === "todas" ||
