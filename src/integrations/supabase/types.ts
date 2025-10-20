@@ -6985,6 +6985,20 @@ export type Database = {
           workflow_id: string
         }[]
       }
+      processar_decisao_inscricao: {
+        Args: {
+          p_analise_id: string
+          p_analista_id: string
+          p_campos_reprovados?: Json
+          p_documentos_reprovados?: Json
+          p_inscricao_id: string
+          p_justificativa: string
+          p_motivo_reprovacao?: string
+          p_prazo_correcao?: string
+          p_status_decisao: string
+        }
+        Returns: Json
+      }
       refresh_catalogo_servicos: {
         Args: Record<PropertyKey, never>
         Returns: undefined

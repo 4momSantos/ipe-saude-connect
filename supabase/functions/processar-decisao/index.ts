@@ -104,47 +104,34 @@ serve(async (req) => {
 
     const analista_nome = profile?.nome || user.email;
 
-    // 1. Atualizar tabela analises
-    const statusAnalise = decisao.status === 'aprovado' ? 'aprovado' : 
-                          decisao.status === 'reprovado' ? 'rejeitado' : 
-                          'pendente_correcao';
+    // 1. Processar decisão usando transação atômica (database function)
+    console.log(`[DECISAO] 🔄 Processando decisão via RPC: ${decisao.status}`);
+    
+    const { data: resultadoDecisao, error: decisaoError } = await supabase.rpc(
+      'processar_decisao_inscricao',
+      {
+        p_inscricao_id: inscricao_id,
+        p_analise_id: analise_id,
+        p_analista_id: user.id,
+        p_status_decisao: decisao.status,
+        p_justificativa: decisao.justificativa,
+        p_motivo_reprovacao: decisao.status === 'reprovado' ? decisao.justificativa : null,
+        p_campos_reprovados: decisao.campos_reprovados || null,
+        p_documentos_reprovados: decisao.documentos_reprovados || null,
+        p_prazo_correcao: decisao.prazo_correcao || null
+      }
+    );
 
-    const { error: updateAnaliseError } = await supabase
-      .from('analises')
-      .update({
-        status: statusAnalise,
-        parecer: decisao.justificativa,
-        motivo_reprovacao: decisao.status === 'reprovado' ? decisao.justificativa : null,
-        analista_id: user.id,
-        analisado_em: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', analise_id);
-
-    if (updateAnaliseError) {
-      console.error('[DECISAO] Erro ao atualizar análise:', updateAnaliseError);
-      throw updateAnaliseError;
+    if (decisaoError) {
+      console.error('[DECISAO] ❌ Erro ao processar decisão (RPC):', decisaoError);
+      throw decisaoError;
     }
 
-    // 2. Atualizar inscricoes_edital
-    const statusInscricao = decisao.status === 'aprovado' ? 'aprovado' : 
-                            decisao.status === 'reprovado' ? 'inabilitado' : 
-                            'aguardando_correcao';
-
-    const { error: updateInscricaoError } = await supabase
-      .from('inscricoes_edital')
-      .update({
-        status: statusInscricao,
-        analisado_por: user.id,
-        analisado_em: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', inscricao_id);
-
-    if (updateInscricaoError) {
-      console.error('[DECISAO] Erro ao atualizar inscrição:', updateInscricaoError);
-      throw updateInscricaoError;
-    }
+    console.log(`[DECISAO] ✅ Decisão processada com sucesso:`, {
+      status_analise: resultadoDecisao.status_analise,
+      status_inscricao: resultadoDecisao.status_inscricao,
+      inscricao_id: resultadoDecisao.inscricao_id
+    });
 
     // 3. Registrar manifestação formal em workflow_messages
     const messageContent = decisao.status === 'aprovado' 
