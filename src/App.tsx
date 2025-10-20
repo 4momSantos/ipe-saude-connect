@@ -64,6 +64,10 @@ import TesteCertificados from "./pages/TesteCertificados";
 import MeuCredenciamento from "./pages/MeuCredenciamento";
 import DocumentosCredenciadoGrid from "./pages/DocumentosCredenciadoGrid";
 const BuscaDocumentos = lazy(() => import("./pages/BuscaDocumentos"));
+import DashboardCredenciamentosPage from "./pages/DashboardCredenciamentosPage";
+import DashboardPrazosPage from "./pages/DashboardPrazosPage";
+import RelatorioDocumentosPage from "./pages/RelatorioDocumentosPage";
+import DashboardConformidadePage from "./pages/DashboardConformidadePage";
 import DebugFluxoCredenciamento from "./pages/admin/DebugFluxoCredenciamento";
 import SeedDatabaseRS from "./pages/admin/SeedDatabaseRS";
 import ProcessarContratosOrfaos from "./pages/admin/ProcessarContratosOrfaos";
@@ -223,6 +227,10 @@ const App = () => (
                           <Route path="/mapa" element={<AnalisesRelatorios />} />
                           <Route path="/relatorios" element={<AnalisesRelatorios />} />
                           <Route path="/relatorios/avaliacoes" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><RelatorioAvaliacoes /></RoleProtectedRoute>} />
+                          <Route path="/dashboard-credenciamentos" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><DashboardCredenciamentosPage /></RoleProtectedRoute>} />
+                          <Route path="/dashboard-prazos-validades" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><DashboardPrazosPage /></RoleProtectedRoute>} />
+                          <Route path="/relatorio-documentos" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><RelatorioDocumentosPage /></RoleProtectedRoute>} />
+                          <Route path="/dashboard-conformidade" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><DashboardConformidadePage /></RoleProtectedRoute>} />
                           <Route path="/gestao/regras-suspensao" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><GestaoRegrasSuspensao /></RoleProtectedRoute>} />
                           <Route path="/auditoria" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><AuditoriaCompleta /></RoleProtectedRoute>} />
                           <Route path="/gestao/categorias" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><GerenciarCategorias /></RoleProtectedRoute>} />
