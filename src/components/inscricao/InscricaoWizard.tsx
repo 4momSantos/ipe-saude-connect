@@ -30,6 +30,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useInscricaoFluxo, TipoCredenciamento } from '@/hooks/useInscricaoFluxo';
 import { SelecionarTipoCredenciamento } from './SelecionarTipoCredenciamento';
 import { GerenciarConsultoriosStep } from './steps/GerenciarConsultoriosStep';
+import { useUploadsConfig } from '@/hooks/useUploadsConfig';
 
 interface InscricaoWizardProps {
   editalId?: string; // FASE 4: Obrigatório para buscar config de uploads
@@ -62,6 +63,9 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
     isEtapaInicial,
     isEtapaFinal,
   } = useInscricaoFluxo();
+
+  // Buscar configuração dinâmica de uploads
+  const { data: configDinamica } = useUploadsConfig(editalId);
 
   const form = useForm<InscricaoCompletaForm>({
     resolver: zodResolver(getInscricaoSchema(tipoCredenciamento)),
@@ -271,44 +275,42 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
         break;
       case 'documentos':
         // FASE 4: Validar documentos dinamicamente baseado na config do edital
-        if (editalId) {
-          const { supabase: supabaseClient } = await import('@/integrations/supabase/client');
-          const { data: uploadsConfig } = await supabaseClient
-            .from('editais')
-            .select('uploads_config, inscription_template_id, inscription_templates!inner(anexos_obrigatorios)')
-            .eq('id', editalId)
-            .single();
-          
-          // Calcular documentos obrigatórios dinamicamente
-          let documentosObrigatoriosCount = 0;
-          if (uploadsConfig?.uploads_config) {
-            documentosObrigatoriosCount = Object.values(uploadsConfig.uploads_config as any)
-              .filter((c: any) => c.obrigatorio && c.habilitado)
-              .length;
-          } else if (uploadsConfig?.inscription_templates) {
-            const template = uploadsConfig.inscription_templates as any;
-            if (template.anexos_obrigatorios && Array.isArray(template.anexos_obrigatorios)) {
-              documentosObrigatoriosCount = template.anexos_obrigatorios.filter((a: any) => a.obrigatorio).length;
-            }
-          } else {
-            documentosObrigatoriosCount = DOCUMENTOS_OBRIGATORIOS.filter(d => d.obrigatorio).length;
-          }
-
-          const documentosEnviados = form.getValues('documentos').filter(d => d.arquivo || d.url).length;
-          
-          if (documentosEnviados < documentosObrigatoriosCount) {
-            toast.error(`Por favor, envie todos os ${documentosObrigatoriosCount} documentos obrigatórios antes de continuar`);
-            return;
-          }
-        } else {
-          // Fallback para quando não há editalId
-          const documentosEnviados = form.getValues('documentos').filter(d => d.arquivo || d.url).length;
-          const documentosObrigatorios = DOCUMENTOS_OBRIGATORIOS.filter(d => d.obrigatorio).length;
-          if (documentosEnviados < documentosObrigatorios) {
-            toast.error('Por favor, envie todos os documentos obrigatórios antes de continuar');
-            return;
-          }
+        if (!configDinamica || configDinamica.length === 0) {
+          console.warn('[InscricaoWizard] ⚠️ Sem configuração de documentos');
+          toast.error('Configuração de documentos não encontrada');
+          return;
         }
+
+        // Documentos obrigatórios segundo a config do edital
+        const documentosObrigatorios = configDinamica.filter(d => d.obrigatorio && d.habilitado);
+        
+        // Documentos enviados pelo candidato
+        const documentosEnviados = form.getValues('documentos')
+          .filter(d => (d.arquivo || d.url)); // Só conta se tem arquivo OU url
+        
+        console.log('[InscricaoWizard] 📋 Validação de documentos:', {
+          obrigatorios: documentosObrigatorios.length,
+          enviados: documentosEnviados.length,
+          tiposObrigatorios: documentosObrigatorios.map(d => d.tipo),
+          tiposEnviados: documentosEnviados.map(d => d.tipo)
+        });
+
+        // Validar: cada documento obrigatório deve ter sido enviado
+        const documentosFaltantes = documentosObrigatorios.filter(docObrigatorio => {
+          return !documentosEnviados.some(docEnviado => docEnviado.tipo === docObrigatorio.tipo);
+        });
+
+        if (documentosFaltantes.length > 0) {
+          const labels = documentosFaltantes.map(d => d.label).join(', ');
+          console.error('[InscricaoWizard] ❌ Documentos faltantes:', documentosFaltantes.map(d => d.tipo));
+          
+          toast.error(`Documentos obrigatórios faltando`, {
+            description: `Envie: ${labels}`
+          });
+          return;
+        }
+
+        console.log('[InscricaoWizard] ✅ Todos os documentos obrigatórios foram enviados');
         break;
     }
 
