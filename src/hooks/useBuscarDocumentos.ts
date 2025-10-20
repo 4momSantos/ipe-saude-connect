@@ -123,6 +123,13 @@ export function useBuscarDocumentos() {
     try {
       const currentOffset = loadMore ? offset : 0;
       
+      console.log('[useBuscarDocumentos] Chamando edge function com:', {
+        termo: termo || null,
+        filtros,
+        opcoes,
+        currentOffset
+      });
+      
       const { data, error } = await supabase.functions.invoke('buscar-documentos', {
         body: { 
           termo: termo || null,
@@ -138,9 +145,13 @@ export function useBuscarDocumentos() {
         }
       });
 
+      console.log('[useBuscarDocumentos] Resposta recebida:', { data, error });
+
       if (error) throw error;
 
       const novosResultados = data.data || [];
+      console.log('[useBuscarDocumentos] Novos resultados:', novosResultados.length);
+      
       const ordenacao = filtros.ordenacao || 'data_desc';
       const docsOrdenados = ordenarResultados(novosResultados, ordenacao);
       
@@ -152,10 +163,13 @@ export function useBuscarDocumentos() {
           setCredenciadosAgrupados(agruparPorCredenciado(todosResultados));
         }
       } else {
+        console.log('[useBuscarDocumentos] Setando resultados:', docsOrdenados.length);
         setResultados(docsOrdenados);
         
         if (filtros.agrupar_por === 'credenciado') {
-          setCredenciadosAgrupados(agruparPorCredenciado(docsOrdenados));
+          const agrupados = agruparPorCredenciado(docsOrdenados);
+          console.log('[useBuscarDocumentos] Credenciados agrupados:', agrupados.length);
+          setCredenciadosAgrupados(agrupados);
         } else {
           setCredenciadosAgrupados([]);
         }
@@ -171,7 +185,7 @@ export function useBuscarDocumentos() {
         toast.success(`${total} documento${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`);
       }
     } catch (error: any) {
-      console.error('Erro ao buscar documentos:', error);
+      console.error('[useBuscarDocumentos] Erro ao buscar documentos:', error);
       toast.error('Erro na busca: ' + error.message);
       if (!loadMore) {
         setResultados([]);

@@ -42,12 +42,13 @@ export function BuscaDocumentos({
 
   // Busca inicial ao carregar - mostra todos os documentos agrupados por credenciado
   useEffect(() => {
+    console.log('[BuscaDocumentos] Executando busca inicial');
     buscar('', { 
       ...filtros, 
       ordenacao: 'data_desc',
       agrupar_por: 'credenciado'
     }, { incluirPrazos, incluirOCR });
-  }, [incluirPrazos, incluirOCR]);
+  }, []); // Executar apenas uma vez no mount
 
   // Scroll infinito
   useEffect(() => {
@@ -431,13 +432,21 @@ export function BuscaDocumentos({
         <Card className="p-12 text-center">
           <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold mb-2">
-            {termo || filtros.status || filtros.tipo_documento ? 'Nenhum documento encontrado' : 'Nenhum documento disponível'}
+            {termo || filtros.status || filtros.tipo_documento ? 'Nenhum documento encontrado' : 'Inicialize a busca'}
           </h3>
           <p className="text-sm text-muted-foreground">
             {termo || filtros.status || filtros.tipo_documento 
-              ? 'Tente ajustar os termos de busca ou os filtros' 
-              : 'Os documentos dos credenciados aparecerão aqui automaticamente'}
+              ? 'Tente ajustar os filtros ou termos de busca'
+              : 'Clique em "Buscar" para visualizar todos os documentos ou use os filtros para refinar a busca'}
           </p>
+        </Card>
+      )}
+
+      {/* Loading */}
+      {isLoading && resultados.length === 0 && (
+        <Card className="p-12 text-center">
+          <div className="animate-spin h-12 w-12 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-sm text-muted-foreground">Buscando documentos...</p>
         </Card>
       )}
 
