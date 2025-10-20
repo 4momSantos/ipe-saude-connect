@@ -159,7 +159,23 @@ serve(async (req) => {
       };
     });
 
-    // 3. Inserir documentos na tabela documentos_credenciados
+    // 3. Desativar documentos antigos do mesmo tipo antes de inserir novos
+    const tiposDocumentos = [...new Set(documentosInsert.map(d => d.tipo_documento))];
+    
+    console.log(`[MIGRAR_DOCUMENTOS] Desativando documentos antigos dos tipos: ${tiposDocumentos.join(', ')}`);
+    
+    const { error: deactivateError } = await supabase
+      .from("documentos_credenciados")
+      .update({ is_current: false })
+      .eq("credenciado_id", credenciado_id)
+      .in("tipo_documento", tiposDocumentos)
+      .eq("is_current", true);
+
+    if (deactivateError) {
+      console.warn(`[MIGRAR_DOCUMENTOS] Aviso ao desativar documentos antigos:`, deactivateError);
+    }
+
+    // 4. Inserir novos documentos na tabela documentos_credenciados
     const { data: insertedDocs, error: insertError } = await supabase
       .from("documentos_credenciados")
       .insert(documentosInsert)
@@ -172,7 +188,7 @@ serve(async (req) => {
 
     console.log(`[MIGRAR_DOCUMENTOS] ${insertedDocs?.length || 0} documentos migrados com sucesso`);
 
-    // 4. Registrar histórico (o trigger já deve fazer isso automaticamente)
+    // 5. Registrar histórico (o trigger já deve fazer isso automaticamente)
     // Mas vamos adicionar um log extra para rastreabilidade
     if (insertedDocs && insertedDocs.length > 0) {
       const historico = insertedDocs.map((doc) => ({
