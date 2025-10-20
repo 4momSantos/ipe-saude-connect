@@ -191,7 +191,11 @@ export function RelatorioDesempenhoRede() {
   };
 
   const handleExportCSV = () => {
-    if (!relatorio || relatorio.length === 0) return;
+    console.log('📥 handleExportCSV chamado', { tipo, relatorioLength: relatorio?.length });
+    if (!relatorio || relatorio.length === 0) {
+      console.error('❌ Relatório vazio ou inexistente');
+      return;
+    }
     
     // Formatar dados para exportação com nomes de colunas legíveis
     const dadosFormatados = tipo === "rede" 
@@ -225,11 +229,21 @@ export function RelatorioDesempenhoRede() {
       ? "Relatorio_Desempenho_Rede" 
       : "Relatorio_Desempenho_Profissionais";
     
-    exportToCSV(dadosFormatados, titulo);
+    console.log('📊 Exportando CSV', { titulo, registros: dadosFormatados.length });
+    try {
+      exportToCSV(dadosFormatados, titulo);
+      console.log('✅ CSV exportado com sucesso');
+    } catch (error) {
+      console.error('❌ Erro ao exportar CSV:', error);
+    }
   };
 
   const handleExportPDF = () => {
-    if (!relatorio || relatorio.length === 0) return;
+    console.log('📄 handleExportPDF chamado', { tipo, relatorioLength: relatorio?.length });
+    if (!relatorio || relatorio.length === 0) {
+      console.error('❌ Relatório vazio ou inexistente');
+      return;
+    }
     
     // Formatar dados para exportação com nomes de colunas legíveis
     const dadosFormatados = tipo === "rede" 
@@ -261,7 +275,13 @@ export function RelatorioDesempenhoRede() {
       ? "Relatório de Desempenho - Rede Credenciada" 
       : "Relatório de Desempenho - Profissionais";
     
-    exportToPDF(dadosFormatados, titulo);
+    console.log('📊 Exportando PDF', { titulo, registros: dadosFormatados.length });
+    try {
+      exportToPDF(dadosFormatados, titulo);
+      console.log('✅ PDF exportado com sucesso');
+    } catch (error) {
+      console.error('❌ Erro ao exportar PDF:', error);
+    }
   };
 
   const getScoreColor = (score: number) => {
