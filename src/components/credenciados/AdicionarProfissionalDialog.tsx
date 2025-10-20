@@ -184,15 +184,16 @@ export function AdicionarProfissionalDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle>Adicionar Profissional</DialogTitle>
           <DialogDescription>
             Cadastre um novo profissional médico vinculado a este credenciado.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="space-y-4 px-6 py-4 overflow-y-auto flex-1">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="nome">Nome Completo *</Label>
@@ -411,8 +412,9 @@ export function AdicionarProfissionalDialog({
               Marcar como Responsável Técnico (RT)
             </Label>
           </div>
+          </div>
 
-          <DialogFooter>
+          <DialogFooter className="px-6 py-4 border-t bg-background sticky bottom-0">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>
