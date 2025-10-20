@@ -17,12 +17,16 @@ export function MapaDensidadeMultiCidade() {
   const [hoveredZona, setHoveredZona] = useState<any>(null);
   const [mapboxToken, setMapboxToken] = useState<string>('');
   
-  // Buscar token do Mapbox
+  // Buscar token do Mapbox (opcional para mockados)
   useEffect(() => {
     async function fetchToken() {
-      const { data } = await supabase.functions.invoke('get-mapbox-token');
-      if (data?.token) {
-        setMapboxToken(data.token);
+      try {
+        const { data } = await supabase.functions.invoke('get-mapbox-token');
+        if (data?.token) {
+          setMapboxToken(data.token);
+        }
+      } catch (error) {
+        console.log('Mapbox token não disponível, usando modo mockado');
       }
     }
     fetchToken();
@@ -194,9 +198,12 @@ export function MapaDensidadeMultiCidade() {
   // Usar dados mockados se não houver dados reais
   const dadosExibicao = densidadeData || dadosMockados;
 
-  // Inicializar mapa
+  // Inicializar mapa (somente se houver token)
   useEffect(() => {
-    if (!mapContainer.current || map.current || !mapboxToken) return;
+    if (!mapContainer.current || map.current || !mapboxToken) {
+      // Se não houver token, ainda mostramos os dados mockados nas tabelas
+      return;
+    }
 
     mapboxgl.accessToken = mapboxToken;
 
@@ -495,6 +502,18 @@ export function MapaDensidadeMultiCidade() {
 
       {/* Mapa */}
       <div className="rounded-lg overflow-hidden border shadow-lg" style={{ height: '600px' }}>
+        {!mapboxToken && (
+          <div className="absolute inset-0 bg-muted/30 flex items-center justify-center z-10">
+            <Card className="p-6 text-center max-w-md">
+              <p className="text-sm text-muted-foreground mb-2">
+                Visualização do mapa requer configuração do Mapbox
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Os dados de densidade estão disponíveis na tabela abaixo
+              </p>
+            </Card>
+          </div>
+        )}
         {loadingDensidade && (
           <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
             <Loader2 className="w-8 h-8 animate-spin" />
