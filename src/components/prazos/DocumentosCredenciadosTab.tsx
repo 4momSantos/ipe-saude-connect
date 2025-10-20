@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Upload, Eye, Download, AlertTriangle, Clock, CheckCircle, FileText, RefreshCw, X } from 'lucide-react';
+import { Upload, Eye, Download, AlertTriangle, Clock, CheckCircle, FileText, RefreshCw, X, Users, Plus } from 'lucide-react';
 import { format as formatDate } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { UploadDocumentoModal } from '@/components/documentos/UploadDocumentoModal';
@@ -30,8 +30,8 @@ interface PrazoDocumento {
   entidade_nome: string;
   credenciado_id: string;
   credenciado_nome: string;
-  data_vencimento: string;
-  dias_para_vencer: number;
+  data_vencimento: string | null;
+  dias_para_vencer: number | null;
   status_atual: string;
   nivel_alerta: string;
   cor_status: string;
@@ -42,12 +42,19 @@ interface DocumentoComOrigem extends PrazoDocumento {
   origem?: string;
   tipo_documento?: string;
   numero_documento?: string;
+  entidade_tipo?: string;
+  credenciado_cpf?: string;
+  credenciado_status?: string;
+  data_emissao?: string | null;
+  criado_em?: string;
+  atualizado_em?: string;
 }
 
 export function DocumentosCredenciadosTab() {
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [documentViewer, setDocumentViewer] = useState<{ open: boolean; url: string; fileName: string } | null>(null);
+  const [mostrarTodosCredenciados, setMostrarTodosCredenciados] = useState(false);
   
   // Filtros
   const [searchQuery, setSearchQuery] = useState('');
@@ -87,23 +94,65 @@ export function DocumentosCredenciadosTab() {
     return () => clearTimeout(timer);
   }, [searchQuery, filtroStatus, filtroSituacaoPrazo, filtroTipoDoc, incluirArquivados]);
 
-  // Buscar prazos que são de documentos de credenciados
+  // SOLUÇÃO 1 + 3: Buscar prazos com filtros aplicados no banco e opção de mostrar todos credenciados
   const { data: documentos, isLoading, refetch } = useQuery({
-    queryKey: ['prazos-documentos'],
+    queryKey: [
+      'prazos-documentos',
+      filtroStatus,
+      filtroSituacaoPrazo,
+      filtroTipoDoc,
+      searchQuery,
+      incluirArquivados,
+      mostrarTodosCredenciados
+    ],
     queryFn: async () => {
       let query = supabase
         .from('v_prazos_completos')
         .select('*')
         .eq('entidade_tipo', 'documento_credenciado');
 
-      // Filtro de status (arquivados)
+      // SOLUÇÃO 1: Aplicar filtros no banco de dados
+      
+      // Filtro de arquivados
       if (!incluirArquivados) {
         query = query.neq('status_atual', 'arquivado');
       }
 
-      const { data: prazos, error } = await query.order('dias_para_vencer', { ascending: true });
+      // Filtro de busca (nome do credenciado ou tipo de documento)
+      if (searchQuery) {
+        query = query.or(
+          `credenciado_nome.ilike.%${searchQuery}%,` +
+          `entidade_nome.ilike.%${searchQuery}%`
+        );
+      }
 
-      if (error) throw error;
+      // Filtro de situação de prazo
+      if (filtroSituacaoPrazo) {
+        if (filtroSituacaoPrazo === 'vencido') {
+          query = query.lt('dias_para_vencer', 0);
+        } else if (filtroSituacaoPrazo === 'critico') {
+          query = query.gte('dias_para_vencer', 0).lte('dias_para_vencer', 7);
+        } else if (filtroSituacaoPrazo === 'atencao') {
+          query = query.gt('dias_para_vencer', 7).lte('dias_para_vencer', 15);
+        } else if (filtroSituacaoPrazo === 'normal') {
+          query = query.gt('dias_para_vencer', 15).lte('dias_para_vencer', 30);
+        } else if (filtroSituacaoPrazo === 'valido') {
+          query = query.gt('dias_para_vencer', 30);
+        }
+      }
+
+      // Filtro de tipo de documento
+      if (filtroTipoDoc.length > 0) {
+        query = query.in('entidade_nome', filtroTipoDoc);
+      }
+
+      const { data: prazos, error } = await query
+        .order('dias_para_vencer', { ascending: true });
+
+      if (error) {
+        console.error('Erro ao buscar documentos:', error);
+        throw error;
+      }
 
       // Buscar origem e dados adicionais dos documentos
       const prazosIds = prazos?.map(p => p.entidade_id) || [];
@@ -123,6 +172,48 @@ export function DocumentosCredenciadosTab() {
           numero_documento: docData?.numero_documento
         };
       }) as DocumentoComOrigem[];
+
+      // SOLUÇÃO 3: Se mostrarTodosCredenciados está ativo, buscar credenciados sem documentos
+      if (mostrarTodosCredenciados) {
+        const { data: todosCredenciados, error: credError } = await supabase
+          .from('credenciados')
+          .select('id, nome, cpf, status')
+          .eq('status', 'Ativo');
+
+        if (credError) {
+          console.error('Erro ao buscar credenciados:', credError);
+          return documentosComOrigem;
+        }
+
+        // Identificar credenciados sem documentos
+        const credenciadosComDocs = new Set(documentosComOrigem?.map(p => p.credenciado_id) || []);
+        const credenciadosSemDocs = todosCredenciados?.filter(
+          c => !credenciadosComDocs.has(c.id)
+        ) || [];
+
+        // Adicionar entrada especial para cada credenciado sem documentos
+        const docsVazios: DocumentoComOrigem[] = credenciadosSemDocs.map(c => ({
+          id: `sem-docs-${c.id}`,
+          entidade_tipo: 'documento_credenciado',
+          entidade_id: '',
+          entidade_nome: 'Sem documentos cadastrados',
+          credenciado_id: c.id,
+          credenciado_nome: c.nome,
+          credenciado_cpf: c.cpf,
+          credenciado_status: c.status,
+          data_vencimento: null,
+          data_emissao: null,
+          dias_para_vencer: 999999, // Colocar no final
+          nivel_alerta: 'ok',
+          cor_status: 'text-muted-foreground',
+          status_atual: 'pendente',
+          renovavel: false,
+          criado_em: new Date().toISOString(),
+          atualizado_em: new Date().toISOString()
+        }));
+
+        return [...documentosComOrigem, ...docsVazios];
+      }
 
       return documentosComOrigem;
     }
@@ -168,42 +259,8 @@ export function DocumentosCredenciadosTab() {
     };
   }, [queryClient]);
 
-  // Aplicar filtros
-  const documentosFiltrados = documentos?.filter(doc => {
-    // Filtro de busca
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const matches = 
-        doc.credenciado_nome?.toLowerCase().includes(query) ||
-        doc.entidade_nome?.toLowerCase().includes(query) ||
-        doc.tipo_documento?.toLowerCase().includes(query) ||
-        doc.numero_documento?.toLowerCase().includes(query);
-      if (!matches) return false;
-    }
-
-    // Filtro de situação de prazo
-    if (filtroSituacaoPrazo) {
-      if (filtroSituacaoPrazo === 'vencido' && doc.dias_para_vencer >= 0) return false;
-      if (filtroSituacaoPrazo === 'critico' && (doc.dias_para_vencer < 0 || doc.dias_para_vencer > 7)) return false;
-      if (filtroSituacaoPrazo === 'atencao' && (doc.dias_para_vencer < 7 || doc.dias_para_vencer > 15)) return false;
-      if (filtroSituacaoPrazo === 'normal' && (doc.dias_para_vencer < 15 || doc.dias_para_vencer > 30)) return false;
-      if (filtroSituacaoPrazo === 'valido' && doc.dias_para_vencer < 30) return false;
-    }
-
-    // Filtro de tipo de documento
-    if (filtroTipoDoc.length > 0 && !filtroTipoDoc.includes(doc.tipo_documento || doc.entidade_nome)) {
-      return false;
-    }
-
-    // Filtro de status básico (compatibilidade)
-    if (filtroStatus) {
-      if (filtroStatus === 'ativo' && doc.status_atual !== 'valido') return false;
-      if (filtroStatus === 'vencendo' && !['atencao', 'vencendo'].includes(doc.nivel_alerta)) return false;
-      if (filtroStatus === 'vencido' && doc.status_atual !== 'vencido') return false;
-    }
-
-    return true;
-  }) || [];
+  // SOLUÇÃO 1: Filtros já aplicados no banco, apenas usar os dados
+  const documentosFiltrados = documentos || [];
 
   // Agrupar por credenciado
   const documentosAgrupados = documentosFiltrados.reduce((acc, doc) => {
@@ -295,7 +352,6 @@ export function DocumentosCredenciadosTab() {
     return <CheckCircle className="h-5 w-5 text-green-600" />;
   };
 
-  // Skeleton screens
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -359,10 +415,22 @@ export function DocumentosCredenciadosTab() {
             Controle integrado de validade de documentos e prazos de credenciados
           </p>
         </div>
-        <Button onClick={() => setModalOpen(true)}>
-          <Upload className="h-4 w-4 mr-2" />
-          Adicionar Documento
-        </Button>
+        <div className="flex gap-2">
+          {/* SOLUÇÃO 3: Botão para mostrar todos credenciados */}
+          <Button
+            variant={mostrarTodosCredenciados ? "default" : "outline"}
+            onClick={() => setMostrarTodosCredenciados(!mostrarTodosCredenciados)}
+            className="gap-2"
+            title="Mostrar credenciados sem documentos cadastrados"
+          >
+            <Users className="h-4 w-4" />
+            {mostrarTodosCredenciados ? 'Ocultar' : 'Mostrar'} Todos
+          </Button>
+          <Button onClick={() => setModalOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" />
+            Adicionar Documento
+          </Button>
+        </div>
       </div>
 
       {/* Dashboard KPIs Completo */}
@@ -480,157 +548,133 @@ export function DocumentosCredenciadosTab() {
                 <Badge variant="secondary">{docsDoCredenciado.length} documentos</Badge>
               </h3>
 
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {docsDoCredenciado.map((doc) => (
-                  <Card key={doc.id} className="hover:shadow-lg transition-shadow">
-                     <CardHeader>
-                       <div className="flex items-start justify-between">
-                         <div className="flex items-center gap-3">
-                           <div 
-                             className="p-2 rounded-lg" 
-                             style={{ backgroundColor: doc.cor_status + '20' }}
-                           >
-                             {getStatusIcon(doc.nivel_alerta)}
-                           </div>
-                           <div className="space-y-1">
-                             <CardTitle className="text-base">{doc.entidade_nome}</CardTitle>
-                             <div className="flex gap-2">
-                               {/* Badge de Status */}
-                               <Badge
-                                 variant="outline"
-                                 style={{
-                                   backgroundColor: doc.cor_status + '20',
-                                   color: doc.cor_status,
-                                   borderColor: doc.cor_status
-                                 }}
-                               >
-                                 {doc.nivel_alerta === 'critico' ? 'Crítico' :
-                                  doc.nivel_alerta === 'vencendo' ? 'Vencendo' :
-                                  doc.nivel_alerta === 'atencao' ? 'Atenção' : 'Válido'}
-                               </Badge>
-                             </div>
-                           </div>
-                         </div>
-                       </div>
-                     </CardHeader>
-
-                     <CardContent className="space-y-3">
-                       <div className="text-sm space-y-2">
-                         {/* Badge de Origem */}
-                         {doc.origem && (
-                           <div className="mb-2">
-                             <Badge variant={doc.origem === 'migrado' ? 'secondary' : 'default'}>
-                               {doc.origem === 'migrado' ? '📋 Da Inscrição' : '📤 Upload Manual'}
-                             </Badge>
-                           </div>
-                         )}
-                         
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {docsDoCredenciado.map((doc) => {
+                  // SOLUÇÃO 3: Caso especial para credenciados sem documentos
+                  if (doc.entidade_nome === 'Sem documentos cadastrados') {
+                    return (
+                      <Card key={doc.id} className="overflow-hidden border-dashed">
+                        <CardContent className="p-4">
                           <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">Vencimento:</span>
-                            <span className="font-medium">
-                              {formatDate(new Date(doc.data_vencimento), 'dd/MM/yyyy', { locale: ptBR })}
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <AlertTriangle className="h-4 w-4" />
+                              <span>Nenhum documento cadastrado</span>
+                            </div>
+                            <Button
+                              onClick={() => setModalOpen(true)}
+                              size="sm"
+                              variant="outline"
+                              className="gap-2"
+                            >
+                              <Plus className="h-4 w-4" />
+                              Adicionar
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  }
+
+                  return (
+                    <Card key={doc.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1 flex-1">
+                            <CardTitle className="text-sm font-medium flex items-center gap-2">
+                              {getStatusIcon(doc.nivel_alerta)}
+                              {doc.entidade_nome}
+                            </CardTitle>
+                            {doc.origem && (
+                              <Badge variant="outline" className="text-xs">
+                                {doc.origem === 'inscricao' ? 'Da inscrição' : 'Upload manual'}
+                              </Badge>
+                            )}
+                          </div>
+                          <StatusBadge status={doc.nivel_alerta} />
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="space-y-2 text-sm">
+                          {doc.data_vencimento && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Vencimento:</span>
+                              <span className="font-medium">
+                                {formatDate(new Date(doc.data_vencimento), 'dd/MM/yyyy', { locale: ptBR })}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">Status:</span>
+                            <span className={`font-medium ${doc.cor_status}`}>
+                              {doc.status_atual === 'valido' ? 'Válido' : 
+                               doc.status_atual === 'vencido' ? 'Vencido' : 
+                               'A vencer'}
                             </span>
                           </div>
+                          {doc.dias_para_vencer !== null && doc.dias_para_vencer !== 999999 && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Dias restantes:</span>
+                              <span className="font-medium">
+                                {doc.dias_para_vencer < 0 
+                                  ? `Vencido há ${Math.abs(doc.dias_para_vencer)} dias`
+                                  : `${doc.dias_para_vencer} dias`
+                                }
+                              </span>
+                            </div>
+                          )}
+                        </div>
 
-                        {doc.dias_para_vencer !== null && (
-                          <div className={`font-medium ${
-                            doc.dias_para_vencer < 0 ? 'text-red-600' :
-                            doc.dias_para_vencer <= 7 ? 'text-orange-600' :
-                            doc.dias_para_vencer <= 30 ? 'text-yellow-600' :
-                            'text-green-600'
-                          }`}>
-                            {doc.dias_para_vencer < 0
-                              ? `Vencido há ${Math.abs(doc.dias_para_vencer)} dias`
-                              : `${doc.dias_para_vencer} dias restantes`
-                            }
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex gap-2 pt-2">
-                         <Button
-                           size="sm"
-                           variant="outline"
-                           className="flex-1"
-                           onClick={() => handleViewDocument(doc.entidade_id)}
-                         >
-                           <Eye className="h-3 w-3 mr-1" />
-                           Ver
-                         </Button>
-                         <Button
-                           size="sm"
-                           variant="outline"
-                           className="flex-1"
-                           onClick={async () => {
-                             try {
-                               const { data } = await supabase
-                                 .from('documentos_credenciados')
-                                 .select('url_arquivo, arquivo_nome')
-                                 .eq('id', doc.entidade_id)
-                                 .single();
-                               
-                               if (data?.url_arquivo) {
-                                 // url_arquivo contém o path no storage
-                                 const { data: urlData } = supabase
-                                   .storage
-                                   .from('inscricao-documentos')
-                                   .getPublicUrl(data.url_arquivo);
-                                 
-                                 if (urlData?.publicUrl) {
-                                   // Fazer download do arquivo
-                                   const response = await fetch(urlData.publicUrl);
-                                   const blob = await response.blob();
-                                   const url = window.URL.createObjectURL(blob);
-                                   const a = document.createElement('a');
-                                   a.href = url;
-                                   a.download = data.arquivo_nome || 'documento.pdf';
-                                   document.body.appendChild(a);
-                                   a.click();
-                                   window.URL.revokeObjectURL(url);
-                                   document.body.removeChild(a);
-                                   toast.success('Download iniciado!');
-                                 } else {
-                                   toast.error('Erro ao gerar URL do documento');
-                                 }
-                               } else {
-                                 toast.error('Documento não encontrado');
-                               }
-                             } catch (error) {
-                               console.error('Erro ao baixar documento:', error);
-                               toast.error('Erro ao baixar documento');
-                             }
-                           }}
-                         >
-                           <Download className="h-3 w-3 mr-1" />
-                           Baixar
-                         </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                        <div className="flex gap-2 pt-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewDocument(doc.entidade_id)}
+                            className="flex-1"
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            Ver
+                          </Button>
+                          <EditarDataVencimento
+                            entidadeId={doc.entidade_id}
+                            entidadeTipo={doc.entidade_tipo as 'documento_credenciado' | 'certificado'}
+                            dataAtual={doc.data_vencimento}
+                            onSuccess={() => {
+                              queryClient.invalidateQueries({ queryKey: ['prazos-documentos'] });
+                              toast.success('Data de vencimento atualizada com sucesso!');
+                            }}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Modal de Upload */}
-      <UploadDocumentoModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-      />
-
-      {/* Visualizador de Documentos */}
-      {documentViewer && (
-        <DocumentViewer
-          open={documentViewer.open}
-          onClose={() => setDocumentViewer(null)}
-          fileUrl={documentViewer.url}
-          fileName={documentViewer.fileName}
-        />
-      )}
         </TabsContent>
       </Tabs>
+
+      {/* Modais */}
+      <UploadDocumentoModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['prazos-documentos'] });
+          toast.success('Documento enviado com sucesso!');
+        }}
+      />
+
+      {documentViewer && (
+        <DocumentViewer
+          url={documentViewer.url}
+          fileName={documentViewer.fileName}
+          open={documentViewer.open}
+          onClose={() => setDocumentViewer(null)}
+        />
+      )}
     </div>
   );
 }

@@ -2154,6 +2154,9 @@ export type Database = {
           metadata: Json | null
           numero_documento: string | null
           observacao: string | null
+          ocr_confidence: number | null
+          ocr_processado: boolean | null
+          ocr_resultado: Json | null
           origem: string | null
           status: string | null
           storage_path: string | null
@@ -2182,6 +2185,9 @@ export type Database = {
           metadata?: Json | null
           numero_documento?: string | null
           observacao?: string | null
+          ocr_confidence?: number | null
+          ocr_processado?: boolean | null
+          ocr_resultado?: Json | null
           origem?: string | null
           status?: string | null
           storage_path?: string | null
@@ -2210,6 +2216,9 @@ export type Database = {
           metadata?: Json | null
           numero_documento?: string | null
           observacao?: string | null
+          ocr_confidence?: number | null
+          ocr_processado?: boolean | null
+          ocr_resultado?: Json | null
           origem?: string | null
           status?: string | null
           storage_path?: string | null
