@@ -8,6 +8,8 @@ import { usePrazos } from "@/hooks/usePrazos";
 import { ModalRenovarPrazo } from "@/components/prazos/ModalRenovarPrazo";
 import { DocumentosCredenciadosTab } from "@/components/prazos/DocumentosCredenciadosTab";
 import { ControlePrazosAgrupado } from "@/components/prazos/ControlePrazosAgrupado";
+import { EditarDataVencimento } from "@/components/prazos/EditarDataVencimento";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -52,6 +54,7 @@ export default function Prazos() {
   const [prazoSelecionado, setPrazoSelecionado] = useState<Prazo | null>(null);
   const [modalRenovarOpen, setModalRenovarOpen] = useState(false);
   const [agrupamento, setAgrupamento] = useState<TipoAgrupamento>('credenciado');
+  const queryClient = useQueryClient();
 
   const handleRenovar = (prazo: Prazo) => {
     setPrazoSelecionado(prazo);
@@ -428,6 +431,16 @@ export default function Prazos() {
                                   className="h-1.5"
                                 />
                               </div>
+
+                              {prazo.entidade_tipo === 'documento_credenciado' && (
+                                <EditarDataVencimento
+                                  documentoId={prazo.entidade_id}
+                                  dataAtual={prazo.data_vencimento}
+                                  onSuccess={() => {
+                                    queryClient.invalidateQueries({ queryKey: ['prazos-agrupados'] });
+                                  }}
+                                />
+                              )}
                             </CardContent>
                           </Card>
                         );
@@ -527,6 +540,16 @@ export default function Prazos() {
                                     className="h-1.5"
                                   />
                                 </div>
+
+                                {prazo.entidade_tipo === 'documento_credenciado' && (
+                                  <EditarDataVencimento
+                                    documentoId={prazo.entidade_id}
+                                    dataAtual={prazo.data_vencimento}
+                                    onSuccess={() => {
+                                      queryClient.invalidateQueries({ queryKey: ['prazos-agrupados'] });
+                                    }}
+                                  />
+                                )}
                               </CardContent>
                             </Card>
                           );
@@ -605,6 +628,16 @@ export default function Prazos() {
                               className="h-1.5"
                             />
                           </div>
+
+                          {prazo.entidade_tipo === 'documento_credenciado' && (
+                            <EditarDataVencimento
+                              documentoId={prazo.entidade_id}
+                              dataAtual={prazo.data_vencimento}
+                              onSuccess={() => {
+                                queryClient.invalidateQueries({ queryKey: ['prazos-agrupados'] });
+                              }}
+                            />
+                          )}
                         </CardContent>
                       </Card>
                     );
@@ -703,7 +736,15 @@ export default function Prazos() {
                                     </div>
                                   )}
 
-                                  {prazo.renovavel && (
+                                  {prazo.entidade_tipo === 'documento_credenciado' ? (
+                                    <EditarDataVencimento
+                                      documentoId={prazo.entidade_id}
+                                      dataAtual={prazo.data_vencimento}
+                                      onSuccess={() => {
+                                        queryClient.invalidateQueries({ queryKey: ['prazos-agrupados'] });
+                                      }}
+                                    />
+                                  ) : prazo.renovavel ? (
                                     <Button
                                       size="sm"
                                       variant="destructive"
@@ -713,7 +754,7 @@ export default function Prazos() {
                                       <AlertTriangle className="h-3 w-3 mr-1" />
                                       Renovar Urgente
                                     </Button>
-                                  )}
+                                  ) : null}
                                 </div>
                               </div>
                             );
