@@ -97,6 +97,14 @@ export interface ConsultaPublicaResult {
   credenciado?: {
     nome: string;
     tipo: string;
+    cpf?: string;
+    cnpj?: string;
+    status?: string;
+    especialidades?: Array<{
+      crm: string;
+      uf_crm: string;
+      especialidade: string;
+    }>;
   };
   hash_verificacao?: string;
   certificado_id?: string;

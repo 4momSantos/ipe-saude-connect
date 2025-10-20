@@ -132,8 +132,13 @@ export function ConsultaCertificado() {
                   {situacao}
                 </Badge>
               </AlertTitle>
-              <AlertDescription className="text-base">
-                {credenciado?.nome}
+              <AlertDescription className="text-base space-y-1">
+                <div className="font-semibold">{credenciado?.nome}</div>
+                {(credenciado?.cpf || credenciado?.cnpj) && (
+                  <div className="text-sm">
+                    {credenciado.tipo === 'fisica' ? 'CPF' : 'CNPJ'}: {credenciado.cpf || credenciado.cnpj}
+                  </div>
+                )}
               </AlertDescription>
             </div>
 
@@ -151,11 +156,40 @@ export function ConsultaCertificado() {
                 <span>{format(new Date(valido_ate!), "dd/MM/yyyy", { locale: ptBR })}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Status:</span>
+                <span className="text-muted-foreground">Status Certificado:</span>
                 <Badge variant={status === 'regular' ? 'default' : 'destructive'}>
                   {status === 'regular' ? 'Regular' : 'Irregular'}
                 </Badge>
               </div>
+              {credenciado?.status && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Status Credenciado:</span>
+                  <Badge 
+                    variant={
+                      credenciado.status === 'Ativo' ? 'default' : 
+                      credenciado.status === 'Suspenso' ? 'secondary' : 
+                      'destructive'
+                    }
+                  >
+                    {credenciado.status}
+                  </Badge>
+                </div>
+              )}
+              {credenciado?.especialidades && credenciado.especialidades.length > 0 && (
+                <div className="pt-2 border-t">
+                  <div className="text-muted-foreground mb-2">Especialidades:</div>
+                  <div className="space-y-1">
+                    {credenciado.especialidades.map((esp: any, idx: number) => (
+                      <div key={idx} className="text-sm">
+                        <span className="font-medium">{esp.especialidade}</span>
+                        <span className="text-muted-foreground ml-2">
+                          CRM {esp.crm}/{esp.uf_crm}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

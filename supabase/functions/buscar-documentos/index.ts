@@ -39,12 +39,12 @@ serve(async (req) => {
 
     const inicioExecucao = Date.now();
 
-    // Buscar documentos
+    // Buscar documentos credenciados
     let query = supabase
       .from('documentos_credenciados')
       .select('*');
 
-    // Aplicar filtros
+    // Aplicar filtros de busca
     if (termo) {
       query = query.or(`numero_documento.ilike.%${termo}%,observacoes.ilike.%${termo}%`);
     }
