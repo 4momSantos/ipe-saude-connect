@@ -432,15 +432,14 @@ export default function Prazos() {
                                 />
                               </div>
 
-                              {prazo.entidade_tipo === 'documento_credenciado' && (
-                                <EditarDataVencimento
-                                  documentoId={prazo.entidade_id}
-                                  dataAtual={prazo.data_vencimento}
-                                  onSuccess={() => {
-                                    queryClient.invalidateQueries({ queryKey: ['prazos-agrupados'] });
-                                  }}
-                                />
-                              )}
+                              <EditarDataVencimento
+                                documentoId={prazo.entidade_id}
+                                dataAtual={prazo.data_vencimento}
+                                entidadeTipo={prazo.entidade_tipo as 'documento_credenciado' | 'certificado'}
+                                onSuccess={() => {
+                                  queryClient.invalidateQueries({ queryKey: ['prazos-agrupados'] });
+                                }}
+                              />
                             </CardContent>
                           </Card>
                         );
@@ -541,15 +540,14 @@ export default function Prazos() {
                                   />
                                 </div>
 
-                                {prazo.entidade_tipo === 'documento_credenciado' && (
-                                  <EditarDataVencimento
-                                    documentoId={prazo.entidade_id}
-                                    dataAtual={prazo.data_vencimento}
-                                    onSuccess={() => {
-                                      queryClient.invalidateQueries({ queryKey: ['prazos-agrupados'] });
-                                    }}
-                                  />
-                                )}
+                                <EditarDataVencimento
+                                  documentoId={prazo.entidade_id}
+                                  dataAtual={prazo.data_vencimento}
+                                  entidadeTipo={prazo.entidade_tipo as 'documento_credenciado' | 'certificado'}
+                                  onSuccess={() => {
+                                    queryClient.invalidateQueries({ queryKey: ['prazos-agrupados'] });
+                                  }}
+                                />
                               </CardContent>
                             </Card>
                           );
@@ -629,15 +627,14 @@ export default function Prazos() {
                             />
                           </div>
 
-                          {prazo.entidade_tipo === 'documento_credenciado' && (
-                            <EditarDataVencimento
-                              documentoId={prazo.entidade_id}
-                              dataAtual={prazo.data_vencimento}
-                              onSuccess={() => {
-                                queryClient.invalidateQueries({ queryKey: ['prazos-agrupados'] });
-                              }}
-                            />
-                          )}
+                          <EditarDataVencimento
+                            documentoId={prazo.entidade_id}
+                            dataAtual={prazo.data_vencimento}
+                            entidadeTipo={prazo.entidade_tipo as 'documento_credenciado' | 'certificado'}
+                            onSuccess={() => {
+                              queryClient.invalidateQueries({ queryKey: ['prazos-agrupados'] });
+                            }}
+                          />
                         </CardContent>
                       </Card>
                     );
@@ -736,25 +733,14 @@ export default function Prazos() {
                                     </div>
                                   )}
 
-                                  {prazo.entidade_tipo === 'documento_credenciado' ? (
-                                    <EditarDataVencimento
-                                      documentoId={prazo.entidade_id}
-                                      dataAtual={prazo.data_vencimento}
-                                      onSuccess={() => {
-                                        queryClient.invalidateQueries({ queryKey: ['prazos-agrupados'] });
-                                      }}
-                                    />
-                                  ) : prazo.renovavel ? (
-                                    <Button
-                                      size="sm"
-                                      variant="destructive"
-                                      className="w-full mt-2"
-                                      onClick={() => handleRenovar(prazo)}
-                                    >
-                                      <AlertTriangle className="h-3 w-3 mr-1" />
-                                      Renovar Urgente
-                                    </Button>
-                                  ) : null}
+                                  <EditarDataVencimento
+                                    documentoId={prazo.entidade_id}
+                                    dataAtual={prazo.data_vencimento}
+                                    entidadeTipo={prazo.entidade_tipo as 'documento_credenciado' | 'certificado'}
+                                    onSuccess={() => {
+                                      queryClient.invalidateQueries({ queryKey: ['prazos-agrupados'] });
+                                    }}
+                                  />
                                 </div>
                               </div>
                             );

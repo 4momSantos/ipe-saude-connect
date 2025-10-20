@@ -17,9 +17,10 @@ interface EditarDataVencimentoProps {
   documentoId: string;
   dataAtual?: string;
   onSuccess?: () => void;
+  entidadeTipo?: 'documento_credenciado' | 'certificado';
 }
 
-export function EditarDataVencimento({ documentoId, dataAtual, onSuccess }: EditarDataVencimentoProps) {
+export function EditarDataVencimento({ documentoId, dataAtual, onSuccess, entidadeTipo = 'documento_credenciado' }: EditarDataVencimentoProps) {
   const [open, setOpen] = useState(false);
   const [novaData, setNovaData] = useState<Date>();
   const [motivo, setMotivo] = useState("");
@@ -28,20 +29,34 @@ export function EditarDataVencimento({ documentoId, dataAtual, onSuccess }: Edit
 
   const { mutate: atualizarData, isPending } = useMutation({
     mutationFn: async ({ novaData, motivo }: { novaData: Date; motivo: string }) => {
-      const { error } = await supabase
-        .from('documentos_credenciados')
-        .update({ 
-          data_vencimento: format(novaData, 'yyyy-MM-dd')
-        })
-        .eq('id', documentoId);
+      // Atualizar data de vencimento na tabela correspondente
+      if (entidadeTipo === 'documento_credenciado') {
+        const { error } = await supabase
+          .from('documentos_credenciados')
+          .update({ 
+            data_vencimento: format(novaData, 'yyyy-MM-dd')
+          })
+          .eq('id', documentoId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      // Registrar no histórico via RPC
-      await supabase.rpc('registrar_historico_manual', {
-        p_documento_id: documentoId,
-        p_comentario: `Data alterada para ${format(novaData, "dd/MM/yyyy", { locale: ptBR })}. Motivo: ${motivo}`
-      });
+        // Registrar no histórico via RPC
+        await supabase.rpc('registrar_historico_manual', {
+          p_documento_id: documentoId,
+          p_comentario: `Data alterada para ${format(novaData, "dd/MM/yyyy", { locale: ptBR })}. Motivo: ${motivo}`
+        });
+      } else {
+        // Para certificados, atualizar controle_prazos diretamente
+        const { error } = await supabase
+          .from('controle_prazos')
+          .update({ 
+            data_vencimento: format(novaData, 'yyyy-MM-dd')
+          })
+          .eq('entidade_id', documentoId)
+          .eq('entidade_tipo', 'certificado');
+
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       toast({
