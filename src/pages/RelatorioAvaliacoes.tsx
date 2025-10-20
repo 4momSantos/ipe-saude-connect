@@ -17,39 +17,41 @@ export default function RelatorioAvaliacoes() {
   const [periodo, setPeriodo] = useState<"7dias" | "30dias" | "90dias" | "mesatual">("30dias");
   const [categoria, setCategoria] = useState<string>("todas");
   const [especialidade, setEspecialidade] = useState<string>("todas");
+  const [credenciadoFiltro, setCredenciadoFiltro] = useState<string>("todos");
+  const [medicoFiltro, setMedicoFiltro] = useState<string>("todos");
 
-  // Dados mockados completos com datas recentes
+  // Dados mockados completos com datas recentes e médicos
   const avaliacoesMock = useMemo(() => [
-    { id: 1, credenciado: 'Hospital Central', especialidade: 'Cardiologia', pontuacao: 4.8, categoria: 'atendimento', data: '2025-10-01', comentario: 'Excelente atendimento' },
-    { id: 2, credenciado: 'Clínica Saúde', especialidade: 'Pediatria', pontuacao: 4.6, categoria: 'pontualidade', data: '2025-10-02', comentario: 'Muito pontual' },
-    { id: 3, credenciado: 'Ortoclínica', especialidade: 'Ortopedia', pontuacao: 4.4, categoria: 'qualidade', data: '2025-10-03', comentario: 'Boa qualidade técnica' },
-    { id: 4, credenciado: 'Hospital Mulher', especialidade: 'Ginecologia', pontuacao: 4.7, categoria: 'atendimento', data: '2025-10-04', comentario: 'Atendimento humanizado' },
-    { id: 5, credenciado: 'Hospital Central', especialidade: 'Clínica Geral', pontuacao: 4.2, categoria: 'pontualidade', data: '2025-10-05', comentario: 'Bom atendimento geral' },
-    { id: 6, credenciado: 'Centro Médico', especialidade: 'Dermatologia', pontuacao: 3.8, categoria: 'qualidade', data: '2025-10-06', comentario: 'Precisa melhorar' },
-    { id: 7, credenciado: 'Clínica Visão', especialidade: 'Oftalmologia', pontuacao: 4.5, categoria: 'atendimento', data: '2025-10-07', comentario: 'Muito profissional' },
-    { id: 8, credenciado: 'Neuro Centro', especialidade: 'Neurologia', pontuacao: 4.3, categoria: 'pontualidade', data: '2025-10-08', comentario: 'Consulta no horário' },
-    { id: 9, credenciado: 'Hospital São José', especialidade: 'Cardiologia', pontuacao: 3.5, categoria: 'qualidade', data: '2025-10-09', comentario: 'Pode melhorar' },
-    { id: 10, credenciado: 'Clínica Dor', especialidade: 'Ortopedia', pontuacao: 4.9, categoria: 'atendimento', data: '2025-10-10', comentario: 'Excelente profissional' },
-    { id: 11, credenciado: 'Materno Infantil', especialidade: 'Pediatria', pontuacao: 4.7, categoria: 'pontualidade', data: '2025-10-11', comentario: 'Ótimo com crianças' },
-    { id: 12, credenciado: 'Clínica Pele', especialidade: 'Dermatologia', pontuacao: 3.2, categoria: 'qualidade', data: '2025-10-12', comentario: 'Atendimento rápido demais' },
-    { id: 13, credenciado: 'Hospital Central', especialidade: 'Ginecologia', pontuacao: 4.6, categoria: 'atendimento', data: '2025-09-25', comentario: 'Médica atenciosa' },
-    { id: 14, credenciado: 'Clínica Saúde', especialidade: 'Clínica Geral', pontuacao: 4.1, categoria: 'pontualidade', data: '2025-09-26', comentario: 'Bom atendimento' },
-    { id: 15, credenciado: 'Centro Neurológico', especialidade: 'Neurologia', pontuacao: 4.8, categoria: 'qualidade', data: '2025-09-27', comentario: 'Diagnóstico preciso' },
-    { id: 16, credenciado: 'Hospital São José', especialidade: 'Ortopedia', pontuacao: 2.8, categoria: 'atendimento', data: '2025-09-28', comentario: 'Atendimento frio' },
-    { id: 17, credenciado: 'Clínica Visão', especialidade: 'Oftalmologia', pontuacao: 4.4, categoria: 'pontualidade', data: '2025-09-29', comentario: 'Consulta rápida' },
-    { id: 18, credenciado: 'Ortoclínica', especialidade: 'Ortopedia', pontuacao: 4.7, categoria: 'qualidade', data: '2025-09-30', comentario: 'Excelente tratamento' },
-    { id: 19, credenciado: 'Hospital Mulher', especialidade: 'Ginecologia', pontuacao: 4.9, categoria: 'atendimento', data: '2025-09-15', comentario: 'Melhor médica da região' },
-    { id: 20, credenciado: 'Clínica Dor', especialidade: 'Ortopedia', pontuacao: 3.9, categoria: 'pontualidade', data: '2025-09-16', comentario: 'Atraso na consulta' },
-    { id: 21, credenciado: 'Hospital Central', especialidade: 'Cardiologia', pontuacao: 5.0, categoria: 'qualidade', data: '2025-09-17', comentario: 'Perfeito!' },
-    { id: 22, credenciado: 'Materno Infantil', especialidade: 'Pediatria', pontuacao: 4.8, categoria: 'atendimento', data: '2025-09-18', comentario: 'Excelente pediatra' },
-    { id: 23, credenciado: 'Clínica Pele', especialidade: 'Dermatologia', pontuacao: 3.6, categoria: 'pontualidade', data: '2025-08-20', comentario: 'Demora no atendimento' },
-    { id: 24, credenciado: 'Centro Médico', especialidade: 'Clínica Geral', pontuacao: 4.3, categoria: 'qualidade', data: '2025-08-22', comentario: 'Bom diagnóstico' },
-    { id: 25, credenciado: 'Neuro Centro', especialidade: 'Neurologia', pontuacao: 4.5, categoria: 'atendimento', data: '2025-08-25', comentario: 'Médico atencioso' },
-    { id: 26, credenciado: 'Hospital Central', especialidade: 'Cardiologia', pontuacao: 4.6, categoria: 'atendimento', data: '2025-10-13', comentario: 'Profissional dedicado' },
-    { id: 27, credenciado: 'Clínica Saúde', especialidade: 'Pediatria', pontuacao: 4.4, categoria: 'qualidade', data: '2025-10-14', comentario: 'Diagnóstico assertivo' },
-    { id: 28, credenciado: 'Ortoclínica', especialidade: 'Ortopedia', pontuacao: 4.8, categoria: 'atendimento', data: '2025-10-15', comentario: 'Tratamento eficaz' },
-    { id: 29, credenciado: 'Hospital Mulher', especialidade: 'Ginecologia', pontuacao: 4.5, categoria: 'pontualidade', data: '2025-10-16', comentario: 'Muito pontual' },
-    { id: 30, credenciado: 'Centro Médico', especialidade: 'Dermatologia', pontuacao: 4.0, categoria: 'qualidade', data: '2025-10-17', comentario: 'Bom profissional' },
+    { id: 1, credenciado: 'Hospital Central', medico: 'Dr. Carlos Santos', especialidade: 'Cardiologia', pontuacao: 4.8, categoria: 'atendimento', data: '2025-10-01', comentario: 'Excelente atendimento' },
+    { id: 2, credenciado: 'Clínica Saúde', medico: 'Dra. Ana Lima', especialidade: 'Pediatria', pontuacao: 4.6, categoria: 'pontualidade', data: '2025-10-02', comentario: 'Muito pontual' },
+    { id: 3, credenciado: 'Ortoclínica', medico: 'Dr. Pedro Oliveira', especialidade: 'Ortopedia', pontuacao: 4.4, categoria: 'qualidade', data: '2025-10-03', comentario: 'Boa qualidade técnica' },
+    { id: 4, credenciado: 'Hospital Mulher', medico: 'Dra. Julia Costa', especialidade: 'Ginecologia', pontuacao: 4.7, categoria: 'atendimento', data: '2025-10-04', comentario: 'Atendimento humanizado' },
+    { id: 5, credenciado: 'Hospital Central', medico: 'Dr. Roberto Silva', especialidade: 'Clínica Geral', pontuacao: 4.2, categoria: 'pontualidade', data: '2025-10-05', comentario: 'Bom atendimento geral' },
+    { id: 6, credenciado: 'Centro Médico', medico: 'Dra. Mariana Souza', especialidade: 'Dermatologia', pontuacao: 3.8, categoria: 'qualidade', data: '2025-10-06', comentario: 'Precisa melhorar' },
+    { id: 7, credenciado: 'Clínica Visão', medico: 'Dr. Fernando Alves', especialidade: 'Oftalmologia', pontuacao: 4.5, categoria: 'atendimento', data: '2025-10-07', comentario: 'Muito profissional' },
+    { id: 8, credenciado: 'Neuro Centro', medico: 'Dr. Paulo Martins', especialidade: 'Neurologia', pontuacao: 4.3, categoria: 'pontualidade', data: '2025-10-08', comentario: 'Consulta no horário' },
+    { id: 9, credenciado: 'Hospital São José', medico: 'Dr. Lucas Ferreira', especialidade: 'Cardiologia', pontuacao: 3.5, categoria: 'qualidade', data: '2025-10-09', comentario: 'Pode melhorar' },
+    { id: 10, credenciado: 'Clínica Dor', medico: 'Dra. Patricia Rocha', especialidade: 'Ortopedia', pontuacao: 4.9, categoria: 'atendimento', data: '2025-10-10', comentario: 'Excelente profissional' },
+    { id: 11, credenciado: 'Materno Infantil', medico: 'Dra. Beatriz Gomes', especialidade: 'Pediatria', pontuacao: 4.7, categoria: 'pontualidade', data: '2025-10-11', comentario: 'Ótimo com crianças' },
+    { id: 12, credenciado: 'Clínica Pele', medico: 'Dr. Rodrigo Dias', especialidade: 'Dermatologia', pontuacao: 3.2, categoria: 'qualidade', data: '2025-10-12', comentario: 'Atendimento rápido demais' },
+    { id: 13, credenciado: 'Hospital Central', medico: 'Dra. Camila Reis', especialidade: 'Ginecologia', pontuacao: 4.6, categoria: 'atendimento', data: '2025-09-25', comentario: 'Médica atenciosa' },
+    { id: 14, credenciado: 'Clínica Saúde', medico: 'Dr. Marcos Pinto', especialidade: 'Clínica Geral', pontuacao: 4.1, categoria: 'pontualidade', data: '2025-09-26', comentario: 'Bom atendimento' },
+    { id: 15, credenciado: 'Centro Neurológico', medico: 'Dr. André Castro', especialidade: 'Neurologia', pontuacao: 4.8, categoria: 'qualidade', data: '2025-09-27', comentario: 'Diagnóstico preciso' },
+    { id: 16, credenciado: 'Hospital São José', medico: 'Dr. Bruno Mendes', especialidade: 'Ortopedia', pontuacao: 2.8, categoria: 'atendimento', data: '2025-09-28', comentario: 'Atendimento frio' },
+    { id: 17, credenciado: 'Clínica Visão', medico: 'Dra. Leticia Barros', especialidade: 'Oftalmologia', pontuacao: 4.4, categoria: 'pontualidade', data: '2025-09-29', comentario: 'Consulta rápida' },
+    { id: 18, credenciado: 'Ortoclínica', medico: 'Dr. Rafael Cunha', especialidade: 'Ortopedia', pontuacao: 4.7, categoria: 'qualidade', data: '2025-09-30', comentario: 'Excelente tratamento' },
+    { id: 19, credenciado: 'Hospital Mulher', medico: 'Dra. Fernanda Lopes', especialidade: 'Ginecologia', pontuacao: 4.9, categoria: 'atendimento', data: '2025-09-15', comentario: 'Melhor médica da região' },
+    { id: 20, credenciado: 'Clínica Dor', medico: 'Dr. Thiago Nunes', especialidade: 'Ortopedia', pontuacao: 3.9, categoria: 'pontualidade', data: '2025-09-16', comentario: 'Atraso na consulta' },
+    { id: 21, credenciado: 'Hospital Central', medico: 'Dr. Carlos Santos', especialidade: 'Cardiologia', pontuacao: 5.0, categoria: 'qualidade', data: '2025-09-17', comentario: 'Perfeito!' },
+    { id: 22, credenciado: 'Materno Infantil', medico: 'Dra. Sofia Azevedo', especialidade: 'Pediatria', pontuacao: 4.8, categoria: 'atendimento', data: '2025-09-18', comentario: 'Excelente pediatra' },
+    { id: 23, credenciado: 'Clínica Pele', medico: 'Dra. Helena Moura', especialidade: 'Dermatologia', pontuacao: 3.6, categoria: 'pontualidade', data: '2025-08-20', comentario: 'Demora no atendimento' },
+    { id: 24, credenciado: 'Centro Médico', medico: 'Dr. Gabriel Farias', especialidade: 'Clínica Geral', pontuacao: 4.3, categoria: 'qualidade', data: '2025-08-22', comentario: 'Bom diagnóstico' },
+    { id: 25, credenciado: 'Neuro Centro', medico: 'Dr. Vinicius Teixeira', especialidade: 'Neurologia', pontuacao: 4.5, categoria: 'atendimento', data: '2025-08-25', comentario: 'Médico atencioso' },
+    { id: 26, credenciado: 'Hospital Central', medico: 'Dr. Carlos Santos', especialidade: 'Cardiologia', pontuacao: 4.6, categoria: 'atendimento', data: '2025-10-13', comentario: 'Profissional dedicado' },
+    { id: 27, credenciado: 'Clínica Saúde', medico: 'Dra. Ana Lima', especialidade: 'Pediatria', pontuacao: 4.4, categoria: 'qualidade', data: '2025-10-14', comentario: 'Diagnóstico assertivo' },
+    { id: 28, credenciado: 'Ortoclínica', medico: 'Dr. Pedro Oliveira', especialidade: 'Ortopedia', pontuacao: 4.8, categoria: 'atendimento', data: '2025-10-15', comentario: 'Tratamento eficaz' },
+    { id: 29, credenciado: 'Hospital Mulher', medico: 'Dra. Julia Costa', especialidade: 'Ginecologia', pontuacao: 4.5, categoria: 'pontualidade', data: '2025-10-16', comentario: 'Muito pontual' },
+    { id: 30, credenciado: 'Centro Médico', medico: 'Dra. Mariana Souza', especialidade: 'Dermatologia', pontuacao: 4.0, categoria: 'qualidade', data: '2025-10-17', comentario: 'Bom profissional' },
   ], []);
 
   // Calcular intervalo de datas
@@ -71,6 +73,17 @@ export default function RelatorioAvaliacoes() {
 
   const { inicio, fim } = getDateRange();
 
+  // Extrair listas únicas para os filtros
+  const credenciadosUnicos = useMemo(() => 
+    Array.from(new Set(avaliacoesMock.map(av => av.credenciado))).sort(), 
+    [avaliacoesMock]
+  );
+
+  const medicosUnicos = useMemo(() => 
+    Array.from(new Set(avaliacoesMock.map(av => av.medico))).sort(), 
+    [avaliacoesMock]
+  );
+
   // Filtrar dados mockados
   const dadosFiltrados = useMemo(() => {
     return avaliacoesMock.filter(av => {
@@ -78,9 +91,11 @@ export default function RelatorioAvaliacoes() {
       const dentroPeriodo = dataAv >= inicio && dataAv <= fim;
       const categoriaOk = categoria === 'todas' || av.categoria === categoria;
       const especialidadeOk = especialidade === 'todas' || av.especialidade === especialidade;
-      return dentroPeriodo && categoriaOk && especialidadeOk;
+      const credenciadoOk = credenciadoFiltro === 'todos' || av.credenciado === credenciadoFiltro;
+      const medicoOk = medicoFiltro === 'todos' || av.medico === medicoFiltro;
+      return dentroPeriodo && categoriaOk && especialidadeOk && credenciadoOk && medicoOk;
     });
-  }, [avaliacoesMock, inicio, fim, categoria, especialidade]);
+  }, [avaliacoesMock, inicio, fim, categoria, especialidade, credenciadoFiltro, medicoFiltro]);
 
   // Calcular estatísticas
   const stats = useMemo(() => {
@@ -179,6 +194,7 @@ export default function RelatorioAvaliacoes() {
     const dadosExport = dadosFiltrados.map(av => ({
       'Data': format(new Date(av.data), 'dd/MM/yyyy'),
       'Credenciado': av.credenciado,
+      'Médico': av.medico,
       'Especialidade': av.especialidade,
       'Categoria': av.categoria,
       'Pontuação': av.pontuacao,
@@ -188,11 +204,19 @@ export default function RelatorioAvaliacoes() {
   };
 
   const handleExportPDF = () => {
+    const dadosExport = dadosFiltrados.map(av => ({
+      data: format(new Date(av.data), 'dd/MM/yyyy'),
+      credenciado: av.credenciado,
+      medico: av.medico,
+      especialidade: av.especialidade,
+      pontuacao: av.pontuacao
+    }));
     DataExporter.exportarParaPDF(
-      dadosFiltrados,
+      dadosExport,
       [
         { header: 'Data', dataKey: 'data' },
         { header: 'Credenciado', dataKey: 'credenciado' },
+        { header: 'Médico', dataKey: 'medico' },
         { header: 'Especialidade', dataKey: 'especialidade' },
         { header: 'Pontuação', dataKey: 'pontuacao' },
       ],
@@ -205,6 +229,7 @@ export default function RelatorioAvaliacoes() {
     const dadosExport = dadosFiltrados.map(av => ({
       'Data': format(new Date(av.data), 'dd/MM/yyyy'),
       'Credenciado': av.credenciado,
+      'Médico': av.medico,
       'Especialidade': av.especialidade,
       'Categoria': av.categoria,
       'Pontuação': av.pontuacao,
@@ -245,52 +270,82 @@ export default function RelatorioAvaliacoes() {
             Filtros
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex gap-4">
-          <div className="flex-1">
-            <label className="text-sm font-medium mb-2 block">Período</label>
-            <Select value={periodo} onValueChange={(v: any) => setPeriodo(v)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7dias">Últimos 7 dias</SelectItem>
-                <SelectItem value="30dias">Últimos 30 dias</SelectItem>
-                <SelectItem value="90dias">Últimos 90 dias</SelectItem>
-                <SelectItem value="mesatual">Mês atual</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex-1">
-            <label className="text-sm font-medium mb-2 block">Categoria</label>
-            <Select value={categoria} onValueChange={setCategoria}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todas">Todas</SelectItem>
-                <SelectItem value="atendimento">Atendimento</SelectItem>
-                <SelectItem value="pontualidade">Pontualidade</SelectItem>
-                <SelectItem value="qualidade">Qualidade Técnica</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex-1">
-            <label className="text-sm font-medium mb-2 block">Especialidade</label>
-            <Select value={especialidade} onValueChange={setEspecialidade}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todas">Todas</SelectItem>
-                <SelectItem value="Cardiologia">Cardiologia</SelectItem>
-                <SelectItem value="Pediatria">Pediatria</SelectItem>
-                <SelectItem value="Ortopedia">Ortopedia</SelectItem>
-                <SelectItem value="Ginecologia">Ginecologia</SelectItem>
-                <SelectItem value="Dermatologia">Dermatologia</SelectItem>
-                <SelectItem value="Neurologia">Neurologia</SelectItem>
-                <SelectItem value="Oftalmologia">Oftalmologia</SelectItem>
-              </SelectContent>
-            </Select>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-2 block">Período</label>
+              <Select value={periodo} onValueChange={(v: any) => setPeriodo(v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7dias">Últimos 7 dias</SelectItem>
+                  <SelectItem value="30dias">Últimos 30 dias</SelectItem>
+                  <SelectItem value="90dias">Últimos 90 dias</SelectItem>
+                  <SelectItem value="mesatual">Mês atual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-2 block">Credenciado</label>
+              <Select value={credenciadoFiltro} onValueChange={setCredenciadoFiltro}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {credenciadosUnicos.map(cred => (
+                    <SelectItem key={cred} value={cred}>{cred}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-2 block">Médico</label>
+              <Select value={medicoFiltro} onValueChange={setMedicoFiltro}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {medicosUnicos.map(med => (
+                    <SelectItem key={med} value={med}>{med}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-2 block">Categoria</label>
+              <Select value={categoria} onValueChange={setCategoria}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas</SelectItem>
+                  <SelectItem value="atendimento">Atendimento</SelectItem>
+                  <SelectItem value="pontualidade">Pontualidade</SelectItem>
+                  <SelectItem value="qualidade">Qualidade Técnica</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-2 block">Especialidade</label>
+              <Select value={especialidade} onValueChange={setEspecialidade}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas</SelectItem>
+                  <SelectItem value="Cardiologia">Cardiologia</SelectItem>
+                  <SelectItem value="Pediatria">Pediatria</SelectItem>
+                  <SelectItem value="Ortopedia">Ortopedia</SelectItem>
+                  <SelectItem value="Ginecologia">Ginecologia</SelectItem>
+                  <SelectItem value="Dermatologia">Dermatologia</SelectItem>
+                  <SelectItem value="Neurologia">Neurologia</SelectItem>
+                  <SelectItem value="Oftalmologia">Oftalmologia</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -391,6 +446,81 @@ export default function RelatorioAvaliacoes() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Tabela com Todos os Dados */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Todas as Avaliações</CardTitle>
+              <CardDescription>Dados completos das avaliações filtradas ({dadosFiltrados.length} registros)</CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleExportExcel} variant="outline" size="sm">
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                Excel
+              </Button>
+              <Button onClick={handleExportPDF} variant="outline" size="sm">
+                <FileText className="mr-2 h-4 w-4" />
+                PDF
+              </Button>
+              <Button onClick={handleExportCSV} variant="outline" size="sm">
+                <Download className="mr-2 h-4 w-4" />
+                CSV
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Credenciado</TableHead>
+                  <TableHead>Médico</TableHead>
+                  <TableHead>Especialidade</TableHead>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead>Pontuação</TableHead>
+                  <TableHead>Comentário</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {dadosFiltrados.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                      Nenhuma avaliação encontrada com os filtros aplicados
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  dadosFiltrados.map((av) => (
+                    <TableRow key={av.id}>
+                      <TableCell>{format(new Date(av.data), 'dd/MM/yyyy')}</TableCell>
+                      <TableCell className="font-medium">{av.credenciado}</TableCell>
+                      <TableCell>{av.medico}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{av.especialidade}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{av.categoria}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={av.pontuacao >= 4.5 ? "default" : av.pontuacao >= 3.5 ? "secondary" : "destructive"}
+                          className={av.pontuacao >= 4.5 ? "bg-green-500" : ""}
+                        >
+                          {av.pontuacao.toFixed(1)} ⭐
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate">{av.comentario}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Tabelas de Ranking */}
       <Tabs defaultValue="top10" className="w-full">
