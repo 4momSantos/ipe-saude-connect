@@ -22,7 +22,9 @@ export function useCidades() {
         .from('cidades' as any)
         .select('id, nome, uf, populacao_total, latitude_centro, longitude_centro, zoom_padrao, ativa')
         .eq('ativa', true)
-        .order('nome');
+        .eq('uf', 'RS')
+        .order('nome')
+        .limit(10);
 
       if (error) {
         console.error('[CIDADES] Erro ao buscar cidades:', error);
