@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -24,6 +24,7 @@ export function EditarDataVencimento({ documentoId, dataAtual, onSuccess, entida
   const [open, setOpen] = useState(false);
   const [novaData, setNovaData] = useState<Date>();
   const [motivo, setMotivo] = useState("");
+  const motivoRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -78,6 +79,20 @@ export function EditarDataVencimento({ documentoId, dataAtual, onSuccess, entida
       });
     }
   });
+
+  const handleDateSelect = (date: Date | undefined) => {
+    setNovaData(date);
+    
+    if (date && motivo.trim()) {
+      // Se já tem motivo, salvar automaticamente
+      atualizarData({ novaData: date, motivo });
+    } else if (date) {
+      // Se não tem motivo, focar no campo
+      setTimeout(() => {
+        motivoRef.current?.focus();
+      }, 100);
+    }
+  };
 
   const handleSubmit = () => {
     if (!novaData) {
@@ -138,9 +153,10 @@ export function EditarDataVencimento({ documentoId, dataAtual, onSuccess, entida
                 <CalendarComponent
                   mode="single"
                   selected={novaData}
-                  onSelect={setNovaData}
+                  onSelect={handleDateSelect}
                   locale={ptBR}
                   initialFocus
+                  className="pointer-events-auto"
                 />
               </PopoverContent>
             </Popover>
@@ -149,11 +165,19 @@ export function EditarDataVencimento({ documentoId, dataAtual, onSuccess, entida
           <div>
             <Label>Motivo da Alteração</Label>
             <Textarea 
+              ref={motivoRef}
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && e.ctrlKey && novaData && motivo.trim()) {
+                  e.preventDefault();
+                  handleSubmit();
+                }
+              }}
               placeholder="Ex: Documento renovado antes do prazo, erro na data anterior, etc."
               rows={3}
             />
+            {novaData && <p className="text-xs text-muted-foreground mt-1">Pressione Ctrl+Enter para salvar rapidamente</p>}
           </div>
           
           <div className="flex gap-2 justify-end">
