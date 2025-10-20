@@ -209,9 +209,7 @@ export function DashboardContratos() {
     if (!confirm('⚠️ Tem certeza que deseja validar esta assinatura manualmente?\n\nIsso marcará o contrato como assinado e ativará o credenciado.')) {
       return;
     }
-    
     setValidatingContratoId(contratoId);
-    
     try {
       await simularAssinatura.mutateAsync({
         contratoId,
@@ -433,26 +431,11 @@ export function DashboardContratos() {
                 </Badge>}
             </div>
             <div className="flex gap-2">
-              <Button onClick={() => checkAllSignatures()} variant="default" size="sm" disabled={isCheckingAll}>
-                {isCheckingAll ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                ✅ Buscar Assinadas
-              </Button>
-              <Button onClick={() => syncAllContracts()} variant="outline" size="sm" disabled={isSyncing}>
-                {isSyncing ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                🔄 Sincronizar com Assinafy
-              </Button>
-              <Button onClick={() => reprocessStuck()} variant="destructive" size="sm" disabled={isReprocessingStuck}>
-                {isReprocessingStuck ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                🔧 Reprocessar Órfãos
-              </Button>
-              <Button onClick={() => corrigirOrfas()} variant="default" size="sm" disabled={isCorrigindo}>
-                {isCorrigindo ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                Corrigir Inscrições Órfãs
-              </Button>
-              <Button onClick={() => setShowConfirmDialog(true)} variant="outline" size="sm" disabled={isPending}>
-                {isPending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                Reprocessar 6 Contratos Antigos
-              </Button>
+              
+              
+              
+              
+              
             </div>
           </CardTitle>
         </CardHeader>
