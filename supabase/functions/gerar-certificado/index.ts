@@ -19,9 +19,9 @@ Deno.serve(async (req) => {
       throw new Error('credenciadoId é obrigatório');
     }
 
-    console.log('[GERAR_CERTIFICADO] Gerando certificado para credenciado:', credenciadoId);
+    console.log('[GERAR_CERTIFICADO] 🔥 VERSÃO COM STATUS - Gerando certificado para credenciado:', credenciadoId);
 
-    // Buscar dados do credenciado
+    // Buscar dados do credenciado (incluindo status)
     const { data: credenciado, error: credenciadoError } = await supabase
       .from('credenciados')
       .select(`
