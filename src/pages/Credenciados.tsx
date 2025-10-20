@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Eye, Download, Filter, Loader2, Trash2 } from "lucide-react";
+import { Search, Eye, Download, Filter, Loader2, Trash2, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -121,6 +121,18 @@ export default function Credenciados() {
     return credenciados.filter((c) => c.status.toLowerCase() === "inativo").length;
   }, [credenciados]);
 
+  // Calcular credenciados com dados incompletos
+  const credenciadosIncompletos = useMemo(() => {
+    if (!credenciados) return 0;
+    return credenciados.filter((c) => {
+      const semNumero = !c.numero_credenciado;
+      const semCpfCnpj = !c.cpf && !c.cnpj;
+      const semCrm = !c.crms || c.crms.length === 0;
+      const semCidade = !c.cidade;
+      return semNumero || semCpfCnpj || semCrm || semCidade;
+    }).length;
+  }, [credenciados]);
+
   const deleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
       const { error } = await supabase
@@ -207,7 +219,7 @@ export default function Credenciados() {
         </div>
       </div>
 
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="border bg-card">
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
@@ -247,7 +259,32 @@ export default function Credenciados() {
             </div>
           </CardContent>
         </Card>
+        <Card className="border bg-card">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs md:text-sm font-medium text-muted-foreground">Dados Incompletos</p>
+                <p className="text-xl md:text-2xl font-bold text-amber-400">{credenciadosIncompletos}</p>
+              </div>
+              <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-amber-500/20 flex items-center justify-center">
+                <span className="text-xl md:text-2xl">⚠️</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Alerta de dados incompletos */}
+      {credenciadosIncompletos > 0 && (
+        <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30">
+          <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          <AlertDescription className="text-amber-800 dark:text-amber-300">
+            <strong>{credenciadosIncompletos}</strong> credenciado(s) possuem dados incompletos (CPF/CNPJ, CRM, especialidade ou cidade). 
+            Credenciados marcados como <span className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 text-[10px] font-medium text-amber-800 dark:text-amber-400 mx-1">Incompleto</span> 
+            precisam de atenção.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Card className="border bg-card card-glow">
         <CardHeader>
@@ -387,12 +424,35 @@ export default function Credenciados() {
                   </TableRow>
                 ) : (
                   credenciadosFiltrados.map((credenciado) => {
-                    const cpfCnpj = credenciado.cnpj || credenciado.cpf || "-";
-                    const primeirosCrms = credenciado.crms.map((c) => `${c.crm}-${c.uf_crm}`).join(", ");
-                    const primeiraEspecialidade = credenciado.crms[0]?.especialidade || "-";
+                    // Processar dados com indicadores de campos vazios
+                    const cpfCnpj = credenciado.cnpj || credenciado.cpf;
+                    const temCpfCnpj = !!cpfCnpj;
+                    
+                    const temCrms = credenciado.crms && credenciado.crms.length > 0;
+                    const primeirosCrms = temCrms 
+                      ? credenciado.crms.map((c) => `${c.crm}/${c.uf_crm}`).join(", ")
+                      : null;
+                    
+                    const primeiraEspecialidade = credenciado.crms[0]?.especialidade;
+                    const temCidade = !!credenciado.cidade;
+                    const temNumeroCredenciado = !!credenciado.numero_credenciado;
+
+                    // Contar campos vazios importantes
+                    const camposVazios = [
+                      !temNumeroCredenciado && "Nº Credenciado",
+                      !temCpfCnpj && "CPF/CNPJ",
+                      !temCrms && "CRM",
+                      !primeiraEspecialidade && "Especialidade",
+                      !temCidade && "Cidade"
+                    ].filter(Boolean);
+
+                    const temDadosIncompletos = camposVazios.length > 0;
 
                     return (
-                      <TableRow key={credenciado.id} className="hover:bg-muted/50 transition-colors">
+                      <TableRow 
+                        key={credenciado.id} 
+                        className={`hover:bg-muted/50 transition-colors ${temDadosIncompletos ? 'bg-amber-50/30 dark:bg-amber-950/10' : ''}`}
+                      >
                         <TableCell className="w-12">
                           <Checkbox
                             checked={credenciadosSelecionados.has(credenciado.id)}
@@ -401,22 +461,66 @@ export default function Credenciados() {
                             onClick={(e) => e.stopPropagation()}
                           />
                         </TableCell>
-                        <TableCell className="font-mono text-xs md:text-sm font-semibold text-primary">
-                          {credenciado.numero_credenciado || "-"}
+                        <TableCell className="font-mono text-xs md:text-sm">
+                          {temNumeroCredenciado ? (
+                            <span className="font-semibold text-primary">{credenciado.numero_credenciado}</span>
+                          ) : (
+                            <span className="text-muted-foreground italic text-xs" title="Número não cadastrado">
+                              Sem número
+                            </span>
+                          )}
                         </TableCell>
-                        <TableCell className="font-medium text-xs md:text-sm">{credenciado.nome}</TableCell>
-                        <TableCell className="font-mono text-xs md:text-sm">{cpfCnpj}</TableCell>
-                        <TableCell className="font-mono text-xs md:text-sm">{primeirosCrms || "-"}</TableCell>
                         <TableCell>
-                          {primeiraEspecialidade !== "-" ? (
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-xs md:text-sm">{credenciado.nome}</span>
+                            {temDadosIncompletos && (
+                              <span 
+                                className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:text-amber-400"
+                                title={`Campos vazios: ${camposVazios.join(", ")}`}
+                              >
+                                Incompleto
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs md:text-sm">
+                          {temCpfCnpj ? (
+                            cpfCnpj
+                          ) : (
+                            <span className="text-muted-foreground italic text-xs" title="CPF/CNPJ não cadastrado">
+                              Não informado
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs md:text-sm">
+                          {temCrms ? (
+                            primeirosCrms
+                          ) : (
+                            <span className="text-muted-foreground italic text-xs" title="CRM não cadastrado">
+                              Sem CRM
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {primeiraEspecialidade ? (
                             <span className="inline-flex items-center rounded-md bg-primary/10 px-1.5 py-0.5 md:px-2 md:py-1 text-[10px] md:text-xs font-medium text-primary ring-1 ring-inset ring-primary/20">
                               {primeiraEspecialidade}
                             </span>
                           ) : (
-                            "-"
+                            <span className="text-muted-foreground italic text-xs" title="Especialidade não cadastrada">
+                              -
+                            </span>
                           )}
                         </TableCell>
-                        <TableCell className="text-xs md:text-sm">{credenciado.cidade || "-"}</TableCell>
+                        <TableCell className="text-xs md:text-sm">
+                          {temCidade ? (
+                            credenciado.cidade
+                          ) : (
+                            <span className="text-muted-foreground italic text-xs" title="Cidade não cadastrada">
+                              Não informada
+                            </span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <StatusBadge status={credenciado.status.toLowerCase() === "ativo" ? "habilitado" : "inabilitado"} />
                         </TableCell>

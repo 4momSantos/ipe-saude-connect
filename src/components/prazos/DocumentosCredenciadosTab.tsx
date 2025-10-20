@@ -590,7 +590,7 @@ export function DocumentosCredenciadosTab() {
                               </Badge>
                             )}
                           </div>
-                          <StatusBadge status={doc.nivel_alerta} />
+                          <StatusBadge diasRestantes={doc.dias_para_vencer} />
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-3">
@@ -635,9 +635,9 @@ export function DocumentosCredenciadosTab() {
                             Ver
                           </Button>
                           <EditarDataVencimento
-                            entidadeId={doc.entidade_id}
+                            documentoId={doc.entidade_id}
                             entidadeTipo={doc.entidade_tipo as 'documento_credenciado' | 'certificado'}
-                            dataAtual={doc.data_vencimento}
+                            dataAtual={doc.data_vencimento || undefined}
                             onSuccess={() => {
                               queryClient.invalidateQueries({ queryKey: ['prazos-documentos'] });
                               toast.success('Data de vencimento atualizada com sucesso!');
@@ -660,16 +660,13 @@ export function DocumentosCredenciadosTab() {
       {/* Modais */}
       <UploadDocumentoModal
         open={modalOpen}
-        onOpenChange={setModalOpen}
-        onSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: ['prazos-documentos'] });
-          toast.success('Documento enviado com sucesso!');
-        }}
+        onClose={() => setModalOpen(false)}
+        credenciadoId={undefined}
       />
 
       {documentViewer && (
         <DocumentViewer
-          url={documentViewer.url}
+          fileUrl={documentViewer.url}
           fileName={documentViewer.fileName}
           open={documentViewer.open}
           onClose={() => setDocumentViewer(null)}
