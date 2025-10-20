@@ -48,6 +48,7 @@ import VerificarCertificado from "./pages/VerificarCertificado";
 import MonitorFluxo from "./pages/MonitorFluxo";
 import RelatorioAvaliacoes from "./pages/RelatorioAvaliacoes";
 import GestaoRegrasSuspensao from "./pages/GestaoRegrasSuspensao";
+import CorrigirDocumentos from "./pages/CorrigirDocumentos";
 import AvaliacoesCredenciado from "./pages/AvaliacoesCredenciado";
 import AuditoriaCompleta from "./pages/AuditoriaCompleta";
 import GerenciarCategorias from "./pages/GerenciarCategorias";
@@ -203,6 +204,7 @@ const App = () => (
                           <Route path="/meus-documentos" element={<DocumentosCredenciadoGrid />} />
                           <Route path="/credenciados/:id/regularidade" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin', 'analista']}><RegularidadeCadastral /></RoleProtectedRoute>} />
                           <Route path="/busca-documentos" element={<RoleProtectedRoute requiredRoles={['analista', 'gestor', 'admin']}><Suspense fallback={<div>Carregando...</div>}><BuscaDocumentos /></Suspense></RoleProtectedRoute>} />
+                          <Route path="/corrigir-documentos" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><CorrigirDocumentos /></RoleProtectedRoute>} />
                           <Route path="/contratos" element={<RoleProtectedRoute requiredRoles={['analista', 'gestor', 'admin']}><Contratos /></RoleProtectedRoute>} />
                           <Route path="/fluxo-credenciamento/:inscricaoId" element={<FluxoCredenciamentoPage />} />
                           <Route path="/monitor-fluxo" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><MonitorFluxo /></RoleProtectedRoute>} />

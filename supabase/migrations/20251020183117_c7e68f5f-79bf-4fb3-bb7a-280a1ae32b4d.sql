@@ -1,8 +1,8 @@
--- Habilitar extensão pg_net para chamadas HTTP de triggers
-CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
+-- Remover trigger antiga se existir
+DROP TRIGGER IF EXISTS trigger_sync_approved_inscricao_to_credenciado ON public.inscricoes_edital;
 
--- Criar ou substituir a função trigger robusta
-CREATE OR REPLACE FUNCTION public.sync_approved_inscricao_to_credenciado_v2()
+-- Criar função trigger simplificada e robusta (sem pg_net)
+CREATE OR REPLACE FUNCTION public.sync_approved_inscricao_to_credenciado()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -28,8 +28,6 @@ DECLARE
   v_bairro text;
   v_cidade text;
   v_estado text;
-  v_consultorios_count integer;
-  v_supabase_url text;
 BEGIN
   -- Só processa se status mudou para 'aprovado'
   IF NEW.status = 'aprovado' AND (OLD.status IS NULL OR OLD.status != 'aprovado') THEN
@@ -219,28 +217,15 @@ BEGIN
         NEW.analisado_por
       );
       
-      -- Obter URL do Supabase
-      v_supabase_url := current_setting('app.supabase_url', true);
-      
-      IF v_supabase_url IS NULL THEN
-        v_supabase_url := 'https://ncmofeencqpqhtguxmvy.supabase.co';
-      END IF;
-      
-      -- Chamar edge function para migrar documentos via pg_net
-      PERFORM net.http_post(
-        url := v_supabase_url || '/functions/v1/migrar-documentos-inscricao',
-        headers := jsonb_build_object(
-          'Content-Type', 'application/json',
-          'Authorization', 'Bearer ' || current_setting('app.supabase_service_role_key', true)
-        ),
-        body := jsonb_build_object(
-          'inscricao_id', NEW.id::text,
-          'credenciado_id', v_credenciado_id::text
-        ),
-        timeout_milliseconds := 30000
+      -- Criar mensagem informando que documentos devem ser migrados
+      INSERT INTO public.workflow_messages (
+        inscricao_id, sender_type, content, tipo_manifestacao, visivel_para, metadata
+      ) VALUES (
+        NEW.id, 'sistema',
+        '✅ Credenciado criado com sucesso. Os documentos serão migrados automaticamente em breve.',
+        'info', ARRAY['analista', 'gestor'],
+        jsonb_build_object('credenciado_id', v_credenciado_id, 'action', 'pending_document_migration')
       );
-      
-      RAISE NOTICE '[CREDENCIADO_SYNC] 📄 Migração de documentos solicitada para credenciado %', v_credenciado_id;
       
     EXCEPTION
       WHEN OTHERS THEN
@@ -261,9 +246,11 @@ BEGIN
 END;
 $$;
 
--- Recriar trigger usando a nova função
-DROP TRIGGER IF EXISTS trigger_sync_approved_inscricao_to_credenciado ON public.inscricoes_edital;
+-- Recriar trigger usando a função corrigida
 CREATE TRIGGER trigger_sync_approved_inscricao_to_credenciado
   AFTER INSERT OR UPDATE ON public.inscricoes_edital
   FOR EACH ROW
-  EXECUTE FUNCTION public.sync_approved_inscricao_to_credenciado_v2();
+  EXECUTE FUNCTION public.sync_approved_inscricao_to_credenciado();
+
+COMMENT ON FUNCTION public.sync_approved_inscricao_to_credenciado() IS 
+'Trigger function que cria automaticamente um credenciado quando uma inscrição é aprovada. Inclui validação robusta e tratamento de erros. A migração de documentos deve ser feita via edge function corrigir-credenciados-sem-documentos.';
