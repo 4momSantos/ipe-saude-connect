@@ -39,36 +39,14 @@ serve(async (req) => {
 
     const inicioExecucao = Date.now();
 
-    // Buscar documentos com JOIN para incluir nome do credenciado
+    // Buscar documentos
     let query = supabase
       .from('documentos_credenciados')
-      .select(`
-        *,
-        credenciados!inner(
-          nome,
-          cpf,
-          status
-        )
-      `);
+      .select('*');
 
     // Aplicar filtros
     if (termo) {
-      // Para busca por nome/CPF do credenciado, fazer busca direta na tabela credenciados
-      const { data: credenciadosEncontrados } = await supabase
-        .from('credenciados')
-        .select('id')
-        .or(`nome.ilike.%${termo}%,cpf.ilike.%${termo}%`);
-      
-      const credenciadoIds = credenciadosEncontrados?.map(c => c.id) || [];
-      
-      // Buscar documentos por termo nos campos do documento OU por credenciado_id
-      if (credenciadoIds.length > 0) {
-        query = query.or(
-          `numero_documento.ilike.%${termo}%,observacoes.ilike.%${termo}%,credenciado_id.in.(${credenciadoIds.join(',')})`
-        );
-      } else {
-        query = query.or(`numero_documento.ilike.%${termo}%,observacoes.ilike.%${termo}%`);
-      }
+      query = query.or(`numero_documento.ilike.%${termo}%,observacoes.ilike.%${termo}%`);
     }
     if (status) {
       query = query.eq('status', status);
@@ -99,14 +77,27 @@ serve(async (req) => {
       throw new Error(error.message);
     }
 
-    // Processar resultado para incluir dados do credenciado
+    // Buscar dados dos credenciados para os documentos encontrados
+    const credenciadoIds = [...new Set(data?.map((d: any) => d.credenciado_id).filter(Boolean) || [])];
+    
+    let credenciadosMap: Map<string, any> = new Map();
+    if (credenciadoIds.length > 0) {
+      const { data: credenciados } = await supabase
+        .from('credenciados')
+        .select('id, nome, cpf, status')
+        .in('id', credenciadoIds);
+      
+      credenciadosMap = new Map(credenciados?.map((c: any) => [c.id, c]) || []);
+    }
+    
+    // Combinar dados
     const resultado = (data ?? []).map((doc: any) => {
-      const { credenciados, ...documentoSemNested } = doc;
+      const credenciado = credenciadosMap.get(doc.credenciado_id);
       return {
-        ...documentoSemNested,
-        credenciado_nome: credenciados?.nome || '',
-        credenciado_cpf: credenciados?.cpf || '',
-        credenciado_status: credenciados?.status || ''
+        ...doc,
+        credenciado_nome: credenciado?.nome || '',
+        credenciado_cpf: credenciado?.cpf || '',
+        credenciado_status: credenciado?.status || ''
       };
     });
     
