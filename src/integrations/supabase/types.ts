@@ -6621,10 +6621,9 @@ export type Database = {
         }[]
       }
       consultar_certificado_por_credenciado: {
-        Args: { p_identificador: string }
+        Args: { p_credenciado_id: string } | { p_identificador: string }
         Returns: {
           certificado_id: string
-          codigo_verificacao: string
           credenciado: Json
           emitido_em: string
           encontrado: boolean
