@@ -239,10 +239,32 @@ serve(async (req) => {
     }
     
     const candidato_rg = dadosPessoais.rg || '';
-    const candidato_email = endereco.email || 
+    
+    // ✅ Fallback chain para e-mail (prioriza dados da inscrição, depois profile)
+    const candidato_email = dadosPessoais.email || 
+                            endereco.email || 
                             dadosPJ.contatos?.email || 
-                            dadosPessoais.email || 
-                            (inscricao as any).candidato?.email || '';
+                            (inscricao as any).candidato?.email || // Fallback ao profile.email
+                            '';
+    
+    if (!candidato_email) {
+      logEvent('error', 'email_missing', { 
+        inscricao_id,
+        candidato_nome,
+        has_profile_email: !!(inscricao as any).candidato?.email,
+        has_dados_pessoais_email: !!dadosPessoais.email
+      });
+      throw new Error('E-mail do candidato não encontrado nem na inscrição nem no perfil');
+    }
+    
+    logEvent('info', 'email_resolved', { 
+      inscricao_id,
+      email: candidato_email,
+      source: dadosPessoais.email ? 'dados_pessoais' : 
+              endereco.email ? 'endereco' :
+              dadosPJ.contatos?.email ? 'pj_contatos' :
+              (inscricao as any).candidato?.email ? 'profile' : 'unknown'
+    });
 
     // Consolidar endereço e telefone
     const candidato_endereco_completo = consolidarEndereco(dadosInscricao);
