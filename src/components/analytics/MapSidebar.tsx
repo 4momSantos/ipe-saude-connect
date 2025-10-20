@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Search, Download, Filter, MapPin, Users, Activity, Layers, X } from "lucide-react";
 import { FiltrosAvancadosMap } from "./FiltrosAvancadosMap";
-import { useCidades } from "@/hooks/useCidades";
 import type { FiltrosMap } from "./MapaUnificado";
 
 interface MapSidebarProps {
@@ -40,7 +39,20 @@ export function MapSidebar({
   markers,
 }: MapSidebarProps) {
   const [showFilters, setShowFilters] = useState(false);
-  const { data: cidades = [], isLoading: loadingCidades } = useCidades();
+
+  // Extrair cidades únicas dos markers geocodificados
+  const cidadesDisponiveis = useMemo(() => {
+    const cidadesSet = new Set<string>();
+    markers.forEach((marker) => {
+      if (marker.cidade && marker.latitude && marker.longitude) {
+        const cidadeEstado = marker.estado 
+          ? `${marker.cidade} - ${marker.estado}`
+          : marker.cidade;
+        cidadesSet.add(cidadeEstado);
+      }
+    });
+    return Array.from(cidadesSet).sort();
+  }, [markers]);
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
@@ -213,37 +225,40 @@ export function MapSidebar({
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center gap-2">
             <MapPin className="h-4 w-4" />
-            Cidade
+            Cidades Credenciadas
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {loadingCidades ? (
-            <p className="text-sm text-muted-foreground">Carregando...</p>
+          {cidadesDisponiveis.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhuma cidade encontrada</p>
           ) : (
             <div className="max-h-48 overflow-y-auto space-y-2">
-              {cidades.map((cidade) => (
-                <div key={cidade.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`cidade-${cidade.id}`}
-                    checked={filtros.cidades?.includes(cidade.nome) || false}
-                    onCheckedChange={(checked) => {
-                      const current = filtros.cidades || [];
-                      onFiltrosChange({
-                        ...filtros,
-                        cidades: checked
-                          ? [...current, cidade.nome]
-                          : current.filter((c) => c !== cidade.nome),
-                      });
-                    }}
-                  />
-                  <Label
-                    htmlFor={`cidade-${cidade.id}`}
-                    className="text-sm font-normal cursor-pointer"
-                  >
-                    {cidade.nome} - {cidade.uf}
-                  </Label>
-                </div>
-              ))}
+              {cidadesDisponiveis.map((cidadeEstado) => {
+                const cidadeNome = cidadeEstado.split(' - ')[0];
+                return (
+                  <div key={cidadeEstado} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`cidade-${cidadeEstado}`}
+                      checked={filtros.cidades?.includes(cidadeNome) || false}
+                      onCheckedChange={(checked) => {
+                        const current = filtros.cidades || [];
+                        onFiltrosChange({
+                          ...filtros,
+                          cidades: checked
+                            ? [...current, cidadeNome]
+                            : current.filter((c) => c !== cidadeNome),
+                        });
+                      }}
+                    />
+                    <Label
+                      htmlFor={`cidade-${cidadeEstado}`}
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      {cidadeEstado}
+                    </Label>
+                  </div>
+                );
+              })}
             </div>
           )}
         </CardContent>
