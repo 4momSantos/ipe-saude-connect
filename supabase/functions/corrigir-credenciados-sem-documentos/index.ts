@@ -119,18 +119,7 @@ serve(async (req) => {
       console.error(`[CORRIGIR_DOCS] Erro ao desativar documentos antigos:`, updateError);
     }
 
-    // 3.2 Migração direta via RPC/SQL
-    const { data: migratedData, error: migrateError } = await supabase.rpc('migrar_documentos_sql_direto', {
-      p_credenciado_ids: credenciadoIds
-    });
-
-    if (migrateError) {
-      throw new Error(`Erro na migração SQL: ${migrateError.message}`);
-    }
-
-    console.log(`[CORRIGIR_DOCS] ✅ Migração SQL concluída:`, migratedData);
-
-    // 3.3 Verificar resultado por credenciado
+    // 3.2 Verificar resultado por credenciado
     const resultados = [];
     for (const credenciado of credenciadosSemDocs) {
       const { count: docsCount } = await supabase
