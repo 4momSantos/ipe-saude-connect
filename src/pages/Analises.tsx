@@ -44,6 +44,7 @@ interface Processo {
   status: StatusType;
   analista?: string;
   edital_titulo?: string;
+  edital_id?: string;
   workflow_execution_id?: string;
   workflow_status?: string;
   workflow_current_step?: string;
@@ -63,9 +64,16 @@ export default function Analises() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const { fixInscricoes, isLoading: fixingInscricoes } = useFixLegacyInscricoes();
+  const [editalSelecionado, setEditalSelecionado] = useState<string | null>(null);
+  const [editaisDisponiveis, setEditaisDisponiveis] = useState<Array<{
+    id: string;
+    titulo: string;
+    numero_edital: string;
+  }>>([]);
 
   useEffect(() => {
     loadInscricoes();
+    loadEditais();
   }, [roles]);
 
   const loadInscricoes = async () => {
@@ -157,6 +165,7 @@ export default function Analises() {
             status: inscricao.status as StatusType,
             analista: inscricao.analisado_por ? "Analista atribuído" : undefined,
             edital_titulo: inscricao.editais?.titulo,
+            edital_id: inscricao.edital_id,
             workflow_execution_id: inscricao.workflow_execution_id,
             workflow_status: inscricao.workflow_executions?.status,
             workflow_current_step: inscricao.workflow_executions?.current_node_id,
@@ -167,6 +176,20 @@ export default function Analises() {
 
       console.log('[ANALISES] Processos formatados:', processosFormatados.length);
       console.log('[ANALISES] Nomes extraídos:', processosFormatados.map(p => p.nome));
+      
+      console.log('[ANALISES] ✅ Processos formatados:', {
+        total: processosFormatados.length,
+        porStatus: {
+          aprovado: processosFormatados.filter(p => p.status === 'aprovado').length,
+          em_analise: processosFormatados.filter(p => p.status === 'em_analise').length,
+          pendente: processosFormatados.filter(p => p.status === 'pendente').length,
+        },
+        amostra: processosFormatados.slice(0, 2).map(p => ({
+          nome: p.nome,
+          status: p.status,
+          edital: p.numeroEdital
+        }))
+      });
 
       setProcessos(processosFormatados);
     } catch (error) {
@@ -177,6 +200,18 @@ export default function Analises() {
     }
   };
 
+  const loadEditais = async () => {
+    const { data } = await supabase
+      .from('editais')
+      .select('id, titulo, numero_edital')
+      .order('created_at', { ascending: false });
+    
+    if (data) {
+      setEditaisDisponiveis(data);
+      console.log('[ANALISES] Editais carregados:', data.length);
+    }
+  };
+
   const especialidades = Array.from(new Set(processos.map((p) => p.especialidade)));
 
   const processosFiltrados = processos
@@ -184,12 +219,16 @@ export default function Analises() {
       const matchStatus = filtroStatus === "todos" || processo.status === filtroStatus;
       const matchEspecialidade =
         filtroEspecialidade === "todas" || processo.especialidade === filtroEspecialidade;
+      const matchEdital = !editalSelecionado || processo.edital_id === editalSelecionado;
       const matchBusca =
         busca === "" ||
         processo.nome.toLowerCase().includes(busca.toLowerCase()) ||
         processo.protocolo.toLowerCase().includes(busca.toLowerCase()) ||
         processo.numeroEdital.toLowerCase().includes(busca.toLowerCase());
-      return matchStatus && matchEspecialidade && matchBusca;
+      
+      const matches = matchStatus && matchEspecialidade && matchEdital && matchBusca;
+      
+      return matches;
     })
     .sort((a, b) => {
       switch (ordenacao) {
@@ -215,6 +254,15 @@ export default function Analises() {
           return 0;
       }
     });
+
+  console.log('[FILTROS] Aplicando filtros:', {
+    filtroStatus,
+    filtroEspecialidade,
+    editalSelecionado,
+    busca,
+    totalAntesFiltro: processos.length,
+    totalDepoisFiltro: processosFiltrados.length
+  });
 
   const handleStatusChange = async (id: string, newStatus: StatusType) => {
     try {
@@ -426,6 +474,20 @@ export default function Analises() {
                     {especialidades.map((esp) => (
                       <SelectItem key={esp} value={esp}>
                         {esp}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={editalSelecionado || "todos"} onValueChange={(v) => setEditalSelecionado(v === "todos" ? null : v)}>
+                  <SelectTrigger className="w-full lg:w-[250px] bg-background">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Filtrar por Edital" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os Editais</SelectItem>
+                    {editaisDisponiveis.map((edital) => (
+                      <SelectItem key={edital.id} value={edital.id}>
+                        {edital.numero_edital} - {edital.titulo}
                       </SelectItem>
                     ))}
                   </SelectContent>
