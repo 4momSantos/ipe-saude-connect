@@ -44,9 +44,9 @@ serve(async (req) => {
       .from('documentos_credenciados')
       .select('*');
 
-    // Aplicar filtros de busca (incluindo OCR)
+    // Aplicar filtros de busca nos campos principais
     if (termo) {
-      query = query.or(`numero_documento.ilike.*${termo}*,observacao.ilike.*${termo}*,ocr_resultado::text.ilike.*${termo}*`);
+      query = query.or(`tipo_documento.ilike.*${termo}*,descricao.ilike.*${termo}*,numero_documento.ilike.*${termo}*,observacao.ilike.*${termo}*`);
     }
     if (status) {
       query = query.eq('status', status);
