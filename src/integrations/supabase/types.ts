@@ -5438,7 +5438,7 @@ export type Database = {
           mensagem: string | null
           mensagem_html: string | null
           privada: boolean | null
-          sender_id: string
+          sender_id: string | null
           sender_type: string
           tipo: string
           updated_at: string | null
@@ -5469,7 +5469,7 @@ export type Database = {
           mensagem?: string | null
           mensagem_html?: string | null
           privada?: boolean | null
-          sender_id: string
+          sender_id?: string | null
           sender_type: string
           tipo?: string
           updated_at?: string | null
@@ -5500,7 +5500,7 @@ export type Database = {
           mensagem?: string | null
           mensagem_html?: string | null
           privada?: boolean | null
-          sender_id?: string
+          sender_id?: string | null
           sender_type?: string
           tipo?: string
           updated_at?: string | null
