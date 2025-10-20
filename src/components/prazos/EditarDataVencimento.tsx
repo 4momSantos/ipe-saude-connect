@@ -41,56 +41,74 @@ export function EditarDataVencimento({ documentoId, dataAtual, onSuccess, entida
 
   const { mutate: atualizarData, isPending } = useMutation({
     mutationFn: async ({ novaData, motivo }: { novaData: Date; motivo: string }) => {
-      console.log('🔄 [EDIT_DATA] Iniciando atualização:', {
+      const dataFormatada = format(novaData, 'yyyy-MM-dd');
+      
+      console.log('🔄 [EDIT_DATA] Iniciando atualização DUPLA:', {
         documentoId,
         entidadeTipo,
         dataAtual,
-        novaData: format(novaData, 'yyyy-MM-dd'),
+        novaData: dataFormatada,
         motivo
       });
 
-      // ✅ SEMPRE atualizar controle_prazos (fonte dos dados)
-      const { data: updated, error } = await supabase
-        .from('controle_prazos')
+      // 1️⃣ Atualizar documentos_credenciados (fonte da UI)
+      const { data: docUpdated, error: docError } = await supabase
+        .from('documentos_credenciados')
         .update({ 
-          data_vencimento: format(novaData, 'yyyy-MM-dd'),
+          data_vencimento: dataFormatada,
           atualizado_em: new Date().toISOString()
         })
-        .eq('entidade_id', documentoId)
-        .eq('entidade_tipo', entidadeTipo)
+        .eq('id', documentoId)
         .select()
         .maybeSingle();
 
-      if (error) {
-        console.error('❌ [EDIT_DATA] Erro no UPDATE:', error);
-        throw error;
+      if (docError) {
+        console.error('❌ [EDIT_DATA] Erro ao atualizar documento:', docError);
+        throw docError;
       }
 
-      if (!updated) {
-        console.error('❌ [EDIT_DATA] Nenhum registro encontrado');
-        throw new Error('Registro não encontrado no controle de prazos');
+      if (!docUpdated) {
+        throw new Error('Documento não encontrado em documentos_credenciados');
       }
 
-      console.log('✅ [EDIT_DATA] Prazo atualizado:', updated);
+      console.log('✅ [EDIT_DATA] Documento atualizado:', docUpdated);
 
-      // Registrar histórico (apenas para documentos)
-      if (entidadeTipo === 'documento_credenciado') {
-        try {
-          await supabase.rpc('registrar_historico_manual', {
-            p_documento_id: documentoId,
-            p_comentario: `Data alterada para ${format(novaData, "dd/MM/yyyy", { locale: ptBR })}. Motivo: ${motivo}`
-          });
-        } catch (histErr) {
-          console.warn('⚠️ [EDIT_DATA] Erro ao registrar histórico:', histErr);
-        }
+      // 2️⃣ Atualizar controle_prazos (para consistência)
+      const { data: prazoUpdated, error: prazoError } = await supabase
+        .from('controle_prazos')
+        .update({ 
+          data_vencimento: dataFormatada,
+          atualizado_em: new Date().toISOString()
+        })
+        .eq('entidade_id', documentoId)
+        .eq('entidade_tipo', 'documento_credenciado')
+        .select()
+        .maybeSingle();
+
+      if (prazoError) {
+        console.warn('⚠️ [EDIT_DATA] Erro ao atualizar controle_prazos:', prazoError);
+        // Não falhar se controle_prazos não existir
+      } else {
+        console.log('✅ [EDIT_DATA] Controle de prazos atualizado:', prazoUpdated);
       }
 
-      return updated;
+      // 3️⃣ Registrar histórico
+      try {
+        await supabase.rpc('registrar_historico_manual', {
+          p_documento_id: documentoId,
+          p_comentario: `Data alterada para ${format(novaData, "dd/MM/yyyy", { locale: ptBR })}. Motivo: ${motivo}`
+        });
+      } catch (histErr) {
+        console.warn('⚠️ [EDIT_DATA] Erro ao registrar histórico:', histErr);
+      }
+
+      return docUpdated;
     },
     onSuccess: (data) => {
       console.log('✅ [EDIT_DATA] Sucesso! Invalidando TODAS as queries relacionadas...');
 
       // Invalidar TODAS as query keys relacionadas a documentos e prazos
+      queryClient.invalidateQueries({ queryKey: ['prazos-agrupados'] });
       queryClient.invalidateQueries({ queryKey: ['documentos-credenciado'] });
       queryClient.invalidateQueries({ queryKey: ['prazos-documentos'] });
       queryClient.invalidateQueries({ queryKey: ['documentos-aprovados-agrupados'] });
