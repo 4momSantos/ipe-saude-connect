@@ -17,6 +17,21 @@ export interface Dashboard {
   ultima_atualizacao: string;
 }
 
+export interface DocumentoPrazo {
+  id: string;
+  tipo_documento: string;
+  numero_documento: string;
+  data_emissao: string;
+  data_vencimento: string;
+  arquivo_nome: string;
+  url_arquivo: string;
+  status: string;
+  dias_para_vencer: number | null;
+  criado_em: string;
+  atualizado_em: string;
+}
+
+// Interface legada para compatibilidade
 export interface Prazo {
   id: string;
   entidade_tipo: string;
@@ -32,19 +47,30 @@ export interface Prazo {
   dias_para_vencer: number;
   nivel_alerta: string;
   cor_status: string;
-  notificacoes_enviadas: number;
-  ultima_notificacao_em: string;
-  proxima_notificacao: string;
-  ativo: boolean;
-  renovado: boolean;
-  renovavel: boolean;
-  bloqueio_automatico: boolean;
-  observacoes: string;
   criado_em: string;
   atualizado_em: string;
 }
 
 export interface CredenciadoPrazos {
+  // Nova estrutura
+  credenciado: {
+    id: string;
+    nome: string;
+    cpf: string | null;
+    cnpj: string | null;
+    email: string | null;
+    numero_credenciado: string | null;
+  };
+  estatisticas: {
+    total: number;
+    ativos: number;
+    vencidos: number;
+    vencendo: number;
+    proximoVencimento: string | null;
+  };
+  documentos: DocumentoPrazo[];
+  
+  // Propriedades legadas para compatibilidade
   credenciado_id: string;
   credenciado_nome: string;
   credenciado_cpf: string;
@@ -57,8 +83,13 @@ export interface CredenciadoPrazos {
   prazos: Prazo[];
 }
 
-export function usePrazos() {
+interface UsePrazosOptions {
+  mostrarTodos?: boolean;
+}
+
+export function usePrazos(options: UsePrazosOptions = {}) {
   const queryClient = useQueryClient();
+  const { mostrarTodos = false } = options;
 
   const { data: dashboard, isLoading: loadingDashboard } = useQuery({
     queryKey: ['dashboard-vencimentos'],
@@ -74,121 +105,264 @@ export function usePrazos() {
   });
 
   const { data: prazosAgrupados, isLoading: loadingPrazos } = useQuery({
-    queryKey: ['prazos-agrupados'],
+    queryKey: ['prazos-agrupados', mostrarTodos],
     queryFn: async () => {
-      // Buscar todos os documentos com prazos de validade
-      const { data: documentos, error } = await supabase
-        .from('documentos_credenciados')
-        .select(`
-          id,
-          credenciado_id,
-          tipo_documento,
-          data_emissao,
-          data_vencimento,
-          status,
-          criado_em,
-          atualizado_em,
-          credenciados!inner (
-            id,
-            nome,
-            cpf,
-            email,
-            numero_credenciado
-          )
-        `)
-        .in('status', ['ativo', 'validado'])
-        .not('data_vencimento', 'is', null)
-        .order('data_vencimento', { ascending: true });
+      console.log(`🔍 [PRAZOS] Modo: ${mostrarTodos ? 'TODOS' : 'ALERTAS'}`);
 
-      if (error) throw error;
+      if (mostrarTodos) {
+        // ✅ MODO TODOS: Usar função SQL com LEFT JOIN
+        const { data, error } = await supabase.rpc('buscar_credenciados_com_documentos', {
+          p_termo_busca: null,
+          p_tipo_documento: null,
+          p_status: 'Ativo',
+          p_apenas_com_documentos: false,
+          p_apenas_vencidos: false,
+          p_limite: 1000,
+          p_offset: 0
+        });
 
-      // Transformar e agrupar por credenciado
-      const agrupamento = new Map<string, CredenciadoPrazos>();
-
-      documentos?.forEach(doc => {
-        const dataVenc = new Date(doc.data_vencimento);
-        const hoje = new Date();
-        const diffTime = dataVenc.getTime() - hoje.getTime();
-        const diasParaVencer = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        let nivelAlerta = 'valido';
-        let corStatus = '#10b981';
-        let statusAtual = 'valido';
-
-        if (diasParaVencer < 0) {
-          nivelAlerta = 'vencido';
-          corStatus = '#ef4444';
-          statusAtual = 'vencido';
-        } else if (diasParaVencer <= 7) {
-          nivelAlerta = 'critico';
-          corStatus = '#f97316';
-          statusAtual = 'vencendo';
-        } else if (diasParaVencer <= 30) {
-          nivelAlerta = 'atencao';
-          corStatus = '#f59e0b';
-          statusAtual = 'vencendo';
+        if (error) {
+          console.error('❌ [PRAZOS] Erro RPC:', error);
+          throw error;
         }
 
-        const prazo: Prazo = {
-          id: doc.id,
-          entidade_tipo: 'documento_credenciado',
-          entidade_id: doc.id,
-          entidade_nome: doc.tipo_documento,
-          credenciado_id: doc.credenciado_id,
-          credenciado_nome: doc.credenciados.nome,
-          credenciado_cpf: doc.credenciados.cpf,
-          data_emissao: doc.data_emissao || '',
-          data_vencimento: doc.data_vencimento,
-          data_renovacao: '',
-          status_atual: statusAtual,
-          dias_para_vencer: diasParaVencer,
-          nivel_alerta: nivelAlerta,
-          cor_status: corStatus,
-          notificacoes_enviadas: 0,
-          ultima_notificacao_em: '',
-          proxima_notificacao: '',
-          ativo: true,
-          renovado: false,
-          renovavel: true,
-          bloqueio_automatico: false,
-          observacoes: '',
-          criado_em: doc.criado_em,
-          atualizado_em: doc.atualizado_em
-        };
+        console.log(`✅ [PRAZOS] ${data?.length || 0} credenciados encontrados via RPC`);
 
-        if (!agrupamento.has(doc.credenciado_id)) {
-          agrupamento.set(doc.credenciado_id, {
+        return (data || []).map((item: any) => {
+          const documentos: DocumentoPrazo[] = item.documentos || [];
+          const documentosCriticos = documentos.filter(d => d.dias_para_vencer !== null && d.dias_para_vencer >= 0 && d.dias_para_vencer <= 7).length;
+          
+          // Converter documentos para formato Prazo legado
+          const prazos: Prazo[] = documentos.map(doc => {
+            const diasParaVencer = doc.dias_para_vencer || 0;
+            let nivelAlerta = 'valido';
+            let corStatus = '#10b981';
+            let statusAtual = 'valido';
+            
+            if (diasParaVencer < 0) {
+              nivelAlerta = 'vencido';
+              corStatus = '#ef4444';
+              statusAtual = 'vencido';
+            } else if (diasParaVencer <= 7) {
+              nivelAlerta = 'critico';
+              corStatus = '#f97316';
+              statusAtual = 'vencendo';
+            } else if (diasParaVencer <= 30) {
+              nivelAlerta = 'atencao';
+              corStatus = '#f59e0b';
+              statusAtual = 'vencendo';
+            }
+            
+            return {
+              id: doc.id,
+              entidade_tipo: 'documento_credenciado',
+              entidade_id: doc.id,
+              entidade_nome: doc.tipo_documento,
+              credenciado_id: item.credenciado_id,
+              credenciado_nome: item.credenciado_nome,
+              credenciado_cpf: item.credenciado_cpf || '',
+              data_emissao: doc.data_emissao || '',
+              data_vencimento: doc.data_vencimento,
+              data_renovacao: '',
+              status_atual: statusAtual,
+              dias_para_vencer: diasParaVencer,
+              nivel_alerta: nivelAlerta,
+              cor_status: corStatus,
+              criado_em: doc.criado_em,
+              atualizado_em: doc.atualizado_em,
+            };
+          });
+          
+          return {
+            credenciado: {
+              id: item.credenciado_id,
+              nome: item.credenciado_nome,
+              cpf: item.credenciado_cpf,
+              cnpj: item.credenciado_cnpj,
+              email: item.credenciado_email,
+              numero_credenciado: item.credenciado_numero,
+            },
+            estatisticas: {
+              total: item.total_documentos || 0,
+              ativos: item.documentos_ativos || 0,
+              vencidos: item.documentos_vencidos || 0,
+              vencendo: item.documentos_vencendo || 0,
+              proximoVencimento: item.proximo_vencimento,
+            },
+            documentos,
+            // Propriedades legadas
+            credenciado_id: item.credenciado_id,
+            credenciado_nome: item.credenciado_nome,
+            credenciado_cpf: item.credenciado_cpf || '',
+            credenciado_numero: item.credenciado_numero || 'N/A',
+            total_documentos: item.total_documentos || 0,
+            documentos_validos: item.documentos_ativos || 0,
+            documentos_vencendo: item.documentos_vencendo || 0,
+            documentos_vencidos: item.documentos_vencidos || 0,
+            documentos_criticos: documentosCriticos,
+            prazos,
+          };
+        }) as CredenciadoPrazos[];
+      } else {
+        // ✅ MODO ALERTAS: Query direta (rápida para dashboard)
+        const { data: documentos, error } = await supabase
+          .from('documentos_credenciados')
+          .select(`
+            id,
+            credenciado_id,
+            tipo_documento,
+            numero_documento,
+            data_emissao,
+            data_vencimento,
+            status,
+            arquivo_nome,
+            url_arquivo,
+            criado_em,
+            atualizado_em,
+            credenciados!inner (
+              id,
+              nome,
+              cpf,
+              email,
+              numero_credenciado
+            )
+          `)
+          .in('status', ['ativo', 'validado'])
+          .not('data_vencimento', 'is', null)
+          .order('data_vencimento', { ascending: true });
+
+        if (error) {
+          console.error('❌ [PRAZOS] Erro query direta:', error);
+          throw error;
+        }
+
+        console.log(`✅ [PRAZOS] ${documentos?.length || 0} documentos com vencimento`);
+
+        // Agrupar por credenciado
+        const agrupamento = new Map<string, any>();
+
+        documentos?.forEach((doc: any) => {
+          const credId = doc.credenciado_id;
+          
+          if (!agrupamento.has(credId)) {
+            agrupamento.set(credId, {
+              credenciado: {
+                id: doc.credenciados.id,
+                nome: doc.credenciados.nome,
+                cpf: doc.credenciados.cpf,
+                cnpj: null,
+                email: doc.credenciados.email,
+                numero_credenciado: doc.credenciados.numero_credenciado,
+              },
+              estatisticas: {
+                total: 0,
+                ativos: 0,
+                vencidos: 0,
+                vencendo: 0,
+                criticos: 0,
+                proximoVencimento: null,
+              },
+              documentos: [],
+              prazos: [],
+            });
+          }
+
+          const item = agrupamento.get(credId)!;
+          
+          // Calcular dias para vencer
+          const diasParaVencer = Math.ceil(
+            (new Date(doc.data_vencimento).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+          );
+
+          let nivelAlerta = 'valido';
+          let corStatus = '#10b981';
+          let statusAtual = 'valido';
+          
+          if (diasParaVencer < 0) {
+            nivelAlerta = 'vencido';
+            corStatus = '#ef4444';
+            statusAtual = 'vencido';
+          } else if (diasParaVencer <= 7) {
+            nivelAlerta = 'critico';
+            corStatus = '#f97316';
+            statusAtual = 'vencendo';
+          } else if (diasParaVencer <= 30) {
+            nivelAlerta = 'atencao';
+            corStatus = '#f59e0b';
+            statusAtual = 'vencendo';
+          }
+
+          // Adicionar documento
+          item.documentos.push({
+            id: doc.id,
+            tipo_documento: doc.tipo_documento,
+            numero_documento: doc.numero_documento,
+            data_emissao: doc.data_emissao,
+            data_vencimento: doc.data_vencimento,
+            arquivo_nome: doc.arquivo_nome,
+            url_arquivo: doc.url_arquivo,
+            status: doc.status,
+            dias_para_vencer: diasParaVencer,
+            criado_em: doc.criado_em,
+            atualizado_em: doc.atualizado_em,
+          });
+
+          // Adicionar prazo (formato legado)
+          item.prazos.push({
+            id: doc.id,
+            entidade_tipo: 'documento_credenciado',
+            entidade_id: doc.id,
+            entidade_nome: doc.tipo_documento,
             credenciado_id: doc.credenciado_id,
             credenciado_nome: doc.credenciados.nome,
-            credenciado_cpf: doc.credenciados.cpf,
-            credenciado_numero: doc.credenciados.numero_credenciado || 'N/A',
-            total_documentos: 0,
-            documentos_validos: 0,
-            documentos_vencendo: 0,
-            documentos_vencidos: 0,
-            documentos_criticos: 0,
-            prazos: []
+            credenciado_cpf: doc.credenciados.cpf || '',
+            data_emissao: doc.data_emissao || '',
+            data_vencimento: doc.data_vencimento,
+            data_renovacao: '',
+            status_atual: statusAtual,
+            dias_para_vencer: diasParaVencer,
+            nivel_alerta: nivelAlerta,
+            cor_status: corStatus,
+            criado_em: doc.criado_em,
+            atualizado_em: doc.atualizado_em,
           });
-        }
 
-        const grupo = agrupamento.get(doc.credenciado_id)!;
-        grupo.total_documentos++;
-        grupo.prazos.push(prazo);
+          // Atualizar estatísticas
+          item.estatisticas.total++;
+          if (doc.status === 'ativo' || doc.status === 'validado') {
+            item.estatisticas.ativos++;
+          }
+          if (diasParaVencer < 0) {
+            item.estatisticas.vencidos++;
+          }
+          if (diasParaVencer >= 0 && diasParaVencer <= 30) {
+            item.estatisticas.vencendo++;
+          }
+          if (diasParaVencer >= 0 && diasParaVencer <= 7) {
+            item.estatisticas.criticos++;
+          }
+          
+          if (!item.estatisticas.proximoVencimento || doc.data_vencimento < item.estatisticas.proximoVencimento) {
+            item.estatisticas.proximoVencimento = doc.data_vencimento;
+          }
+        });
 
-        if (statusAtual === 'vencido') {
-          grupo.documentos_vencidos++;
-        } else if (nivelAlerta === 'critico') {
-          grupo.documentos_criticos++;
-          grupo.documentos_vencendo++;
-        } else if (nivelAlerta === 'atencao') {
-          grupo.documentos_vencendo++;
-        } else {
-          grupo.documentos_validos++;
-        }
-      });
-
-      return Array.from(agrupamento.values());
-    }
+        // Converter para formato final com propriedades legadas
+        return Array.from(agrupamento.values()).map(item => ({
+          ...item,
+          credenciado_id: item.credenciado.id,
+          credenciado_nome: item.credenciado.nome,
+          credenciado_cpf: item.credenciado.cpf || '',
+          credenciado_numero: item.credenciado.numero_credenciado || 'N/A',
+          total_documentos: item.estatisticas.total,
+          documentos_validos: item.estatisticas.ativos,
+          documentos_vencendo: item.estatisticas.vencendo,
+          documentos_vencidos: item.estatisticas.vencidos,
+          documentos_criticos: item.estatisticas.criticos,
+        })) as CredenciadoPrazos[];
+      }
+    },
+    staleTime: 60000,
   });
 
   const atualizarAgora = useMutation({

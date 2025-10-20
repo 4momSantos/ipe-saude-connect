@@ -6459,6 +6459,32 @@ export type Database = {
           total_atualizados: number
         }[]
       }
+      buscar_credenciados_com_documentos: {
+        Args: {
+          p_apenas_com_documentos?: boolean
+          p_apenas_vencidos?: boolean
+          p_limite?: number
+          p_offset?: number
+          p_status?: string
+          p_termo_busca?: string
+          p_tipo_documento?: string
+        }
+        Returns: {
+          credenciado_cnpj: string
+          credenciado_cpf: string
+          credenciado_email: string
+          credenciado_id: string
+          credenciado_nome: string
+          credenciado_numero: string
+          credenciado_status: string
+          documentos: Json
+          documentos_ativos: number
+          documentos_vencendo: number
+          documentos_vencidos: number
+          proximo_vencimento: string
+          total_documentos: number
+        }[]
+      }
       buscar_credenciados_por_categoria: {
         Args: { p_categoria?: string; p_cidade?: string; p_estado?: string }
         Returns: {

@@ -94,7 +94,7 @@ export function DocumentosCredenciadosTab() {
     return () => clearTimeout(timer);
   }, [searchQuery, filtroStatus, filtroSituacaoPrazo, filtroTipoDoc, incluirArquivados]);
 
-  // SOLUÇÃO 1 + 3: Buscar prazos com filtros aplicados no banco e opção de mostrar todos credenciados
+  // Buscar prazos com opção de usar função SQL para mostrar todos credenciados
   const { data: documentos, isLoading, refetch } = useQuery({
     queryKey: [
       'prazos-documentos',
@@ -106,19 +106,107 @@ export function DocumentosCredenciadosTab() {
       mostrarTodosCredenciados
     ],
     queryFn: async () => {
+      // ✅ MODO NOVO: Usar função SQL quando mostrar todos credenciados
+      if (mostrarTodosCredenciados) {
+        const { data, error } = await supabase.rpc('buscar_credenciados_com_documentos', {
+          p_termo_busca: searchQuery || null,
+          p_tipo_documento: filtroTipoDoc.length === 1 ? filtroTipoDoc[0] : null,
+          p_status: 'Ativo',
+          p_apenas_com_documentos: false, // Mostrar TODOS
+          p_apenas_vencidos: filtroSituacaoPrazo === 'vencido',
+          p_limite: 1000,
+          p_offset: 0
+        });
+
+        if (error) {
+          console.error('❌ Erro ao buscar via RPC:', error);
+          throw error;
+        }
+
+        // Transformar para formato esperado
+        const documentosFormatados: DocumentoComOrigem[] = [];
+        
+        data?.forEach((cred: any) => {
+          const docs = cred.documentos || [];
+          
+          if (docs.length === 0) {
+            // Credenciado sem documentos
+            documentosFormatados.push({
+              id: `sem-docs-${cred.credenciado_id}`,
+              entidade_tipo: 'documento_credenciado',
+              entidade_id: '',
+              entidade_nome: 'Sem documentos cadastrados',
+              credenciado_id: cred.credenciado_id,
+              credenciado_nome: cred.credenciado_nome,
+              credenciado_cpf: cred.credenciado_cpf,
+              credenciado_status: cred.credenciado_status,
+              data_vencimento: null,
+              data_emissao: null,
+              dias_para_vencer: 999999,
+              nivel_alerta: 'ok',
+              cor_status: 'text-muted-foreground',
+              status_atual: 'pendente',
+              renovavel: false,
+              criado_em: new Date().toISOString(),
+              atualizado_em: new Date().toISOString(),
+              origem: 'upload_manual',
+            });
+          } else {
+            docs.forEach((doc: any) => {
+              const diasParaVencer = doc.dias_para_vencer || 0;
+              let nivelAlerta = 'valido';
+              let corStatus = '#10b981';
+              
+              if (diasParaVencer < 0) {
+                nivelAlerta = 'vencido';
+                corStatus = '#ef4444';
+              } else if (diasParaVencer <= 7) {
+                nivelAlerta = 'critico';
+                corStatus = '#f97316';
+              } else if (diasParaVencer <= 30) {
+                nivelAlerta = 'atencao';
+                corStatus = '#f59e0b';
+              }
+              
+              documentosFormatados.push({
+                id: doc.id,
+                entidade_tipo: 'documento_credenciado',
+                entidade_id: doc.id,
+                entidade_nome: doc.tipo_documento,
+                credenciado_id: cred.credenciado_id,
+                credenciado_nome: cred.credenciado_nome,
+                credenciado_cpf: cred.credenciado_cpf,
+                credenciado_status: cred.credenciado_status,
+                data_vencimento: doc.data_vencimento,
+                data_emissao: doc.data_emissao,
+                dias_para_vencer: diasParaVencer,
+                nivel_alerta: nivelAlerta,
+                cor_status: corStatus,
+                status_atual: doc.status,
+                renovavel: true,
+                criado_em: doc.criado_em,
+                atualizado_em: doc.atualizado_em,
+                origem: 'upload_manual',
+                tipo_documento: doc.tipo_documento,
+                numero_documento: doc.numero_documento,
+              });
+            });
+          }
+        });
+
+        return documentosFormatados;
+      }
+
+      // ✅ MODO ORIGINAL: Query com filtros detalhados
       let query = supabase
         .from('v_prazos_completos')
         .select('*')
         .eq('entidade_tipo', 'documento_credenciado');
 
-      // SOLUÇÃO 1: Aplicar filtros no banco de dados
-      
-      // Filtro de arquivados
       if (!incluirArquivados) {
         query = query.neq('status_atual', 'arquivado');
       }
 
-      // Filtro de busca (nome do credenciado ou tipo de documento)
       if (searchQuery) {
         query = query.or(
           `credenciado_nome.ilike.%${searchQuery}%,` +
@@ -126,7 +214,6 @@ export function DocumentosCredenciadosTab() {
         );
       }
 
-      // Filtro de situação de prazo
       if (filtroSituacaoPrazo) {
         if (filtroSituacaoPrazo === 'vencido') {
           query = query.lt('dias_para_vencer', 0);
@@ -141,7 +228,6 @@ export function DocumentosCredenciadosTab() {
         }
       }
 
-      // Filtro de tipo de documento
       if (filtroTipoDoc.length > 0) {
         query = query.in('entidade_nome', filtroTipoDoc);
       }
@@ -154,14 +240,12 @@ export function DocumentosCredenciadosTab() {
         throw error;
       }
 
-      // Buscar origem e dados adicionais dos documentos
       const prazosIds = prazos?.map(p => p.entidade_id) || [];
       const { data: docs } = await supabase
         .from('documentos_credenciados')
         .select('id, origem, tipo_documento, numero_documento')
         .in('id', prazosIds);
 
-      // Mapear dados para cada prazo
       const docsMap = new Map(docs?.map(d => [d.id, d]));
       const documentosComOrigem = prazos?.map(p => {
         const docData = docsMap.get(p.entidade_id);
@@ -172,48 +256,6 @@ export function DocumentosCredenciadosTab() {
           numero_documento: docData?.numero_documento
         };
       }) as DocumentoComOrigem[];
-
-      // SOLUÇÃO 3: Se mostrarTodosCredenciados está ativo, buscar credenciados sem documentos
-      if (mostrarTodosCredenciados) {
-        const { data: todosCredenciados, error: credError } = await supabase
-          .from('credenciados')
-          .select('id, nome, cpf, status')
-          .eq('status', 'Ativo');
-
-        if (credError) {
-          console.error('Erro ao buscar credenciados:', credError);
-          return documentosComOrigem;
-        }
-
-        // Identificar credenciados sem documentos
-        const credenciadosComDocs = new Set(documentosComOrigem?.map(p => p.credenciado_id) || []);
-        const credenciadosSemDocs = todosCredenciados?.filter(
-          c => !credenciadosComDocs.has(c.id)
-        ) || [];
-
-        // Adicionar entrada especial para cada credenciado sem documentos
-        const docsVazios: DocumentoComOrigem[] = credenciadosSemDocs.map(c => ({
-          id: `sem-docs-${c.id}`,
-          entidade_tipo: 'documento_credenciado',
-          entidade_id: '',
-          entidade_nome: 'Sem documentos cadastrados',
-          credenciado_id: c.id,
-          credenciado_nome: c.nome,
-          credenciado_cpf: c.cpf,
-          credenciado_status: c.status,
-          data_vencimento: null,
-          data_emissao: null,
-          dias_para_vencer: 999999, // Colocar no final
-          nivel_alerta: 'ok',
-          cor_status: 'text-muted-foreground',
-          status_atual: 'pendente',
-          renovavel: false,
-          criado_em: new Date().toISOString(),
-          atualizado_em: new Date().toISOString()
-        }));
-
-        return [...documentosComOrigem, ...docsVazios];
-      }
 
       return documentosComOrigem;
     }
