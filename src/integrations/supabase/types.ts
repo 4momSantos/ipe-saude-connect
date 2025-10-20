@@ -6929,6 +6929,16 @@ export type Database = {
         Args: { message_ids: string[]; user_id: string }
         Returns: undefined
       }
+      migrar_crms_inscricoes: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          resultado_credenciado_id: string
+          resultado_crm: string
+          resultado_especialidades: number
+          resultado_numero: string
+          resultado_uf: string
+        }[]
+      }
       migrar_prazos_existentes: {
         Args: Record<PropertyKey, never>
         Returns: {
