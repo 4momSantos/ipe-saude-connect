@@ -523,7 +523,7 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
         aria-atomic="true"
       />
       
-      <div ref={wizardContainerRef} className="max-w-5xl mx-auto space-y-6">
+      <div ref={wizardContainerRef} className="max-w-5xl mx-auto space-y-6 pb-32">
         {/* Edital Info */}
         {editalTitulo && (
           <Card className="border-primary/20 bg-primary/5">
@@ -629,7 +629,7 @@ export function InscricaoWizard({ editalId, editalTitulo, onSubmit, rascunhoInsc
       </Card>
 
       {/* Navigation Buttons */}
-      <div className="flex items-center justify-between gap-2">
+      <div className="sticky bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t border-border pt-4 pb-4 mt-8 -mx-6 px-6 z-50 shadow-lg flex items-center justify-between gap-2">
         <Button
           type="button"
           variant="outline"

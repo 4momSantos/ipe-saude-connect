@@ -906,19 +906,21 @@ export default function Editais() {
           setRascunhoData(null);
         }
       }}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b sticky top-0 bg-background z-10">
             <DialogTitle>Inscrição em Edital</DialogTitle>
             <DialogDescription>
               {inscricaoEdital?.titulo} - Preencha o formulário completo de inscrição
             </DialogDescription>
           </DialogHeader>
-          <InscricaoWizard 
-            editalId={inscricaoEdital?.id || ''}
-            editalTitulo={inscricaoEdital?.titulo || ''}
-            onSubmit={handleSubmitInscricao}
-            rascunhoInscricaoId={rascunhoData?.id}
-          />
+          <div className="flex-1 overflow-y-auto px-6 py-6">
+            <InscricaoWizard 
+              editalId={inscricaoEdital?.id || ''}
+              editalTitulo={inscricaoEdital?.titulo || ''}
+              onSubmit={handleSubmitInscricao}
+              rascunhoInscricaoId={rascunhoData?.id}
+            />
+          </div>
         </DialogContent>
       </Dialog>
 
