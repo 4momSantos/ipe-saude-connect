@@ -18,25 +18,25 @@ interface HorariosEditorProps {
 }
 
 const diasSemanaOptions = [
-  { value: "0", label: "Domingo" },
-  { value: "1", label: "Segunda-feira" },
-  { value: "2", label: "Terça-feira" },
-  { value: "3", label: "Quarta-feira" },
-  { value: "4", label: "Quinta-feira" },
-  { value: "5", label: "Sexta-feira" },
-  { value: "6", label: "Sábado" },
+  { value: "Domingo", label: "Domingo" },
+  { value: "Segunda", label: "Segunda-feira" },
+  { value: "Terça", label: "Terça-feira" },
+  { value: "Quarta", label: "Quarta-feira" },
+  { value: "Quinta", label: "Quinta-feira" },
+  { value: "Sexta", label: "Sexta-feira" },
+  { value: "Sábado", label: "Sábado" },
 ];
 
 export function HorariosEditor({ credenciadoCrmId, horariosAtuais, onCancel }: HorariosEditorProps) {
   const [horarios, setHorarios] = useState<Horario[]>(
     horariosAtuais.length > 0 
       ? horariosAtuais 
-      : [{ dia_semana: "1", horario_inicio: "08:00", horario_fim: "18:00" }]
+      : [{ dia_semana: "Segunda", horario_inicio: "08:00", horario_fim: "18:00" }]
   );
   const { mutate: updateHorarios, isPending } = useUpdateHorarios();
 
   const handleAddHorario = () => {
-    setHorarios([...horarios, { dia_semana: "1", horario_inicio: "08:00", horario_fim: "18:00" }]);
+    setHorarios([...horarios, { dia_semana: "Segunda", horario_inicio: "08:00", horario_fim: "18:00" }]);
   };
 
   const handleRemoveHorario = (index: number) => {

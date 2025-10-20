@@ -38,7 +38,7 @@ export function useUpdateHorarios() {
         .insert(
           horarios.map(h => ({
             credenciado_crm_id: credenciadoCrmId,
-            dia_semana: parseInt(h.dia_semana) as any,
+            dia_semana: h.dia_semana,
             horario_inicio: h.horario_inicio,
             horario_fim: h.horario_fim
           }))
