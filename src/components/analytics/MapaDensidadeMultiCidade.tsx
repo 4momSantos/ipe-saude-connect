@@ -41,6 +41,39 @@ export function MapaDensidadeMultiCidade() {
   // Buscar densidade da cidade selecionada
   const { data: densidadeData, isLoading: loadingDensidade } = useDensidadeCredenciados(selectedCidadeId);
 
+  // Dados mockados para demonstração
+  const dadosMockados = {
+    cidade: {
+      nome: 'Porto Alegre',
+      uf: 'RS',
+      populacao: 1492530,
+      credenciados: 342,
+      densidade_geral: 2.29,
+      latitude: -30.0346,
+      longitude: -51.2177,
+      zoom: 11
+    },
+    densidades: [
+      { zona_id: '1', zona: 'Centro Histórico', populacao: 45230, credenciados: 38, densidade: 8.40, cor: '#10b981', geometry: null },
+      { zona_id: '2', zona: 'Moinhos de Vento', populacao: 38540, credenciados: 35, densidade: 9.08, cor: '#10b981', geometry: null },
+      { zona_id: '3', zona: 'Bela Vista', populacao: 52180, credenciados: 28, densidade: 5.37, cor: '#10b981', geometry: null },
+      { zona_id: '4', zona: 'Petrópolis', populacao: 41290, credenciados: 22, densidade: 5.33, cor: '#10b981', geometry: null },
+      { zona_id: '5', zona: 'Zona Norte', populacao: 156420, credenciados: 45, densidade: 2.88, cor: '#84cc16', geometry: null },
+      { zona_id: '6', zona: 'Restinga', populacao: 98320, credenciados: 18, densidade: 1.83, cor: '#eab308', geometry: null },
+      { zona_id: '7', zona: 'Lomba do Pinheiro', populacao: 142560, credenciados: 24, densidade: 1.68, cor: '#eab308', geometry: null },
+      { zona_id: '8', zona: 'Partenon', populacao: 89450, credenciados: 12, densidade: 1.34, cor: '#eab308', geometry: null },
+      { zona_id: '9', zona: 'Zona Sul', populacao: 187230, credenciados: 32, densidade: 1.71, cor: '#eab308', geometry: null },
+      { zona_id: '10', zona: 'Rubem Berta', populacao: 112540, credenciados: 8, densidade: 0.71, cor: '#f97316', geometry: null },
+      { zona_id: '11', zona: 'Sarandi', populacao: 95670, credenciados: 6, densidade: 0.63, cor: '#f97316', geometry: null },
+      { zona_id: '12', zona: 'Agronomia', populacao: 78320, credenciados: 4, densidade: 0.51, cor: '#f97316', geometry: null },
+      { zona_id: '13', zona: 'Cristal', populacao: 132450, credenciados: 5, densidade: 0.38, cor: '#ef4444', geometry: null },
+      { zona_id: '14', zona: 'Vila Nova', populacao: 68920, credenciados: 2, densidade: 0.29, cor: '#ef4444', geometry: null },
+    ]
+  };
+
+  // Usar dados mockados se não houver dados reais
+  const dadosExibicao = densidadeData || dadosMockados;
+
   // Inicializar mapa
   useEffect(() => {
     if (!mapContainer.current || map.current || !mapboxToken) return;
@@ -75,15 +108,15 @@ export function MapaDensidadeMultiCidade() {
 
   // Atualizar mapa quando dados mudarem
   useEffect(() => {
-    if (!map.current || !densidadeData || !mapboxToken) return;
+    if (!map.current || !dadosExibicao || !mapboxToken) return;
 
     const mapInstance = map.current;
 
     // Atualizar viewport para cidade
-    if (densidadeData.cidade) {
+    if (dadosExibicao.cidade) {
       mapInstance.flyTo({
-        center: [densidadeData.cidade.longitude, densidadeData.cidade.latitude],
-        zoom: densidadeData.cidade.zoom,
+        center: [dadosExibicao.cidade.longitude, dadosExibicao.cidade.latitude],
+        zoom: dadosExibicao.cidade.zoom,
         duration: 1500,
       });
     }
@@ -95,10 +128,10 @@ export function MapaDensidadeMultiCidade() {
       if (mapInstance.getLayer('zonas-outline')) mapInstance.removeLayer('zonas-outline');
       if (mapInstance.getSource('zonas')) mapInstance.removeSource('zonas');
 
-      if (!densidadeData.densidades || densidadeData.densidades.length === 0) return;
+      if (!dadosExibicao.densidades || dadosExibicao.densidades.length === 0) return;
 
       // Validar e filtrar apenas zonas com geometrias válidas
-      const zonasValidas = densidadeData.densidades.filter(d => {
+      const zonasValidas = dadosExibicao.densidades.filter(d => {
         if (!d.geometry) {
           console.warn(`[MAPA] Zona ${d.zona} sem geometria`);
           return false;
@@ -226,7 +259,7 @@ export function MapaDensidadeMultiCidade() {
     } else {
       mapInstance.once('style.load', updateLayers);
     }
-  }, [densidadeData]);
+  }, [dadosExibicao]);
 
   if (loadingCidades) {
     return (
@@ -266,32 +299,32 @@ export function MapaDensidadeMultiCidade() {
       </Card>
 
       {/* Estatísticas Gerais da Cidade */}
-      {densidadeData?.cidade && (
+      {dadosExibicao?.cidade && (
         <Card className="p-4 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">População Total</p>
               <p className="text-2xl font-bold">
-                {densidadeData.cidade.populacao.toLocaleString()}
+                {dadosExibicao.cidade.populacao.toLocaleString()}
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Credenciados Ativos</p>
               <p className="text-2xl font-bold text-green-600">
-                {densidadeData.cidade.credenciados}
+                {dadosExibicao.cidade.credenciados}
               </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Densidade Geral</p>
               <p className="text-2xl font-bold text-primary">
-                {densidadeData.cidade.densidade_geral}
+                {dadosExibicao.cidade.densidade_geral}
               </p>
               <p className="text-xs text-muted-foreground">por 10k habitantes</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Zonas Mapeadas</p>
               <p className="text-2xl font-bold">
-                {densidadeData.densidades?.length || 0}
+                {dadosExibicao.densidades?.length || 0}
               </p>
             </div>
           </div>
@@ -392,10 +425,10 @@ export function MapaDensidadeMultiCidade() {
       </div>
 
       {/* Tabela de Ranking por Zona */}
-      {densidadeData?.densidades && densidadeData.densidades.length > 0 && (
+      {dadosExibicao?.densidades && dadosExibicao.densidades.length > 0 && (
         <Card className="p-4">
           <h3 className="font-semibold mb-4">
-            Ranking de Zonas - {densidadeData.cidade.nome}
+            Ranking de Zonas - {dadosExibicao.cidade.nome}
           </h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -410,7 +443,7 @@ export function MapaDensidadeMultiCidade() {
                 </tr>
               </thead>
               <tbody>
-                {densidadeData.densidades
+                {dadosExibicao.densidades
                   .sort((a, b) => b.densidade - a.densidade)
                   .map((d, i) => (
                     <tr 
