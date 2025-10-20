@@ -39,14 +39,21 @@ serve(async (req) => {
 
     const inicioExecucao = Date.now();
 
-    // Buscar documentos
+    // Buscar documentos com JOIN para incluir nome do credenciado
     let query = supabase
       .from('documentos_credenciados')
-      .select('*');
+      .select(`
+        *,
+        credenciados!inner(
+          nome,
+          cpf,
+          status
+        )
+      `);
 
-    // Aplicar filtros
+    // Aplicar filtros - incluindo busca por nome do credenciado
     if (termo) {
-      query = query.or(`numero_documento.ilike.%${termo}%,observacoes.ilike.%${termo}%`);
+      query = query.or(`numero_documento.ilike.%${termo}%,observacoes.ilike.%${termo}%,credenciados.nome.ilike.%${termo}%,credenciados.cpf.ilike.%${termo}%`);
     }
     if (status) {
       query = query.eq('status', status);
@@ -77,7 +84,17 @@ serve(async (req) => {
       throw new Error(error.message);
     }
 
-    const resultado = data ?? [];
+    // Processar resultado para incluir dados do credenciado
+    const resultado = (data ?? []).map((doc: any) => {
+      const { credenciados, ...documentoSemNested } = doc;
+      return {
+        ...documentoSemNested,
+        credenciado_nome: credenciados?.nome || '',
+        credenciado_cpf: credenciados?.cpf || '',
+        credenciado_status: credenciados?.status || ''
+      };
+    });
+    
     const tempoExecucao = Date.now() - inicioExecucao;
 
     console.log('[buscar-documentos] Busca concluída:', {
