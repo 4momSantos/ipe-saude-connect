@@ -17,14 +17,14 @@ export function NavbarPublica() {
           </Link>
           
           <div className="hidden md:flex items-center gap-6">
-            <Link to="/" className="text-sm font-medium text-white/90 hover:text-white transition-colors">
+            <Link to="/" className="text-base font-medium text-white/90 hover:text-white transition-colors">
               Início
             </Link>
-            <Link to="/mapa" className="flex items-center gap-1 text-sm font-medium text-white/90 hover:text-white transition-colors">
-              <MapPin className="h-4 w-4" />
+            <Link to="/mapa" className="flex items-center gap-1 text-base font-medium text-white/90 hover:text-white transition-colors">
+              <MapPin className="h-5 w-5" />
               Encontrar Profissionais
             </Link>
-            <a href="/#validar-certificado" className="text-sm font-medium text-white/90 hover:text-white transition-colors">
+            <a href="/#validar-certificado" className="text-base font-medium text-white/90 hover:text-white transition-colors">
               Validar Certificado
             </a>
           </div>
