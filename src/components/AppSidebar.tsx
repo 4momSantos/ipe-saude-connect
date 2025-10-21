@@ -52,6 +52,7 @@ import { RoleGuard } from "@/components/RoleGuard";
 import { useUserRole, UserRole } from "@/hooks/useUserRole";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { cn } from "@/lib/utils";
+import logoIpeSaude from "@/assets/logo-ipe-original.png";
 
 type Role = 'candidato' | 'analista' | 'gestor' | 'admin';
 
@@ -183,17 +184,23 @@ export function AppSidebar() {
       className="border-r border-border/50 bg-card/50 backdrop-blur-sm"
     >
       <SidebarContent className="gap-0">
-        {/* Header Minimalista */}
+        {/* Header com Logo IPE Saúde */}
         <div className="p-6 pb-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary shadow-sm">
-                <span className="text-lg font-extrabold text-primary-foreground">IPE</span>
-              </div>
+              <img 
+                src={logoIpeSaude} 
+                alt="IPE Saúde" 
+                className={cn(
+                  "object-contain transition-all",
+                  isCollapsed ? "h-10 w-10" : "h-12"
+                )}
+                style={{ mixBlendMode: 'lighten' }}
+              />
               {!isCollapsed && (
                 <div>
-                  <h2 className="text-base font-bold text-foreground">IPE Saúde</h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">Credenciamento</p>
+                  <h2 className="text-base font-bold text-white">IPE Saúde</h2>
+                  <p className="text-xs text-white/80 mt-0.5">Credenciamento</p>
                 </div>
               )}
             </div>

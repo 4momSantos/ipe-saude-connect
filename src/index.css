@@ -106,13 +106,13 @@ All colors MUST be HSL.
     --input: 220 17% 24%;
     --ring: 217 91% 60%;
     
-    --sidebar-background: 220 30% 10%;
-    --sidebar-foreground: 210 40% 98%;
+    --sidebar-background: 135 84% 15%;
+    --sidebar-foreground: 0 0% 100%;
     --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 26% 18%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 220 20% 20%;
+    --sidebar-accent: 135 84% 20%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 135 84% 25%;
     --sidebar-ring: 217 91% 60%;
   }
 }
