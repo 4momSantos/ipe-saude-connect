@@ -1011,13 +1011,20 @@ export function ChatWorkflow({
             onSubmit={async (data) => {
               setNovaMensagem(data.conteudo);
               
+              // Buscar perfil do usuário para popular campos de avatar
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('nome')
+                .eq('id', currentUser.id)
+                .single();
+              
               // Enviar com metadata
               const insertData: any = {
                 inscricao_id: inscricaoId,
                 execution_id: executionId || null,
                 etapa_id: etapaAtual || null,
                 sender_id: currentUser.id,
-                usuario_nome: currentUser.nome || currentUser.email,
+                usuario_nome: profile?.nome || currentUser.email,
                 usuario_email: currentUser.email || '',
                 usuario_papel: usuarioPapel,
                 sender_type: mapearSenderType(usuarioPapel),
