@@ -7133,10 +7133,6 @@ export type Database = {
           workflow_id: string
         }[]
       }
-      sync_approved_inscricao_to_credenciado_v2: {
-        Args: { p_inscricao_id: string }
-        Returns: string
-      }
       sync_credenciado_from_contract: {
         Args: { p_inscricao_id: string }
         Returns: string
