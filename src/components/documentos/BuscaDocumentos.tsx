@@ -310,7 +310,7 @@ export function BuscaDocumentos({
                 value={filtros.ordenacao || 'relevancia'} 
                 onValueChange={(v: OrdenacaoTipo) => {
                   setFiltros({...filtros, ordenacao: v});
-                  if (termo) buscar(termo, {...filtros, ordenacao: v});
+                  buscar(termo, {...filtros, ordenacao: v}, { incluirPrazos, incluirOCR });
                 }}
               >
                 <SelectTrigger className="w-[180px]">
