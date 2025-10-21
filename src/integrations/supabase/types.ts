@@ -7128,6 +7128,29 @@ export type Database = {
         }
         Returns: string
       }
+      verificar_contratos_sem_credenciado: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          assinado_em: string
+          contrato_id: string
+          inscricao_id: string
+          numero_contrato: string
+          status: string
+          tem_dados_contrato: boolean
+        }[]
+      }
+      verificar_credenciados_incompletos: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          campos_faltantes: string[]
+          cpf: string
+          credenciado_id: string
+          nome: string
+          tem_crm: boolean
+          tem_email: boolean
+          tem_endereco: boolean
+        }[]
+      }
       verificar_prazos_vencendo: {
         Args: Record<PropertyKey, never>
         Returns: {
