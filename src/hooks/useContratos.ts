@@ -92,8 +92,7 @@ export function useTodosContratos() {
             external_id,
             metadata,
             created_at,
-            updated_at,
-            external_data
+            updated_at
           )
         `)
         .order("created_at", { ascending: false });
