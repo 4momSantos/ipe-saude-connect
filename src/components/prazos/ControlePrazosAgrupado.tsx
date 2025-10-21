@@ -261,47 +261,6 @@ export function ControlePrazosAgrupado() {
               </div>
             </div>
           </div>
-
-          {/* Filtros */}
-          <div className="flex gap-2 flex-wrap mt-4">
-            <Button
-              onClick={() => setFiltroStatus('todos')}
-              variant={filtroStatus === 'todos' ? 'default' : 'outline'}
-              size="sm"
-            >
-              Todos
-            </Button>
-            <Button
-              onClick={() => setFiltroStatus('vencido')}
-              variant={filtroStatus === 'vencido' ? 'destructive' : 'outline'}
-              size="sm"
-            >
-              Vencidos
-            </Button>
-            <Button
-              onClick={() => setFiltroStatus('critico')}
-              variant={filtroStatus === 'critico' ? 'destructive' : 'outline'}
-              size="sm"
-            >
-              Críticos (&lt; 30 dias)
-            </Button>
-            <Button
-              onClick={() => setFiltroStatus('atencao')}
-              variant={filtroStatus === 'atencao' ? 'default' : 'outline'}
-              size="sm"
-              className={filtroStatus === 'atencao' ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
-            >
-              Atenção (30-60 dias)
-            </Button>
-            <Button
-              onClick={() => setFiltroStatus('ok')}
-              variant={filtroStatus === 'ok' ? 'default' : 'outline'}
-              size="sm"
-              className={filtroStatus === 'ok' ? 'bg-green-600 hover:bg-green-700' : ''}
-            >
-              OK (&gt; 60 dias)
-            </Button>
-          </div>
         </CardContent>
       </Card>
 
