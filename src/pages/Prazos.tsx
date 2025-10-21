@@ -17,7 +17,9 @@ import {
   FileText,
   FolderOpen,
   CalendarDays,
-  Clock
+  Clock,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -54,7 +56,20 @@ export default function Prazos() {
   const [prazoSelecionado, setPrazoSelecionado] = useState<Prazo | null>(null);
   const [modalRenovarOpen, setModalRenovarOpen] = useState(false);
   const [agrupamento, setAgrupamento] = useState<TipoAgrupamento>('credenciado');
+  const [credenciadosExpandidos, setCredenciadosExpandidos] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
+
+  const toggleCredenciado = (credenciadoId: string) => {
+    setCredenciadosExpandidos(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(credenciadoId)) {
+        newSet.delete(credenciadoId);
+      } else {
+        newSet.add(credenciadoId);
+      }
+      return newSet;
+    });
+  };
 
   const handleRenovar = (prazo: Prazo) => {
     setPrazoSelecionado(prazo);
@@ -337,35 +352,66 @@ export default function Prazos() {
               </Card>
             ) : agrupamento === 'credenciado' ? (
               // Agrupado por Credenciado (visualização original)
-              credenciadosFiltrados.map((credenciado) => (
-                <Card key={credenciado.credenciado_id} className="overflow-hidden">
-                  <CardHeader className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-lg font-bold">{credenciado.credenciado_nome}</CardTitle>
-                        <CardDescription className="text-primary-foreground/90 text-sm mt-1">
-                          {credenciado.credenciado_numero}
-                        </CardDescription>
-                      </div>
-                      <div className="flex gap-2">
-                        <Badge variant="secondary" className="bg-white/20">
-                          {credenciado.total_documentos} docs
-                        </Badge>
-                        {credenciado.documentos_vencidos > 0 && (
-                          <Badge variant="destructive">
-                            {credenciado.documentos_vencidos} vencidos
-                          </Badge>
+              credenciadosFiltrados.map((credenciado) => {
+                const isExpanded = credenciadosExpandidos.has(credenciado.credenciado_id);
+                
+                return (
+                  <Card key={credenciado.credenciado_id} className="overflow-hidden">
+                    <CardHeader 
+                      className={`cursor-pointer transition-colors ${
+                        isExpanded 
+                          ? 'bg-gradient-to-r from-primary to-primary/80' 
+                          : 'bg-[#064714]'
+                      } text-primary-foreground hover:opacity-90`}
+                      onClick={() => toggleCredenciado(credenciado.credenciado_id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <CardTitle className="text-lg font-bold">{credenciado.credenciado_nome}</CardTitle>
+                            {isExpanded ? (
+                              <ChevronUp className="h-5 w-5" />
+                            ) : (
+                              <ChevronDown className="h-5 w-5" />
+                            )}
+                          </div>
+                          <CardDescription className="text-primary-foreground/90 text-sm mt-1">
+                            {credenciado.credenciado_numero}
+                          </CardDescription>
+                          {!isExpanded && (
+                            <div className="flex gap-2 mt-2 text-xs text-primary-foreground/80">
+                              <span>{credenciado.total_documentos} documentos</span>
+                              {credenciado.documentos_vencidos > 0 && (
+                                <span className="font-medium">• {credenciado.documentos_vencidos} vencidos</span>
+                              )}
+                              {credenciado.documentos_criticos > 0 && (
+                                <span className="font-medium">• {credenciado.documentos_criticos} críticos</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        {isExpanded && (
+                          <div className="flex gap-2">
+                            <Badge variant="secondary" className="bg-white/20">
+                              {credenciado.total_documentos} docs
+                            </Badge>
+                            {credenciado.documentos_vencidos > 0 && (
+                              <Badge variant="destructive">
+                                {credenciado.documentos_vencidos} vencidos
+                              </Badge>
+                            )}
+                            {credenciado.documentos_criticos > 0 && (
+                              <Badge className="bg-orange-500">
+                                {credenciado.documentos_criticos} críticos
+                              </Badge>
+                            )}
+                          </div>
                         )}
-                        {credenciado.documentos_criticos > 0 && (
-                          <Badge className="bg-orange-500">
-                            {credenciado.documentos_criticos} críticos
-                          </Badge>
-                        )}
                       </div>
-                    </div>
-                  </CardHeader>
+                    </CardHeader>
 
-                  <CardContent className="pt-4">
+                    {isExpanded && (
+                      <CardContent className="pt-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                       {credenciado.prazos.map((prazo) => {
                         const nivelAlertaTexto = prazo.nivel_alerta === 'critico' ? 'Crítico' :
@@ -451,9 +497,11 @@ export default function Prazos() {
                       })}
                     </div>
                   </CardContent>
-                </Card>
-              ))
-            ) : agrupamento === 'tipo' ? (
+                )}
+              </Card>
+            );
+          })
+        ) : agrupamento === 'tipo' ? (
               // Agrupado por Tipo de Documento
               (() => {
                 const prazosFlat = credenciadosFiltrados.flatMap(c => 
