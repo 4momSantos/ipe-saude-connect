@@ -138,7 +138,7 @@ async function waitForDocumentReady(
         max_attempts: maxAttempts
       }));
 
-      if (status === 'ready' || status === 'pending') {
+      if (status === 'ready' || status === 'pending' || status === 'metadata_ready') {
         console.log(JSON.stringify({
           level: 'info',
           action: 'document_ready',

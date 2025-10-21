@@ -39,8 +39,8 @@ async function waitForDocumentReady(
 
       console.log(`   📄 Status do documento: ${status} (tentativa ${attempt}/${maxAttempts})`);
 
-      if (status === 'ready' || status === 'pending') {
-        console.log(`   ✅ Documento pronto após ${attempt} tentativa(s)`);
+      if (status === 'ready' || status === 'pending' || status === 'metadata_ready') {
+        console.log(`   ✅ Documento pronto (${status}) após ${attempt} tentativa(s)`);
         return true;
       }
 
