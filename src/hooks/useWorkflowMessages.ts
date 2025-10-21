@@ -23,6 +23,15 @@ interface Message {
   sender_name?: string;
   sender_email?: string;
   lido_por?: string[];
+  tipo?: string;
+  mensagem_html?: string;
+  manifestacao_metadata?: any;
+  anexos?: any[];
+  usuario_papel?: string;
+  mencoes?: string[];
+  resposta_para_id?: string;
+  visivel_para?: string[];
+  privada?: boolean;
 }
 
 interface UseWorkflowMessagesOptions {
@@ -222,6 +231,15 @@ export function useWorkflowMessages({
           sender_name: msg.usuario_nome || "Usuário",
           sender_email: msg.usuario_email,
           lido_por: lidoPorArray,
+          tipo: msg.tipo,
+          mensagem_html: msg.mensagem_html,
+          manifestacao_metadata: msg.manifestacao_metadata,
+          anexos: msg.anexos,
+          usuario_papel: msg.usuario_papel,
+          mencoes: msg.mencoes,
+          resposta_para_id: msg.resposta_para_id,
+          visivel_para: msg.visivel_para,
+          privada: msg.privada,
         };
       }).reverse(); // Reverter para ordem cronológica
 
