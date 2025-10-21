@@ -186,7 +186,7 @@ export function DashboardContratos() {
         status: contrato.status
       });
     }
-    
+
     // Se está no set de recém-enviados, considerar como ENVIADO_PENDENTE
     if (recentlySent.has(contrato.id)) {
       console.log(`[ESTADO] Contrato ${contrato.numero_contrato}: ENVIADO_PENDENTE (recém-enviado)`);
@@ -200,7 +200,7 @@ export function DashboardContratos() {
       return 'NAO_ENVIADO';
     }
     const latestSR = getLatestSignatureRequest(contrato);
-    
+
     // Debug para contratos específicos - LOG 2
     if (isTarget) {
       console.log(`[DEBUG 2] ${contrato.numero_contrato}:`, {
@@ -222,7 +222,6 @@ export function DashboardContratos() {
       }
     }
     const hasAssignment = metadata?.assinafy_assignment_id || metadata?.assignment_id;
-    
     console.log(`[DEBUG ASSIGNMENT] ${contrato.numero_contrato}:`, {
       hasAssignment,
       metadata,
@@ -488,12 +487,7 @@ export function DashboardContratos() {
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1 relative group">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary/60 transition-colors group-hover:text-primary" />
-                <Input 
-                  placeholder="🔍 Buscar por número do contrato ou nome do candidato..." 
-                  value={searchQuery} 
-                  onChange={e => setSearchQuery(e.target.value)} 
-                  className="pl-11 h-12 bg-background/50 backdrop-blur-sm border-border/50 focus:border-primary/50 transition-all shadow-sm hover:shadow-md" 
-                />
+                <Input placeholder="🔍 Buscar por número do contrato ou nome do candidato..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-11 h-12 bg-background/50 backdrop-blur-sm border-border/50 focus:border-primary/50 transition-all shadow-sm hover:shadow-md" />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full sm:w-72 h-12 bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-all shadow-sm hover:shadow-md">
@@ -510,19 +504,13 @@ export function DashboardContratos() {
                   <SelectItem value="rejeitado">❌ Rejeitado</SelectItem>
                 </SelectContent>
               </Select>
-              {(statusFilter !== 'todos' || searchQuery) && (
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setStatusFilter("todos");
-                    setSearchQuery("");
-                  }}
-                  className="h-12 px-6 bg-background/50 backdrop-blur-sm border-border/50 hover:border-destructive/50 hover:bg-destructive/5 hover:text-destructive transition-all shadow-sm hover:shadow-md"
-                >
+              {(statusFilter !== 'todos' || searchQuery) && <Button variant="outline" onClick={() => {
+              setStatusFilter("todos");
+              setSearchQuery("");
+            }} className="h-12 px-6 bg-background/50 backdrop-blur-sm border-border/50 hover:border-destructive/50 hover:bg-destructive/5 hover:text-destructive transition-all shadow-sm hover:shadow-md">
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Limpar Filtros
-                </Button>
-              )}
+                </Button>}
             </div>
           </div>
 
@@ -598,34 +586,25 @@ export function DashboardContratos() {
                           {contrato.status === 'pendente_assinatura' && state === 'NAO_ENVIADO' && <Badge variant="outline" className="ml-2 text-xs font-semibold border-amber-500 bg-amber-50 text-amber-700">
                               ⚠️ Pendente Envio
                             </Badge>}
-                          {contrato.status === 'pendente_assinatura' && state === 'ENVIADO_PENDENTE' && (
-                            <Badge 
-                              variant="default" 
-                              className="ml-2 text-xs bg-blue-600 hover:bg-blue-600"
-                              title={(() => {
-                                const latestSR = getLatestSignatureRequest(contrato);
-                                const dataEnvio = latestSR?.created_at 
-                                  ? new Date(latestSR.created_at).toLocaleString('pt-BR')
-                                  : 'data desconhecida';
-                                const docId = latestSR?.external_id || 'N/A';
-                                
-                                // Parse metadata corretamente
-                                let metadata = latestSR?.metadata;
-                                if (typeof metadata === 'string') {
-                                  try {
-                                    metadata = JSON.parse(metadata);
-                                  } catch (e) {
-                                    metadata = {};
-                                  }
-                                }
-                                const assignmentId = metadata?.assinafy_assignment_id || metadata?.assignment_id || 'N/A';
-                                
-                                return `Enviado ao Assinafy em ${dataEnvio}\nDoc ID: ${docId}\nAssignment ID: ${assignmentId}`;
-                              })()}
-                            >
+                          {contrato.status === 'pendente_assinatura' && state === 'ENVIADO_PENDENTE' && <Badge variant="default" className="ml-2 text-xs bg-blue-600 hover:bg-blue-600" title={(() => {
+                      const latestSR = getLatestSignatureRequest(contrato);
+                      const dataEnvio = latestSR?.created_at ? new Date(latestSR.created_at).toLocaleString('pt-BR') : 'data desconhecida';
+                      const docId = latestSR?.external_id || 'N/A';
+
+                      // Parse metadata corretamente
+                      let metadata = latestSR?.metadata;
+                      if (typeof metadata === 'string') {
+                        try {
+                          metadata = JSON.parse(metadata);
+                        } catch (e) {
+                          metadata = {};
+                        }
+                      }
+                      const assignmentId = metadata?.assinafy_assignment_id || metadata?.assignment_id || 'N/A';
+                      return `Enviado ao Assinafy em ${dataEnvio}\nDoc ID: ${docId}\nAssignment ID: ${assignmentId}`;
+                    })()}>
                               📧 Enviado ao Assinafy
-                            </Badge>
-                          )}
+                            </Badge>}
                         </TableCell>
                         <TableCell>{candidatoNome}</TableCell>
                         <TableCell>
@@ -747,13 +726,7 @@ export function DashboardContratos() {
                           const temSignatureRequest = latestSR !== null;
                           return <>
                                     {/* Badge visual de confirmação */}
-                                    <Badge 
-                                      variant="default" 
-                                      className="mr-2 bg-blue-600 hover:bg-blue-600 text-xs"
-                                      title={`Enviado ao Assinafy em ${latestSR?.created_at ? new Date(latestSR.created_at).toLocaleString('pt-BR') : 'data desconhecida'}\nDoc ID: ${latestSR?.external_id || 'N/A'}\nAssignment ID: ${hasAssignment || 'N/A'}`}
-                                    >
-                                      📧 Enviado ao Assinafy
-                                    </Badge>
+                                    
 
                                     {/* Botão REENVIAR E-MAIL - só mostrar se tem SR confirmado */}
                                     {temSignatureRequest && <Button size="sm" variant="outline" className="border-blue-500 text-blue-600 hover:bg-blue-50" onClick={() => {
