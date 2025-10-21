@@ -8,7 +8,6 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkflowStatusCard } from "@/components/workflow/WorkflowStatusCard";
 import { DadosInscricaoTab } from "./DadosInscricaoTab";
-import { DocumentosTabFromJSON } from "./DocumentosTabFromJSON";
 import { MessagesTab } from "@/components/process-tabs/MessagesTab";
 import { useInscricaoProgressoReal } from "@/hooks/useInscricaoProgressoReal";
 import { 
@@ -22,7 +21,6 @@ import {
   Download,
   Eye,
   Activity,
-  FileStack,
   MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -205,7 +203,7 @@ export function FluxoCredenciamento({
 
       {/* Sistema de Abas */}
       <Tabs defaultValue="status" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="status" className="flex items-center gap-2">
             <Activity className="w-4 h-4" />
             Status
@@ -213,10 +211,6 @@ export function FluxoCredenciamento({
           <TabsTrigger value="dados" className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
             Dados da Inscrição
-          </TabsTrigger>
-          <TabsTrigger value="documentos" className="flex items-center gap-2">
-            <FileStack className="w-4 h-4" />
-            Documentos
           </TabsTrigger>
           <TabsTrigger value="mensagens" className="flex items-center gap-2">
             <MessageSquare className="w-4 h-4" />
@@ -469,20 +463,6 @@ export function FluxoCredenciamento({
         {/* Aba Dados da Inscrição */}
         <TabsContent value="dados" className="mt-6">
           <DadosInscricaoTab inscricaoId={inscricaoId} />
-        </TabsContent>
-
-        {/* Aba Documentos */}
-        <TabsContent value="documentos" className="mt-6">
-          {inscricaoId ? (
-            <DocumentosTabFromJSON dadosInscricao={dadosInscricao} />
-          ) : (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <FileStack className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">Nenhuma inscrição vinculada.</p>
-              </CardContent>
-            </Card>
-          )}
         </TabsContent>
 
         {/* Aba Mensagens */}
