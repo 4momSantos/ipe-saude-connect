@@ -65,7 +65,7 @@ export function useTodosContratos() {
   const query = useQuery({
     queryKey: ["contratos", "todos"],
     queryFn: async () => {
-      console.log('[CONTRATOS] Iniciando fetch de contratos...');
+      console.log('[CONTRATOS] 🔍 Iniciando fetch de TODOS os contratos...');
       
       const { data, error } = await supabase
         .from("contratos")
@@ -91,35 +91,45 @@ export function useTodosContratos() {
             status,
             external_id,
             metadata,
-            created_at
+            created_at,
+            updated_at,
+            external_data
           )
         `)
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error('[CONTRATOS] Erro ao buscar contratos:', error);
+        console.error('[CONTRATOS] ❌ Erro ao buscar contratos:', error);
         throw error;
       }
       
-      console.log('[CONTRATOS] Contratos retornados:', data?.length);
-      console.log('[CONTRATOS] Dados completos:', data);
+      console.log('[CONTRATOS] ✅ Total de contratos retornados:', data?.length);
       
-      // Log de contratos sem HTML para debug
-      const contratosSemHTML = data.filter(c => 
-        c.status === 'pendente_assinatura' && 
-        !(c.dados_contrato as any)?.html
-      );
-      
-      if (contratosSemHTML.length > 0) {
-        console.warn('[CONTRATOS] Encontrados contratos sem HTML:', contratosSemHTML.map(c => ({
-          id: c.id,
-          numero: c.numero_contrato,
-          inscricao_id: c.inscricao_id
-        })));
-      }
+      // Log detalhado de TODOS os contratos
+      data?.forEach((contrato) => {
+        console.log(`[CONTRATO] ${contrato.numero_contrato}:`, {
+          id: contrato.id,
+          status: contrato.status,
+          inscricao_id: contrato.inscricao_id,
+          signature_requests_count: contrato.signature_requests?.length || 0,
+          signature_requests: contrato.signature_requests?.map((sr: any) => ({
+            id: sr.id,
+            status: sr.status,
+            external_id: sr.external_id,
+            metadata: sr.metadata,
+            created_at: sr.created_at
+          }))
+        });
+      });
       
       return data;
-    }
+    },
+    // 🔥 Configurações agressivas para sempre ter dados atualizados
+    staleTime: 0, // Sempre considerar dados como stale
+    refetchInterval: 10000, // Refetch a cada 10 segundos
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true
   });
 
   const filtrar = (status?: string) => {
