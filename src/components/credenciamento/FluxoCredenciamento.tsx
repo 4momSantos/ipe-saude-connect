@@ -239,22 +239,25 @@ export function FluxoCredenciamento({
 
           {/* Timeline Horizontal */}
           {statusAtual !== "rejeitado" && (
-            <div className="relative py-4">
-              {/* Linha conectora de fundo */}
-              <div className="absolute top-[72px] left-8 right-8 h-1 bg-border rounded-full" style={{ zIndex: 0 }} />
-              
-              {/* Linha de progresso animada */}
-              <div 
-                className="absolute top-[72px] left-8 h-1 bg-gradient-to-r from-[hsl(var(--blue-primary))] via-[hsl(var(--orange-warning))] to-[hsl(var(--green-approved))] rounded-full transition-all duration-1000 ease-out shadow-lg"
-                style={{ 
-                  width: `calc(${progress}% - 64px)`,
-                  zIndex: 1,
-                  boxShadow: '0 0 10px hsl(var(--primary) / 0.5)'
-                }}
-              />
+            <div className="relative py-8">
+              {/* Container para linha de progresso - visível apenas em desktop */}
+              <div className="hidden md:block">
+                {/* Linha conectora de fundo */}
+                <div className="absolute top-16 left-0 right-0 h-0.5 bg-border/50" style={{ zIndex: 0 }} />
+                
+                {/* Linha de progresso animada */}
+                <div 
+                  className="absolute top-16 left-0 h-0.5 bg-gradient-to-r from-[hsl(var(--blue-primary))] via-[hsl(var(--orange-warning))] to-[hsl(135,84%,15%)] transition-all duration-1000 ease-out"
+                  style={{ 
+                    width: `${progress}%`,
+                    zIndex: 1,
+                    boxShadow: '0 0 8px hsl(135 84% 15% / 0.4)'
+                  }}
+                />
+              </div>
 
               {/* Cards das Etapas */}
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-6 relative" style={{ zIndex: 2 }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 md:gap-3 relative" style={{ zIndex: 2 }}>
                 {etapas.map((etapa, index) => {
                   const state = getStepState(index);
                   const Icon = etapa.icon;
@@ -263,8 +266,8 @@ export function FluxoCredenciamento({
                     <div
                       key={etapa.id}
                       className={cn(
-                        "transition-all duration-700 ease-out",
-                        state === "current" && "animate-fade-in"
+                        "transition-all duration-500 ease-out",
+                        state === "current" && "animate-scale-in"
                       )}
                       style={{
                         animationDelay: `${index * 100}ms`
@@ -272,76 +275,78 @@ export function FluxoCredenciamento({
                     >
                       <Card
                         className={cn(
-                          "relative overflow-hidden transition-all duration-500 hover-lift border-2",
-                          state === "current" && "ring-2 ring-offset-2 ring-primary shadow-2xl card-glow scale-105",
-                          state === "completed" && "bg-muted/30",
-                          state === "pending" && "opacity-60 grayscale hover:grayscale-0",
-                          etapa.borderColor
+                          "relative overflow-hidden transition-all duration-300 border-2 h-full",
+                          state === "current" && "ring-2 ring-offset-2 shadow-lg scale-[1.02]",
+                          state === "completed" && "bg-accent/30 border-[hsl(135,84%,15%)]",
+                          state === "pending" && "opacity-50 border-border",
+                          state === "current" && "border-[hsl(135,84%,15%)]"
                         )}
                       >
                         {/* Background gradient sutil */}
-                        <div 
-                          className={cn(
-                            "absolute inset-0 opacity-5",
-                            etapa.bgColor
-                          )}
-                        />
+                        {state === "current" && (
+                          <div className="absolute inset-0 bg-gradient-to-br from-[hsl(135,84%,15%)]/5 to-transparent" />
+                        )}
 
-                        <CardHeader className="pb-3 relative">
+                        <CardHeader className="pb-2 pt-4 relative space-y-0">
                           {/* Ícone da etapa */}
-                          <div 
-                            className={cn(
-                              "w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-500 shadow-md",
-                              etapa.bgColor,
-                              "border-3",
-                              etapa.borderColor,
-                              state === "current" && "scale-110 shadow-2xl animate-pulse",
-                              state === "completed" && "ring-2 ring-offset-2 ring-[hsl(var(--green-approved))]"
-                            )}
-                          >
-                            <Icon className={cn("w-10 h-10 transition-transform duration-300", etapa.color)} />
+                          <div className="flex flex-col items-center gap-3">
+                            <div 
+                              className={cn(
+                                "w-16 h-16 rounded-full flex items-center justify-center transition-all duration-500 border-2",
+                                state === "completed" && "bg-[hsl(135,84%,15%)] border-[hsl(135,84%,15%)]",
+                                state === "current" && "bg-[hsl(135,84%,15%)] border-[hsl(135,84%,15%)] shadow-lg",
+                                state === "pending" && "bg-muted border-border"
+                              )}
+                            >
+                              <Icon 
+                                className={cn(
+                                  "w-8 h-8 transition-all duration-300",
+                                  (state === "completed" || state === "current") && "text-white",
+                                  state === "pending" && "text-muted-foreground"
+                                )} 
+                              />
+                            </div>
+                            
+                            <CardTitle className="text-center text-sm font-semibold leading-tight">
+                              {etapa.label}
+                            </CardTitle>
                           </div>
-                          
-                          <CardTitle className="text-center text-sm font-bold">
-                            {etapa.label}
-                          </CardTitle>
                         </CardHeader>
                         
-                        <CardContent className="relative">
-                          <Separator className="mb-3" />
-                          <CardDescription className="text-center text-xs leading-relaxed">
+                        <CardContent className="relative px-3 pb-4">
+                          <CardDescription className="text-center text-xs leading-relaxed min-h-[2.5rem] flex items-center justify-center">
                             {etapa.description}
                           </CardDescription>
                           
                           {/* Indicador de status */}
-                          <div className="mt-4 flex justify-center">
+                          <div className="mt-3 flex justify-center">
                             {state === "completed" && (
-                              <div className="flex items-center gap-2 text-[hsl(var(--green-approved))] animate-scale-in">
-                                <CheckCircle2 className="w-5 h-5" />
+                              <div className="flex items-center gap-1.5 text-[hsl(135,84%,15%)] animate-fade-in">
+                                <CheckCircle2 className="w-4 h-4" />
                                 <span className="text-xs font-medium">Concluído</span>
                               </div>
                             )}
                             {state === "current" && (
-                              <div className="flex items-center gap-2">
-                                <div className="relative">
-                                  <div className="w-3 h-3 rounded-full bg-primary animate-ping absolute" />
-                                  <div className="w-3 h-3 rounded-full bg-primary" />
+                              <div className="flex items-center gap-1.5 text-[hsl(135,84%,15%)]">
+                                <div className="relative flex items-center justify-center">
+                                  <div className="w-2.5 h-2.5 rounded-full bg-[hsl(135,84%,15%)] animate-ping absolute" />
+                                  <div className="w-2.5 h-2.5 rounded-full bg-[hsl(135,84%,15%)]" />
                                 </div>
-                                <span className="text-xs font-medium text-primary">Em andamento</span>
+                                <span className="text-xs font-medium">Em andamento</span>
                               </div>
                             )}
                             {state === "pending" && (
-                              <div className="flex items-center gap-2 text-muted-foreground">
+                              <div className="flex items-center gap-1.5 text-muted-foreground">
                                 <Clock className="w-4 h-4" />
-                                <span className="text-xs">Pendente</span>
+                                <span className="text-xs">Aguardando</span>
                               </div>
                             )}
                           </div>
                         </CardContent>
 
-                        {/* Efeito de brilho no topo do card atual */}
+                        {/* Barra superior para etapa atual */}
                         {state === "current" && (
-                          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent animate-pulse" />
+                          <div className="absolute top-0 left-0 right-0 h-1 bg-[hsl(135,84%,15%)]" />
                         )}
                       </Card>
                     </div>
