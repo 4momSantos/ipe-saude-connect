@@ -89,7 +89,9 @@ export function useTodosContratos() {
           signature_requests(
             id,
             status,
-            external_id
+            external_id,
+            metadata,
+            created_at
           )
         `)
         .order("created_at", { ascending: false });

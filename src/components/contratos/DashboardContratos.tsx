@@ -177,6 +177,16 @@ export function DashboardContratos() {
 
   // 🎯 Helper para identificar o estado do contrato
   const getContractState = (contrato: any): 'NAO_ENVIADO' | 'STUCK' | 'ENVIADO_PENDENTE' => {
+    // Debug para contratos específicos - LOG 1
+    const isTarget = ['CONT-2025-485295', 'CONT-2025-289812', 'CONT-2025-270384'].includes(contrato.numero_contrato);
+    if (isTarget) {
+      console.log(`[DEBUG 1] ${contrato.numero_contrato}:`, {
+        hasSignatureRequests: !!contrato.signature_requests?.length,
+        signatureRequestsCount: contrato.signature_requests?.length || 0,
+        status: contrato.status
+      });
+    }
+    
     // Se está no set de recém-enviados, considerar como ENVIADO_PENDENTE
     if (recentlySent.has(contrato.id)) {
       console.log(`[ESTADO] Contrato ${contrato.numero_contrato}: ENVIADO_PENDENTE (recém-enviado)`);
@@ -184,9 +194,23 @@ export function DashboardContratos() {
     }
     const signatureRequests = contrato.signature_requests;
     if (!signatureRequests?.length) {
+      if (isTarget) {
+        console.log(`[DEBUG 1B] ${contrato.numero_contrato}: NAO_ENVIADO (sem signature_requests)`);
+      }
       return 'NAO_ENVIADO';
     }
     const latestSR = getLatestSignatureRequest(contrato);
+    
+    // Debug para contratos específicos - LOG 2
+    if (isTarget) {
+      console.log(`[DEBUG 2] ${contrato.numero_contrato}:`, {
+        latestSR: !!latestSR,
+        sr_id: latestSR?.id,
+        sr_status: latestSR?.status,
+        sr_external_id: latestSR?.external_id,
+        metadata: latestSR?.metadata
+      });
+    }
     // Metadata pode vir como objeto ou string JSON do banco
     let metadata = latestSR?.metadata;
     if (typeof metadata === 'string') {
