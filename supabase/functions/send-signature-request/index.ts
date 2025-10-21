@@ -90,7 +90,7 @@ async function getOrCreateSigner(
 async function waitForDocumentReady(
   documentId: string,
   assinafyApiKey: string,
-  maxAttempts: number = 10,
+  maxAttempts: number = 15,  // ✅ Aumentado de 10 para 15 (30s total)
   intervalMs: number = 2000
 ): Promise<boolean> {
   console.log(JSON.stringify({

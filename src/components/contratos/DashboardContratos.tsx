@@ -619,7 +619,7 @@ export function DashboardContratos() {
                           {contrato.assinado_em ? new Date(contrato.assinado_em).toLocaleDateString("pt-BR") : "-"}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex flex-col gap-2 items-end">
                             {contrato.documento_url ? <Button size="sm" variant="outline" onClick={async () => {
                         try {
                           toast.loading('Baixando PDF...', {
@@ -658,16 +658,31 @@ export function DashboardContratos() {
                             {contrato.status === "pendente_assinatura" && (() => {
                         // Estado: STUCK - Contrato órfão que precisa ser reprocessado
                         if (state === 'STUCK') {
-                          return <>
-                                    {/* Botão REPROCESSAR - para contratos órfãos */}
-                                    {temPDF && <ReprocessOrphanButton 
-                                      contratoId={contrato.id}
-                                      contratoNumero={contrato.numero_contrato}
-                                      isDisabled={recentlySent.has(contrato.id)}
-                                    />}
+                          const latestSR = getLatestSignatureRequest(contrato);
+                          const isFailed = latestSR?.status === 'failed';
+                          const hasExternalId = !!latestSR?.external_id;
+                          
+                          return <div className="flex flex-col gap-2 items-end w-full">
+                                    {/* Alerta visual para contratos com falha no processamento */}
+                                    {isFailed && hasExternalId && <div className="w-full p-2 bg-orange-50 border border-orange-200 rounded-md text-left">
+                                      <p className="text-xs text-orange-700 font-medium mb-1">
+                                        ⏳ Documento enviado ao Assinafy mas aguardando processamento
+                                      </p>
+                                      <p className="text-xs text-orange-600">
+                                        Clique em "Reprocessar" para concluir o envio.
+                                      </p>
+                                    </div>}
                                     
-                                    {/* Botão REGENERAR - só se não tem PDF */}
-                                    {!temPDF && <Button size="sm" variant="destructive" onClick={async () => {
+                                    <div className="flex gap-2">
+                                      {/* Botão REPROCESSAR - para contratos órfãos */}
+                                      {temPDF && <ReprocessOrphanButton 
+                                        contratoId={contrato.id}
+                                        contratoNumero={contrato.numero_contrato}
+                                        isDisabled={recentlySent.has(contrato.id)}
+                                      />}
+                                      
+                                      {/* Botão REGENERAR - só se não tem PDF */}
+                                      {!temPDF && <Button size="sm" variant="destructive" onClick={async () => {
                               try {
                                 toast.loading('Gerando novo contrato...', {
                                   id: 'regen'
@@ -686,16 +701,17 @@ export function DashboardContratos() {
                                   description: error.message
                                 });
                               }
-                            }} disabled={isGerandoContrato}>
+                                      }} disabled={isGerandoContrato}>
                                         <RefreshCw className={`h-4 w-4 mr-2 ${isGerandoContrato ? 'animate-spin' : ''}`} />
                                         Regenerar PDF
                                       </Button>}
-                                  </>;
+                                    </div>
+                                  </div>;
                         }
                         
                         // Estado: NAO_ENVIADO - Primeiro envio
                         if (state === 'NAO_ENVIADO') {
-                          return <>
+                          return <div className="flex gap-2">
                                     {/* Botão ENVIAR - primeiro envio */}
                                     {temPDF && <Button size="sm" variant="default" onClick={() => handleSendSingleContract(contrato.id)} disabled={sendingContratoId === contrato.id || recentlySent.has(contrato.id)} className="bg-green-600 hover:bg-green-700" title="Enviar contrato para assinatura digital">
                                         {sendingContratoId === contrato.id ? <>
@@ -731,7 +747,7 @@ export function DashboardContratos() {
                                         <RefreshCw className={`h-4 w-4 mr-2 ${isGerandoContrato ? 'animate-spin' : ''}`} />
                                         Regenerar PDF
                                       </Button>}
-                                  </>;
+                                  </div>;
                         }
 
                         // Estado: ENVIADO_PENDENTE
@@ -762,10 +778,7 @@ export function DashboardContratos() {
 
                           // Verificar se signature request existe (pode não existir se acabou de enviar)
                           const temSignatureRequest = latestSR !== null;
-                          return <>
-                                    {/* Badge visual de confirmação */}
-                                    
-
+                          return <div className="flex gap-2">
                                     {/* Botão REENVIAR E-MAIL - só mostrar se tem SR confirmado */}
                                     {temSignatureRequest && <Button size="sm" variant="outline" className="border-blue-500 text-blue-600 hover:bg-blue-50" onClick={() => {
                               const dataEnvio = latestSR?.created_at ? new Date(latestSR.created_at).toLocaleString('pt-BR', {
@@ -811,7 +824,7 @@ export function DashboardContratos() {
                                     
                                     {/* Badge de "Aguardando confirmação" se não tem assignment ainda */}
                                     {!hasAssignment && recentlySent.has(contrato.id)}
-                                  </>;
+                                  </div>;
                         }
                         return null;
                       })()}

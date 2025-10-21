@@ -33,7 +33,20 @@ export function useGerarContrato() {
     },
     onError: (error: Error) => {
       console.error("Erro ao gerar contrato:", error);
-      toast.error("Erro ao gerar contrato: " + error.message);
+      
+      // Detectar erro de timeout do Assinafy
+      const isTimeout = error.message.includes('não ficou pronto') || 
+                       error.message.includes('timeout') ||
+                       error.message.includes('não está pronto');
+      
+      if (isTimeout) {
+        toast.error("⏳ Documento está sendo processado pelo Assinafy", {
+          description: "Aguarde 1-2 minutos e clique em '🔄 Reprocessar' no contrato para concluir o envio.",
+          duration: 10000
+        });
+      } else {
+        toast.error("Erro ao gerar contrato: " + error.message);
+      }
     }
   });
 
