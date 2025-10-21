@@ -75,13 +75,13 @@ export function ServicosSection() {
           {servicos.map((servico, index) => (
             <Card 
               key={index}
-              className="bg-card hover:bg-accent/50 transition-all duration-300 hover:shadow-lg border border-border"
+              className="bg-card hover:bg-accent/50 transition-all duration-300 hover:shadow-lg border-2 border-segurados/30 hover:border-segurados"
             >
               <CardContent className="p-6 space-y-3">
-                <div className="inline-flex p-3 bg-primary/10 rounded-lg">
-                  <servico.icon className="h-6 w-6 text-primary" />
+                <div className="inline-flex p-3 bg-segurados/10 rounded-lg">
+                  <servico.icon className="h-6 w-6 text-segurados" />
                 </div>
-                <h3 className="font-semibold text-lg text-foreground">
+                <h3 className="font-semibold text-lg text-[hsl(135,84%,15%)]">
                   {servico.titulo}
                 </h3>
                 <p className="text-sm text-muted-foreground">
