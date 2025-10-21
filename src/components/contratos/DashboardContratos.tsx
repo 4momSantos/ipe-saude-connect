@@ -22,6 +22,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { FileText, Search, Filter, Download, ExternalLink, Mail, RefreshCw, CheckCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TesteAssinatura } from "./TesteAssinatura";
+import { ReprocessOrphanButton } from "./ReprocessOrphanButton";
 export function DashboardContratos() {
   const {
     contratos,
@@ -655,10 +656,47 @@ export function DashboardContratos() {
                             
                             {/* ========== LÓGICA DOS BOTÕES POR ESTADO ========== */}
                             {contrato.status === "pendente_assinatura" && (() => {
-                        // Estado: NAO_ENVIADO ou STUCK
-                        if (state === 'NAO_ENVIADO' || state === 'STUCK') {
+                        // Estado: STUCK - Contrato órfão que precisa ser reprocessado
+                        if (state === 'STUCK') {
                           return <>
-                                    {/* Botão ENVIAR - sempre primeiro para contratos não enviados */}
+                                    {/* Botão REPROCESSAR - para contratos órfãos */}
+                                    {temPDF && <ReprocessOrphanButton 
+                                      contratoId={contrato.id}
+                                      contratoNumero={contrato.numero_contrato}
+                                      isDisabled={recentlySent.has(contrato.id)}
+                                    />}
+                                    
+                                    {/* Botão REGENERAR - só se não tem PDF */}
+                                    {!temPDF && <Button size="sm" variant="destructive" onClick={async () => {
+                              try {
+                                toast.loading('Gerando novo contrato...', {
+                                  id: 'regen'
+                                });
+                                const result = await gerarContrato({
+                                  inscricaoId: contrato.inscricao_id
+                                });
+                                toast.success('Contrato regenerado e enviado para assinatura', {
+                                  id: 'regen',
+                                  description: `Número: ${result.numero_contrato}`
+                                });
+                                refetch();
+                              } catch (error: any) {
+                                toast.error('Erro ao regenerar contrato', {
+                                  id: 'regen',
+                                  description: error.message
+                                });
+                              }
+                            }} disabled={isGerandoContrato}>
+                                        <RefreshCw className={`h-4 w-4 mr-2 ${isGerandoContrato ? 'animate-spin' : ''}`} />
+                                        Regenerar PDF
+                                      </Button>}
+                                  </>;
+                        }
+                        
+                        // Estado: NAO_ENVIADO - Primeiro envio
+                        if (state === 'NAO_ENVIADO') {
+                          return <>
+                                    {/* Botão ENVIAR - primeiro envio */}
                                     {temPDF && <Button size="sm" variant="default" onClick={() => handleSendSingleContract(contrato.id)} disabled={sendingContratoId === contrato.id || recentlySent.has(contrato.id)} className="bg-green-600 hover:bg-green-700" title="Enviar contrato para assinatura digital">
                                         {sendingContratoId === contrato.id ? <>
                                             <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
