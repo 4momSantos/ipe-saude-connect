@@ -8,6 +8,7 @@ import { usePrazos } from "@/hooks/usePrazos";
 import { ModalRenovarPrazo } from "@/components/prazos/ModalRenovarPrazo";
 import { DocumentosCredenciadosTab } from "@/components/prazos/DocumentosCredenciadosTab";
 import { ControlePrazosAgrupado } from "@/components/prazos/ControlePrazosAgrupado";
+import { BuscarCredenciadosDocumentos } from "@/components/documentos/BuscarCredenciadosDocumentos";
 import { EditarDataVencimento } from "@/components/prazos/EditarDataVencimento";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -19,7 +20,8 @@ import {
   CalendarDays,
   Clock,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Search
 } from "lucide-react";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -148,11 +150,11 @@ export default function Prazos() {
       </div>
 
       {/* Tabs Principal */}
-      <Tabs defaultValue="agrupado" className="w-full">
+      <Tabs defaultValue="busca-inteligente" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="agrupado">
-            <FolderOpen className="h-4 w-4 mr-2" />
-            Por Credenciado
+          <TabsTrigger value="busca-inteligente">
+            <Search className="h-4 w-4 mr-2" />
+            Busca Inteligente
           </TabsTrigger>
           <TabsTrigger value="todos">
             <FileText className="h-4 w-4 mr-2" />
@@ -168,9 +170,9 @@ export default function Prazos() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Aba: Por Credenciado */}
-        <TabsContent value="agrupado" className="mt-6">
-          <ControlePrazosAgrupado />
+        {/* Aba: Busca Inteligente de Documentos */}
+        <TabsContent value="busca-inteligente" className="mt-6">
+          <BuscarCredenciadosDocumentos />
         </TabsContent>
 
         {/* Aba: Todos os Prazos */}

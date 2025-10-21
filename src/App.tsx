@@ -203,7 +203,7 @@ const App = () => (
                           <Route path="/meu-credenciamento" element={<MeuCredenciamento />} />
                           <Route path="/meus-documentos" element={<DocumentosCredenciadoGrid />} />
                           <Route path="/credenciados/:id/regularidade" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin', 'analista']}><RegularidadeCadastral /></RoleProtectedRoute>} />
-                          <Route path="/busca-documentos" element={<RoleProtectedRoute requiredRoles={['analista', 'gestor', 'admin']}><Suspense fallback={<div>Carregando...</div>}><BuscaDocumentos /></Suspense></RoleProtectedRoute>} />
+                          <Route path="/busca-documentos" element={<Navigate to="/prazos" replace />} />
                           <Route path="/corrigir-documentos" element={<RoleProtectedRoute requiredRoles={['gestor', 'admin']}><CorrigirDocumentos /></RoleProtectedRoute>} />
                           <Route path="/contratos" element={<RoleProtectedRoute requiredRoles={['analista', 'gestor', 'admin']}><Contratos /></RoleProtectedRoute>} />
                           <Route path="/fluxo-credenciamento/:inscricaoId" element={<FluxoCredenciamentoPage />} />
