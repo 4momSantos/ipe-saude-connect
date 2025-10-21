@@ -370,6 +370,7 @@ export default function Prazos() {
                       {credenciado.prazos.map((prazo) => {
                         const nivelAlertaTexto = prazo.nivel_alerta === 'critico' ? 'Crítico' :
                           prazo.nivel_alerta === 'vencendo' ? 'Vencendo' :
+                          prazo.nivel_alerta === 'vencido' ? 'Vencido' :
                           prazo.nivel_alerta === 'atencao' ? 'Atenção' : 'Válido';
 
                         return (
@@ -481,6 +482,7 @@ export default function Prazos() {
                         {prazos.map((prazo) => {
                           const nivelAlertaTexto = prazo.nivel_alerta === 'critico' ? 'Crítico' :
                             prazo.nivel_alerta === 'vencendo' ? 'Vencendo' :
+                            prazo.nivel_alerta === 'vencido' ? 'Vencido' :
                             prazo.nivel_alerta === 'atencao' ? 'Atenção' : 'Válido';
 
                           return (
@@ -568,6 +570,7 @@ export default function Prazos() {
                   credenciado.prazos.map((prazo) => {
                     const nivelAlertaTexto = prazo.nivel_alerta === 'critico' ? 'Crítico' :
                       prazo.nivel_alerta === 'vencendo' ? 'Vencendo' :
+                      prazo.nivel_alerta === 'vencido' ? 'Vencido' :
                       prazo.nivel_alerta === 'atencao' ? 'Atenção' : 'Válido';
 
                     return (
