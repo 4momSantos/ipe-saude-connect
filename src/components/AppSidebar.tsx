@@ -192,8 +192,8 @@ export function AppSidebar() {
                 src={logoIpeSaude} 
                 alt="IPE Saúde" 
                 className={cn(
-                  "object-contain transition-all",
-                  isCollapsed ? "h-16 w-16" : "h-24 w-full max-w-[180px]"
+                  "object-contain transition-all w-full",
+                  isCollapsed ? "h-14" : "h-32 max-w-full"
                 )}
                 style={{ mixBlendMode: 'lighten' }}
               />
