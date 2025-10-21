@@ -10,7 +10,6 @@ import { WorkflowStatusCard } from "@/components/workflow/WorkflowStatusCard";
 import { DadosInscricaoTab } from "./DadosInscricaoTab";
 import { DocumentosTabFromJSON } from "./DocumentosTabFromJSON";
 import { MessagesTab } from "@/components/process-tabs/MessagesTab";
-import { TimelineEventosReais } from "./TimelineEventosReais";
 import { 
   FileText, 
   CheckCircle2, 
@@ -188,15 +187,11 @@ export function FluxoCredenciamento({
       </div>
 
       {/* Sistema de Abas */}
-      <Tabs defaultValue="timeline" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="timeline" className="flex items-center gap-2">
-            <Activity className="w-4 h-4" />
-            Timeline Real
-          </TabsTrigger>
+      <Tabs defaultValue="status" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="status" className="flex items-center gap-2">
             <Activity className="w-4 h-4" />
-            Visão Geral
+            Status
           </TabsTrigger>
           <TabsTrigger value="dados" className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
@@ -211,16 +206,6 @@ export function FluxoCredenciamento({
             Mensagens
           </TabsTrigger>
         </TabsList>
-
-        {/* Aba Timeline Real - Eventos do Sistema */}
-        <TabsContent value="timeline" className="space-y-6 mt-6">
-          {inscricaoId && (
-            <TimelineEventosReais 
-              inscricaoId={inscricaoId} 
-              statusAtual={status}
-            />
-          )}
-        </TabsContent>
 
         {/* Aba Status - Timeline e Workflow */}
         <TabsContent value="status" className="space-y-6 mt-6">
