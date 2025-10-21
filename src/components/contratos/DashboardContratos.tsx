@@ -704,42 +704,51 @@ export function DashboardContratos() {
 
                         // Estado: NAO_ENVIADO - Primeiro envio
                         if (state === 'NAO_ENVIADO') {
-                          return <div className="flex gap-2">
-                                    {/* Botão ENVIAR - primeiro envio */}
-                                    {temPDF && <Button size="sm" variant="default" onClick={() => handleSendSingleContract(contrato.id)} disabled={sendingContratoId === contrato.id || recentlySent.has(contrato.id)} className="bg-green-600 hover:bg-green-700" title="Enviar contrato para assinatura digital">
-                                        {sendingContratoId === contrato.id ? <>
-                                            <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                                            Enviando...
-                                          </> : <>
-                                            <Mail className="h-4 w-4 mr-1" />
-                                            📤 Enviar
-                                          </>}
-                                      </Button>}
-                                    
-                                    {/* Botão REGENERAR - só se não tem PDF */}
-                                    {!temPDF && <Button size="sm" variant="destructive" onClick={async () => {
-                              try {
-                                toast.loading('Gerando novo contrato...', {
-                                  id: 'regen'
-                                });
-                                const result = await gerarContrato({
-                                  inscricaoId: contrato.inscricao_id
-                                });
-                                toast.success('Contrato regenerado e enviado para assinatura', {
-                                  id: 'regen',
-                                  description: `Número: ${result.numero_contrato}`
-                                });
-                                refetch();
-                              } catch (error: any) {
-                                toast.error('Erro ao regenerar contrato', {
-                                  id: 'regen',
-                                  description: error.message
-                                });
-                              }
-                            }} disabled={isGerandoContrato}>
-                                        <RefreshCw className={`h-4 w-4 mr-2 ${isGerandoContrato ? 'animate-spin' : ''}`} />
-                                        Regenerar PDF
-                                      </Button>}
+                          return <div className="flex flex-col gap-2 items-end w-full">
+                                    <div className="flex gap-2">
+                                      {/* Botão ENVIAR - primeiro envio */}
+                                      {temPDF && <Button size="sm" variant="default" onClick={() => handleSendSingleContract(contrato.id)} disabled={sendingContratoId === contrato.id || recentlySent.has(contrato.id)} className="bg-green-600 hover:bg-green-700" title="Enviar contrato para assinatura digital">
+                                          {sendingContratoId === contrato.id ? <>
+                                              <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                                              Enviando...
+                                            </> : <>
+                                              <Mail className="h-4 w-4 mr-1" />
+                                              📤 Enviar
+                                            </>}
+                                        </Button>}
+                                      
+                                      {/* Botão REPROCESSAR - alternativa ao envio normal */}
+                                      {temPDF && <ReprocessOrphanButton 
+                                        contratoId={contrato.id} 
+                                        contratoNumero={contrato.numero_contrato} 
+                                        isDisabled={recentlySent.has(contrato.id)} 
+                                      />}
+                                      
+                                      {/* Botão REGENERAR - só se não tem PDF */}
+                                      {!temPDF && <Button size="sm" variant="destructive" onClick={async () => {
+                                try {
+                                  toast.loading('Gerando novo contrato...', {
+                                    id: 'regen'
+                                  });
+                                  const result = await gerarContrato({
+                                    inscricaoId: contrato.inscricao_id
+                                  });
+                                  toast.success('Contrato regenerado e enviado para assinatura', {
+                                    id: 'regen',
+                                    description: `Número: ${result.numero_contrato}`
+                                  });
+                                  refetch();
+                                } catch (error: any) {
+                                  toast.error('Erro ao regenerar contrato', {
+                                    id: 'regen',
+                                    description: error.message
+                                  });
+                                }
+                              }} disabled={isGerandoContrato}>
+                                          <RefreshCw className={`h-4 w-4 mr-2 ${isGerandoContrato ? 'animate-spin' : ''}`} />
+                                          Regenerar PDF
+                                        </Button>}
+                                    </div>
                                   </div>;
                         }
 
@@ -771,9 +780,10 @@ export function DashboardContratos() {
 
                           // Verificar se signature request existe (pode não existir se acabou de enviar)
                           const temSignatureRequest = latestSR !== null;
-                          return <div className="flex gap-2">
-                                    {/* Botão REENVIAR E-MAIL - só mostrar se tem SR confirmado */}
-                                    {temSignatureRequest && <Button size="sm" variant="outline" className="border-blue-500 text-blue-600 hover:bg-blue-50" onClick={() => {
+                          return <div className="flex flex-col gap-2 items-end w-full">
+                                    <div className="flex gap-2">
+                                      {/* Botão REENVIAR E-MAIL - só mostrar se tem SR confirmado */}
+                                      {temSignatureRequest && <Button size="sm" variant="outline" className="border-blue-500 text-blue-600 hover:bg-blue-50" onClick={() => {
                               const dataEnvio = latestSR?.created_at ? new Date(latestSR.created_at).toLocaleString('pt-BR', {
                                 day: '2-digit',
                                 month: '2-digit',
@@ -804,6 +814,13 @@ export function DashboardContratos() {
                                         </>}
                                     </Button>}
                                     
+                                    {/* Botão REPROCESSAR - para forçar reprocessamento */}
+                                    <ReprocessOrphanButton 
+                                      contratoId={contrato.id} 
+                                      contratoNumero={contrato.numero_contrato} 
+                                      isDisabled={recentlySent.has(contrato.id)} 
+                                    />
+                                    
                                     {/* Botão VALIDAR ASSINATURA - sempre mostrar se está em ENVIADO_PENDENTE */}
                                     <Button size="sm" variant="outline" onClick={() => handleValidarAssinatura(contrato.id)} disabled={validatingContratoId === contrato.id} className="border-green-600 text-green-600 hover:bg-green-50" title={hasAssignment ? "Marcar como assinado manualmente" : "Validar assinatura (aguardando confirmação do envio)"}>
                                       {validatingContratoId === contrato.id ? <>
@@ -814,6 +831,7 @@ export function DashboardContratos() {
                                           ✅ Validar Assinatura
                                         </>}
                                     </Button>
+                                    </div>
                                     
                                     {/* Badge de "Aguardando confirmação" se não tem assignment ainda */}
                                     {!hasAssignment && recentlySent.has(contrato.id)}
