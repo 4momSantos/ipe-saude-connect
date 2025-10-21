@@ -208,7 +208,7 @@ export function AppSidebar() {
 
         {/* Menu Principal */}
         <SidebarGroup className="px-4">
-          <SidebarGroupLabel className="px-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">
+          <SidebarGroupLabel className="px-2 text-[10px] font-bold uppercase tracking-widest text-white mb-3">
             Menu Principal
           </SidebarGroupLabel>
           <SidebarGroupContent>
