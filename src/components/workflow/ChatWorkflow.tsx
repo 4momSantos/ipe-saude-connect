@@ -148,6 +148,7 @@ export function ChatWorkflow({
   };
 
   const carregarMensagens = async () => {
+    console.log('[CHAT_DEBUG] Iniciando carregamento de mensagens para:', inscricaoId);
     try {
       // Query direta otimizada - últimas 100 mensagens
       const { data, error } = await supabase
@@ -179,6 +180,8 @@ export function ChatWorkflow({
         .order('created_at', { ascending: false })
         .limit(100);
 
+      console.log('[CHAT_DEBUG] Query executada. Error:', error, 'Data length:', data?.length);
+      
       if (error) throw error;
       
       // Debug: Verificar manifestações
