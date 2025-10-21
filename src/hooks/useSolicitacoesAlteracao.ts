@@ -41,7 +41,7 @@ export function useAprovarSolicitacao() {
       const { error } = await supabase
         .from("solicitacoes_alteracao")
         .update({
-          status: "Aprovado",
+          status: "Aprovada",
           analisado_em: new Date().toISOString(),
           observacoes_analise: observacoes,
         })
@@ -69,7 +69,7 @@ export function useRejeitarSolicitacao() {
       const { error } = await supabase
         .from("solicitacoes_alteracao")
         .update({
-          status: "Rejeitado",
+          status: "Rejeitada",
           analisado_em: new Date().toISOString(),
           observacoes_analise: observacoes,
         })

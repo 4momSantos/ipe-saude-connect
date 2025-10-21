@@ -27,8 +27,8 @@ const formatarDados = (dados: any): string => {
 
 const mapearStatus = (status: string): "pendente" | "aprovado" | "rejeitado" => {
   const statusLower = status.toLowerCase();
-  if (statusLower === "aprovado") return "aprovado";
-  if (statusLower === "rejeitado") return "rejeitado";
+  if (statusLower === "aprovado" || statusLower === "aprovada") return "aprovado";
+  if (statusLower === "rejeitado" || statusLower === "rejeitada") return "rejeitado";
   return "pendente";
 };
 
