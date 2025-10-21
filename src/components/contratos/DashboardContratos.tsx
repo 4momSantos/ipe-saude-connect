@@ -482,36 +482,52 @@ export function DashboardContratos() {
             </div>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           {/* Filtros */}
-          <div className="flex gap-4 mb-6">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar por número do contrato ou nome do candidato..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
+          <div className="bg-gradient-to-r from-muted/50 to-muted/30 p-4 rounded-xl border border-border/50">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1 relative group">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary/60 transition-colors group-hover:text-primary" />
+                <Input 
+                  placeholder="🔍 Buscar por número do contrato ou nome do candidato..." 
+                  value={searchQuery} 
+                  onChange={e => setSearchQuery(e.target.value)} 
+                  className="pl-11 h-12 bg-background/50 backdrop-blur-sm border-border/50 focus:border-primary/50 transition-all shadow-sm hover:shadow-md" 
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-72 h-12 bg-background/50 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-all shadow-sm hover:shadow-md">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-5 w-5 text-primary/60" />
+                    <SelectValue placeholder="Filtrar por status" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">✨ Todos os status</SelectItem>
+                  <SelectItem value="nao_enviado">📤 Não Enviados</SelectItem>
+                  <SelectItem value="pendente_assinatura">⏳ Aguardando Assinatura</SelectItem>
+                  <SelectItem value="assinado">✅ Assinado</SelectItem>
+                  <SelectItem value="rejeitado">❌ Rejeitado</SelectItem>
+                </SelectContent>
+              </Select>
+              {(statusFilter !== 'todos' || searchQuery) && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setStatusFilter("todos");
+                    setSearchQuery("");
+                  }}
+                  className="h-12 px-6 bg-background/50 backdrop-blur-sm border-border/50 hover:border-destructive/50 hover:bg-destructive/5 hover:text-destructive transition-all shadow-sm hover:shadow-md"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Limpar Filtros
+                </Button>
+              )}
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-64">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Filtrar por status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os status</SelectItem>
-                <SelectItem value="nao_enviado">Não Enviados</SelectItem>
-                <SelectItem value="pendente_assinatura">Aguardando Assinatura</SelectItem>
-                <SelectItem value="assinado">Assinado</SelectItem>
-                <SelectItem value="rejeitado">Rejeitado</SelectItem>
-              </SelectContent>
-            </Select>
-            {(statusFilter !== 'todos' || searchQuery) && <Button variant="outline" onClick={() => {
-            setStatusFilter("todos");
-            setSearchQuery("");
-          }}>
-                Limpar Filtros
-              </Button>}
           </div>
 
           {/* Tabela */}
-          <div className="border rounded-lg">
+          <div className="border rounded-xl shadow-sm overflow-hidden bg-card/50 backdrop-blur-sm">
             <Table>
               <TableHeader>
                 <TableRow>
