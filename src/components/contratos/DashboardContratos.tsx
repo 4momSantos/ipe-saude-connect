@@ -187,7 +187,11 @@ export function DashboardContratos() {
       return 'NAO_ENVIADO';
     }
     const latestSR = getLatestSignatureRequest(contrato);
-    const hasAssignment = latestSR?.metadata?.assinafy_assignment_id || latestSR?.metadata?.assignment_id;
+    const hasAssignment = 
+      latestSR?.metadata?.assinafy_assignment_id || 
+      latestSR?.metadata?.assignment_id ||
+      (typeof latestSR?.metadata === 'string' ? JSON.parse(latestSR.metadata).assinafy_assignment_id : null) ||
+      (typeof latestSR?.metadata === 'string' ? JSON.parse(latestSR.metadata).assignment_id : null);
     const isActiveStatus = ['pending', 'sent'].includes(latestSR?.status);
 
     // Verificar se é recente (criado há menos de 5 minutos)
@@ -542,7 +546,25 @@ export function DashboardContratos() {
                           {contrato.status === 'pendente_assinatura' && state === 'NAO_ENVIADO' && <Badge variant="outline" className="ml-2 text-xs font-semibold border-amber-500 bg-amber-50 text-amber-700">
                               ⚠️ Pendente Envio
                             </Badge>}
-                          {contrato.status === 'pendente_assinatura' && state === 'ENVIADO_PENDENTE'}
+                          {contrato.status === 'pendente_assinatura' && state === 'ENVIADO_PENDENTE' && (
+                            <Badge 
+                              variant="default" 
+                              className="ml-2 text-xs bg-blue-600 hover:bg-blue-600"
+                              title={(() => {
+                                const latestSR = getLatestSignatureRequest(contrato);
+                                const dataEnvio = latestSR?.created_at 
+                                  ? new Date(latestSR.created_at).toLocaleString('pt-BR')
+                                  : 'data desconhecida';
+                                const docId = latestSR?.external_id || 'N/A';
+                                const assignmentId = latestSR?.metadata?.assinafy_assignment_id || 
+                                                    latestSR?.metadata?.assignment_id || 
+                                                    'N/A';
+                                return `Enviado ao Assinafy em ${dataEnvio}\nDoc ID: ${docId}\nAssignment ID: ${assignmentId}`;
+                              })()}
+                            >
+                              📧 Enviado ao Assinafy
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell>{candidatoNome}</TableCell>
                         <TableCell>
@@ -637,7 +659,11 @@ export function DashboardContratos() {
                         // Estado: ENVIADO_PENDENTE
                         if (state === 'ENVIADO_PENDENTE') {
                           const latestSR = getLatestSignatureRequest(contrato);
-                          const hasAssignment = latestSR?.metadata?.assinafy_assignment_id || latestSR?.metadata?.assignment_id;
+                          const hasAssignment = 
+                            latestSR?.metadata?.assinafy_assignment_id || 
+                            latestSR?.metadata?.assignment_id ||
+                            (typeof latestSR?.metadata === 'string' ? JSON.parse(latestSR.metadata).assinafy_assignment_id : null) ||
+                            (typeof latestSR?.metadata === 'string' ? JSON.parse(latestSR.metadata).assignment_id : null);
 
                           // Debug log para contratos específicos
                           if (['CONT-2025-485295', 'CONT-2025-289812', 'CONT-2025-270384'].includes(contrato.numero_contrato)) {
