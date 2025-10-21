@@ -193,7 +193,7 @@ export function AppSidebar() {
                 alt="IPE Saúde" 
                 className={cn(
                   "object-contain transition-all",
-                  isCollapsed ? "h-10 w-10" : "h-12"
+                  isCollapsed ? "h-14 w-14" : "h-20"
                 )}
                 style={{ mixBlendMode: 'lighten' }}
               />
