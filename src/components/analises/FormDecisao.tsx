@@ -39,7 +39,7 @@ export function FormDecisao({
   const [prazoCorrecao, setPrazoCorrecao] = useState<Date>();
   const [showPreview, setShowPreview] = useState(false);
 
-  const minCaracteres = status === 'aprovado' ? 10 : 10;
+  const minCaracteres = 100; // Todos os status exigem 100 caracteres
   const isJustificativaValida = justificativa.trim().length >= minCaracteres;
   const isPrazoValido = status !== 'pendente_correcao' || prazoCorrecao !== undefined;
   const isFormValido = isJustificativaValida && isPrazoValido;
@@ -163,11 +163,9 @@ export function FormDecisao({
             Ainda faltam {minCaracteres - justificativa.length} caracteres
           </p>
         )}
-        {status === 'aprovado' && (
-          <p className="text-sm text-muted-foreground">
-            ℹ️ A aprovação requer justificativa mais detalhada (mínimo 10 caracteres)
-          </p>
-        )}
+        <p className="text-sm text-muted-foreground">
+          ℹ️ Todas as decisões requerem justificativa detalhada (mínimo 100 caracteres)
+        </p>
       </div>
 
       {/* Campos Reprovados (se status != aprovado) */}

@@ -76,13 +76,34 @@ serve(async (req) => {
 
     const { inscricao_id, analise_id, decisao }: ProcessarDecisaoRequest = await req.json();
 
-    // Validar justificativa (aprovação requer 100 chars, outros 50)
-    const minCaracteres = decisao.status === 'aprovado' ? 100 : 50;
-    const errorMessage = 'Justificativa deve ter no mínimo ' + minCaracteres + ' caracteres';
+    // Log de debugging do payload recebido
+    console.log('[DEBUG] Payload recebido:', {
+      inscricao_id,
+      analise_id,
+      status: decisao.status,
+      justificativa_length: decisao.justificativa?.length || 0,
+      tem_prazo: !!decisao.prazo_correcao
+    });
+
+    // Validar justificativa (todos os status requerem 100 caracteres)
+    const minCaracteres = 100;
+    const errorMessage = 'Justificativa deve ter no mínimo 100 caracteres';
     
     if (!decisao.justificativa || decisao.justificativa.length < minCaracteres) {
+      console.error('[VALIDACAO] Justificativa inválida:', {
+        recebido: decisao.justificativa?.length || 0,
+        minimo: 100,
+        status: decisao.status
+      });
+      
       return new Response(
-        JSON.stringify({ error: errorMessage }),
+        JSON.stringify({ 
+          error: errorMessage,
+          detalhes: {
+            caracteres_recebidos: decisao.justificativa?.length || 0,
+            caracteres_minimos: 100
+          }
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
