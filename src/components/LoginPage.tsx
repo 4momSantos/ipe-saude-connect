@@ -96,7 +96,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-8 animate-fade-in">
         <div className="text-center space-y-4">
           <div className="flex justify-center">
-            <div className="flex h-24 w-24 items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm shadow-glow p-2">
+            <div className="flex h-24 w-24 items-center justify-center">
               <img src={logoIpe} alt="IPE Saúde" className="w-full h-full object-contain" />
             </div>
           </div>
