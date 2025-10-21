@@ -99,8 +99,79 @@ serve(async (req) => {
     if (documentStatus === 'signed' || documentStatus === 'completed') {
       newStatus = 'completed';
       
-      // Atualizar contrato
-      await supabase
+      // ETAPA 1: Buscar dados do contrato ANTES de atualizar
+      const { data: contrato, error: contratoError } = await supabase
+        .from('contratos')
+        .select('inscricao_id, status')
+        .eq('id', contratoId)
+        .single();
+
+      if (contratoError || !contrato) {
+        throw new Error(`Erro ao buscar contrato: ${contratoError?.message || 'Não encontrado'}`);
+      }
+
+      console.log('[CHECK_ASSINAFY] Contrato encontrado:', {
+        inscricao_id: contrato.inscricao_id,
+        status_atual: contrato.status
+      });
+
+      // ETAPA 2: Sincronizar credenciado ANTES de atualizar status
+      if (contrato.inscricao_id) {
+        console.log('[CHECK_ASSINAFY] Sincronizando dados do credenciado...');
+        
+        try {
+          // Chamar função SQL com tratamento correto
+          const { data: credenciadoIdResult, error: syncError } = await supabase
+            .rpc('sync_credenciado_from_contract', {
+              p_inscricao_id: contrato.inscricao_id
+            })
+            .single();
+
+          if (syncError) {
+            console.error('[CHECK_ASSINAFY] ❌ Erro ao sincronizar:', syncError);
+            throw new Error(`Erro na sincronização: ${syncError.message}`);
+          }
+
+          console.log('[CHECK_ASSINAFY] ✅ Credenciado sincronizado:', credenciadoIdResult);
+
+          // Buscar ID do credenciado (fallback se RPC retornou null)
+          let finalCredenciadoId = credenciadoIdResult;
+          
+          if (!finalCredenciadoId) {
+            console.log('[CHECK_ASSINAFY] RPC retornou null, buscando credenciado...');
+            const { data: credenciadoData, error: credError } = await supabase
+              .from('credenciados')
+              .select('id')
+              .eq('inscricao_id', contrato.inscricao_id)
+              .single();
+            
+            if (credError) {
+              console.error('[CHECK_ASSINAFY] ❌ Erro ao buscar credenciado:', credError);
+            } else {
+              finalCredenciadoId = credenciadoData?.id;
+            }
+          }
+
+          // ETAPA 3: Gerar certificado se temos ID
+          if (finalCredenciadoId) {
+            console.log('[CHECK_ASSINAFY] Gerando certificado para:', finalCredenciadoId);
+            const { error: certError } = await supabase.functions.invoke('gerar-certificado', {
+              body: { credenciadoId: finalCredenciadoId }
+            });
+            
+            if (certError) {
+              console.error('[CHECK_ASSINAFY] ⚠️ Erro ao gerar certificado:', certError);
+              // Não falhar a operação por causa do certificado
+            }
+          }
+        } catch (syncErr) {
+          console.error('[CHECK_ASSINAFY] ❌ Erro no processo de sincronização:', syncErr);
+          // Continuar mesmo com erro na sincronização
+        }
+      }
+
+      // ETAPA 4: Atualizar status do contrato (por último)
+      const { error: updateError } = await supabase
         .from('contratos')
         .update({
           status: 'assinado',
@@ -109,50 +180,13 @@ serve(async (req) => {
         })
         .eq('id', contratoId);
 
-      // Ativar credenciado
-      const { data: contrato } = await supabase
-        .from('contratos')
-        .select('inscricao_id')
-        .eq('id', contratoId)
-        .single();
-
-      if (contrato?.inscricao_id) {
-        console.log('[CHECK_ASSINAFY] Sincronizando dados do credenciado...');
-        
-        // Chamar nova função SQL que extrai dados CORRETOS do contrato
-        const { data: credenciadoId, error: syncError } = await supabase
-          .rpc('sync_credenciado_from_contract', {
-            p_inscricao_id: contrato.inscricao_id
-          });
-
-        if (syncError) {
-          console.error('[CHECK_ASSINAFY] ❌ Erro ao sincronizar:', syncError);
-        } else {
-          console.log('[CHECK_ASSINAFY] ✅ Credenciado sincronizado:', credenciadoId);
-        }
-
-        // Buscar ID do credenciado para gerar certificado
-        let finalCredenciadoId = credenciadoId;
-        
-        if (!finalCredenciadoId) {
-          const { data: credenciadoData } = await supabase
-            .from('credenciados')
-            .select('id')
-            .eq('inscricao_id', contrato.inscricao_id)
-            .single();
-          
-          finalCredenciadoId = credenciadoData?.id;
-        }
-
-        if (finalCredenciadoId) {
-          console.log('[CHECK_ASSINAFY] Gerando certificado para:', finalCredenciadoId);
-          await supabase.functions.invoke('gerar-certificado', {
-            body: { credenciadoId: finalCredenciadoId }
-          });
-        }
+      if (updateError) {
+        console.error('[CHECK_ASSINAFY] ❌ Erro ao atualizar contrato:', updateError);
+        throw new Error(`Erro ao atualizar contrato: ${updateError.message}`);
       }
 
-      console.log('[CHECK_ASSINAFY] Contrato atualizado para assinado');
+      console.log('[CHECK_ASSINAFY] ✅ Contrato atualizado para assinado');
+      
     } else if (documentStatus === 'rejected' || documentStatus === 'expired') {
       newStatus = 'failed';
     }
