@@ -10,7 +10,12 @@ import {
   Phone,
   Mail,
   FileText,
-  Calendar
+  Calendar,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Home,
+  ClipboardList
 } from "lucide-react";
 import { 
   formatCPF, 
@@ -62,13 +67,62 @@ export function DadosInscricaoTab({ dadosInscricao }: DadosInscricaoTabProps) {
     );
   }
 
-  // ✅ Extrair seções do JSONB com nomenclatura snake_case real
+  // ✅ Extrair seções do JSONB
   const dadosPessoais = dadosInscricao.dados_pessoais || {};
   const pessoaJuridica = dadosInscricao.pessoa_juridica || {};
-  const endereco = dadosInscricao.endereco || {};
+  const enderecoCorrespondencia = dadosInscricao.endereco_correspondencia || {};
   const consultorio = dadosInscricao.consultorio || {};
+  const documentos = dadosInscricao.documentos || [];
   
-  console.log('[DEBUG] Dados extraídos:', { dadosPessoais, pessoaJuridica, endereco });
+  console.log('[DEBUG] Dados extraídos:', { dadosPessoais, pessoaJuridica, enderecoCorrespondencia, consultorio, documentos });
+
+  // Função para obter ícone do status do documento
+  const getDocumentoIcon = (status: string) => {
+    switch (status) {
+      case 'enviado':
+      case 'aprovado':
+        return <CheckCircle2 className="w-4 h-4 text-[hsl(135,84%,15%)]" />;
+      case 'rejeitado':
+        return <XCircle className="w-4 h-4 text-destructive" />;
+      case 'faltante':
+      default:
+        return <AlertCircle className="w-4 h-4 text-muted-foreground" />;
+    }
+  };
+
+  // Função para obter cor do badge do status
+  const getDocumentoVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
+    switch (status) {
+      case 'enviado':
+      case 'aprovado':
+        return 'default';
+      case 'rejeitado':
+        return 'destructive';
+      case 'faltante':
+      default:
+        return 'outline';
+    }
+  };
+
+  // Tradução dos nomes dos documentos
+  const traduzirTipoDocumento = (tipo: string): string => {
+    const traducoes: Record<string, string> = {
+      'ficha_cadastral': 'Ficha Cadastral',
+      'contrato_social': 'Contrato Social',
+      'identidade_medica': 'Identidade Médica (CRM)',
+      'rg_cpf': 'RG/CPF',
+      'cert_regularidade_pj': 'Certidão de Regularidade PJ',
+      'registro_especialidade': 'Registro de Especialidade',
+      'alvara_sanitario': 'Alvará Sanitário',
+      'cnpj': 'CNPJ',
+      'certidoes_negativas': 'Certidões Negativas',
+      'cert_fgts': 'Certidão FGTS',
+      'comp_bancario': 'Comprovante Bancário',
+      'simples_nacional': 'Simples Nacional',
+      'doc_exames': 'Documentação de Exames'
+    };
+    return traducoes[tipo] || tipo;
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -127,83 +181,180 @@ export function DadosInscricaoTab({ dadosInscricao }: DadosInscricaoTabProps) {
         </Card>
       )}
 
-      {/* Endereço */}
-      {endereco && (
+      {/* Endereço de Correspondência */}
+      {enderecoCorrespondencia && Object.keys(enderecoCorrespondencia).length > 0 && (
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-primary" />
-              <CardTitle>Endereço</CardTitle>
+              <Home className="w-5 h-5 text-primary" />
+              <CardTitle>Endereço de Correspondência</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
             <dl className="space-y-1">
               <DataRow 
                 label="Logradouro" 
-                value={endereco.logradouro ? `${endereco.logradouro}, ${endereco.numero || 'S/N'}` : null}
+                value={enderecoCorrespondencia.logradouro ? `${enderecoCorrespondencia.logradouro}, ${enderecoCorrespondencia.numero || 'S/N'}` : null}
                 icon={MapPin} 
               />
-              <DataRow label="Complemento" value={endereco.complemento} />
-              <DataRow label="Bairro" value={endereco.bairro} />
-              <DataRow label="Cidade" value={endereco.cidade} icon={MapPin} />
-              <DataRow label="Estado" value={endereco.estado} />
-              <DataRow label="CEP" value={formatCEP(endereco.cep)} icon={FileText} />
+              <DataRow label="Complemento" value={enderecoCorrespondencia.complemento} />
+              <DataRow label="Bairro" value={enderecoCorrespondencia.bairro} />
+              <DataRow label="Cidade" value={enderecoCorrespondencia.cidade} icon={MapPin} />
+              <DataRow label="Estado (UF)" value={enderecoCorrespondencia.uf} />
+              <DataRow label="CEP" value={formatCEP(enderecoCorrespondencia.cep)} icon={FileText} />
+              <Separator className="my-3" />
+              <DataRow label="E-mail" value={enderecoCorrespondencia.email} icon={Mail} />
+              <DataRow label="Telefone" value={formatPhone(enderecoCorrespondencia.telefone)} icon={Phone} />
+              <DataRow label="Celular" value={formatPhone(enderecoCorrespondencia.celular)} icon={Phone} />
             </dl>
           </CardContent>
         </Card>
       )}
 
-      {/* Consultório e Especialidades */}
-      {consultorio?.crms && consultorio.crms.length > 0 && (
+      {/* Dados do Consultório */}
+      {consultorio && Object.keys(consultorio).length > 0 && (
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
               <Stethoscope className="w-5 h-5 text-primary" />
-              <CardTitle>Especialidades e Horários</CardTitle>
+              <CardTitle>Dados do Consultório</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {consultorio.crms.map((crm: any, index: number) => (
-              <div key={index}>
-                {index > 0 && <Separator className="my-4" />}
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <Stethoscope className="w-4 h-4 mt-1 text-muted-foreground" />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="secondary" className="font-mono">
-                          CRM {crm.crm}/{crm.uf}
-                        </Badge>
-                        <Badge variant="outline">{crm.especialidade}</Badge>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Horários de Atendimento */}
-                  {crm.horarios && crm.horarios.length > 0 && (
-                    <div className="ml-7 mt-3">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Clock className="w-4 h-4 text-muted-foreground" />
-                        <h4 className="text-sm font-medium">Horários de Atendimento</h4>
-                      </div>
-                      <div className="space-y-2 ml-6">
-                        {crm.horarios.map((horario: any, hIndex: number) => (
-                          <div key={hIndex} className="flex items-center gap-3 text-sm">
-                            <span className="font-medium text-muted-foreground min-w-[100px]">
-                              {horario.diaSemana}
-                            </span>
-                            <span className="text-muted-foreground">•</span>
-                            <span>
-                              {horario.horarioInicio} às {horario.horarioFim}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+          <CardContent>
+            <dl className="space-y-1">
+              {consultorio.endereco && (
+                <DataRow 
+                  label="Endereço do Consultório" 
+                  value={consultorio.endereco} 
+                  icon={MapPin} 
+                />
+              )}
+              {consultorio.telefone && (
+                <DataRow 
+                  label="Telefone do Consultório" 
+                  value={formatPhone(consultorio.telefone)} 
+                  icon={Phone} 
+                />
+              )}
+              {consultorio.quantidade_consultas_minima && (
+                <DataRow 
+                  label="Quantidade Mínima de Consultas" 
+                  value={`${consultorio.quantidade_consultas_minima} consultas/mês`} 
+                  icon={ClipboardList} 
+                />
+              )}
+              {consultorio.atendimento_hora_marcada !== undefined && (
+                <div className="py-2">
+                  <dt className="text-sm font-medium text-muted-foreground mb-2">Atendimento por Hora Marcada</dt>
+                  <dd>
+                    <Badge variant={consultorio.atendimento_hora_marcada ? "default" : "outline"}>
+                      {consultorio.atendimento_hora_marcada ? "Sim" : "Não"}
+                    </Badge>
+                  </dd>
                 </div>
-              </div>
-            ))}
+              )}
+            </dl>
+
+            {/* Horários de Atendimento */}
+            {consultorio.horarios && consultorio.horarios.length > 0 && (
+              <>
+                <Separator className="my-4" />
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-muted-foreground" />
+                    <h4 className="text-sm font-semibold">Horários de Atendimento</h4>
+                  </div>
+                  <div className="space-y-2 ml-6">
+                    {consultorio.horarios.map((horario: any, hIndex: number) => (
+                      <div key={hIndex} className="flex items-center gap-3 text-sm">
+                        <span className="font-medium text-muted-foreground min-w-[100px] capitalize">
+                          {horario.dia_semana}
+                        </span>
+                        <span className="text-muted-foreground">•</span>
+                        <span>
+                          {horario.horario_inicio} às {horario.horario_fim}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Status dos Documentos */}
+      {documentos && documentos.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              <CardTitle>Status dos Documentos</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {documentos.map((doc: any, index: number) => (
+                <div 
+                  key={index}
+                  className="flex items-center justify-between p-3 border rounded-lg bg-card hover:bg-accent/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3 flex-1">
+                    {getDocumentoIcon(doc.status)}
+                    <span className="text-sm font-medium">
+                      {traduzirTipoDocumento(doc.tipo)}
+                    </span>
+                  </div>
+                  <Badge variant={getDocumentoVariant(doc.status)} className="text-xs">
+                    {doc.status === 'enviado' ? 'Enviado' : 
+                     doc.status === 'aprovado' ? 'Aprovado' :
+                     doc.status === 'rejeitado' ? 'Rejeitado' :
+                     'Faltante'}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Informações Adicionais do CRM */}
+      {dadosPessoais.crm && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Stethoscope className="w-5 h-5 text-primary" />
+              <CardTitle>Registro Profissional</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <dl className="space-y-1">
+              <DataRow 
+                label="Número do CRM" 
+                value={dadosPessoais.crm} 
+                icon={FileText} 
+              />
+              <DataRow 
+                label="UF do CRM" 
+                value={dadosPessoais.uf_crm} 
+                icon={MapPin} 
+              />
+              {dadosPessoais.sexo && (
+                <DataRow 
+                  label="Sexo" 
+                  value={dadosPessoais.sexo === 'M' ? 'Masculino' : dadosPessoais.sexo === 'F' ? 'Feminino' : dadosPessoais.sexo} 
+                  icon={User} 
+                />
+              )}
+              {dadosPessoais.orgao_emissor && (
+                <DataRow 
+                  label="Órgão Emissor RG" 
+                  value={dadosPessoais.orgao_emissor} 
+                  icon={FileText} 
+                />
+              )}
+            </dl>
           </CardContent>
         </Card>
       )}
@@ -212,7 +363,7 @@ export function DadosInscricaoTab({ dadosInscricao }: DadosInscricaoTabProps) {
       {consultorio && (consultorio.capacidadeAtendimento || consultorio.observacoes) && (
         <Card>
           <CardHeader>
-            <CardTitle>Informações Adicionais</CardTitle>
+            <CardTitle>Observações</CardTitle>
           </CardHeader>
           <CardContent>
             <dl className="space-y-1">
@@ -224,7 +375,7 @@ export function DadosInscricaoTab({ dadosInscricao }: DadosInscricaoTabProps) {
               )}
               {consultorio.observacoes && (
                 <div className="py-2">
-                  <dt className="text-sm font-medium text-muted-foreground mb-2">Observações</dt>
+                  <dt className="text-sm font-medium text-muted-foreground mb-2">Observações do Consultório</dt>
                   <dd className="text-sm bg-muted p-3 rounded-lg">{consultorio.observacoes}</dd>
                 </div>
               )}
