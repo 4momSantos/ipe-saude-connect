@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, CheckCircle2, XCircle, AlertTriangle, UserX, Ban, Loader2 } from "lucide-react";
 import { useAlterarStatusCredenciado } from "@/hooks/useAlterarStatusCredenciado";
+import { useCriarSolicitacao } from "@/hooks/useSolicitacoesAlteracao";
 
 type StatusCredenciado = 'Ativo' | 'Suspenso' | 'Descredenciado' | 'Afastado' | 'Inativo';
 
@@ -22,6 +23,7 @@ interface AlteracaoStatusDialogProps {
   credenciadoNome: string;
   statusAtual: string;
   onSuccess: () => void;
+  mode?: 'direct' | 'request';
 }
 
 export function AlteracaoStatusDialog({
@@ -30,7 +32,8 @@ export function AlteracaoStatusDialog({
   credenciadoId,
   credenciadoNome,
   statusAtual,
-  onSuccess
+  onSuccess,
+  mode = 'direct'
 }: AlteracaoStatusDialogProps) {
   const [novoStatus, setNovoStatus] = useState<StatusCredenciado>('Ativo');
   const [justificativa, setJustificativa] = useState('');
@@ -41,7 +44,10 @@ export function AlteracaoStatusDialog({
   const [motivoDetalhado, setMotivoDetalhado] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   
-  const mutation = useAlterarStatusCredenciado();
+  const alterarStatusMutation = useAlterarStatusCredenciado();
+  const criarSolicitacaoMutation = useCriarSolicitacao();
+  
+  const mutation = mode === 'direct' ? alterarStatusMutation : criarSolicitacaoMutation;
 
   const isJustificativaValida = justificativa.trim().length >= 100;
   const isDatasValidas = (novoStatus !== 'Suspenso' && novoStatus !== 'Afastado') || (dataInicio && dataFim && dataFim > dataInicio);
@@ -107,21 +113,40 @@ export function AlteracaoStatusDialog({
     try {
       const dataEfetivaFinal = descredenciarImediato ? new Date().toISOString().split('T')[0] : dataEfetiva?.toISOString().split('T')[0];
       
-      await mutation.mutateAsync({
-        credenciado_id: credenciadoId,
-        novo_status: novoStatus,
-        justificativa,
-        data_inicio: dataInicio?.toISOString().split('T')[0],
-        data_fim: dataFim?.toISOString().split('T')[0],
-        data_efetiva: dataEfetivaFinal,
-        motivo_detalhado: motivoDetalhado || undefined
-      });
+      if (mode === 'request') {
+        // Modo solicitação: criar solicitação de alteração
+        await criarSolicitacaoMutation.mutateAsync({
+          credenciado_id: credenciadoId,
+          tipo_alteracao: 'status',
+          justificativa: `Solicitação de alteração de status de "${statusAtual}" para "${novoStatus}"`,
+          dados_atuais: { status: statusAtual },
+          dados_propostos: {
+            novo_status: novoStatus,
+            justificativa,
+            data_inicio: dataInicio?.toISOString().split('T')[0],
+            data_fim: dataFim?.toISOString().split('T')[0],
+            data_efetiva: dataEfetivaFinal,
+            motivo_detalhado: motivoDetalhado || undefined
+          }
+        });
+      } else {
+        // Modo direto: alterar status imediatamente
+        await alterarStatusMutation.mutateAsync({
+          credenciado_id: credenciadoId,
+          novo_status: novoStatus,
+          justificativa,
+          data_inicio: dataInicio?.toISOString().split('T')[0],
+          data_fim: dataFim?.toISOString().split('T')[0],
+          data_efetiva: dataEfetivaFinal,
+          motivo_detalhado: motivoDetalhado || undefined
+        });
+      }
       
       onSuccess();
       onClose();
       resetForm();
     } catch (error) {
-      console.error('Erro ao alterar status:', error);
+      console.error('Erro ao processar alteração de status:', error);
     }
   };
 
@@ -144,9 +169,14 @@ export function AlteracaoStatusDialog({
       <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-[95vw] sm:max-w-[90vw] md:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg">Revisar Alteração de Status</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">
+              {mode === 'request' ? 'Revisar Solicitação de Alteração de Status' : 'Revisar Alteração de Status'}
+            </DialogTitle>
             <DialogDescription className="text-sm">
-              Confirme os dados antes de finalizar a alteração
+              {mode === 'request' 
+                ? 'Confirme os dados antes de enviar a solicitação para análise'
+                : 'Confirme os dados antes de finalizar a alteração'
+              }
             </DialogDescription>
           </DialogHeader>
 
@@ -221,7 +251,7 @@ export function AlteracaoStatusDialog({
                 className="w-full sm:flex-1"
               >
                 {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Confirmar Alteração
+                {mode === 'request' ? 'Enviar Solicitação' : 'Confirmar Alteração'}
               </Button>
             </div>
           </div>
@@ -235,7 +265,7 @@ export function AlteracaoStatusDialog({
       <DialogContent className="max-w-[95vw] sm:max-w-[90vw] md:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-sm sm:text-base md:text-lg break-words pr-6">
-            Alterar Status - {credenciadoNome}
+            {mode === 'request' ? 'Solicitar Alteração de Status' : 'Alterar Status'} - {credenciadoNome}
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
             Status Atual: <span className="font-semibold">{statusAtual}</span>

@@ -173,14 +173,25 @@ export default function CredenciadoDetail() {
         )}
         
         {isCandidato && isProprietario && (
-          <Button 
-            onClick={() => setSolicitacaoDialogOpen(true)}
-            size="sm"
-            className="w-full sm:w-auto text-xs md:text-sm"
-          >
-            <FileEdit className="h-3 w-3 md:h-4 md:w-4 md:mr-2" />
-            <span className="ml-2 md:ml-0">Solicitar Alteração</span>
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button 
+              onClick={() => setAlteracaoStatusDialogOpen(true)}
+              size="sm"
+              variant="outline"
+              className="w-full sm:w-auto text-xs md:text-sm"
+            >
+              <Edit className="h-3 w-3 md:h-4 md:w-4 md:mr-2" />
+              <span className="ml-2 md:ml-0">Solicitar Alteração de Status</span>
+            </Button>
+            <Button 
+              onClick={() => setSolicitacaoDialogOpen(true)}
+              size="sm"
+              className="w-full sm:w-auto text-xs md:text-sm"
+            >
+              <FileEdit className="h-3 w-3 md:h-4 md:w-4 md:mr-2" />
+              <span className="ml-2 md:ml-0">Solicitar Alteração de Dados</span>
+            </Button>
+          </div>
         )}
       </div>
 
@@ -339,6 +350,7 @@ export default function CredenciadoDetail() {
         statusAtual={credenciado.status}
         open={alteracaoStatusDialogOpen}
         onClose={() => setAlteracaoStatusDialogOpen(false)}
+        mode={isGestorOrAnalista ? 'direct' : 'request'}
         onSuccess={() => {
           // Refetch credenciado data
         }}

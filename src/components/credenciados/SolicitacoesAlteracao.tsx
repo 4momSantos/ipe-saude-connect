@@ -1,7 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
-import { FileEdit, Calendar, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { FileEdit, Calendar, CheckCircle2, XCircle, Loader2, ArrowRight } from "lucide-react";
 import { useSolicitacoesAlteracao, useAprovarSolicitacao, useRejeitarSolicitacao } from "@/hooks/useSolicitacoesAlteracao";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SolicitarAlteracaoDialog } from "./SolicitarAlteracaoDialog";
@@ -100,24 +101,85 @@ export function SolicitacoesAlteracao({ credenciadoId, dadosAtuais }: Solicitaco
                     <StatusBadge status={mapearStatus(solicitacao.status)} />
                   </div>
 
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2 rounded-md bg-muted/30 p-3">
-                      <p className="text-xs font-medium text-muted-foreground uppercase">
-                        Dados Atuais
-                      </p>
-                      <pre className="text-sm font-medium text-foreground whitespace-pre-wrap">
-                        {formatarDados(solicitacao.dados_atuais)}
-                      </pre>
+                  {solicitacao.tipo_alteracao === 'status' ? (
+                    // Renderização especial para alterações de status
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-lg">
+                        <Badge variant="outline" className="text-sm">
+                          {solicitacao.dados_atuais?.status || 'Status Anterior'}
+                        </Badge>
+                        <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                        <Badge variant="default" className="text-sm">
+                          {solicitacao.dados_propostos?.novo_status || 'Novo Status'}
+                        </Badge>
+                      </div>
+                      
+                      {solicitacao.dados_propostos?.justificativa && (
+                        <div className="space-y-2 rounded-md bg-muted/30 p-3">
+                          <p className="text-xs font-medium text-muted-foreground uppercase">
+                            Justificativa da Solicitação
+                          </p>
+                          <p className="text-sm text-foreground whitespace-pre-wrap">
+                            {solicitacao.dados_propostos.justificativa}
+                          </p>
+                        </div>
+                      )}
+
+                      {(solicitacao.dados_propostos?.data_inicio || solicitacao.dados_propostos?.data_fim) && (
+                        <div className="space-y-2 rounded-md bg-muted/30 p-3">
+                          <p className="text-xs font-medium text-muted-foreground uppercase">
+                            Período
+                          </p>
+                          <p className="text-sm text-foreground">
+                            {solicitacao.dados_propostos.data_inicio && `Início: ${new Date(solicitacao.dados_propostos.data_inicio).toLocaleDateString('pt-BR')}`}
+                            {solicitacao.dados_propostos.data_fim && ` • Fim: ${new Date(solicitacao.dados_propostos.data_fim).toLocaleDateString('pt-BR')}`}
+                          </p>
+                        </div>
+                      )}
+
+                      {solicitacao.dados_propostos?.data_efetiva && (
+                        <div className="space-y-2 rounded-md bg-muted/30 p-3">
+                          <p className="text-xs font-medium text-muted-foreground uppercase">
+                            Data Efetiva
+                          </p>
+                          <p className="text-sm text-foreground">
+                            {new Date(solicitacao.dados_propostos.data_efetiva).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                      )}
+
+                      {solicitacao.dados_propostos?.motivo_detalhado && (
+                        <div className="space-y-2 rounded-md bg-muted/30 p-3">
+                          <p className="text-xs font-medium text-muted-foreground uppercase">
+                            Motivo Detalhado
+                          </p>
+                          <p className="text-sm text-foreground whitespace-pre-wrap">
+                            {solicitacao.dados_propostos.motivo_detalhado}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                    <div className="space-y-2 rounded-md bg-primary/5 p-3 border border-primary/20">
-                      <p className="text-xs font-medium text-primary uppercase">
-                        Dados Solicitados
-                      </p>
-                      <pre className="text-sm font-medium text-foreground whitespace-pre-wrap">
-                        {formatarDados(solicitacao.dados_propostos)}
-                      </pre>
+                  ) : (
+                    // Renderização padrão para outros tipos de alteração
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2 rounded-md bg-muted/30 p-3">
+                        <p className="text-xs font-medium text-muted-foreground uppercase">
+                          Dados Atuais
+                        </p>
+                        <pre className="text-sm font-medium text-foreground whitespace-pre-wrap">
+                          {formatarDados(solicitacao.dados_atuais)}
+                        </pre>
+                      </div>
+                      <div className="space-y-2 rounded-md bg-primary/5 p-3 border border-primary/20">
+                        <p className="text-xs font-medium text-primary uppercase">
+                          Dados Solicitados
+                        </p>
+                        <pre className="text-sm font-medium text-foreground whitespace-pre-wrap">
+                          {formatarDados(solicitacao.dados_propostos)}
+                        </pre>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">

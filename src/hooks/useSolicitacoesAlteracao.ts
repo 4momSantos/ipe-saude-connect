@@ -38,19 +38,41 @@ export function useAprovarSolicitacao() {
 
   return useMutation({
     mutationFn: async ({ id, observacoes }: { id: string; observacoes?: string }) => {
-      const { error } = await supabase
+      // Buscar a solicitação para verificar o tipo
+      const { data: solicitacao, error: fetchError } = await supabase
         .from("solicitacoes_alteracao")
-        .update({
-          status: "Aprovada",
-          analisado_em: new Date().toISOString(),
-          observacoes_analise: observacoes,
-        })
-        .eq("id", id);
+        .select("*")
+        .eq("id", id)
+        .single();
 
-      if (error) throw error;
+      if (fetchError) throw fetchError;
+
+      // Se for solicitação de status, chamar edge function dedicada
+      if (solicitacao?.tipo_alteracao === 'status') {
+        const { data, error } = await supabase.functions.invoke('aprovar-solicitacao-status', {
+          body: { solicitacao_id: id, observacoes }
+        });
+
+        if (error) throw error;
+        return data;
+      } else {
+        // Aprovação simples para outros tipos (apenas atualizar status)
+        const { error } = await supabase
+          .from("solicitacoes_alteracao")
+          .update({
+            status: "Aprovada",
+            analisado_em: new Date().toISOString(),
+            observacoes_analise: observacoes,
+          })
+          .eq("id", id);
+
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["solicitacoes-alteracao"] });
+      queryClient.invalidateQueries({ queryKey: ["credenciado"] });
+      queryClient.invalidateQueries({ queryKey: ["credenciados"] });
       toast.success("Solicitação aprovada com sucesso");
     },
     onError: (error: Error) => {
