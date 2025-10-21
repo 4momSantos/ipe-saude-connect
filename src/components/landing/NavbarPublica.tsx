@@ -6,13 +6,13 @@ import logo from "@/assets/ipe-saude-logo.png";
 export function NavbarPublica() {
   return (
     <nav className="sticky top-0 z-50 border-b border-segurados/20 bg-[hsl(135,84%,15%)] shadow-md">
-      <div className="container mx-auto px-4 py-0.5">
+      <div className="container mx-auto px-4 py-0">
         <div className="flex items-center justify-between">
           <Link to="/login" className="flex items-center">
             <img 
               src={logo} 
               alt="IPE Saúde" 
-              className="h-24 w-auto object-contain hover:opacity-90 transition-opacity"
+              className="h-20 w-auto object-contain hover:opacity-90 transition-opacity"
             />
           </Link>
           
