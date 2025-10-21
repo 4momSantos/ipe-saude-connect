@@ -6,6 +6,66 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// ===== HELPER: Wait for Document to be Ready =====
+async function waitForDocumentReady(
+  documentId: string,
+  assinafyApiKey: string,
+  maxAttempts: number = 10,
+  intervalMs: number = 2000
+): Promise<boolean> {
+  console.log(`   → Aguardando documento ficar pronto (max ${maxAttempts * intervalMs / 1000}s)...`);
+  
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const response = await fetch(
+        `https://api.assinafy.com.br/v1/documents/${documentId}`,
+        {
+          method: 'GET',
+          headers: {
+            'X-Api-Key': assinafyApiKey,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        console.error(`   ⚠️ Erro ao consultar documento (tentativa ${attempt}/${maxAttempts}): ${response.status}`);
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+        continue;
+      }
+
+      const docData = await response.json();
+      const status = docData.data?.status || docData.status;
+
+      console.log(`   📄 Status do documento: ${status} (tentativa ${attempt}/${maxAttempts})`);
+
+      if (status === 'ready' || status === 'pending') {
+        console.log(`   ✅ Documento pronto após ${attempt} tentativa(s)`);
+        return true;
+      }
+
+      if (status === 'error' || status === 'rejected' || status === 'failed') {
+        console.error(`   ❌ Documento falhou com status: ${status}`);
+        return false;
+      }
+
+      // Aguardar antes da próxima tentativa
+      if (attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+      }
+    } catch (error) {
+      console.error(`   ⚠️ Exceção ao consultar documento (tentativa ${attempt}/${maxAttempts}): ${error.message}`);
+      
+      if (attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+      }
+    }
+  }
+
+  console.error(`   ❌ Timeout: documento não ficou pronto após ${maxAttempts * intervalMs / 1000}s`);
+  return false;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -50,7 +110,7 @@ serve(async (req) => {
       `)
       .not('external_id', 'is', null)
       .is('metadata->>assinafy_assignment_id', null)
-      .in('status', ['processing', 'pending']);
+      .in('status', ['processing', 'pending', 'failed', 'sent']);
 
     // ✅ Aplicar filtros condicionalmente
     if (contrato_id) {
@@ -80,6 +140,7 @@ serve(async (req) => {
       const documentId = sr.external_id;
       
       console.log(`\n🔧 Processando: ${contrato.numero_contrato}`);
+      console.log(`   📊 Status atual do signature_request: ${sr.status}`);
       
       try {
         // 2a. Get or create signer
@@ -130,7 +191,14 @@ serve(async (req) => {
           }
         }
         
-        // 2b. Criar assignment
+        // 2b. Aguardar documento ficar pronto
+        const isReady = await waitForDocumentReady(documentId, assignafyApiKey!);
+        
+        if (!isReady) {
+          throw new Error('Documento não está pronto para assinatura após aguardar');
+        }
+        
+        // 2c. Criar assignment
         console.log(`   → Criando assignment...`);
         
         const assignmentResponse = await fetch(
@@ -160,7 +228,7 @@ serve(async (req) => {
         
         console.log(`   ✅ Assignment criado: ${assignmentId}`);
         
-        // 2c. Buscar signature_url
+        // 2d. Buscar signature_url
         console.log(`   → Buscando URL de assinatura...`);
         
         const docResponse = await fetch(
@@ -178,7 +246,7 @@ serve(async (req) => {
           console.log(`   ✅ URL obtida: ${signatureUrl ? 'Sim' : 'Não'}`);
         }
         
-        // 2d. Atualizar no banco
+        // 2e. Atualizar no banco
         console.log(`   → Salvando no banco...`);
         
         const { error: updateError } = await supabaseAdmin
