@@ -197,7 +197,9 @@ export function AppSidebar() {
               style={{ mixBlendMode: 'lighten' }}
             />
             {!isCollapsed && (
-              <NotificationCenter />
+              <div className="flex items-center">
+                <NotificationCenter />
+              </div>
             )}
           </div>
         </div>
