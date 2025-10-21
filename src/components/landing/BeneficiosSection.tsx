@@ -37,12 +37,12 @@ export default function BeneficiosSection() {
         
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
           {beneficios.map((item, index) => (
-            <Card key={index} className="bg-card border border-border hover:border-primary/50 transition-all duration-300">
+            <Card key={index} className="bg-card border-2 border-segurados/30 hover:border-segurados transition-all duration-300">
               <CardContent className="pt-6 pb-6 space-y-3 text-center">
-                <div className="inline-flex p-3 bg-primary/10 rounded-lg">
-                  <item.icon className="h-6 w-6 text-primary" />
+                <div className="inline-flex p-3 bg-segurados/10 rounded-lg">
+                  <item.icon className="h-6 w-6 text-segurados" />
                 </div>
-                <h3 className="font-semibold text-base">{item.titulo}</h3>
+                <h3 className="font-semibold text-base text-[hsl(135,84%,15%)]">{item.titulo}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{item.descricao}</p>
               </CardContent>
             </Card>
