@@ -67,6 +67,10 @@ export default {
           "7": "hsl(var(--chart-7))",
           "8": "hsl(var(--chart-8))",
         },
+        // IPE Saúde theme colors
+        segurados: "#6B9B4D",
+        prestadores: "#3B7FC4",
+        gestores: "#E89F3C",
       },
       borderRadius: {
         lg: "var(--radius)",
