@@ -127,17 +127,22 @@ serve(async (req) => {
 
         if (syncError) {
           console.error('[CHECK_ASSINAFY] ❌ Erro ao sincronizar:', syncError);
-          // Não bloquear, tentar gerar certificado mesmo assim
         } else {
           console.log('[CHECK_ASSINAFY] ✅ Credenciado sincronizado:', credenciadoId);
         }
 
-        // Gerar certificado (usar credenciadoId retornado ou buscar novamente)
-        const finalCredenciadoId = credenciadoId || (await supabase
-          .from('credenciados')
-          .select('id')
-          .eq('inscricao_id', contrato.inscricao_id)
-          .single()).data?.id;
+        // Buscar ID do credenciado para gerar certificado
+        let finalCredenciadoId = credenciadoId;
+        
+        if (!finalCredenciadoId) {
+          const { data: credenciadoData } = await supabase
+            .from('credenciados')
+            .select('id')
+            .eq('inscricao_id', contrato.inscricao_id)
+            .single();
+          
+          finalCredenciadoId = credenciadoData?.id;
+        }
 
         if (finalCredenciadoId) {
           console.log('[CHECK_ASSINAFY] Gerando certificado para:', finalCredenciadoId);
