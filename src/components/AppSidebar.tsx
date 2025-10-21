@@ -185,28 +185,24 @@ export function AppSidebar() {
     >
       <SidebarContent className="gap-0">
         {/* Header com Logo IPE Saúde */}
-        <div className="p-6 pb-8">
+        <div className="p-4 pb-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-1">
               <img 
                 src={logoIpeSaude} 
                 alt="IPE Saúde" 
                 className={cn(
                   "object-contain transition-all",
-                  isCollapsed ? "h-14 w-14" : "h-20"
+                  isCollapsed ? "h-16 w-16" : "h-24 w-full max-w-[180px]"
                 )}
                 style={{ mixBlendMode: 'lighten' }}
               />
               {!isCollapsed && (
-                <div>
-                  <h2 className="text-base font-bold text-white">IPE Saúde</h2>
-                  <p className="text-xs text-white/80 mt-0.5">Credenciamento</p>
+                <div className="ml-auto">
+                  <NotificationCenter />
                 </div>
               )}
             </div>
-            {!isCollapsed && (
-              <NotificationCenter />
-            )}
           </div>
         </div>
 
