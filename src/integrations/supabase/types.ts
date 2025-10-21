@@ -6460,17 +6460,15 @@ export type Database = {
         }[]
       }
       buscar_credenciados_com_documentos: {
-        Args:
-          | {
-              p_apenas_com_documentos?: boolean
-              p_apenas_vencidos?: boolean
-              p_limite?: number
-              p_offset?: number
-              p_status?: string
-              p_termo_busca?: string
-              p_tipo_documento?: string
-            }
-          | { p_limite?: number; p_offset?: number }
+        Args: {
+          p_apenas_com_documentos?: boolean
+          p_apenas_vencidos?: boolean
+          p_limite?: number
+          p_offset?: number
+          p_status?: string
+          p_termo_busca?: string
+          p_tipo_documento?: string
+        }
         Returns: {
           credenciado_cnpj: string
           credenciado_cpf: string
