@@ -358,11 +358,7 @@ export default function Prazos() {
                 return (
                   <Card key={credenciado.credenciado_id} className="overflow-hidden">
                     <CardHeader 
-                      className={`cursor-pointer transition-colors ${
-                        isExpanded 
-                          ? 'bg-gradient-to-r from-primary to-primary/80' 
-                          : 'bg-[#064714]'
-                      } text-primary-foreground hover:opacity-90`}
+                      className="cursor-pointer transition-colors bg-[#064714] text-primary-foreground hover:opacity-90"
                       onClick={() => toggleCredenciado(credenciado.credenciado_id)}
                     >
                       <div className="flex items-center justify-between">
