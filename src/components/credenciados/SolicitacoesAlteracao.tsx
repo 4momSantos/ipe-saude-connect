@@ -2,8 +2,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Badge } from "@/components/ui/badge";
-import { FileEdit, Calendar, CheckCircle2, XCircle, Loader2, ArrowRight } from "lucide-react";
+import { FileEdit, Calendar, CheckCircle2, XCircle, Loader2, ArrowRight, Wrench } from "lucide-react";
 import { useSolicitacoesAlteracao, useAprovarSolicitacao, useRejeitarSolicitacao } from "@/hooks/useSolicitacoesAlteracao";
+import { useCorrigirSolicitacao } from "@/hooks/useCorrigirSolicitacao";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SolicitarAlteracaoDialog } from "./SolicitarAlteracaoDialog";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -38,6 +39,7 @@ export function SolicitacoesAlteracao({ credenciadoId, dadosAtuais }: Solicitaco
   const { isCandidato } = useUserRole();
   const aprovarMutation = useAprovarSolicitacao();
   const rejeitarMutation = useRejeitarSolicitacao();
+  const corrigirMutation = useCorrigirSolicitacao();
 
   const handleAprovar = (id: string) => {
     aprovarMutation.mutate({ id });
@@ -225,6 +227,22 @@ export function SolicitacoesAlteracao({ credenciadoId, dadosAtuais }: Solicitaco
                       >
                         <XCircle className="h-4 w-4" />
                         Rejeitar
+                      </Button>
+                    </div>
+                  )}
+
+                  {solicitacao.status === "Aprovada" && solicitacao.tipo_alteracao === "status" && (
+                    <div className="flex gap-2 pt-2 border-t border-border">
+                      <Button 
+                        size="sm" 
+                        variant="secondary"
+                        className="gap-2"
+                        onClick={() => corrigirMutation.mutate(solicitacao.id)}
+                        disabled={corrigirMutation.isPending}
+                        title="Aplicar alteração de status ao credenciado"
+                      >
+                        <Wrench className="h-4 w-4" />
+                        Corrigir Status
                       </Button>
                     </div>
                   )}
