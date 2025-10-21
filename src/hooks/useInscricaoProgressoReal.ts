@@ -184,7 +184,7 @@ export function useInscricaoProgressoReal(inscricaoId: string) {
       etapaIndex = 3;
     }
 
-    if (statusCredenciado === "ativo") {
+    if (statusCredenciado === "Ativo") {
       // 5. Quando vira credenciado → "ativo"
       etapaAtual = "ativo";
       etapaIndex = 4;
@@ -210,7 +210,7 @@ export function useInscricaoProgressoReal(inscricaoId: string) {
       temAprovacao,
       temContratoGerado: !!statusContrato,
       temContratoAssinado: statusContrato === "assinado",
-      temCredenciamentoAtivo: statusCredenciado === "ativo",
+      temCredenciamentoAtivo: statusCredenciado === "Ativo",
     };
   };
 
