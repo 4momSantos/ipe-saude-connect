@@ -48,8 +48,8 @@ export function useProcessarDecisao() {
         console.error('❌ [PROCESSAR_DECISAO] Erro na edge function:', error);
         console.error('❌ [PROCESSAR_DECISAO] Detalhes do erro:', {
           message: error.message,
-          context: error.context, // Contém detalhes do backend
-          status: error.status
+          context: (error as any).context, // Contém detalhes do backend
+          status: (error as any).status
         });
         throw error;
       }
