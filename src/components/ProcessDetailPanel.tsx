@@ -64,7 +64,7 @@ export function ProcessDetailPanel({ processo, onClose, onStatusChange }: Proces
       // Marcar todas as mensagens não lidas como lidas
       const { error } = await supabase
         .from('workflow_messages')
-        .update({ is_read: true, read_at: new Date().toISOString() })
+        .update({ is_read: true })
         .eq('inscricao_id', processo.id)
         .eq('is_read', false)
         .neq('sender_id', user.id);

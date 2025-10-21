@@ -202,7 +202,7 @@ export function ChatWorkflow({
           // Marcar em lote
           await supabase
             .from('workflow_messages')
-            .update({ is_read: true, read_at: new Date().toISOString() })
+            .update({ is_read: true })
             .in('id', idsParaMarcar)
             .eq('is_read', false);
         }

@@ -19,7 +19,6 @@ interface Message {
   content: string;
   created_at: string;
   is_read: boolean;
-  read_at: string | null;
   sender_name?: string;
   sender_email?: string;
   lido_por?: string[];
@@ -112,7 +111,6 @@ export function useWorkflowMessages({
                 content: newMsg.content || newMsg.mensagem,
                 created_at: newMsg.created_at,
                 is_read: isReadForCurrentUser,
-                read_at: newMsg.read_at,
                 sender_name: newMsg.usuario_nome || "Usuário",
                 sender_email: newMsg.usuario_email,
                 lido_por: lidoPorArray,
@@ -202,7 +200,6 @@ export function useWorkflowMessages({
           mensagem,
           created_at,
           is_read,
-          read_at,
           usuario_nome,
           usuario_email,
           lido_por
@@ -227,7 +224,6 @@ export function useWorkflowMessages({
           content: msg.content || msg.mensagem,
           created_at: msg.created_at,
           is_read: isReadForCurrentUser,
-          read_at: msg.read_at,
           sender_name: msg.usuario_nome || "Usuário",
           sender_email: msg.usuario_email,
           lido_por: lidoPorArray,
