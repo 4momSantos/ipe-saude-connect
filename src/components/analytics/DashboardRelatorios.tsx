@@ -156,7 +156,15 @@ export function DashboardRelatorios() {
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={data.credenciadosPorRegiao}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
+                <XAxis 
+                  dataKey="name" 
+                  stroke="hsl(var(--muted-foreground))"
+                  tick={{ fontSize: 12 }}
+                  interval={0}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
+                />
                 <YAxis stroke="hsl(var(--muted-foreground))" />
                 <Tooltip
                   contentStyle={{
@@ -221,7 +229,9 @@ export function DashboardRelatorios() {
                   type="category"
                   dataKey="especialidade"
                   stroke="hsl(var(--muted-foreground))"
-                  width={100}
+                  width={120}
+                  tick={{ fontSize: 11 }}
+                  interval={0}
                 />
                 <Tooltip
                   contentStyle={{
