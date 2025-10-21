@@ -561,9 +561,7 @@ export function DashboardContratos() {
                           {contrato.numero_contrato}
                           
                           {/* Badge de contrato recém-enviado */}
-                          {recentlySent.has(contrato.id) && <Badge variant="default" className="ml-2 text-xs bg-green-600 hover:bg-green-600">
-                              ✉️ Enviado agora
-                            </Badge>}
+                          {recentlySent.has(contrato.id)}
                           
                           {/* 🆕 Badge de múltiplos envios */}
                           {(() => {
@@ -661,7 +659,6 @@ export function DashboardContratos() {
                           const latestSR = getLatestSignatureRequest(contrato);
                           const isFailed = latestSR?.status === 'failed';
                           const hasExternalId = !!latestSR?.external_id;
-                          
                           return <div className="flex flex-col gap-2 items-end w-full">
                                     {/* Alerta visual para contratos com falha no processamento */}
                                     {isFailed && hasExternalId && <div className="w-full p-2 bg-orange-50 border border-orange-200 rounded-md text-left">
@@ -675,40 +672,36 @@ export function DashboardContratos() {
                                     
                                     <div className="flex gap-2">
                                       {/* Botão REPROCESSAR - para contratos órfãos */}
-                                      {temPDF && <ReprocessOrphanButton 
-                                        contratoId={contrato.id}
-                                        contratoNumero={contrato.numero_contrato}
-                                        isDisabled={recentlySent.has(contrato.id)}
-                                      />}
+                                      {temPDF && <ReprocessOrphanButton contratoId={contrato.id} contratoNumero={contrato.numero_contrato} isDisabled={recentlySent.has(contrato.id)} />}
                                       
                                       {/* Botão REGENERAR - só se não tem PDF */}
                                       {!temPDF && <Button size="sm" variant="destructive" onClick={async () => {
-                              try {
-                                toast.loading('Gerando novo contrato...', {
-                                  id: 'regen'
-                                });
-                                const result = await gerarContrato({
-                                  inscricaoId: contrato.inscricao_id
-                                });
-                                toast.success('Contrato regenerado e enviado para assinatura', {
-                                  id: 'regen',
-                                  description: `Número: ${result.numero_contrato}`
-                                });
-                                refetch();
-                              } catch (error: any) {
-                                toast.error('Erro ao regenerar contrato', {
-                                  id: 'regen',
-                                  description: error.message
-                                });
-                              }
-                                      }} disabled={isGerandoContrato}>
+                                try {
+                                  toast.loading('Gerando novo contrato...', {
+                                    id: 'regen'
+                                  });
+                                  const result = await gerarContrato({
+                                    inscricaoId: contrato.inscricao_id
+                                  });
+                                  toast.success('Contrato regenerado e enviado para assinatura', {
+                                    id: 'regen',
+                                    description: `Número: ${result.numero_contrato}`
+                                  });
+                                  refetch();
+                                } catch (error: any) {
+                                  toast.error('Erro ao regenerar contrato', {
+                                    id: 'regen',
+                                    description: error.message
+                                  });
+                                }
+                              }} disabled={isGerandoContrato}>
                                         <RefreshCw className={`h-4 w-4 mr-2 ${isGerandoContrato ? 'animate-spin' : ''}`} />
                                         Regenerar PDF
                                       </Button>}
                                     </div>
                                   </div>;
                         }
-                        
+
                         // Estado: NAO_ENVIADO - Primeiro envio
                         if (state === 'NAO_ENVIADO') {
                           return <div className="flex gap-2">
