@@ -26,31 +26,54 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Autenticação
+    // Autenticação - Detectar se é chamada interna (service role) ou externa (JWT usuário)
     const authHeader = req.headers.get('Authorization')!;
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    // Verificar se é service role key (chamada interna de outra edge function)
+    const isServiceRole = token === supabaseKey;
+    
+    let userId: string | null = null;
+    let userEmail: string | null = null;
+    let roles: any[] = [];
 
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Não autenticado' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    if (isServiceRole) {
+      console.log('[ALTERAR_STATUS] ✅ Chamada via service role (interna)');
+      // Bypass de validação - edge function interna pode prosseguir
+    } else {
+      console.log('[ALTERAR_STATUS] Validando JWT de usuário...');
+      // Validação normal para chamadas do frontend
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
-    // Validar permissões (gestor/admin)
-    const { data: roles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id);
+      if (authError || !user) {
+        console.error('[ALTERAR_STATUS] ❌ Erro de autenticação:', authError);
+        return new Response(
+          JSON.stringify({ error: 'Não autenticado' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
 
-    const hasPermission = roles?.some(r => ['gestor', 'admin'].includes(r.role));
+      userId = user.id;
+      userEmail = user.email || null;
 
-    if (!hasPermission) {
-      return new Response(
-        JSON.stringify({ error: 'Apenas gestores e administradores podem alterar status de credenciados' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      // Validar permissões (gestor/admin)
+      const { data: userRoles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id);
+
+      roles = userRoles || [];
+      const hasPermission = roles.some(r => ['gestor', 'admin'].includes(r.role));
+
+      if (!hasPermission) {
+        console.error('[ALTERAR_STATUS] ❌ Usuário sem permissão');
+        return new Response(
+          JSON.stringify({ error: 'Apenas gestores e administradores podem alterar status de credenciados' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      console.log('[ALTERAR_STATUS] ✅ Usuário autenticado:', userEmail);
     }
 
     const body: AlterarStatusRequest = await req.json();
@@ -99,14 +122,18 @@ serve(async (req) => {
       );
     }
 
-    // Buscar nome do gestor
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('nome')
-      .eq('id', user.id)
-      .single();
+    // Buscar nome do gestor/responsável
+    let gestorNome = 'Sistema';
+    
+    if (userId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('nome')
+        .eq('id', userId)
+        .single();
 
-    const gestorNome = profile?.nome || user.email;
+      gestorNome = profile?.nome || userEmail || 'Gestor';
+    }
 
     // Preparar dados de atualização
     const updateData: any = {
@@ -160,7 +187,7 @@ serve(async (req) => {
         status_anterior: credenciadoAtual.status,
         status_novo: body.novo_status,
         motivo: body.justificativa,
-        alterado_por: user.id,
+        alterado_por: userId || 'system',
         alterado_por_nome: gestorNome,
         metadata: {
           data_inicio: body.data_inicio,
@@ -222,29 +249,26 @@ serve(async (req) => {
     }
 
     // Log de auditoria
-    if (user.id) {
-      await supabase
-        .from('audit_logs')
-        .insert({
-          user_id: user.id,
-          user_email: user.email,
-          user_role: roles?.map(r => r.role).join(', '),
-          action: 'credenciado_status_changed',
-          resource_type: 'credenciado',
-          resource_id: body.credenciado_id,
-          old_values: { status: credenciadoAtual.status },
-          new_values: { status: body.novo_status },
-          metadata: {
-            justificativa: body.justificativa,
-            data_inicio: body.data_inicio,
-            data_fim: body.data_fim,
-            data_efetiva: body.data_efetiva,
-            credenciado_nome: credenciadoAtual.nome
-          }
-        });
-    } else {
-      console.warn('[ALTERAR_STATUS] user_id é null, não foi possível registrar audit log');
-    }
+    await supabase
+      .from('audit_logs')
+      .insert({
+        user_id: userId || 'system',
+        user_email: userEmail || 'system@interno',
+        user_role: isServiceRole ? 'system' : roles.map(r => r.role).join(', '),
+        action: 'credenciado_status_changed',
+        resource_type: 'credenciado',
+        resource_id: body.credenciado_id,
+        old_values: { status: credenciadoAtual.status },
+        new_values: { status: body.novo_status },
+        metadata: {
+          justificativa: body.justificativa,
+          data_inicio: body.data_inicio,
+          data_fim: body.data_fim,
+          data_efetiva: body.data_efetiva,
+          credenciado_nome: credenciadoAtual.nome,
+          via_service_role: isServiceRole
+        }
+      });
 
     console.log(`[ALTERAR_STATUS] Status de ${credenciadoAtual.nome} alterado: ${credenciadoAtual.status} → ${body.novo_status}`);
 
