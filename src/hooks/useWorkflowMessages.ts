@@ -341,6 +341,14 @@ export function useWorkflowMessages({
     try {
       setSending(true);
 
+      // Buscar dados do usuário para popular os campos de avatar
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('nome')
+        .eq('id', currentUserId)
+        .single();
+
       const insertData: any = {
         execution_id: executionId || null,
         inscricao_id: inscricaoId,
@@ -352,6 +360,8 @@ export function useWorkflowMessages({
         visivel_para: ['todos'],
         usuario_papel: currentUserType,
         lido_por: [currentUserId], // Marcar como lida para o remetente
+        usuario_nome: profile?.nome || null,
+        usuario_email: user?.email || null,
       };
 
       const { error } = await supabase.from("workflow_messages").insert(insertData);
