@@ -742,7 +742,7 @@ export function ChatWorkflow({
         {/* Avatar */}
         <Avatar className="w-8 h-8 flex-shrink-0">
           <AvatarFallback>
-            {mensagem.usuario_nome?.charAt(0) || mensagem.usuario_email.charAt(0).toUpperCase()}
+            {mensagem.usuario_nome?.charAt(0) || mensagem.usuario_email?.charAt(0)?.toUpperCase() || '?'}
           </AvatarFallback>
         </Avatar>
 
