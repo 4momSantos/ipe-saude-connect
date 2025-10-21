@@ -181,8 +181,20 @@ export function RelatorioDesempenhoRede() {
     }
   ];
 
-  // Usar sempre dados mockados baseado no tipo selecionado
-  const relatorio = tipo === "rede" ? relatorioMockRede : relatorioMockProfissionais;
+  // Filtrar dados mockados baseado nos filtros selecionados
+  const relatorioFiltrado = tipo === "rede" 
+    ? relatorioMockRede.filter(item => {
+        if (estado && item.estado !== estado) return false;
+        return true;
+      })
+    : relatorioMockProfissionais.filter(item => {
+        if (especialidade && item.especialidade !== especialidade) return false;
+        if (estado && item.estado !== estado) return false;
+        return true;
+      });
+
+  // Usar sempre dados mockados baseado no tipo selecionado e filtros aplicados
+  const relatorio = relatorioFiltrado;
   const isLoading = false;
 
   const handleGerar = () => {
@@ -365,22 +377,35 @@ export function RelatorioDesempenhoRede() {
           {tipo === "profissionais" && (
             <div>
               <Label className="text-xs font-medium mb-1 block">Especialidade</Label>
-              <Input
-                value={especialidade}
-                onChange={(e) => setEspecialidade(e.target.value)}
-                placeholder="Filtrar por especialidade"
-              />
+              <Select value={especialidade} onValueChange={setEspecialidade}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todas</SelectItem>
+                  <SelectItem value="Cardiologia">Cardiologia</SelectItem>
+                  <SelectItem value="Pediatria">Pediatria</SelectItem>
+                  <SelectItem value="Ortopedia">Ortopedia</SelectItem>
+                  <SelectItem value="Ginecologia">Ginecologia</SelectItem>
+                  <SelectItem value="Clínica Geral">Clínica Geral</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           )}
 
           <div>
             <Label className="text-xs font-medium mb-1 block">Estado</Label>
-            <Input
-              value={estado}
-              onChange={(e) => setEstado(e.target.value.toUpperCase())}
-              placeholder="Ex: SP"
-              maxLength={2}
-            />
+            <Select value={estado} onValueChange={setEstado}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="RS">RS - Rio Grande do Sul</SelectItem>
+                <SelectItem value="SC">SC - Santa Catarina</SelectItem>
+                <SelectItem value="PR">PR - Paraná</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex items-end">
