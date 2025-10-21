@@ -30,7 +30,7 @@ export function RelatorioDesempenhoRede() {
   const relatorioMockProfissionais: RelatorioProfissional[] = [
     {
       profissional_id: '1',
-      nome_profissional: 'Dr. João Silva',
+      nome_profissional: 'João Silva',
       crm: '12345',
       uf_crm: 'RS',
       especialidade: 'Cardiologia',
@@ -49,7 +49,7 @@ export function RelatorioDesempenhoRede() {
     },
     {
       profissional_id: '2',
-      nome_profissional: 'Dra. Maria Santos',
+      nome_profissional: 'Maria Santos',
       crm: '23456',
       uf_crm: 'RS',
       especialidade: 'Pediatria',
@@ -68,7 +68,7 @@ export function RelatorioDesempenhoRede() {
     },
     {
       profissional_id: '3',
-      nome_profissional: 'Dr. Carlos Oliveira',
+      nome_profissional: 'Carlos Oliveira',
       crm: '34567',
       uf_crm: 'SC',
       especialidade: 'Ortopedia',
@@ -87,7 +87,7 @@ export function RelatorioDesempenhoRede() {
     },
     {
       profissional_id: '4',
-      nome_profissional: 'Dra. Ana Costa',
+      nome_profissional: 'Ana Costa',
       crm: '45678',
       uf_crm: 'PR',
       especialidade: 'Ginecologia',
@@ -106,7 +106,7 @@ export function RelatorioDesempenhoRede() {
     },
     {
       profissional_id: '5',
-      nome_profissional: 'Dr. Pedro Almeida',
+      nome_profissional: 'Pedro Almeida',
       crm: '56789',
       uf_crm: 'RS',
       especialidade: 'Clínica Geral',

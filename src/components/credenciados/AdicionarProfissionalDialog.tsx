@@ -202,7 +202,7 @@ export function AdicionarProfissionalDialog({
                 value={formData.nome}
                 onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                 required
-                placeholder="Dr. João Silva"
+                placeholder="João Silva"
               />
             </div>
 
