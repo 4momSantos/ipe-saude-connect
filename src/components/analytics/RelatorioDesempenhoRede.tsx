@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Download, TrendingUp, Users, Star, Activity } from "lucide-react";
+import { Download, TrendingUp, Users, Star, Activity, X } from "lucide-react";
 import { useRelatorioRede, RelatorioProfissional, RelatorioCredenciado } from "@/hooks/useRelatorioRede";
 import { exportToCSV, exportToPDF } from "@/lib/export-utils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -377,33 +377,59 @@ export function RelatorioDesempenhoRede() {
           {tipo === "profissionais" && (
             <div>
               <Label className="text-xs font-medium mb-1 block">Especialidade</Label>
-              <Select value={especialidade} onValueChange={setEspecialidade}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Cardiologia">Cardiologia</SelectItem>
-                  <SelectItem value="Pediatria">Pediatria</SelectItem>
-                  <SelectItem value="Ortopedia">Ortopedia</SelectItem>
-                  <SelectItem value="Ginecologia">Ginecologia</SelectItem>
-                  <SelectItem value="Clínica Geral">Clínica Geral</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex gap-1">
+                <Select value={especialidade} onValueChange={setEspecialidade}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Cardiologia">Cardiologia</SelectItem>
+                    <SelectItem value="Pediatria">Pediatria</SelectItem>
+                    <SelectItem value="Ortopedia">Ortopedia</SelectItem>
+                    <SelectItem value="Ginecologia">Ginecologia</SelectItem>
+                    <SelectItem value="Clínica Geral">Clínica Geral</SelectItem>
+                  </SelectContent>
+                </Select>
+                {especialidade && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setEspecialidade("")}
+                    className="shrink-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
           )}
 
           <div>
             <Label className="text-xs font-medium mb-1 block">Estado</Label>
-            <Select value={estado} onValueChange={setEstado}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="RS">RS - Rio Grande do Sul</SelectItem>
-                <SelectItem value="SC">SC - Santa Catarina</SelectItem>
-                <SelectItem value="PR">PR - Paraná</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex gap-1">
+              <Select value={estado} onValueChange={setEstado}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="RS">RS - Rio Grande do Sul</SelectItem>
+                  <SelectItem value="SC">SC - Santa Catarina</SelectItem>
+                  <SelectItem value="PR">PR - Paraná</SelectItem>
+                </SelectContent>
+              </Select>
+              {estado && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setEstado("")}
+                  className="shrink-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="flex items-end">
