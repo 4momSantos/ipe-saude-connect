@@ -639,11 +639,32 @@ export function DashboardContratos() {
                           const latestSR = getLatestSignatureRequest(contrato);
                           const hasAssignment = latestSR?.metadata?.assinafy_assignment_id || latestSR?.metadata?.assignment_id;
 
+                          // Debug log para contratos específicos
+                          if (['CONT-2025-485295', 'CONT-2025-289812', 'CONT-2025-270384'].includes(contrato.numero_contrato)) {
+                            console.log(`[DEBUG] ${contrato.numero_contrato}:`, {
+                              estado: state,
+                              temSignatureRequest: latestSR !== null,
+                              hasAssignment,
+                              external_id: latestSR?.external_id,
+                              created_at: latestSR?.created_at,
+                              status: latestSR?.status
+                            });
+                          }
+
                           // Verificar se signature request existe (pode não existir se acabou de enviar)
                           const temSignatureRequest = latestSR !== null;
                           return <>
+                                    {/* Badge visual de confirmação */}
+                                    <Badge 
+                                      variant="default" 
+                                      className="mr-2 bg-blue-600 hover:bg-blue-600 text-xs"
+                                      title={`Enviado ao Assinafy em ${latestSR?.created_at ? new Date(latestSR.created_at).toLocaleString('pt-BR') : 'data desconhecida'}\nDoc ID: ${latestSR?.external_id || 'N/A'}\nAssignment ID: ${hasAssignment || 'N/A'}`}
+                                    >
+                                      📧 Enviado ao Assinafy
+                                    </Badge>
+
                                     {/* Botão REENVIAR E-MAIL - só mostrar se tem SR confirmado */}
-                                    {temSignatureRequest && <Button size="sm" variant="outline" onClick={() => {
+                                    {temSignatureRequest && <Button size="sm" variant="outline" className="border-blue-500 text-blue-600 hover:bg-blue-50" onClick={() => {
                               const dataEnvio = latestSR?.created_at ? new Date(latestSR.created_at).toLocaleString('pt-BR', {
                                 day: '2-digit',
                                 month: '2-digit',
