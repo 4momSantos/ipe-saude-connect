@@ -86,6 +86,109 @@ async function getOrCreateSigner(
   return { id: createData.data.id, created: true };
 }
 
+// ===== HELPER: Wait for Document to be Ready =====
+async function waitForDocumentReady(
+  documentId: string,
+  assinafyApiKey: string,
+  maxAttempts: number = 10,
+  intervalMs: number = 2000
+): Promise<boolean> {
+  console.log(JSON.stringify({
+    level: 'info',
+    action: 'polling_document_start',
+    document_id: documentId,
+    max_attempts: maxAttempts
+  }));
+  
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const response = await fetch(
+        `https://api.assinafy.com.br/v1/documents/${documentId}`,
+        {
+          method: 'GET',
+          headers: {
+            'X-Api-Key': assinafyApiKey,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        console.error(JSON.stringify({
+          level: 'error',
+          action: 'polling_document_error',
+          document_id: documentId,
+          status: response.status,
+          attempt
+        }));
+        
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+        continue;
+      }
+
+      const docData = await response.json();
+      const status = docData.data?.status || docData.status;
+
+      console.log(JSON.stringify({
+        level: 'info',
+        action: 'polling_document_status',
+        document_id: documentId,
+        status,
+        attempt,
+        max_attempts: maxAttempts
+      }));
+
+      if (status === 'ready' || status === 'pending') {
+        console.log(JSON.stringify({
+          level: 'info',
+          action: 'document_ready',
+          document_id: documentId,
+          status,
+          attempts: attempt
+        }));
+        return true;
+      }
+
+      if (status === 'error' || status === 'rejected' || status === 'failed') {
+        console.error(JSON.stringify({
+          level: 'error',
+          action: 'document_processing_failed',
+          document_id: documentId,
+          status
+        }));
+        return false;
+      }
+
+      // Aguardar antes da próxima tentativa (se não for a última)
+      if (attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+      }
+    } catch (error) {
+      console.error(JSON.stringify({
+        level: 'error',
+        action: 'polling_exception',
+        document_id: documentId,
+        error: error.message,
+        attempt
+      }));
+      
+      if (attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+      }
+    }
+  }
+
+  console.error(JSON.stringify({
+    level: 'error',
+    action: 'polling_timeout',
+    document_id: documentId,
+    max_attempts: maxAttempts,
+    total_time_seconds: (maxAttempts * intervalMs) / 1000
+  }));
+  
+  return false;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -365,19 +468,74 @@ serve(async (req) => {
     }
     
     // ==================================================
-    // ✅ CRIAR ASSIGNMENT IMEDIATAMENTE
+    // ✅ AGUARDAR DOCUMENTO FICAR PRONTO (POLLING)
     // ==================================================
 
     console.log(JSON.stringify({
       trace_id: traceId,
       level: 'info',
-      action: 'creating_assignment_directly',
+      action: 'waiting_for_document_ready',
       document_id: documentId,
       signer_id: signerId
     }));
 
-    // Aguardar 2s para Assinafy processar
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    const isReady = await waitForDocumentReady(documentId, assignafyApiKey);
+
+    if (!isReady) {
+      const errorMsg = 'Documento não ficou pronto para assinatura após 20 segundos';
+      
+      console.error(JSON.stringify({
+        trace_id: traceId,
+        level: 'error',
+        action: 'document_not_ready',
+        document_id: documentId,
+        error: errorMsg
+      }));
+      
+      // Atualizar signature_request com erro
+      await supabaseAdmin
+        .from('signature_requests')
+        .update({
+          status: 'failed',
+          metadata: {
+            ...signatureRequest.metadata,
+            error: errorMsg,
+            error_timestamp: new Date().toISOString(),
+            assinafy_document_id: documentId,
+            assinafy_status: 'uploaded_timeout',
+            trace_id: traceId
+          },
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', signatureRequestId);
+
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: errorMsg,
+          signature_request_id: signatureRequestId,
+          document_id: documentId,
+          retry_available: true,
+          trace_id: traceId
+        }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // ==================================================
+    // ✅ CRIAR ASSIGNMENT (DOCUMENTO PRONTO)
+    // ==================================================
+
+    console.log(JSON.stringify({
+      trace_id: traceId,
+      level: 'info',
+      action: 'creating_assignment',
+      document_id: documentId,
+      signer_id: signerId
+    }));
 
     // Criar assignment
     const assignmentResponse = await fetch(
