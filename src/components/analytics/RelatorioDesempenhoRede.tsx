@@ -382,7 +382,6 @@ export function RelatorioDesempenhoRede() {
                   <SelectValue placeholder="Todas" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas</SelectItem>
                   <SelectItem value="Cardiologia">Cardiologia</SelectItem>
                   <SelectItem value="Pediatria">Pediatria</SelectItem>
                   <SelectItem value="Ortopedia">Ortopedia</SelectItem>
@@ -400,7 +399,6 @@ export function RelatorioDesempenhoRede() {
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
                 <SelectItem value="RS">RS - Rio Grande do Sul</SelectItem>
                 <SelectItem value="SC">SC - Santa Catarina</SelectItem>
                 <SelectItem value="PR">PR - Paraná</SelectItem>
