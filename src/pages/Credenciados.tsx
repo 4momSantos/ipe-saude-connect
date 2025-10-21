@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Eye, Download, Filter, Loader2, Trash2, AlertTriangle } from "lucide-react";
+import { Search, Eye, Download, Filter, Loader2, Trash2, AlertTriangle, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useCredenciados } from "@/hooks/useCredenciados";
+import { useReprocessarCredenciado } from "@/hooks/useReprocessarCredenciado";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,6 +43,7 @@ export default function Credenciados() {
   const [busca, setBusca] = useState("");
   const [credenciadosSelecionados, setCredenciadosSelecionados] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
+  const { reprocessar, isLoading: isReprocessing } = useReprocessarCredenciado();
   
   // Ativar notificações de solicitações
   useSolicitacoesNotifications();
@@ -196,6 +198,37 @@ export default function Credenciados() {
     deleteMutation.mutate(Array.from(credenciadosSelecionados));
   };
 
+  const handleReprocessarSelecionados = async () => {
+    if (credenciadosSelecionados.size === 0) {
+      toast.error("Selecione pelo menos um credenciado");
+      return;
+    }
+
+    const credenciadosParaReprocessar = credenciados?.filter(c => 
+      credenciadosSelecionados.has(c.id) && c.inscricao_id
+    ) || [];
+
+    if (credenciadosParaReprocessar.length === 0) {
+      toast.error("Nenhum credenciado selecionado possui ID de inscrição");
+      return;
+    }
+
+    toast.promise(
+      Promise.all(
+        credenciadosParaReprocessar.map(c => 
+          reprocessar({ inscricaoId: c.inscricao_id! })
+        )
+      ),
+      {
+        loading: `Reprocessando ${credenciadosParaReprocessar.length} credenciado(s)...`,
+        success: `${credenciadosParaReprocessar.length} credenciado(s) reprocessado(s) com sucesso!`,
+        error: "Erro ao reprocessar credenciados"
+      }
+    );
+
+    setCredenciadosSelecionados(new Set());
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -302,20 +335,36 @@ export default function Credenciados() {
             <CardTitle className="text-base md:text-lg lg:text-xl text-foreground">Lista de Credenciados</CardTitle>
             <div className="flex gap-2 w-full sm:w-auto">
               {credenciadosSelecionados.size > 0 && (
-                <Button 
-                  variant="destructive" 
-                  size="sm" 
-                  className="gap-2 w-full sm:w-auto"
-                  onClick={handleDeleteSelected}
-                  disabled={deleteMutation.isPending}
-                >
-                  {deleteMutation.isPending ? (
-                    <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
-                  )}
-                  <span className="text-xs md:text-sm">Deletar ({credenciadosSelecionados.size})</span>
-                </Button>
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="gap-2 w-full sm:w-auto border-primary text-primary hover:bg-primary/10"
+                    onClick={handleReprocessarSelecionados}
+                    disabled={isReprocessing}
+                  >
+                    {isReprocessing ? (
+                      <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-3 w-3 md:h-4 md:w-4" />
+                    )}
+                    <span className="text-xs md:text-sm">Reprocessar ({credenciadosSelecionados.size})</span>
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    size="sm" 
+                    className="gap-2 w-full sm:w-auto"
+                    onClick={handleDeleteSelected}
+                    disabled={deleteMutation.isPending}
+                  >
+                    {deleteMutation.isPending ? (
+                      <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
+                    )}
+                    <span className="text-xs md:text-sm">Deletar ({credenciadosSelecionados.size})</span>
+                  </Button>
+                </>
               )}
               <Button variant="outline" size="sm" className="border-border hover:bg-card gap-2 w-full sm:w-auto">
                 <Download className="h-3 w-3 md:h-4 md:w-4" />

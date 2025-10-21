@@ -16,6 +16,7 @@ export interface CredenciadoServico {
 
 export interface Credenciado {
   id: string;
+  inscricao_id: string | null;
   nome: string;
   numero_credenciado: string | null;
   cpf: string | null;
