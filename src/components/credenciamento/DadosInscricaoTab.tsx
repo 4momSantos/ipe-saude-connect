@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useInscricaoDados } from "@/hooks/useInscricaoDados";
 import { 
   User, 
   Building2, 
@@ -15,7 +17,8 @@ import {
   XCircle,
   AlertCircle,
   Home,
-  ClipboardList
+  ClipboardList,
+  Loader2
 } from "lucide-react";
 import { 
   formatCPF, 
@@ -26,7 +29,7 @@ import {
 } from "@/utils/formatters";
 
 interface DadosInscricaoTabProps {
-  dadosInscricao: any;
+  inscricaoId?: string;
 }
 
 interface DataRowProps {
@@ -53,10 +56,44 @@ function DataRow({ label, value, icon: Icon }: DataRowProps) {
   );
 }
 
-export function DadosInscricaoTab({ dadosInscricao }: DadosInscricaoTabProps) {
-  console.log('[DEBUG DadosInscricaoTab] dadosInscricao recebido:', dadosInscricao);
+export function DadosInscricaoTab({ inscricaoId }: DadosInscricaoTabProps) {
+  console.log('[DEBUG DadosInscricaoTab] inscricaoId recebido:', inscricaoId);
 
-  if (!dadosInscricao) {
+  // ✅ Buscar dados diretamente do banco
+  const { data: inscricaoData, isLoading, isError, error } = useInscricaoDados(inscricaoId);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        {[1, 2, 3].map((i) => (
+          <Card key={i}>
+            <CardHeader>
+              <Skeleton className="h-6 w-48" />
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-5/6" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center">
+          <XCircle className="w-12 h-12 mx-auto text-destructive mb-4" />
+          <p className="text-muted-foreground">Erro ao carregar dados da inscrição.</p>
+          <p className="text-sm text-muted-foreground mt-2">{error?.message}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!inscricaoData || !inscricaoData.dados_inscricao) {
     return (
       <Card>
         <CardContent className="py-12 text-center">
@@ -67,14 +104,22 @@ export function DadosInscricaoTab({ dadosInscricao }: DadosInscricaoTabProps) {
     );
   }
 
-  // ✅ Extrair seções do JSONB
-  const dadosPessoais = dadosInscricao.dados_pessoais || {};
-  const pessoaJuridica = dadosInscricao.pessoa_juridica || {};
-  const enderecoCorrespondencia = dadosInscricao.endereco_correspondencia || {};
-  const consultorio = dadosInscricao.consultorio || {};
-  const documentos = dadosInscricao.documentos || [];
+  // ✅ Extrair seções do JSONB buscado diretamente do banco
+  const dadosInscricao = inscricaoData.dados_inscricao as any;
+  const dadosPessoais = dadosInscricao?.dados_pessoais || {};
+  const pessoaJuridica = dadosInscricao?.pessoa_juridica || {};
+  const enderecoCorrespondencia = dadosInscricao?.endereco_correspondencia || {};
+  const consultorio = dadosInscricao?.consultorio || {};
+  const documentos = dadosInscricao?.documentos || [];
   
-  console.log('[DEBUG] Dados extraídos:', { dadosPessoais, pessoaJuridica, enderecoCorrespondencia, consultorio, documentos });
+  console.log('[DEBUG] Dados extraídos do banco:', { 
+    dadosPessoais, 
+    pessoaJuridica, 
+    enderecoCorrespondencia, 
+    consultorio, 
+    documentos,
+    inscricaoData 
+  });
 
   // Função para obter ícone do status do documento
   const getDocumentoIcon = (status: string) => {

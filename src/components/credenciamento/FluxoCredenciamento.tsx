@@ -468,7 +468,7 @@ export function FluxoCredenciamento({
 
         {/* Aba Dados da Inscrição */}
         <TabsContent value="dados" className="mt-6">
-          <DadosInscricaoTab dadosInscricao={dadosInscricao} />
+          <DadosInscricaoTab inscricaoId={inscricaoId} />
         </TabsContent>
 
         {/* Aba Documentos */}
