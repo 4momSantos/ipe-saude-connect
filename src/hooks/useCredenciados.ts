@@ -146,8 +146,22 @@ export function useCredenciado(id: string) {
             .select("*")
             .eq("credenciado_crm_id", crm.id);
 
+          // Se tiver especialidade_id mas não tiver o nome, buscar
+          let nomeEspecialidade = crm.especialidade;
+          
+          if (!nomeEspecialidade && crm.especialidade_id) {
+            const { data: espData } = await supabase
+              .from("especialidades_medicas")
+              .select("nome")
+              .eq("id", crm.especialidade_id)
+              .maybeSingle();
+            
+            nomeEspecialidade = espData?.nome;
+          }
+
           return {
             ...crm,
+            especialidade: nomeEspecialidade || "Não especificada",
             horarios: horariosData || [],
           };
         })
