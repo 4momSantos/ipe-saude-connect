@@ -377,7 +377,7 @@ export default function Prazos() {
                           {!isExpanded && (
                             <div className="mt-2 space-y-1.5">
                               <div className="grid grid-cols-3 gap-1.5">
-                                {/* Documentos Válidos */}
+                                 {/* Documentos Válidos */}
                                 <div className="bg-white/10 rounded p-1.5">
                                   <div className="flex items-center justify-between mb-0.5">
                                     <span className="text-[10px] font-medium text-green-400">Válidos</span>
@@ -389,12 +389,12 @@ export default function Prazos() {
                                     <div 
                                       className="h-full bg-green-500 transition-all duration-300"
                                       style={{ 
-                                        width: `${(credenciado.documentos_validos / credenciado.total_documentos * 100)}%` 
+                                        width: `${credenciado.total_documentos > 0 ? (credenciado.documentos_validos / credenciado.total_documentos * 100) : 0}%` 
                                       }}
                                     />
                                   </div>
                                   <span className="text-[9px] text-primary-foreground/70">
-                                    {((credenciado.documentos_validos / credenciado.total_documentos * 100) || 0).toFixed(0)}%
+                                    {credenciado.total_documentos > 0 ? ((credenciado.documentos_validos / credenciado.total_documentos * 100) || 0).toFixed(0) : 0}%
                                   </span>
                                 </div>
 
@@ -410,12 +410,12 @@ export default function Prazos() {
                                     <div 
                                       className="h-full bg-red-500 transition-all duration-300"
                                       style={{ 
-                                        width: `${(credenciado.documentos_vencidos / credenciado.total_documentos * 100)}%` 
+                                        width: `${credenciado.total_documentos > 0 ? (credenciado.documentos_vencidos / credenciado.total_documentos * 100) : 0}%` 
                                       }}
                                     />
                                   </div>
                                   <span className="text-[9px] text-primary-foreground/70">
-                                    {((credenciado.documentos_vencidos / credenciado.total_documentos * 100) || 0).toFixed(0)}%
+                                    {credenciado.total_documentos > 0 ? ((credenciado.documentos_vencidos / credenciado.total_documentos * 100) || 0).toFixed(0) : 0}%
                                   </span>
                                 </div>
 
@@ -431,12 +431,12 @@ export default function Prazos() {
                                     <div 
                                       className="h-full bg-orange-500 transition-all duration-300"
                                       style={{ 
-                                        width: `${(credenciado.documentos_criticos / credenciado.total_documentos * 100)}%` 
+                                        width: `${credenciado.total_documentos > 0 ? (credenciado.documentos_criticos / credenciado.total_documentos * 100) : 0}%` 
                                       }}
                                     />
                                   </div>
                                   <span className="text-[9px] text-primary-foreground/70">
-                                    {((credenciado.documentos_criticos / credenciado.total_documentos * 100) || 0).toFixed(0)}%
+                                    {credenciado.total_documentos > 0 ? ((credenciado.documentos_criticos / credenciado.total_documentos * 100) || 0).toFixed(0) : 0}%
                                   </span>
                                 </div>
                               </div>
