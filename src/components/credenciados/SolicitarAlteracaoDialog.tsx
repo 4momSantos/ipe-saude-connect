@@ -80,12 +80,18 @@ export function SolicitarAlteracaoDialog({
 
     const campoAtual = getCampoAtual(tipo);
     
+    // Estruturar dados_propostos como JSON com a chave correta
+    const dadosPropostosJson: Record<string, string> = {};
+    if (campoAtual) {
+      dadosPropostosJson[campoAtual] = dadosNovos.trim();
+    }
+    
     await criarMutation.mutateAsync({
       credenciado_id: credenciadoId,
       tipo_alteracao: tipo,
       justificativa: justificativa.trim(),
       dados_atuais: dadosAtuais[campoAtual as keyof typeof dadosAtuais] || "N/A",
-      dados_propostos: dadosNovos.trim(),
+      dados_propostos: campoAtual ? dadosPropostosJson : dadosNovos.trim(),
     });
 
     setOpen(false);
