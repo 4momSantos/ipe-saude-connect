@@ -63,30 +63,53 @@ export function useAvaliacoes(credenciadoId: string) {
 
   const createAvaliacaoMutation = useMutation({
     mutationFn: async (avaliacao: Partial<Avaliacao>) => {
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        console.error("Erro ao obter usuário:", userError);
+        throw new Error("Erro ao autenticar usuário");
+      }
 
-      const { error } = await supabase
+      if (!user.user) {
+        throw new Error("Usuário não autenticado");
+      }
+
+      const payload = {
+        credenciado_id: credenciadoId,
+        periodo_referencia: avaliacao.periodo_referencia || new Date().toISOString().split('T')[0],
+        pontuacao_geral: avaliacao.pontuacao_geral || null,
+        criterios: avaliacao.criterios || [],
+        pontos_positivos: avaliacao.pontos_positivos || null,
+        pontos_melhoria: avaliacao.pontos_melhoria || null,
+        recomendacoes: avaliacao.recomendacoes || null,
+        status: avaliacao.status || 'rascunho',
+        finalizada_em: avaliacao.finalizada_em || null,
+        avaliador_id: user.user.id
+      };
+
+      console.log("Salvando avaliação:", payload);
+
+      const { data, error } = await supabase
         .from('avaliacoes_prestadores')
-        .insert({
-          credenciado_id: credenciadoId,
-          periodo_referencia: avaliacao.periodo_referencia || new Date().toISOString().split('T')[0],
-          pontuacao_geral: avaliacao.pontuacao_geral || null,
-          criterios: avaliacao.criterios || [],
-          pontos_positivos: avaliacao.pontos_positivos || null,
-          pontos_melhoria: avaliacao.pontos_melhoria || null,
-          recomendacoes: avaliacao.recomendacoes || null,
-          status: avaliacao.status || 'rascunho',
-          finalizada_em: avaliacao.finalizada_em || null,
-          avaliador_id: user.user?.id || null
-        });
+        .insert(payload)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Erro ao inserir avaliação:", error);
+        throw error;
+      }
+
+      console.log("Avaliação salva com sucesso:", data);
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['avaliacoes', credenciadoId] });
-      toast.success("Avaliação salva");
+      queryClient.invalidateQueries({ queryKey: ['avaliacoes-stats'] });
     },
-    onError: () => toast.error("Erro ao salvar avaliação")
+    onError: (error: Error) => {
+      console.error("Erro na mutation:", error);
+      toast.error(`Erro ao salvar avaliação: ${error.message}`);
+    }
   });
 
   const { data: stats } = useQuery({

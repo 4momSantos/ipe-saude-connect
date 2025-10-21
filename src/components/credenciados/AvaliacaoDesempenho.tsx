@@ -32,7 +32,7 @@ export function AvaliacaoDesempenho({ credenciadoId }: { credenciadoId: string }
     return notas.reduce((sum, nota) => sum + nota, 0) / notas.length;
   };
 
-  const salvarAvaliacao = () => {
+  const salvarAvaliacao = async () => {
     if (!podeAvaliar) {
       toast.error("Você não tem permissão para avaliar");
       return;
@@ -43,29 +43,41 @@ export function AvaliacaoDesempenho({ credenciadoId }: { credenciadoId: string }
       return;
     }
 
-    const criteriosAvaliados = criterios.map(c => ({
-      criterio_id: c.id,
-      criterio_nome: c.nome,
-      pontuacao: avaliacoes[c.id] || 0,
-      observacao: observacoes[c.id] || ''
-    }));
+    if (criterios.length === 0) {
+      toast.error("Nenhum critério de avaliação disponível");
+      return;
+    }
 
-    createAvaliacao({
-      periodo_referencia: periodoReferencia,
-      pontuacao_geral: calcularMedia(),
-      criterios: criteriosAvaliados,
-      pontos_positivos: pontosPositivos,
-      pontos_melhoria: pontosMelhoria,
-      status: 'finalizada',
-      finalizada_em: new Date().toISOString()
-    });
+    try {
+      const criteriosAvaliados = criterios.map(c => ({
+        criterio_id: c.id,
+        criterio_nome: c.nome,
+        pontuacao: avaliacoes[c.id] || 0,
+        observacao: observacoes[c.id] || ''
+      }));
 
-    // Limpar formulário
-    setAvaliacoes({});
-    setObservacoes({});
-    setPontosPositivos("");
-    setPontosMelhoria("");
-    setPeriodoReferencia(new Date().toISOString().split('T')[0]);
+      await createAvaliacao({
+        periodo_referencia: periodoReferencia,
+        pontuacao_geral: calcularMedia(),
+        criterios: criteriosAvaliados,
+        pontos_positivos: pontosPositivos || null,
+        pontos_melhoria: pontosMelhoria || null,
+        status: 'finalizada',
+        finalizada_em: new Date().toISOString()
+      });
+
+      // Limpar formulário após sucesso
+      setAvaliacoes({});
+      setObservacoes({});
+      setPontosPositivos("");
+      setPontosMelhoria("");
+      setPeriodoReferencia(new Date().toISOString().split('T')[0]);
+      
+      toast.success("Avaliação salva com sucesso!");
+    } catch (error) {
+      console.error("Erro ao salvar avaliação:", error);
+      toast.error("Erro ao salvar avaliação. Tente novamente.");
+    }
   };
 
   if (!podeAvaliar) {
