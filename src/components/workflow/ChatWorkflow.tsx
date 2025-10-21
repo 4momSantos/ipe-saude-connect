@@ -181,6 +181,13 @@ export function ChatWorkflow({
 
       if (error) throw error;
       
+      // Debug: Verificar manifestações
+      console.log('[CHAT] Total mensagens carregadas:', data?.length);
+      const manifestacoes = data?.filter((m: any) => 
+        ['parecer', 'decisao', 'justificativa', 'observacao_formal'].includes(m.tipo)
+      );
+      console.log('[CHAT] Manifestações formais encontradas:', manifestacoes?.length, manifestacoes);
+      
       // Reverter ordem para cronológica
       const mensagensOrdenadas = (data || []).reverse();
       setMensagens(mensagensOrdenadas as any);
