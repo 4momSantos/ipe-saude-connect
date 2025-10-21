@@ -29,14 +29,19 @@ serve(async (req) => {
   }
 
   const startTime = Date.now();
-  console.log(JSON.stringify({
-    timestamp: new Date().toISOString(),
-    event: 'simular_assinatura_start',
-    method: req.method
-  }));
+  let contrato_id: string | undefined;
 
   try {
-    const { contrato_id, force }: SimularAssinaturaRequest = await req.json();
+    const requestBody: SimularAssinaturaRequest = await req.json();
+    contrato_id = requestBody.contrato_id;
+    const force = requestBody.force;
+
+    console.log(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      event: 'simular_assinatura_start',
+      method: req.method,
+      contrato_id
+    }));
 
     if (!contrato_id) {
       throw new Error('contrato_id é obrigatório');
