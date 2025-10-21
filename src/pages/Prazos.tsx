@@ -379,17 +379,17 @@ export default function Prazos() {
                             {credenciado.credenciado_numero}
                           </CardDescription>
                           {!isExpanded && (
-                            <div className="mt-3 space-y-2">
-                              <div className="grid grid-cols-3 gap-2">
+                            <div className="mt-2 space-y-1.5">
+                              <div className="grid grid-cols-3 gap-1.5">
                                 {/* Documentos Válidos */}
-                                <div className="bg-white/10 rounded-lg p-2">
-                                  <div className="flex items-center justify-between mb-1">
-                                    <span className="text-xs font-medium text-green-400">Válidos</span>
-                                    <span className="text-xs font-bold text-primary-foreground">
+                                <div className="bg-white/10 rounded p-1.5">
+                                  <div className="flex items-center justify-between mb-0.5">
+                                    <span className="text-[10px] font-medium text-green-400">Válidos</span>
+                                    <span className="text-[10px] font-bold text-primary-foreground">
                                       {credenciado.documentos_validos}
                                     </span>
                                   </div>
-                                  <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
+                                  <div className="h-1 bg-white/20 rounded-full overflow-hidden">
                                     <div 
                                       className="h-full bg-green-500 transition-all duration-300"
                                       style={{ 
@@ -397,20 +397,20 @@ export default function Prazos() {
                                       }}
                                     />
                                   </div>
-                                  <span className="text-[10px] text-primary-foreground/70">
+                                  <span className="text-[9px] text-primary-foreground/70">
                                     {((credenciado.documentos_validos / credenciado.total_documentos * 100) || 0).toFixed(0)}%
                                   </span>
                                 </div>
 
                                 {/* Documentos Vencidos */}
-                                <div className="bg-white/10 rounded-lg p-2">
-                                  <div className="flex items-center justify-between mb-1">
-                                    <span className="text-xs font-medium text-red-400">Vencidos</span>
-                                    <span className="text-xs font-bold text-primary-foreground">
+                                <div className="bg-white/10 rounded p-1.5">
+                                  <div className="flex items-center justify-between mb-0.5">
+                                    <span className="text-[10px] font-medium text-red-400">Vencidos</span>
+                                    <span className="text-[10px] font-bold text-primary-foreground">
                                       {credenciado.documentos_vencidos}
                                     </span>
                                   </div>
-                                  <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
+                                  <div className="h-1 bg-white/20 rounded-full overflow-hidden">
                                     <div 
                                       className="h-full bg-red-500 transition-all duration-300"
                                       style={{ 
@@ -418,20 +418,20 @@ export default function Prazos() {
                                       }}
                                     />
                                   </div>
-                                  <span className="text-[10px] text-primary-foreground/70">
+                                  <span className="text-[9px] text-primary-foreground/70">
                                     {((credenciado.documentos_vencidos / credenciado.total_documentos * 100) || 0).toFixed(0)}%
                                   </span>
                                 </div>
 
                                 {/* Documentos Críticos */}
-                                <div className="bg-white/10 rounded-lg p-2">
-                                  <div className="flex items-center justify-between mb-1">
-                                    <span className="text-xs font-medium text-orange-400">Críticos</span>
-                                    <span className="text-xs font-bold text-primary-foreground">
+                                <div className="bg-white/10 rounded p-1.5">
+                                  <div className="flex items-center justify-between mb-0.5">
+                                    <span className="text-[10px] font-medium text-orange-400">Críticos</span>
+                                    <span className="text-[10px] font-bold text-primary-foreground">
                                       {credenciado.documentos_criticos}
                                     </span>
                                   </div>
-                                  <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
+                                  <div className="h-1 bg-white/20 rounded-full overflow-hidden">
                                     <div 
                                       className="h-full bg-orange-500 transition-all duration-300"
                                       style={{ 
@@ -439,12 +439,12 @@ export default function Prazos() {
                                       }}
                                     />
                                   </div>
-                                  <span className="text-[10px] text-primary-foreground/70">
+                                  <span className="text-[9px] text-primary-foreground/70">
                                     {((credenciado.documentos_criticos / credenciado.total_documentos * 100) || 0).toFixed(0)}%
                                   </span>
                                 </div>
                               </div>
-                              <div className="flex items-center justify-center gap-1 text-[10px] text-primary-foreground/60">
+                              <div className="flex items-center justify-center gap-1 text-[9px] text-primary-foreground/60">
                                 <ChevronDown className="h-3 w-3" />
                                 <span>Clique para expandir</span>
                               </div>
