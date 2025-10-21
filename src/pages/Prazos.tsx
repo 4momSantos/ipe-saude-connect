@@ -49,7 +49,7 @@ type FiltroStatus = 'todos' | 'criticos' | 'vencendo' | 'vencidos';
 type TipoAgrupamento = 'credenciado' | 'tipo' | 'nenhum';
 
 export default function Prazos() {
-  const { dashboard, prazosAgrupados, isLoading, atualizarAgora, renovarPrazo } = usePrazos();
+  const { dashboard, prazosAgrupados, isLoading, atualizarAgora, renovarPrazo } = usePrazos({ mostrarTodos: true });
   const [filtro, setFiltro] = useState<FiltroStatus>('todos');
   const [prazoSelecionado, setPrazoSelecionado] = useState<Prazo | null>(null);
   const [modalRenovarOpen, setModalRenovarOpen] = useState(false);
