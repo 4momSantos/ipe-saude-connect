@@ -12,7 +12,7 @@ export function NavbarPublica() {
             <img 
               src={logo} 
               alt="IPE Saúde" 
-              className="h-14 w-auto object-contain hover:opacity-90 transition-opacity"
+              className="h-20 w-auto object-contain hover:opacity-90 transition-opacity"
             />
           </Link>
           
