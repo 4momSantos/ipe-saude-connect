@@ -10,6 +10,7 @@ import { WorkflowStatusCard } from "@/components/workflow/WorkflowStatusCard";
 import { DadosInscricaoTab } from "./DadosInscricaoTab";
 import { DocumentosTabFromJSON } from "./DocumentosTabFromJSON";
 import { MessagesTab } from "@/components/process-tabs/MessagesTab";
+import { useInscricaoProgressoReal } from "@/hooks/useInscricaoProgressoReal";
 import { 
   FileText, 
   CheckCircle2, 
@@ -120,6 +121,22 @@ export function FluxoCredenciamento({
 
   const [isAssigning, setIsAssigning] = useState(false);
   
+  // ✅ Buscar progresso real da inscrição
+  const progressoReal = useInscricaoProgressoReal(inscricaoId || '');
+  
+  // ✅ Usar status real se disponível, caso contrário usar o status prop
+  const statusAtual = progressoReal.etapaAtual || status;
+  
+  console.log('[DEBUG Progresso Real]:', {
+    statusProp: status,
+    statusReal: progressoReal.etapaAtual,
+    statusUsado: statusAtual,
+    temAprovacao: progressoReal.temAprovacao,
+    temContrato: progressoReal.temContratoGerado,
+    temAssinatura: progressoReal.temContratoAssinado,
+    isActive: progressoReal.temCredenciamentoAtivo
+  });
+  
   // ✅ Validação adicional de segurança
   const shouldRenderWorkflowCard = inscricaoId && 
                                    typeof inscricaoId === 'string' && 
@@ -135,15 +152,15 @@ export function FluxoCredenciamento({
   };
 
   const getCurrentStepIndex = () => {
-    if (status === "rejeitado") return -1;
-    return etapas.findIndex(e => e.id === status);
+    if (statusAtual === "rejeitado") return -1;
+    return etapas.findIndex(e => e.id === statusAtual);
   };
 
   const currentIndex = getCurrentStepIndex();
   const progress = currentIndex >= 0 ? ((currentIndex + 1) / etapas.length) * 100 : 0;
 
   const getStepState = (index: number): "completed" | "current" | "pending" => {
-    if (status === "rejeitado") return "pending";
+    if (statusAtual === "rejeitado") return "pending";
     if (index < currentIndex) return "completed";
     if (index === currentIndex) return "current";
     return "pending";
@@ -176,7 +193,7 @@ export function FluxoCredenciamento({
         </div>
 
         {/* Progress Bar */}
-        {status !== "rejeitado" && (
+          {statusAtual !== "rejeitado" && (
           <div className="space-y-2">
             <Progress value={progress} className="h-2" />
             <p className="text-sm text-muted-foreground text-right">
@@ -210,7 +227,7 @@ export function FluxoCredenciamento({
         {/* Aba Status - Timeline e Workflow */}
         <TabsContent value="status" className="space-y-6 mt-6">
           {/* Alerta de Rejeição */}
-          {status === "rejeitado" && (
+          {statusAtual === "rejeitado" && (
             <Alert variant="destructive" className="animate-scale-in">
               <XCircle className="h-5 w-5" />
               <AlertTitle className="text-lg font-semibold">Processo Rejeitado</AlertTitle>
@@ -221,7 +238,7 @@ export function FluxoCredenciamento({
           )}
 
           {/* Timeline Horizontal */}
-          {status !== "rejeitado" && (
+          {statusAtual !== "rejeitado" && (
             <div className="relative py-4">
               {/* Linha conectora de fundo */}
               <div className="absolute top-[72px] left-8 right-8 h-1 bg-border rounded-full" style={{ zIndex: 0 }} />
@@ -335,7 +352,7 @@ export function FluxoCredenciamento({
           )}
 
           {/* Ação de Assinatura */}
-          {status === "aguardando_assinatura" && (
+          {statusAtual === "aguardando_assinatura" && (
             <Card className="border-2 border-[hsl(var(--orange-warning))] bg-gradient-to-br from-[hsl(var(--orange-warning)_/_0.08)] to-background animate-scale-in shadow-xl overflow-hidden relative">
               {/* Efeito de brilho animado */}
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[hsl(var(--orange-warning))] to-transparent animate-pulse" />
@@ -382,7 +399,7 @@ export function FluxoCredenciamento({
           )}
 
           {/* Selo de Credenciamento Ativo */}
-          {status === "ativo" && (
+          {statusAtual === "ativo" && (
             <Card className="border-2 border-[hsl(var(--green-approved))] bg-gradient-to-br from-[hsl(var(--green-approved)_/_0.1)] to-background animate-scale-in shadow-2xl overflow-hidden relative">
               {/* Confetti effect */}
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,hsl(var(--green-approved)_/_0.1),transparent_70%)] animate-pulse" />
