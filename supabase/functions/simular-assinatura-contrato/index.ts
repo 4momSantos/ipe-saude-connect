@@ -86,8 +86,8 @@ serve(async (req) => {
       .from('contratos')
       .update({
         status: 'assinado',
-        assinado_em: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        assinado_em: new Date().toISOString().split('T')[0], // Apenas data YYYY-MM-DD
+        // updated_at será atualizado automaticamente pelo banco
       })
       .eq('id', contrato_id)
       .select()
@@ -142,7 +142,10 @@ serve(async (req) => {
       timestamp: new Date().toISOString(),
       event: 'error',
       error: error.message,
-      stack: error.stack
+      error_hint: error.hint,
+      error_details: error.details,
+      stack: error.stack,
+      contrato_id: contrato_id || 'unknown'
     }));
 
     return new Response(JSON.stringify({
