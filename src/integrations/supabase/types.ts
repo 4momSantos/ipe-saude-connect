@@ -7111,6 +7111,10 @@ export type Database = {
         Args: { p_inscricao_id: string }
         Returns: string
       }
+      sync_credenciado_from_contract: {
+        Args: { p_inscricao_id: string }
+        Returns: string
+      }
       tabela_existe: {
         Args: { p_schema: string; p_tabela: string }
         Returns: boolean

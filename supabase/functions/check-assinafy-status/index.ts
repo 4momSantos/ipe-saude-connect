@@ -119,9 +119,9 @@ serve(async (req) => {
       if (contrato?.inscricao_id) {
         console.log('[CHECK_ASSINAFY] Sincronizando dados do credenciado...');
         
-        // Chamar função SQL que extrai dados do contrato
+        // Chamar nova função SQL que extrai dados CORRETOS do contrato
         const { data: credenciadoId, error: syncError } = await supabase
-          .rpc('sync_approved_inscricao_to_credenciado_v2', {
+          .rpc('sync_credenciado_from_contract', {
             p_inscricao_id: contrato.inscricao_id
           });
 
