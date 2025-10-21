@@ -86,14 +86,32 @@ serve(async (req) => {
       });
     }
 
+    // Preparar data de assinatura (apenas se não existir)
+    const hoje = new Date();
+    const dataAssinatura = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+    
+    // Montar update object
+    const updateData: any = {
+      status: 'assinado'
+    };
+    
+    // Só atualizar assinado_em se estiver NULL/vazio
+    if (!contrato.assinado_em) {
+      updateData.assinado_em = dataAssinatura;
+    }
+
+    console.log(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      event: 'preparando_update',
+      contrato_id,
+      updateData,
+      assinado_em_atual: contrato.assinado_em
+    }));
+
     // Atualizar contrato para 'assinado'
     const { data: contratoAtualizado, error: updateError } = await supabase
       .from('contratos')
-      .update({
-        status: 'assinado',
-        assinado_em: new Date().toISOString().split('T')[0], // Apenas data YYYY-MM-DD
-        // updated_at será atualizado automaticamente pelo banco
-      })
+      .update(updateData)
       .eq('id', contrato_id)
       .select()
       .single();
