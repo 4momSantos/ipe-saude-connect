@@ -49,7 +49,7 @@ export function AlteracaoStatusDialog({
   
   const mutation = mode === 'direct' ? alterarStatusMutation : criarSolicitacaoMutation;
 
-  const isJustificativaValida = justificativa.trim().length >= 100;
+  const isJustificativaValida = justificativa.trim().length >= 10;
   const isDatasValidas = (novoStatus !== 'Suspenso' && novoStatus !== 'Afastado') || (dataInicio && dataFim && dataFim > dataInicio);
   const isDataEfetivaValida = novoStatus !== 'Descredenciado' || descredenciarImediato || dataEfetiva !== undefined;
   const isFormValido = isJustificativaValida && isDatasValidas && isDataEfetivaValida;
@@ -428,7 +428,7 @@ export function AlteracaoStatusDialog({
             <Label htmlFor="justificativa" className="text-sm sm:text-base font-semibold block">
               Justificativa * 
               <span className="text-xs sm:text-sm font-normal text-muted-foreground ml-1 sm:ml-2">
-                (mínimo 100 caracteres - {justificativa.length}/100)
+                (mínimo 10 caracteres - {justificativa.length}/10)
               </span>
             </Label>
             <Textarea
