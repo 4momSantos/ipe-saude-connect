@@ -245,7 +245,9 @@ export default function CredenciadoDetail() {
               cidade: credenciado.cidade || "N/A",
               estado: credenciado.estado || "N/A",
               cep: credenciado.cep || "N/A",
-              dataCredenciamento: new Date(credenciado.created_at).toLocaleDateString("pt-BR"),
+              dataCredenciamento: (credenciado as any).data_habilitacao 
+                ? new Date((credenciado as any).data_habilitacao).toLocaleDateString("pt-BR")
+                : new Date(credenciado.created_at).toLocaleDateString("pt-BR"),
               data_solicitacao: (credenciado as any).data_solicitacao,
               data_habilitacao: (credenciado as any).data_habilitacao,
               data_inicio_atendimento: (credenciado as any).data_inicio_atendimento,
