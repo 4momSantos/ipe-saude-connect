@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { MetricCard } from "@/components/MetricCard";
 import { Users, Stethoscope, MapPin, AlertTriangle } from "lucide-react";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from "recharts";
@@ -11,7 +12,7 @@ interface DashboardData {
   credenciadosPorEspecialidade: { name: string; value: number }[];
   credenciadosPorRegiao: { name: string; value: number }[];
   alertasInsuficiencia: { especialidade: string; deficit: number }[];
-  tendenciaMensal: { mes: string; credenciados: number }[];
+  tendenciaMensal: { mes: string; credenciados: number; insuficiencia?: number }[];
 }
 
 const CHART_COLORS = [
@@ -26,7 +27,6 @@ const CHART_COLORS = [
 ];
 
 export function DashboardRelatorios() {
-  // Dados simulados completos e realistas
   const [data] = useState<DashboardData>({
     totalCredenciados: 3847,
     credenciadosPorEspecialidade: [
@@ -60,16 +60,17 @@ export function DashboardRelatorios() {
       { especialidade: "Dermatologia", deficit: 19 },
     ],
     tendenciaMensal: [
-      { mes: "Abr", credenciados: 3254 },
-      { mes: "Mai", credenciados: 3412 },
-      { mes: "Jun", credenciados: 3538 },
-      { mes: "Jul", credenciados: 3621 },
-      { mes: "Ago", credenciados: 3724 },
-      { mes: "Set", credenciados: 3789 },
-      { mes: "Out", credenciados: 3847 },
+      { mes: "Abr", credenciados: 3254, insuficiencia: 182 },
+      { mes: "Mai", credenciados: 3412, insuficiencia: 195 },
+      { mes: "Jun", credenciados: 3538, insuficiencia: 203 },
+      { mes: "Jul", credenciados: 3621, insuficiencia: 218 },
+      { mes: "Ago", credenciados: 3724, insuficiencia: 227 },
+      { mes: "Set", credenciados: 3789, insuficiencia: 234 },
+      { mes: "Out", credenciados: 3847, insuficiencia: 241 },
     ],
   });
   const [loading] = useState(false);
+  const [mostrarInsuficiencia, setMostrarInsuficiencia] = useState(false);
 
   if (loading) {
     return (
@@ -186,8 +187,21 @@ export function DashboardRelatorios() {
         {/* Tendência Mensal */}
         <Card className="card-glow">
           <CardHeader>
-            <CardTitle>Tendência de Crescimento</CardTitle>
-            <CardDescription>Evolução de credenciados nos últimos 6 meses</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Tendência de Crescimento</CardTitle>
+                <CardDescription>Evolução de credenciados nos últimos 6 meses</CardDescription>
+              </div>
+              <Button
+                variant={mostrarInsuficiencia ? "default" : "outline"}
+                size="sm"
+                onClick={() => setMostrarInsuficiencia(!mostrarInsuficiencia)}
+                className="gap-2"
+              >
+                <AlertTriangle className="h-4 w-4" />
+                {mostrarInsuficiencia ? "Ocultar" : "Mostrar"} Insuficiência
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -202,13 +216,25 @@ export function DashboardRelatorios() {
                     borderRadius: "8px",
                   }}
                 />
+                <Legend />
                 <Line
                   type="monotone"
                   dataKey="credenciados"
+                  name="Credenciados"
                   stroke="hsl(var(--chart-2))"
                   strokeWidth={3}
                   dot={{ fill: "hsl(var(--chart-2))", r: 5 }}
                 />
+                {mostrarInsuficiencia && (
+                  <Line
+                    type="monotone"
+                    dataKey="insuficiencia"
+                    name="Insuficiência"
+                    stroke="hsl(var(--chart-8))"
+                    strokeWidth={3}
+                    dot={{ fill: "hsl(var(--chart-8))", r: 5 }}
+                  />
+                )}
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
