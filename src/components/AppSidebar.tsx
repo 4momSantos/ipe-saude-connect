@@ -188,7 +188,7 @@ export function AppSidebar() {
   return (
     <Sidebar 
       collapsible="icon" 
-      className="border-r border-border/50 bg-card/50 backdrop-blur-sm"
+      className="border-r border-sidebar-border bg-sidebar-background"
     >
       <SidebarContent className="gap-0">
         {/* Header com Logo IPE Saúde */}
