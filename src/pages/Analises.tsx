@@ -231,7 +231,6 @@ export default function Analises() {
       return matches;
     })
     .sort((a, b) => {
-      console.log('[ORDENACAO] Aplicando ordenação:', ordenacao);
       switch (ordenacao) {
         case "data-desc":
           return new Date(b.dataSubmissao).getTime() - new Date(a.dataSubmissao).getTime();
@@ -252,7 +251,6 @@ export default function Analises() {
         case "edital-desc":
           return b.numeroEdital.localeCompare(a.numeroEdital);
         default:
-          console.warn('[ORDENACAO] Tipo de ordenação desconhecido:', ordenacao);
           return 0;
       }
     });
@@ -507,13 +505,7 @@ export default function Analises() {
                     <SelectItem value="inabilitado">Inabilitado</SelectItem>
                   </SelectContent>
                 </Select>
-                <Select 
-                  value={ordenacao} 
-                  onValueChange={(value) => {
-                    console.log('[ORDENACAO] Mudando ordenação para:', value);
-                    setOrdenacao(value);
-                  }}
-                >
+                <Select value={ordenacao} onValueChange={setOrdenacao}>
                   <SelectTrigger className="w-full lg:w-[200px] bg-background">
                     <SelectValue placeholder="Ordenar por" />
                   </SelectTrigger>
