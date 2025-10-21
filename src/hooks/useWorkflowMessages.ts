@@ -320,7 +320,7 @@ export function useWorkflowMessages({
       // Atualizar estado local
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === messageId ? { ...m, is_read: true, read_at: new Date().toISOString() } : m
+          m.id === messageId ? { ...m, is_read: true } : m
         )
       );
     } catch (error) {

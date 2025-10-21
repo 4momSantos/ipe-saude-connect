@@ -16,6 +16,11 @@ export function useUnreadMessages(inscricaoId: string | undefined) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
+        console.log('[UNREAD_DEBUG] Iniciando contagem:', {
+          inscricaoId,
+          userId: user.id
+        });
+
         // Contar mensagens não lidas (usando is_read do hook useWorkflowMessages)
         const { count, error } = await supabase
           .from('workflow_messages')
@@ -24,8 +29,12 @@ export function useUnreadMessages(inscricaoId: string | undefined) {
           .eq('is_read', false)
           .neq('sender_id', user.id); // Não contar próprias mensagens
 
+        console.log('[UNREAD_DEBUG] Resultado:', { count, error });
+
         if (!error) {
           setUnreadCount(count || 0);
+        } else {
+          console.error('[UNREAD_DEBUG] Erro na query:', error);
         }
       } catch (error) {
         console.error('[useUnreadMessages] Erro ao buscar contagem:', error);
