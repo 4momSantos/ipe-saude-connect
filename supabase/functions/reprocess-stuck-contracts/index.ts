@@ -10,7 +10,7 @@ const corsHeaders = {
 async function waitForDocumentReady(
   documentId: string,
   assinafyApiKey: string,
-  maxAttempts: number = 10,
+  maxAttempts: number = 20,
   intervalMs: number = 2000
 ): Promise<boolean> {
   console.log(`   → Aguardando documento ficar pronto (max ${maxAttempts * intervalMs / 1000}s)...`);
