@@ -33,7 +33,7 @@ import { useNavigate } from 'react-router-dom';
 export function BuscarCredenciadosDocumentos() {
   const [termoBusca, setTermoBusca] = useState('');
   const [termoAtual, setTermoAtual] = useState(' '); // Inicia com espaço para buscar todos automaticamente
-  const [statusFiltro, setStatusFiltro] = useState<string>(''); // Inicia com "Todos" os status
+  const [statusFiltro, setStatusFiltro] = useState<string>('todos'); // Inicia com "Todos" os status
   const [apenasComDocumentos, setApenasComDocumentos] = useState(false);
   const [apenasVencidos, setApenasVencidos] = useState(false);
   const [expandidos, setExpandidos] = useState<Record<string, boolean>>({});
@@ -44,7 +44,7 @@ export function BuscarCredenciadosDocumentos() {
 
   const { data: credenciados, isLoading } = useBuscarCredenciadosCompleto({
     termoBusca: termoAtual,
-    status: statusFiltro || undefined,
+    status: statusFiltro === 'todos' ? undefined : statusFiltro,
     apenasComDocumentos,
     apenasVencidos
   });
@@ -236,10 +236,10 @@ export function BuscarCredenciadosDocumentos() {
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
                   <SelectItem value="Ativo">Ativo</SelectItem>
                   <SelectItem value="Inativo">Inativo</SelectItem>
                   <SelectItem value="Suspenso">Suspenso</SelectItem>
-                  <SelectItem value="">Todos</SelectItem>
                 </SelectContent>
               </Select>
             </div>
