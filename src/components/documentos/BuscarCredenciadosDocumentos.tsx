@@ -32,8 +32,8 @@ import { useNavigate } from 'react-router-dom';
 
 export function BuscarCredenciadosDocumentos() {
   const [termoBusca, setTermoBusca] = useState('');
-  const [termoAtual, setTermoAtual] = useState(''); // Termo sendo buscado
-  const [statusFiltro, setStatusFiltro] = useState<string>('Ativo');
+  const [termoAtual, setTermoAtual] = useState(' '); // Inicia com espaço para buscar todos automaticamente
+  const [statusFiltro, setStatusFiltro] = useState<string>(''); // Inicia com "Todos" os status
   const [apenasComDocumentos, setApenasComDocumentos] = useState(false);
   const [apenasVencidos, setApenasVencidos] = useState(false);
   const [expandidos, setExpandidos] = useState<Record<string, boolean>>({});
@@ -68,10 +68,8 @@ export function BuscarCredenciadosDocumentos() {
     [queryClient]
   );
 
-  // ✅ Subscription realtime para credenciados e documentos
+  // ✅ Subscription realtime para credenciados e documentos (sempre ativo)
   useEffect(() => {
-    if (!termoAtual) return; // Só escuta se houver busca ativa
-    
     const channel = supabase
       .channel('busca-credenciados-updates')
       .on(
@@ -103,7 +101,7 @@ export function BuscarCredenciadosDocumentos() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [termoAtual, debouncedInvalidate]);
+  }, [debouncedInvalidate]); // Remove termoAtual - subscription sempre ativo
 
   const toggleExpandido = (id: string) => {
     setExpandidos(prev => ({ ...prev, [id]: !prev[id] }));
@@ -198,6 +196,10 @@ export function BuscarCredenciadosDocumentos() {
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5" />
             Buscar Credenciados e Documentos
+            <Badge variant="outline" className="text-xs">
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Ao vivo
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
