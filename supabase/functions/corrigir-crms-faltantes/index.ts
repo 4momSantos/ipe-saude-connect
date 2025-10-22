@@ -36,25 +36,34 @@ serve(async (req) => {
       const crm = dadosInscricao?.dados_pessoais?.crm;
       const ufCrm = dadosInscricao?.dados_pessoais?.uf_crm;
 
+      console.log(`[CORRIGIR_CRMS] 📋 Analisando ${credenciado.nome}...`);
+      console.log(`[CORRIGIR_CRMS] Estrutura dados_inscricao:`, JSON.stringify(dadosInscricao, null, 2));
+
       if (!crm || !ufCrm) {
-        console.log(`[CORRIGIR_CRMS] ⚠️ ${credenciado.nome} - sem CRM nos dados`);
+        console.log(`[CORRIGIR_CRMS] ⚠️ ${credenciado.nome} - CRM ou UF_CRM ausente (CRM: ${crm}, UF: ${ufCrm})`);
         results.push({
           credenciado_id: credenciado.id,
           nome: credenciado.nome,
-          erro: 'CRM não encontrado em dados_inscricao'
+          erro: 'CRM ou UF_CRM não encontrado em dados_inscricao.dados_pessoais'
         });
         continue;
       }
 
-      // Buscar especialidades do primeiro consultório
+      // Buscar especialidades - tentar SINGULAR (consultorio) E PLURAL (consultorios)
       let especialidadesIds: string[] = [];
-      const consultorios = dadosInscricao?.consultorios;
       
-      if (Array.isArray(consultorios) && consultorios.length > 0) {
-        especialidadesIds = consultorios[0]?.especialidades_ids || [];
+      // Tentar primeiro singular (formato correto)
+      if (dadosInscricao?.consultorio) {
+        especialidadesIds = dadosInscricao.consultorio.especialidades_ids || [];
+        console.log(`[CORRIGIR_CRMS] ✓ Encontrado consultorio (singular) com ${especialidadesIds.length} especialidades`);
+      }
+      // Fallback para plural (formato antigo)
+      else if (Array.isArray(dadosInscricao?.consultorios) && dadosInscricao.consultorios.length > 0) {
+        especialidadesIds = dadosInscricao.consultorios[0]?.especialidades_ids || [];
+        console.log(`[CORRIGIR_CRMS] ✓ Encontrado consultorios (plural) com ${especialidadesIds.length} especialidades`);
       }
 
-      console.log(`[CORRIGIR_CRMS] Processando ${credenciado.nome} - CRM: ${crm}/${ufCrm} - ${especialidadesIds.length} especialidades`);
+      console.log(`[CORRIGIR_CRMS] 🔍 Processando ${credenciado.nome} - CRM: ${crm}/${ufCrm} - ${especialidadesIds.length} especialidades`);
 
       if (especialidadesIds.length === 0) {
         // Criar CRM genérico
