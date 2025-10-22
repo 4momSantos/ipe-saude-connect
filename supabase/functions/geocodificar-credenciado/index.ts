@@ -71,10 +71,67 @@ function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// Normalizar endereço para melhorar taxa de sucesso
+function normalizeAddress(address: string): string {
+  return address
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+    .replace(/\s+/g, ' ') // Normaliza espaços
+    .replace(/\bR\.\s/gi, 'Rua ')
+    .replace(/\bAv\.\s/gi, 'Avenida ')
+    .replace(/\bTv\.\s/gi, 'Travessa ')
+    .replace(/\bPr\.\s/gi, 'Praca ')
+    .replace(/Brasil$/i, '')
+    .trim();
+}
+
+// Geocodificação por CEP usando ViaCEP (fallback)
+async function geocodeByCEP(cep: string): Promise<{ lat: number; lon: number; display_name: string }> {
+  const cleanCEP = cep.replace(/\D/g, '');
+  
+  log({
+    timestamp: new Date().toISOString(),
+    action: 'viacep_request',
+    provider: 'viacep',
+  } as any);
+
+  const response = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`);
+  
+  if (!response.ok) {
+    throw new Error(`ViaCEP error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  
+  if (data.erro) {
+    throw new Error('CEP não encontrado');
+  }
+
+  // Geocodificar usando cidade + estado do CEP
+  const addressFromCEP = `${data.localidade}, ${data.uf}, Brasil`;
+  
+  log({
+    timestamp: new Date().toISOString(),
+    action: 'geocoding_from_cep',
+    address: addressFromCEP,
+  } as any);
+
+  // Tentar Nominatim com a cidade do CEP
+  return await geocodeWithNominatim(addressFromCEP);
+}
+
 // Geocoding via Nominatim com retry e backoff
 async function geocodeWithNominatim(address: string): Promise<{ lat: number; lon: number; display_name: string }> {
   const startTime = Date.now();
   let lastError: Error | null = null;
+  const normalizedAddress = normalizeAddress(address);
+
+  log({
+    timestamp: new Date().toISOString(),
+    action: 'address_normalized',
+    original: address.substring(0, 100),
+    normalized: normalizedAddress.substring(0, 100),
+  } as any);
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
@@ -86,10 +143,11 @@ async function geocodeWithNominatim(address: string): Promise<{ lat: number; lon
       } as any);
 
       const url = new URL('https://nominatim.openstreetmap.org/search');
-      url.searchParams.set('q', address);
+      url.searchParams.set('q', normalizedAddress);
       url.searchParams.set('format', 'json');
       url.searchParams.set('limit', '1');
       url.searchParams.set('countrycodes', 'br');
+      url.searchParams.set('addressdetails', '1');
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -133,6 +191,12 @@ async function geocodeWithNominatim(address: string): Promise<{ lat: number; lon
 
       const results = await response.json();
 
+      log({
+        timestamp: new Date().toISOString(),
+        action: 'nominatim_results',
+        results_count: results.length,
+      } as any);
+
       if (!results || results.length === 0) {
         throw new Error('Endereço não encontrado');
       }
@@ -172,6 +236,7 @@ async function geocodeWithMapbox(address: string): Promise<{ lat: number; lon: n
 
   const startTime = Date.now();
   let lastError: Error | null = null;
+  const normalizedAddress = normalizeAddress(address);
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
@@ -182,7 +247,7 @@ async function geocodeWithMapbox(address: string): Promise<{ lat: number; lon: n
         attempt: attempt + 1,
       } as any);
 
-      const encodedAddress = encodeURIComponent(address + ', Brasil');
+      const encodedAddress = encodeURIComponent(normalizedAddress + ', Brasil');
       const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodedAddress}.json?access_token=${MAPBOX_API_KEY}&country=br&language=pt&limit=1`;
 
       const controller = new AbortController();
@@ -280,13 +345,6 @@ Deno.serve(async (req) => {
 
     // Validação de entrada
     if (!body.credenciado_id && !body.consultorio_id && !body.endereco && !body.endereco_completo) {
-      log({
-        timestamp: new Date().toISOString(),
-        action: 'validation_error',
-        request_id: requestId,
-        error: 'credenciado_id, consultorio_id ou endereco obrigatório',
-      } as any);
-
       return new Response(
         JSON.stringify({
           success: false,
@@ -300,6 +358,8 @@ Deno.serve(async (req) => {
     }
 
     let endereco = body.endereco || body.endereco_completo;
+    let enderecoAlternativo: string | null = null;
+    let cepFallback: string | null = null;
     let credenciadoId = body.credenciado_id;
     let consultorioId = body.consultorio_id;
 
@@ -312,13 +372,6 @@ Deno.serve(async (req) => {
         .single();
 
       if (error) {
-        log({
-          timestamp: new Date().toISOString(),
-          action: 'consultorio_not_found',
-          request_id: requestId,
-          consultorio_id: consultorioId,
-        } as any);
-
         throw new Error(`Consultório não encontrado: ${error.message}`);
       }
 
@@ -330,9 +383,11 @@ Deno.serve(async (req) => {
         consultorio.estado,
         'Brasil'
       ].filter(Boolean).join(', ');
+      
+      cepFallback = consultorio.cep;
     }
 
-    // Buscar dados do credenciado se fornecido ID
+    // Buscar dados do credenciado com todas as opções de endereço
     if (credenciadoId) {
       const { data: credenciado, error } = await supabase
         .from('credenciados')
@@ -349,22 +404,16 @@ Deno.serve(async (req) => {
         .single();
 
       if (error) {
-        log({
-          timestamp: new Date().toISOString(),
-          action: 'credenciado_not_found',
-          request_id: requestId,
-          credenciado_id: credenciadoId,
-        } as any);
-
         throw new Error(`Credenciado não encontrado: ${error.message}`);
       }
 
-      // Extrair endereço de correspondência estruturado (PRIORIDADE)
+      // Extrair dados da inscrição
       const dadosInscricao = (credenciado as any).inscricoes_edital?.dados_inscricao;
       const enderecoCorresp = dadosInscricao?.endereco_correspondencia;
+      const consultorioData = dadosInscricao?.consultorio;
 
+      // PRIORIDADE 1: Endereço de correspondência estruturado
       if (enderecoCorresp && enderecoCorresp.cep) {
-        // Montar endereço completo com campos estruturados
         endereco = [
           enderecoCorresp.logradouro,
           enderecoCorresp.numero,
@@ -375,23 +424,46 @@ Deno.serve(async (req) => {
           'Brasil'
         ].filter(Boolean).join(', ');
         
+        cepFallback = enderecoCorresp.cep;
+        
         log({
           timestamp: new Date().toISOString(),
-          action: 'endereco_estruturado_usado',
+          action: 'endereco_principal',
           credenciado_id: credenciadoId,
-          source: 'endereco_correspondencia'
+          source: 'endereco_correspondencia',
         } as any);
       } else {
-        // Fallback: usar campos legados da tabela credenciados
+        // Fallback para campos legados
         endereco = [credenciado.endereco, credenciado.cidade, credenciado.estado, 'Brasil']
           .filter(Boolean)
           .join(', ');
         
+        cepFallback = credenciado.cep;
+        
         log({
           timestamp: new Date().toISOString(),
-          action: 'endereco_legado_usado',
+          action: 'endereco_principal',
           credenciado_id: credenciadoId,
-          warning: 'Endereço estruturado não encontrado'
+          source: 'campos_legados',
+        } as any);
+      }
+      
+      // FALLBACK 2: Endereço de consultório
+      if (consultorioData && (consultorioData.endereco || consultorioData.logradouro)) {
+        enderecoAlternativo = [
+          consultorioData.logradouro || consultorioData.endereco,
+          consultorioData.numero,
+          consultorioData.bairro,
+          consultorioData.cidade,
+          consultorioData.estado || consultorioData.uf,
+          'Brasil'
+        ].filter(Boolean).join(', ');
+        
+        log({
+          timestamp: new Date().toISOString(),
+          action: 'endereco_alternativo_disponivel',
+          credenciado_id: credenciadoId,
+          source: 'consultorio',
         } as any);
       }
     }
@@ -411,14 +483,6 @@ Deno.serve(async (req) => {
 
     // Calcular hash do endereço
     const addressHash = await calculateAddressHash(endereco);
-
-    log({
-      timestamp: new Date().toISOString(),
-      action: 'address_hash_calculated',
-      request_id: requestId,
-      address_hash: addressHash,
-      credenciado_id: credenciadoId,
-    } as any);
 
     // Verificar cache (se não forçar refresh)
     if (!body.force_refresh) {
@@ -458,16 +522,6 @@ Deno.serve(async (req) => {
             .eq('id', credenciadoId);
         }
 
-        const responseTime = Date.now() - startTime;
-
-        log({
-          timestamp: new Date().toISOString(),
-          action: 'request_completed',
-          request_id: requestId,
-          source: 'cache',
-          latency_ms: responseTime,
-        } as any);
-
         return new Response(
           JSON.stringify({
             success: true,
@@ -482,21 +536,118 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Cache miss - chamar provider
+    // Cache miss - tentar geocodificar com fallbacks inteligentes
     log({
       timestamp: new Date().toISOString(),
       action: 'cache_miss',
       request_id: requestId,
-      provider: GEOCODING_PROVIDER,
     } as any);
 
-    let location: { lat: number; lon: number; display_name: string };
+    let location: { lat: number; lon: number; display_name: string } | null = null;
+    let usedSource = 'endereco_principal';
+    let usedProvider = GEOCODING_PROVIDER;
+    let lastError: Error | null = null;
 
-    if (GEOCODING_PROVIDER === 'mapbox') {
-      location = await geocodeWithMapbox(endereco);
-    } else {
-      location = await geocodeWithNominatim(endereco);
+    // ESTRATÉGIA 1: Tentar endereço principal
+    if (endereco) {
+      try {
+        log({
+          timestamp: new Date().toISOString(),
+          action: 'trying_primary_address',
+          provider: GEOCODING_PROVIDER,
+        } as any);
+
+        if (GEOCODING_PROVIDER === 'mapbox') {
+          location = await geocodeWithMapbox(endereco);
+        } else {
+          location = await geocodeWithNominatim(endereco);
+        }
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        log({
+          timestamp: new Date().toISOString(),
+          action: 'primary_address_failed',
+          error: lastError.message,
+        } as any);
+      }
     }
+
+    // ESTRATÉGIA 2: Tentar endereço alternativo (consultório)
+    if (!location && enderecoAlternativo) {
+      try {
+        log({
+          timestamp: new Date().toISOString(),
+          action: 'trying_alternative_address',
+        } as any);
+
+        if (GEOCODING_PROVIDER === 'mapbox') {
+          location = await geocodeWithMapbox(enderecoAlternativo);
+        } else {
+          location = await geocodeWithNominatim(enderecoAlternativo);
+        }
+        usedSource = 'endereco_consultorio';
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        log({
+          timestamp: new Date().toISOString(),
+          action: 'alternative_address_failed',
+          error: lastError.message,
+        } as any);
+      }
+    }
+
+    // ESTRATÉGIA 3: Tentar geocodificar apenas pelo CEP
+    if (!location && cepFallback) {
+      try {
+        log({
+          timestamp: new Date().toISOString(),
+          action: 'trying_cep_fallback',
+        } as any);
+
+        location = await geocodeByCEP(cepFallback);
+        usedSource = 'cep_only';
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        log({
+          timestamp: new Date().toISOString(),
+          action: 'cep_fallback_failed',
+          error: lastError.message,
+        } as any);
+      }
+    }
+
+    // ESTRATÉGIA 4: Tentar provider alternativo (se Nominatim falhou, tentar Mapbox)
+    if (!location && GEOCODING_PROVIDER === 'nominatim' && MAPBOX_API_KEY) {
+      try {
+        log({
+          timestamp: new Date().toISOString(),
+          action: 'trying_alternative_provider',
+          provider: 'mapbox',
+        } as any);
+
+        location = await geocodeWithMapbox(endereco);
+        usedProvider = 'mapbox';
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        log({
+          timestamp: new Date().toISOString(),
+          action: 'alternative_provider_failed',
+          error: lastError.message,
+        } as any);
+      }
+    }
+
+    // Se nenhuma estratégia funcionou, lançar erro
+    if (!location) {
+      throw lastError || new Error('Endereço não encontrado após todas as tentativas');
+    }
+
+    log({
+      timestamp: new Date().toISOString(),
+      action: 'geocoding_success',
+      source: usedSource,
+      provider: usedProvider,
+    } as any);
 
     // Salvar no cache
     const { error: cacheInsertError } = await supabase
@@ -506,10 +657,11 @@ Deno.serve(async (req) => {
         address_text: endereco,
         latitude: location.lat,
         longitude: location.lon,
-        provider: GEOCODING_PROVIDER,
+        provider: usedProvider,
         metadata: {
           display_name: location.display_name,
           hit_count: 1,
+          source: usedSource,
         },
         created_at: new Date().toISOString(),
         last_used_at: new Date().toISOString(),
@@ -522,14 +674,13 @@ Deno.serve(async (req) => {
       log({
         timestamp: new Date().toISOString(),
         action: 'cache_save_error',
-        request_id: requestId,
         error: cacheInsertError.message,
       } as any);
     }
 
     // Atualizar consultório se fornecido
     if (consultorioId) {
-      const { error: updateError } = await supabase
+      await supabase
         .from('credenciado_consultorios')
         .update({
           latitude: location.lat,
@@ -537,21 +688,11 @@ Deno.serve(async (req) => {
           geocoded_at: new Date().toISOString(),
         })
         .eq('id', consultorioId);
-
-      if (updateError) {
-        log({
-          timestamp: new Date().toISOString(),
-          action: 'consultorio_update_error',
-          request_id: requestId,
-          consultorio_id: consultorioId,
-          error: updateError.message,
-        } as any);
-      }
     }
 
     // Atualizar credenciado se fornecido
     if (credenciadoId) {
-      const { error: updateError } = await supabase
+      await supabase
         .from('credenciados')
         .update({
           latitude: location.lat,
@@ -559,16 +700,6 @@ Deno.serve(async (req) => {
           geocoded_at: new Date().toISOString(),
         })
         .eq('id', credenciadoId);
-
-      if (updateError) {
-        log({
-          timestamp: new Date().toISOString(),
-          action: 'credenciado_update_error',
-          request_id: requestId,
-          credenciado_id: credenciadoId,
-          error: updateError.message,
-        } as any);
-      }
     }
 
     const responseTime = Date.now() - startTime;
@@ -576,8 +707,8 @@ Deno.serve(async (req) => {
     log({
       timestamp: new Date().toISOString(),
       action: 'request_completed',
-      request_id: requestId,
-      source: GEOCODING_PROVIDER,
+      source: usedSource,
+      provider: usedProvider,
       latency_ms: responseTime,
     } as any);
 
@@ -586,10 +717,10 @@ Deno.serve(async (req) => {
         success: true,
         lat: location.lat,
         lon: location.lon,
-        source: GEOCODING_PROVIDER as 'nominatim' | 'mapbox',
+        source: usedProvider as 'nominatim' | 'mapbox',
         cached: false,
-        provider: GEOCODING_PROVIDER,
-        message: `Geocodificado com sucesso via ${GEOCODING_PROVIDER}`,
+        provider: usedProvider,
+        message: `Geocodificado via ${usedProvider} (${usedSource})`,
       } as GeocodingResponse),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
