@@ -68,6 +68,17 @@ export function useBuscarCredenciadosCompleto({
   return useQuery({
     queryKey: ['buscar-credenciados-completo', termoBusca, tipoDocumento, status, apenasComDocumentos, apenasVencidos, limite, offset],
     queryFn: async () => {
+      // Normalizar valores antes de chamar RPC
+      const normalizedParams = {
+        p_termo_busca: termoBusca?.trim() || null,
+        p_tipo_documento: tipoDocumento?.trim() || null,
+        p_status: status?.trim() || null,
+        p_apenas_com_documentos: apenasComDocumentos,
+        p_apenas_vencidos: apenasVencidos,
+        p_limite: limite,
+        p_offset: offset
+      };
+
       console.log('[useBuscarCredenciadosCompleto] 🔍 Buscando:', { 
         termoBusca, 
         tipoDocumento, 
@@ -75,22 +86,21 @@ export function useBuscarCredenciadosCompleto({
         apenasComDocumentos,
         apenasVencidos 
       });
+      console.log('[useBuscarCredenciadosCompleto] 📤 Parâmetros normalizados:', normalizedParams);
 
       const { data, error } = await supabase.rpc(
         'buscar_credenciados_com_documentos_completo',
-        {
-          p_termo_busca: termoBusca || null,
-          p_tipo_documento: tipoDocumento || null,
-          p_status: status || null,
-          p_apenas_com_documentos: apenasComDocumentos,
-          p_apenas_vencidos: apenasVencidos,
-          p_limite: limite,
-          p_offset: offset
-        }
+        normalizedParams
       );
 
       if (error) {
-        console.error('[useBuscarCredenciadosCompleto] ❌ Erro:', error);
+        console.error('[useBuscarCredenciadosCompleto] ❌ Erro detalhado:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          params: normalizedParams
+        });
         throw error;
       }
 
