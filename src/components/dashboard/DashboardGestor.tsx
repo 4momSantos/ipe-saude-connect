@@ -118,7 +118,7 @@ export function DashboardGestor() {
             };
           })
         );
-        setEditalData(editalStats.filter(e => e.value > 0));
+        setEditalData(editalStats);
       }
 
       // Credenciados por especialidade
