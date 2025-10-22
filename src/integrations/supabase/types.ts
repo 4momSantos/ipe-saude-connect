@@ -908,7 +908,7 @@ export type Database = {
           certificado_id: string | null
           consultado_em: string | null
           id: string
-          ip_origem: unknown | null
+          ip_origem: unknown
           parametro_busca: string | null
           resultado: string
           tipo_consulta: string
@@ -918,7 +918,7 @@ export type Database = {
           certificado_id?: string | null
           consultado_em?: string | null
           id?: string
-          ip_origem?: unknown | null
+          ip_origem?: unknown
           parametro_busca?: string | null
           resultado: string
           tipo_consulta: string
@@ -928,7 +928,7 @@ export type Database = {
           certificado_id?: string | null
           consultado_em?: string | null
           id?: string
-          ip_origem?: unknown | null
+          ip_origem?: unknown
           parametro_busca?: string | null
           resultado?: string
           tipo_consulta?: string
@@ -5515,7 +5515,7 @@ export type Database = {
       workflow_messages: {
         Row: {
           anexos: Json | null
-          busca_texto: unknown | null
+          busca_texto: unknown
           content: string
           created_at: string | null
           deletada: boolean | null
@@ -5546,7 +5546,7 @@ export type Database = {
         }
         Insert: {
           anexos?: Json | null
-          busca_texto?: unknown | null
+          busca_texto?: unknown
           content: string
           created_at?: string | null
           deletada?: boolean | null
@@ -5577,7 +5577,7 @@ export type Database = {
         }
         Update: {
           anexos?: Json | null
-          busca_texto?: unknown | null
+          busca_texto?: unknown
           content?: string
           created_at?: string | null
           deletada?: boolean | null
@@ -6123,7 +6123,7 @@ export type Database = {
           preco_base: number | null
           procedimento_id: string | null
           procedimento_nome: string | null
-          search_vector: unknown | null
+          search_vector: unknown
         }
         Relationships: [
           {
@@ -6221,7 +6221,7 @@ export type Database = {
       v_mensagens_completas: {
         Row: {
           anexos: Json | null
-          busca_texto: unknown | null
+          busca_texto: unknown
           content: string | null
           created_at: string | null
           deletada: boolean | null
@@ -6536,7 +6536,7 @@ export type Database = {
     }
     Functions: {
       analisar_inscricoes_legadas: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           credenciado_nome: string
           endereco_legado: string
@@ -6549,7 +6549,7 @@ export type Database = {
         }[]
       }
       atualizar_status_prazos: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           novos_alertas: number
           novos_vencidos: number
@@ -6634,10 +6634,16 @@ export type Database = {
           p_tipo_documento?: string
         }
         Returns: Database["public"]["CompositeTypes"]["documento_busca_resultado"][]
+        SetofOptions: {
+          from: "*"
+          to: "documento_busca_resultado"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
-      buscar_documentos_completos: {
-        Args:
-          | {
+      buscar_documentos_completos:
+        | {
+            Args: {
               p_apenas_com_numero?: boolean
               p_apenas_habilitados?: boolean
               p_credenciado_id?: string
@@ -6652,7 +6658,27 @@ export type Database = {
               p_termo?: string
               p_tipo_documento?: string
             }
-          | {
+            Returns: {
+              arquivo_nome: string
+              arquivo_url: string
+              created_at: string
+              credenciado_cpf: string
+              credenciado_id: string
+              credenciado_nome: string
+              credenciado_numero: string
+              credenciado_status: string
+              data_habilitacao: string
+              id: string
+              inscricao_id: string
+              is_credenciado: boolean
+              ocr_resultado: Json
+              prazos: Json
+              status: string
+              tipo_documento: string
+            }[]
+          }
+        | {
+            Args: {
               p_credenciado_id?: string
               p_data_fim?: string
               p_data_inicio?: string
@@ -6663,7 +6689,29 @@ export type Database = {
               p_termo?: string
               p_tipo_documento?: string
             }
-          | {
+            Returns: {
+              arquivo_nome: string
+              arquivo_url: string
+              created_at: string
+              credenciado_cpf: string
+              credenciado_id: string
+              credenciado_nome: string
+              data_vencimento: string
+              dias_para_vencer: number
+              id: string
+              inscricao_id: string
+              ocr_confidence: number
+              ocr_processado: boolean
+              ocr_resultado: Json
+              relevancia: number
+              snippet: string
+              status: string
+              status_prazo: string
+              tipo_documento: string
+            }[]
+          }
+        | {
+            Args: {
               p_credenciado_id?: string
               p_data_fim?: string
               p_data_inicio?: string
@@ -6675,25 +6723,26 @@ export type Database = {
               p_termo?: string
               p_tipo_documento?: string
             }
-        Returns: {
-          arquivo_nome: string
-          arquivo_url: string
-          created_at: string
-          credenciado_cpf: string
-          credenciado_id: string
-          credenciado_nome: string
-          credenciado_numero: string
-          credenciado_status: string
-          data_habilitacao: string
-          id: string
-          inscricao_id: string
-          is_credenciado: boolean
-          ocr_resultado: Json
-          prazos: Json
-          status: string
-          tipo_documento: string
-        }[]
-      }
+            Returns: {
+              arquivo_nome: string
+              arquivo_url: string
+              cor_status: string
+              created_at: string
+              credenciado_cpf: string
+              credenciado_id: string
+              credenciado_nome: string
+              data_vencimento: string
+              dias_para_vencer: number
+              id: string
+              inscricao_id: string
+              nivel_alerta: string
+              numero_documento: string
+              ocr_resultado: Json
+              status: string
+              texto_ocr: string
+              tipo_documento: string
+            }[]
+          }
       buscar_servicos_rede: {
         Args: {
           p_aceita_sus?: boolean
@@ -6763,6 +6812,20 @@ export type Database = {
           total_avaliacoes_publicas: number
         }[]
       }
+      calcular_estatisticas_hibridas_v1: {
+        Args: { p_credenciado_id: string }
+        Returns: {
+          badges: string[]
+          criterios_destaque: Json
+          nota_media_interna: number
+          nota_media_publica: number
+          performance_score: number
+          pontos_fortes: string[]
+          pontos_fracos: string[]
+          total_avaliacoes_internas: number
+          total_avaliacoes_publicas: number
+        }[]
+      }
       calcular_status_regularidade: {
         Args: { p_credenciado_id: string }
         Returns: {
@@ -6772,7 +6835,7 @@ export type Database = {
         }[]
       }
       check_geocoding_alerts: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           alert_type: string
           count: number
@@ -6782,28 +6845,46 @@ export type Database = {
         }[]
       }
       cleanup_orphan_workflows: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           cleaned_executions: number
           reset_queue_items: number
         }[]
       }
-      consultar_certificado_por_credenciado: {
-        Args: { p_credenciado_id: string } | { p_identificador: string }
-        Returns: {
-          certificado_id: string
-          credenciado: Json
-          emitido_em: string
-          encontrado: boolean
-          hash_verificacao: string
-          numero_certificado: string
-          situacao: string
-          status: string
-          tem_pdf: boolean
-          url_pdf: string
-          valido_ate: string
-        }[]
-      }
+      consultar_certificado_por_credenciado:
+        | {
+            Args: { p_credenciado_id: string }
+            Returns: {
+              certificado_id: string
+              credenciado: Json
+              emitido_em: string
+              encontrado: boolean
+              hash_verificacao: string
+              numero_certificado: string
+              situacao: string
+              status: string
+              tem_pdf: boolean
+              url_pdf: string
+              valido_ate: string
+            }[]
+          }
+        | {
+            Args: { p_identificador: string }
+            Returns: {
+              certificado_id: string
+              codigo_verificacao: string
+              credenciado: Json
+              emitido_em: string
+              encontrado: boolean
+              hash_verificacao: string
+              numero_certificado: string
+              situacao: string
+              status: string
+              tem_pdf: boolean
+              url_pdf: string
+              valido_ate: string
+            }[]
+          }
       consultar_certificado_publico: {
         Args: { p_tipo: string; p_valor: string }
         Returns: {
@@ -6821,7 +6902,7 @@ export type Database = {
         }[]
       }
       corrigir_inscricoes_orfas: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           credenciado_criado: boolean
           credenciado_id: string
@@ -6840,10 +6921,7 @@ export type Database = {
         }
         Returns: string
       }
-      criar_lembretes_avaliacao_mensal: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      criar_lembretes_avaliacao_mensal: { Args: never; Returns: undefined }
       detectar_zona: {
         Args: { p_cidade_id: string; p_latitude: number; p_longitude: number }
         Returns: string
@@ -6861,7 +6939,7 @@ export type Database = {
         Returns: Json
       }
       enqueue_orphan_inscricoes: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           result_inscricao_id: string
           result_message: string
@@ -6879,7 +6957,7 @@ export type Database = {
         Returns: Json
       }
       estatisticas_geocodificacao: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           consultorios_geocodificados: number
           consultorios_pendentes: number
@@ -6909,41 +6987,26 @@ export type Database = {
         }
         Returns: string
       }
-      generate_webhook_url: {
-        Args: { p_workflow_id: string }
-        Returns: string
-      }
+      generate_webhook_url: { Args: { p_workflow_id: string }; Returns: string }
       gerar_api_key_externa: {
         Args: { p_nome: string; p_quota_diaria?: number }
         Returns: string
       }
-      gerar_codigo_verificacao: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      gerar_hash_certificado: {
-        Args:
-          | {
+      gerar_codigo_verificacao: { Args: never; Returns: string }
+      gerar_hash_certificado:
+        | { Args: { p_data: string }; Returns: string }
+        | {
+            Args: {
               p_credenciado_id: string
               p_numero: string
               p_status: string
               p_timestamp: string
             }
-          | { p_data: string }
-        Returns: string
-      }
-      gerar_numero_certificado: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      gerar_protocolo_inscricao: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_assinafy_stats: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+            Returns: string
+          }
+      gerar_numero_certificado: { Args: never; Returns: string }
+      gerar_protocolo_inscricao: { Args: never; Returns: string }
+      get_assinafy_stats: { Args: never; Returns: Json }
       get_batch_unread_counts: {
         Args: { p_inscricao_ids: string[] }
         Returns: {
@@ -6961,7 +7024,7 @@ export type Database = {
         }[]
       }
       get_contratos_sem_signature_request: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           dados_contrato: Json
           dados_inscricao: Json
@@ -7015,7 +7078,7 @@ export type Database = {
         }[]
       }
       get_gestores: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           email: string
           id: string
@@ -7113,7 +7176,7 @@ export type Database = {
         Returns: undefined
       }
       migrar_crms_inscricoes: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           resultado_credenciado_id: string
           resultado_crm: string
@@ -7127,22 +7190,19 @@ export type Database = {
         Returns: Json
       }
       migrar_prazos_existentes: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           erros: string[]
           total_migrados: number
         }[]
       }
-      normalize_address: {
-        Args: { addr: string }
-        Returns: string
-      }
+      normalize_address: { Args: { addr: string }; Returns: string }
       obter_permissoes_usuario: {
         Args: { p_usuario_id: string }
         Returns: Json
       }
       process_orphan_inscricoes: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           action_taken: string
           edital_id: string
@@ -7151,7 +7211,7 @@ export type Database = {
         }[]
       }
       process_orphan_inscricoes_programaticas: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           result_action: string
           result_edital_id: string
@@ -7159,7 +7219,7 @@ export type Database = {
         }[]
       }
       process_workflow_queue: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           inscricao_id: string
           message: string
@@ -7182,10 +7242,7 @@ export type Database = {
         }
         Returns: Json
       }
-      refresh_catalogo_servicos: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      refresh_catalogo_servicos: { Args: never; Returns: undefined }
       registrar_historico_manual: {
         Args: { p_comentario: string; p_documento_id: string }
         Returns: undefined
@@ -7246,7 +7303,7 @@ export type Database = {
         Returns: Json
       }
       retry_orphan_workflows: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           action: string
           edital_id: string
@@ -7277,7 +7334,7 @@ export type Database = {
         Returns: string
       }
       verificar_contratos_sem_credenciado: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           assinado_em: string
           contrato_id: string
@@ -7288,7 +7345,7 @@ export type Database = {
         }[]
       }
       verificar_credenciados_incompletos: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           campos_faltantes: string[]
           cpf: string
@@ -7300,7 +7357,7 @@ export type Database = {
         }[]
       }
       verificar_prazos_vencendo: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           credenciado_email: string
           credenciado_id: string
@@ -7313,7 +7370,7 @@ export type Database = {
         }[]
       }
       verificar_regras_suspensao_automatica: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           acao: string
           credenciado_id: string
