@@ -6971,6 +6971,17 @@ export type Database = {
           signature_request_id: string
         }[]
       }
+      get_credenciados_sem_crms: {
+        Args: { tipo_cred: string }
+        Returns: {
+          cpf: string
+          dados_inscricao: Json
+          id: string
+          nome: string
+          status: string
+          tipo_credenciamento: string
+        }[]
+      }
       get_document_type_for_status_change: {
         Args: { new_status: string; old_status: string }
         Returns: string

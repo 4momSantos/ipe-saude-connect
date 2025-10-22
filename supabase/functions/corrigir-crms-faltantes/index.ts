@@ -18,19 +18,9 @@ serve(async (req) => {
 
     console.log('[CORRIGIR_CRMS] Iniciando correção de CRMs faltantes...');
 
-    // Buscar credenciados PF sem CRM
+    // Buscar credenciados PF sem CRM usando RPC
     const { data: credenciados, error: credenciadosError } = await supabase
-      .from('credenciados')
-      .select(`
-        id,
-        nome,
-        cpf,
-        tipo_credenciamento,
-        status,
-        inscricoes_edital!inner(dados_inscricao)
-      `)
-      .eq('tipo_credenciamento', 'PF')
-      .is('credenciado_crms.id', null);
+      .rpc('get_credenciados_sem_crms', { tipo_cred: 'PF' });
 
     if (credenciadosError) {
       throw new Error(`Erro ao buscar credenciados: ${credenciadosError.message}`);
@@ -42,7 +32,7 @@ serve(async (req) => {
     let criadosCount = 0;
 
     for (const credenciado of credenciados || []) {
-      const dadosInscricao = (credenciado as any).inscricoes_edital.dados_inscricao;
+      const dadosInscricao = credenciado.dados_inscricao;
       const crm = dadosInscricao?.dados_pessoais?.crm;
       const ufCrm = dadosInscricao?.dados_pessoais?.uf_crm;
 
