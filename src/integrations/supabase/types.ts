@@ -6604,6 +6604,7 @@ export type Database = {
           documentos_ativos: number
           documentos_vencendo: number
           documentos_vencidos: number
+          especialidades: Json
           proximo_vencimento: string
           total_documentos: number
         }[]

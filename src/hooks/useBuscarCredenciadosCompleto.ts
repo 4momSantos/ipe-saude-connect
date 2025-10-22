@@ -15,7 +15,16 @@ export interface DocumentoComMatch {
   status: string;
   ocr_processado: boolean;
   dias_para_vencer: number | null;
-  match_termo: boolean;  // ✅ Flag se documento corresponde à busca
+  match_termo: boolean;
+}
+
+export interface EspecialidadeCRM {
+  crm_id: string;
+  crm: string;
+  uf_crm: string;
+  especialidade: string | null;
+  especialidade_id: string | null;
+  especialidade_nome: string | null;
 }
 
 export interface CredenciadoComDocumentosCompleto {
@@ -31,6 +40,7 @@ export interface CredenciadoComDocumentosCompleto {
   documentos_vencidos: number;
   documentos_vencendo: number;
   proximo_vencimento: string | null;
+  especialidades: EspecialidadeCRM[];
   documentos: DocumentoComMatch[];
 }
 
@@ -88,6 +98,7 @@ export function useBuscarCredenciadosCompleto({
       // Converter Json para tipo correto
       return ((data || []) as any[]).map(item => ({
         ...item,
+        especialidades: (item.especialidades || []) as EspecialidadeCRM[],
         documentos: (item.documentos || []) as DocumentoComMatch[]
       })) as CredenciadoComDocumentosCompleto[];
     },

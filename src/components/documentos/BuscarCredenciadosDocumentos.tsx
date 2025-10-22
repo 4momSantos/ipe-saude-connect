@@ -329,6 +329,29 @@ export function BuscarCredenciadosDocumentos() {
                         )}
                       </div>
 
+                      {/* Especialidades */}
+                      {credenciado.especialidades && credenciado.especialidades.length > 0 ? (
+                        <div className="flex gap-2 flex-wrap items-center">
+                          <span className="text-xs text-muted-foreground">Especialidades:</span>
+                          {credenciado.especialidades.slice(0, 3).map((esp) => (
+                            <Badge key={esp.crm_id} variant="outline" className="text-xs">
+                              {esp.especialidade_nome || esp.especialidade || 'Não especificada'}
+                              {esp.crm && ` (CRM ${esp.crm}/${esp.uf_crm})`}
+                            </Badge>
+                          ))}
+                          {credenciado.especialidades.length > 3 && (
+                            <Badge variant="secondary" className="text-xs">
+                              +{credenciado.especialidades.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+                      ) : (
+                        <Badge variant="outline" className="border-orange-500 text-orange-600 text-xs">
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          Sem especialidades cadastradas
+                        </Badge>
+                      )}
+
                       {/* Resumo de Documentos */}
                       <div className="flex gap-2 flex-wrap">
                         {credenciado.total_documentos === 0 ? (
