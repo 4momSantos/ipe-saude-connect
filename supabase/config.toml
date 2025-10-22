@@ -114,3 +114,6 @@ verify_jwt = true
 [functions.corrigir-credenciados-sem-documentos]
 verify_jwt = true
 
+[functions.corrigir-crms-faltantes]
+verify_jwt = false
+

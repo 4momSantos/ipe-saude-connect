@@ -29,6 +29,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSolicitacoesNotifications } from "@/hooks/useSolicitacoesNotifications";
 import { useSolicitacoesPendentes } from "@/hooks/useSolicitacoesPendentes";
 import { SolicitacoesIndicator } from "@/components/credenciados/SolicitacoesIndicator";
+import { useCorrigirCrmsFaltantes } from "@/hooks/useCorrigirCrmsFaltantes";
 
 export default function Credenciados() {
   const navigate = useNavigate();
@@ -45,6 +46,9 @@ export default function Credenciados() {
   
   // Ativar notificações de solicitações
   useSolicitacoesNotifications();
+  
+  // Hook para corrigir CRMs faltantes
+  const { mutate: corrigirCrms, isPending: isCorrigindoCrms } = useCorrigirCrmsFaltantes();
 
   const especialidades = useMemo(() => {
     if (!credenciados) return [];
@@ -318,6 +322,20 @@ export default function Credenciados() {
                     <span className="text-xs md:text-sm">Deletar ({credenciadosSelecionados.size})</span>
                   </Button>
               )}
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                className="gap-2 w-full sm:w-auto"
+                onClick={() => corrigirCrms()}
+                disabled={isCorrigindoCrms}
+              >
+                {isCorrigindoCrms ? (
+                  <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3 w-3 md:h-4 md:w-4" />
+                )}
+                <span className="text-xs md:text-sm">Corrigir CRMs</span>
+              </Button>
               <Button variant="outline" size="sm" className="border-border hover:bg-card gap-2 w-full sm:w-auto">
                 <Download className="h-3 w-3 md:h-4 md:w-4" />
                 <span className="text-xs md:text-sm">Exportar</span>
