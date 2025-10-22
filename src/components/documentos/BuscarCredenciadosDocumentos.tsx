@@ -96,6 +96,30 @@ export function BuscarCredenciadosDocumentos() {
           debouncedInvalidate();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'credenciado_crms'
+        },
+        (payload) => {
+          console.log('CRM/Especialidade atualizado:', payload);
+          debouncedInvalidate();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'inscricao_documentos'
+        },
+        (payload) => {
+          console.log('Documento de inscrição atualizado:', payload);
+          debouncedInvalidate();
+        }
+      )
       .subscribe();
   
     return () => {
@@ -444,6 +468,9 @@ export function BuscarCredenciadosDocumentos() {
                                   
                                   <span className="font-medium">
                                     {highlightText(doc.tipo_documento, termoAtual)}
+                                    {doc.origem === 'inscricao' && (
+                                      <span className="ml-1 text-xs opacity-70">(Inscrição)</span>
+                                    )}
                                   </span>
                                   
                                   {doc.numero_documento && (

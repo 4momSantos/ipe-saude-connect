@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface DocumentoComMatch {
   id: string;
+  origem?: 'credenciado' | 'inscricao';
   tipo_documento: string;
   numero_documento: string | null;
   data_emissao: string | null;
