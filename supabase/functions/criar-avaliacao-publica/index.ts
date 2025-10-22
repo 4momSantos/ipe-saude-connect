@@ -68,48 +68,11 @@ Deno.serve(async (req) => {
       throw new Error('Comentário não pode exceder 500 caracteres');
     }
 
-    // 3. Chamar moderação por IA
-    console.log('[criar-avaliacao-publica] 🤖 Iniciando moderação IA...');
-    
-    const moderacaoResponse = await fetch(
-      `${Deno.env.get('SUPABASE_URL')}/functions/v1/moderar-avaliacao-ia`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': req.headers.get('Authorization') || ''
-        },
-        body: JSON.stringify({
-          comentario: body.comentario,
-          avaliador_nome: body.avaliador_nome
-        })
-      }
-    );
+    // 3. Aprovar avaliação automaticamente
+    const status = 'aprovada';
+    console.log('[criar-avaliacao-publica] ✅ Avaliação será aprovada automaticamente');
 
-    const moderacao = await moderacaoResponse.json();
-
-    console.log('[criar-avaliacao-publica] 🤖 Resultado moderação:', {
-      score: moderacao.score,
-      aprovado: moderacao.aprovado,
-      motivo: moderacao.motivo
-    });
-
-    // 4. Determinar status baseado no score
-    let status = 'pendente';
-    
-    // Ajustar thresholds baseado se é anônimo ou não
-    const scoreMinimo = body.avaliador_anonimo ? 60 : 70; // Mais permissivo para anônimos
-    const scoreRejeicao = 20; // Aumentar de 30 para 20
-    
-    if (moderacao.score >= scoreMinimo) {
-      status = 'aprovada';
-    } else if (moderacao.score < scoreRejeicao) {
-      status = 'rejeitada';
-    }
-
-    console.log('[criar-avaliacao-publica] 📊 Status determinado:', status);
-
-    // 5. Criar avaliação
+    // 4. Criar avaliação
     const { data: avaliacao, error: avaliacaoError } = await supabase
       .from('avaliacoes_publicas')
       .insert({
@@ -126,9 +89,9 @@ Deno.serve(async (req) => {
         avaliador_anonimo: body.avaliador_anonimo || false,
         comprovante_url: body.comprovante_url || null,
         status,
-        moderacao_ia_score: moderacao.score,
-        moderacao_ia_motivo: moderacao.motivo,
-        moderado_em: status !== 'pendente' ? new Date().toISOString() : null
+        moderacao_ia_score: null,
+        moderacao_ia_motivo: null,
+        moderado_em: new Date().toISOString()
       })
       .select()
       .single();
@@ -145,21 +108,16 @@ Deno.serve(async (req) => {
 
     console.log('[criar-avaliacao-publica] ✅ Avaliação criada:', {
       id: avaliacao.id,
-      status: avaliacao.status,
-      score: avaliacao.moderacao_ia_score
+      status: avaliacao.status
     });
 
-    // 6. As estatísticas serão atualizadas automaticamente pelo trigger
+    // 5. As estatísticas serão atualizadas automaticamente pelo trigger
 
     return new Response(
       JSON.stringify({
         success: true,
         avaliacao,
-        mensagem: status === 'aprovada' 
-          ? 'Avaliação publicada com sucesso!' 
-          : status === 'pendente'
-          ? 'Avaliação enviada para análise'
-          : 'Avaliação não pôde ser aprovada'
+        mensagem: 'Avaliação publicada com sucesso!'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
