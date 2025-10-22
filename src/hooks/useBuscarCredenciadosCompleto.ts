@@ -47,7 +47,7 @@ interface UseBuscarCredenciadosCompletoParams {
 export function useBuscarCredenciadosCompleto({
   termoBusca = '',
   tipoDocumento,
-  status = 'Ativo',
+  status,
   apenasComDocumentos = false,
   apenasVencidos = false,
   limite = 50,

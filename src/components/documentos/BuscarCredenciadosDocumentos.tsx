@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import {
   Search, User, FileText, AlertCircle,
   Download, ExternalLink, ChevronDown, ChevronUp,
-  CheckCircle, Clock, AlertTriangle, Eye
+  CheckCircle, Clock, AlertTriangle, Eye, Plus, RefreshCw
 } from 'lucide-react';
 import { useBuscarCredenciadosCompleto, DocumentoComMatch } from '@/hooks/useBuscarCredenciadosCompleto';
 import { format } from 'date-fns';
@@ -18,21 +18,92 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 
 export function BuscarCredenciadosDocumentos() {
   const [termoBusca, setTermoBusca] = useState('');
   const [termoAtual, setTermoAtual] = useState(''); // Termo sendo buscado
+  const [statusFiltro, setStatusFiltro] = useState<string>('Ativo');
   const [apenasComDocumentos, setApenasComDocumentos] = useState(false);
   const [apenasVencidos, setApenasVencidos] = useState(false);
   const [expandidos, setExpandidos] = useState<Record<string, boolean>>({});
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: credenciados, isLoading } = useBuscarCredenciadosCompleto({
     termoBusca: termoAtual,
+    status: statusFiltro || undefined,
     apenasComDocumentos,
     apenasVencidos
   });
+
+  // ✅ Debounce para invalidações realtime
+  const debouncedInvalidate = useMemo(
+    () => {
+      let timeoutId: NodeJS.Timeout;
+      return () => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          setIsRefreshing(true);
+          queryClient.invalidateQueries({ 
+            queryKey: ['buscar-credenciados-completo'] 
+          });
+          setTimeout(() => setIsRefreshing(false), 1000);
+          toast.info('Dados atualizados automaticamente');
+        }, 1000);
+      };
+    },
+    [queryClient]
+  );
+
+  // ✅ Subscription realtime para credenciados e documentos
+  useEffect(() => {
+    if (!termoAtual) return; // Só escuta se houver busca ativa
+    
+    const channel = supabase
+      .channel('busca-credenciados-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'credenciados'
+        },
+        (payload) => {
+          console.log('Credenciado atualizado:', payload);
+          debouncedInvalidate();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'documentos_credenciados'
+        },
+        (payload) => {
+          console.log('Documento atualizado:', payload);
+          debouncedInvalidate();
+        }
+      )
+      .subscribe();
+  
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [termoAtual, debouncedInvalidate]);
 
   const toggleExpandido = (id: string) => {
     setExpandidos(prev => ({ ...prev, [id]: !prev[id] }));
@@ -155,7 +226,22 @@ export function BuscarCredenciadosDocumentos() {
             </p>
           )}
 
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center flex-wrap">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="status-filtro" className="text-sm">Status:</Label>
+              <Select value={statusFiltro} onValueChange={setStatusFiltro}>
+                <SelectTrigger id="status-filtro" className="w-[140px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Ativo">Ativo</SelectItem>
+                  <SelectItem value="Inativo">Inativo</SelectItem>
+                  <SelectItem value="Suspenso">Suspenso</SelectItem>
+                  <SelectItem value="">Todos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="com-docs"
@@ -194,9 +280,18 @@ export function BuscarCredenciadosDocumentos() {
       {/* Resultados */}
       {!isLoading && credenciados && credenciados.length > 0 && (
         <div className="space-y-4">
-          <div className="text-sm text-muted-foreground">
-            {credenciados.length} credenciado{credenciados.length !== 1 ? 's' : ''} encontrado{credenciados.length !== 1 ? 's' : ''}
-            {termoAtual && ` para "${termoAtual}"`}
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              {credenciados.length} credenciado{credenciados.length !== 1 ? 's' : ''} encontrado{credenciados.length !== 1 ? 's' : ''}
+              {termoAtual && ` para "${termoAtual}"`}
+            </div>
+            
+            {isRefreshing && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                Atualizando resultados...
+              </div>
+            )}
           </div>
 
           {credenciados.map((credenciado) => (
@@ -234,26 +329,45 @@ export function BuscarCredenciadosDocumentos() {
 
                       {/* Resumo de Documentos */}
                       <div className="flex gap-2 flex-wrap">
-                        <Badge variant="secondary">
-                          {credenciado.total_documentos} documento{credenciado.total_documentos !== 1 ? 's' : ''}
-                        </Badge>
-                        
-                        {credenciado.documentos_vencidos > 0 && (
-                          <Badge variant="destructive">
-                            {credenciado.documentos_vencidos} vencido{credenciado.documentos_vencidos !== 1 ? 's' : ''}
-                          </Badge>
-                        )}
-                        
-                        {credenciado.documentos_vencendo > 0 && (
-                          <Badge className="bg-[hsl(var(--orange-warning))] text-white">
-                            {credenciado.documentos_vencendo} vencendo em breve
-                          </Badge>
-                        )}
+                        {credenciado.total_documentos === 0 ? (
+                          <>
+                            <Badge variant="outline" className="border-orange-500 text-orange-600">
+                              <AlertCircle className="w-3 h-3 mr-1" />
+                              Sem documentos cadastrados
+                            </Badge>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => navigate(`/credenciados/${credenciado.credenciado_id}`)}
+                            >
+                              <Plus className="w-4 h-4 mr-1" />
+                              Cadastrar documentos
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Badge variant="secondary">
+                              {credenciado.total_documentos} documento{credenciado.total_documentos !== 1 ? 's' : ''}
+                            </Badge>
+                            
+                            {credenciado.documentos_vencidos > 0 && (
+                              <Badge variant="destructive">
+                                {credenciado.documentos_vencidos} vencido{credenciado.documentos_vencidos !== 1 ? 's' : ''}
+                              </Badge>
+                            )}
+                            
+                            {credenciado.documentos_vencendo > 0 && (
+                              <Badge className="bg-[hsl(var(--orange-warning))] text-white">
+                                {credenciado.documentos_vencendo} vencendo em breve
+                              </Badge>
+                            )}
 
-                        {credenciado.proximo_vencimento && (
-                          <Badge variant="outline">
-                            Próximo: {format(new Date(credenciado.proximo_vencimento), 'dd/MM/yyyy', { locale: ptBR })}
-                          </Badge>
+                            {credenciado.proximo_vencimento && (
+                              <Badge variant="outline">
+                                Próximo: {format(new Date(credenciado.proximo_vencimento), 'dd/MM/yyyy', { locale: ptBR })}
+                              </Badge>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
