@@ -1415,6 +1415,80 @@ export type Database = {
           },
         ]
       }
+      correcoes_inscricao: {
+        Row: {
+          analisada_em: string | null
+          analisada_por: string | null
+          campos_corrigidos: Json | null
+          candidato_justificativa: string | null
+          created_at: string | null
+          documentos_reenviados: string[] | null
+          enviada_em: string | null
+          id: string
+          inscricao_id: string
+          status: string
+          updated_at: string | null
+          versao: number
+        }
+        Insert: {
+          analisada_em?: string | null
+          analisada_por?: string | null
+          campos_corrigidos?: Json | null
+          candidato_justificativa?: string | null
+          created_at?: string | null
+          documentos_reenviados?: string[] | null
+          enviada_em?: string | null
+          id?: string
+          inscricao_id: string
+          status?: string
+          updated_at?: string | null
+          versao?: number
+        }
+        Update: {
+          analisada_em?: string | null
+          analisada_por?: string | null
+          campos_corrigidos?: Json | null
+          candidato_justificativa?: string | null
+          created_at?: string | null
+          documentos_reenviados?: string[] | null
+          enviada_em?: string | null
+          id?: string
+          inscricao_id?: string
+          status?: string
+          updated_at?: string | null
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "correcoes_inscricao_analisada_por_fkey"
+            columns: ["analisada_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "correcoes_inscricao_analisada_por_fkey"
+            columns: ["analisada_por"]
+            isOneToOne: false
+            referencedRelation: "v_usuarios_com_grupos"
+            referencedColumns: ["usuario_id"]
+          },
+          {
+            foreignKeyName: "correcoes_inscricao_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: false
+            referencedRelation: "inscricoes_edital"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "correcoes_inscricao_inscricao_id_fkey"
+            columns: ["inscricao_id"]
+            isOneToOne: false
+            referencedRelation: "view_inscricoes_validacao_pendente"
+            referencedColumns: ["inscricao_id"]
+          },
+        ]
+      }
       credenciado_categorias: {
         Row: {
           categoria_id: string
@@ -3443,9 +3517,11 @@ export type Database = {
           arquivo_tamanho: number | null
           arquivo_url: string
           created_at: string | null
+          eh_reenvio: boolean | null
           id: string
           inscricao_id: string
           is_current: boolean | null
+          motivo_reenvio: string | null
           observacoes: string | null
           ocr_confidence: number | null
           ocr_processado: boolean | null
@@ -3458,6 +3534,7 @@ export type Database = {
           updated_at: string | null
           uploaded_by: string | null
           versao: number | null
+          versao_anterior_id: string | null
         }
         Insert: {
           analisado_em?: string | null
@@ -3466,9 +3543,11 @@ export type Database = {
           arquivo_tamanho?: number | null
           arquivo_url: string
           created_at?: string | null
+          eh_reenvio?: boolean | null
           id?: string
           inscricao_id: string
           is_current?: boolean | null
+          motivo_reenvio?: string | null
           observacoes?: string | null
           ocr_confidence?: number | null
           ocr_processado?: boolean | null
@@ -3481,6 +3560,7 @@ export type Database = {
           updated_at?: string | null
           uploaded_by?: string | null
           versao?: number | null
+          versao_anterior_id?: string | null
         }
         Update: {
           analisado_em?: string | null
@@ -3489,9 +3569,11 @@ export type Database = {
           arquivo_tamanho?: number | null
           arquivo_url?: string
           created_at?: string | null
+          eh_reenvio?: boolean | null
           id?: string
           inscricao_id?: string
           is_current?: boolean | null
+          motivo_reenvio?: string | null
           observacoes?: string | null
           ocr_confidence?: number | null
           ocr_processado?: boolean | null
@@ -3504,6 +3586,7 @@ export type Database = {
           updated_at?: string | null
           uploaded_by?: string | null
           versao?: number | null
+          versao_anterior_id?: string | null
         }
         Relationships: [
           {
@@ -3530,6 +3613,20 @@ export type Database = {
           {
             foreignKeyName: "inscricao_documentos_parent_document_id_fkey"
             columns: ["parent_document_id"]
+            isOneToOne: false
+            referencedRelation: "inscricao_documentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inscricao_documentos_versao_anterior_id_fkey"
+            columns: ["versao_anterior_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_completos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inscricao_documentos_versao_anterior_id_fkey"
+            columns: ["versao_anterior_id"]
             isOneToOne: false
             referencedRelation: "inscricao_documentos"
             referencedColumns: ["id"]
@@ -6771,6 +6868,15 @@ export type Database = {
           result_workflow_id: string
         }[]
       }
+      enviar_correcao_inscricao: {
+        Args: {
+          p_campos_corrigidos: Json
+          p_correcao_id: string
+          p_documentos_reenviados: string[]
+          p_justificativa: string
+        }
+        Returns: Json
+      }
       estatisticas_geocodificacao: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -6956,6 +7062,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      iniciar_correcao_inscricao: {
+        Args: { p_inscricao_id: string }
+        Returns: string
       }
       is_credenciado_owner: {
         Args: { _credenciado_id: string; _user_id: string }
