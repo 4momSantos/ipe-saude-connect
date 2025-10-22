@@ -96,6 +96,18 @@ export function BuscarCredenciadosDocumentos() {
           debouncedInvalidate();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'inscricao_documentos'
+        },
+        (payload) => {
+          console.log('Documento de inscrição atualizado:', payload);
+          debouncedInvalidate();
+        }
+      )
       .subscribe();
   
     return () => {
@@ -444,6 +456,9 @@ export function BuscarCredenciadosDocumentos() {
                                   
                                   <span className="font-medium">
                                     {highlightText(doc.tipo_documento, termoAtual)}
+                                    {doc.origem === 'inscricao' && (
+                                      <span className="ml-1 opacity-70 text-[10px]">(Inscrição)</span>
+                                    )}
                                   </span>
                                   
                                   {doc.numero_documento && (
