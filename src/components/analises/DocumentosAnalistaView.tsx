@@ -248,7 +248,7 @@ export function DocumentosAnalistaView({ inscricaoId }: DocumentosAnalistaViewPr
               <CardDescription>Timeline de todas as decisões registradas</CardDescription>
             </CardHeader>
             <CardContent>
-              <HistoricoDecisoes decisoes={historico} isLoading={isLoadingHistorico} />
+              <HistoricoDecisoes inscricaoId={inscricaoId} />
             </CardContent>
           </Card>
         </TabsContent>
