@@ -30,31 +30,38 @@ Deno.serve(async (req) => {
     });
 
     // Usar Lovable AI (gemini-2.5-flash) para moderação
-    const prompt = `Você é um moderador de avaliações de profissionais de saúde. Analise o seguinte comentário e determine se ele deve ser aprovado ou rejeitado.
+    const prompt = `Você é um moderador de avaliações de profissionais de saúde.
 
 Comentário: "${comentario}"
-${avaliador_nome ? `Nome do avaliador: ${avaliador_nome}` : ''}
+${avaliador_nome ? `Nome: ${avaliador_nome}` : 'AVALIAÇÃO ANÔNIMA'}
 
-Critérios para REJEIÇÃO:
-- Spam ou conteúdo irrelevante
-- Linguagem ofensiva, xingamentos ou ataques pessoais
-- Conteúdo sexual explícito ou inapropriado
-- Informações falsas ou enganosas evidentes
+⚠️ IMPORTANTE: Avaliações anônimas tendem a ser mais breves e diretas. Seja tolerante com feedback objetivo.
+
+Critérios para APROVAÇÃO (Score 70-100):
+- Feedback genuíno, mesmo que breve ("bom", "ruim", "péssimo", "ótimo")
+- Críticas diretas são VÁLIDAS e devem ser aprovadas
+- Elogios simples são VÁLIDOS e devem ser aprovados
+- Relatos objetivos de experiência
+- Comentários curtos mas com sentido claro
+- Linguagem informal é aceitável
+
+Critérios para MODERAÇÃO MANUAL (Score 30-69):
+- Comentários muito vagos sem qualquer contexto
+- Apenas pontuação ou emoticons
+- Suspeita de manipulação mas não conclusiva
+
+Critérios para REJEIÇÃO (Score 0-29):
+- Spam evidente (caracteres aleatórios, "asdfgh", "teste123")
+- Ofensas pessoais graves ou discriminação
+- Conteúdo sexual ou violento
+- Ameaças ou intimidação
 - Tentativa de golpe ou phishing
-- Conteúdo duplicado ou repetitivo
-- Comentários muito curtos sem valor (ex: "ok", "legal")
-
-Critérios para APROVAÇÃO:
-- Feedback genuíno sobre atendimento
-- Críticas construtivas
-- Elogios específicos
-- Relato de experiência pessoal
 
 Responda APENAS com um JSON neste formato exato:
 {
   "aprovado": true ou false,
   "score": número de 0 a 100 (0=spam/fake, 100=legítimo),
-  "motivo": "breve explicação se rejeitado" ou null se aprovado
+  "motivo": "breve explicação se score < 70" ou null se aprovado
 }`;
 
     // Chamar Lovable AI Gateway

@@ -96,9 +96,14 @@ Deno.serve(async (req) => {
 
     // 4. Determinar status baseado no score
     let status = 'pendente';
-    if (moderacao.score >= 80) {
+    
+    // Ajustar thresholds baseado se é anônimo ou não
+    const scoreMinimo = body.avaliador_anonimo ? 60 : 70; // Mais permissivo para anônimos
+    const scoreRejeicao = 20; // Aumentar de 30 para 20
+    
+    if (moderacao.score >= scoreMinimo) {
       status = 'aprovada';
-    } else if (moderacao.score < 30) {
+    } else if (moderacao.score < scoreRejeicao) {
       status = 'rejeitada';
     }
 
