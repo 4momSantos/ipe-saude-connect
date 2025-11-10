@@ -1,0 +1,1636 @@
+{
+  "database_schema": "Sistema de Credenciamento Médico RS",
+  "total_tabelas": 35,
+  "versao_documentacao": "1.0",
+  "data_geracao": "2025-11-10",
+  
+  "tabelas": {
+    
+    "acoes_prazos": {
+      "descricao": "Registra todas as ações realizadas sobre prazos de credenciamento",
+      "proposito": "Auditoria e histórico de alterações em prazos (prorrogações, suspensões, etc)",
+      "categoria": "Auditoria/Prazos",
+      "estrutura": {
+        "id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "descricao": "Identificador único da ação"
+        },
+        "prazo_id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "descricao": "Referência ao prazo alterado"
+        },
+        "credenciado_id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "descricao": "Credenciado afetado pela ação"
+        },
+        "tipo_acao": {
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "Tipo de ação (prorrogacao, suspensao, ativacao, etc)"
+        },
+        "data_anterior": {
+          "tipo": "date",
+          "nullable": true,
+          "descricao": "Data de vencimento anterior"
+        },
+        "data_nova": {
+          "tipo": "date",
+          "nullable": true,
+          "descricao": "Nova data de vencimento"
+        },
+        "justificativa": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Justificativa da ação"
+        },
+        "executado_por": {
+          "tipo": "uuid",
+          "nullable": true,
+          "descricao": "Usuário que executou a ação"
+        },
+        "executado_por_nome": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Nome do usuário que executou"
+        },
+        "metadata": {
+          "tipo": "jsonb",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "descricao": "Dados adicionais da ação"
+        },
+        "created_at": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "default": "now()",
+          "descricao": "Data de criação do registro"
+        }
+      },
+      "exemplo_cadastro": {
+        "prazo_id": "123e4567-e89b-12d3-a456-426614174000",
+        "credenciado_id": "123e4567-e89b-12d3-a456-426614174001",
+        "tipo_acao": "prorrogacao",
+        "data_anterior": "2025-12-31",
+        "data_nova": "2026-06-30",
+        "justificativa": "Credenciado solicitou prorrogação devido a renovação de documentos",
+        "executado_por": "123e4567-e89b-12d3-a456-426614174002",
+        "executado_por_nome": "Maria Silva (Gestora)",
+        "metadata": {
+          "documentos_pendentes": ["CNH", "CRM"],
+          "protocolo": "PROR-2025-001"
+        }
+      }
+    },
+
+    "afastamentos_credenciados": {
+      "descricao": "Registra períodos de afastamento de credenciados",
+      "proposito": "Gerenciar licenças médicas, férias, suspensões temporárias",
+      "categoria": "Gestão de Credenciados",
+      "estrutura": {
+        "id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "descricao": "Identificador único do afastamento"
+        },
+        "credenciado_id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "descricao": "Credenciado afastado"
+        },
+        "tipo": {
+          "tipo": "text",
+          "nullable": false,
+          "valores_permitidos": ["ferias", "licenca_medica", "suspensao", "outro"],
+          "descricao": "Tipo de afastamento"
+        },
+        "data_inicio": {
+          "tipo": "date",
+          "nullable": false,
+          "descricao": "Data de início do afastamento"
+        },
+        "data_fim": {
+          "tipo": "date",
+          "nullable": true,
+          "descricao": "Data de término do afastamento (null = indeterminado)"
+        },
+        "justificativa": {
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "Justificativa do afastamento"
+        },
+        "motivo": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Motivo detalhado"
+        },
+        "status": {
+          "tipo": "text",
+          "nullable": true,
+          "default": "'pendente'::text",
+          "valores_permitidos": ["pendente", "aprovado", "rejeitado", "ativo", "encerrado"],
+          "descricao": "Status da solicitação"
+        },
+        "documentos_anexos": {
+          "tipo": "jsonb",
+          "nullable": true,
+          "default": "'[]'::jsonb",
+          "descricao": "URLs de documentos comprobatórios"
+        },
+        "analisado_por": {
+          "tipo": "uuid",
+          "nullable": true,
+          "descricao": "Gestor que analisou"
+        },
+        "analisado_em": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "descricao": "Data da análise"
+        },
+        "observacoes_analise": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Observações do gestor"
+        },
+        "created_at": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "default": "now()",
+          "descricao": "Data de criação"
+        },
+        "updated_at": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "default": "now()",
+          "descricao": "Data de atualização"
+        }
+      },
+      "exemplo_cadastro": {
+        "credenciado_id": "123e4567-e89b-12d3-a456-426614174003",
+        "tipo": "licenca_medica",
+        "data_inicio": "2025-11-15",
+        "data_fim": "2025-11-30",
+        "justificativa": "Licença médica por cirurgia de joelho conforme atestado médico anexo",
+        "motivo": "Procedimento cirúrgico ortopédico",
+        "status": "aprovado",
+        "documentos_anexos": [
+          {
+            "tipo": "atestado_medico",
+            "url": "https://storage.supabase.co/...",
+            "nome": "atestado_dr_silva.pdf"
+          }
+        ],
+        "analisado_por": "123e4567-e89b-12d3-a456-426614174004",
+        "analisado_em": "2025-11-10T14:30:00Z",
+        "observacoes_analise": "Atestado válido. Aprovado afastamento."
+      }
+    },
+
+    "alertas_enviados": {
+      "descricao": "Log de todos os alertas enviados aos credenciados",
+      "proposito": "Rastreamento de notificações de vencimentos e prazos",
+      "categoria": "Notificações/Prazos",
+      "estrutura": {
+        "id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "descricao": "Identificador único do alerta"
+        },
+        "prazo_id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "descricao": "Prazo relacionado"
+        },
+        "credenciado_id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "descricao": "Destinatário do alerta"
+        },
+        "tipo_alerta": {
+          "tipo": "text",
+          "nullable": false,
+          "valores_permitidos": ["30_dias", "15_dias", "7_dias", "1_dia", "vencido"],
+          "descricao": "Tipo de alerta baseado em dias restantes"
+        },
+        "email_enviado_para": {
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "E-mail do destinatário"
+        },
+        "status_envio": {
+          "tipo": "text",
+          "nullable": true,
+          "default": "'enviado'::text",
+          "valores_permitidos": ["enviado", "erro", "bounce", "aberto"],
+          "descricao": "Status do envio do e-mail"
+        },
+        "erro_envio": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Mensagem de erro se falhou"
+        },
+        "metadata": {
+          "tipo": "jsonb",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "descricao": "Dados adicionais (message_id, etc)"
+        },
+        "enviado_em": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "default": "now()",
+          "descricao": "Data/hora do envio"
+        }
+      },
+      "exemplo_cadastro": {
+        "prazo_id": "123e4567-e89b-12d3-a456-426614174005",
+        "credenciado_id": "123e4567-e89b-12d3-a456-426614174006",
+        "tipo_alerta": "7_dias",
+        "email_enviado_para": "dr.joao@clinica.com.br",
+        "status_envio": "enviado",
+        "metadata": {
+          "resend_message_id": "abc123xyz",
+          "template_usado": "alerta_vencimento_7dias",
+          "dias_restantes": 7,
+          "tipo_prazo": "CRM",
+          "data_vencimento": "2025-11-17"
+        }
+      }
+    },
+
+    "alertas_vencimento": {
+      "descricao": "Configuração de alertas automáticos por tipo de entidade",
+      "proposito": "Definir regras de quando e para quem enviar alertas",
+      "categoria": "Configurações/Prazos",
+      "estrutura": {
+        "id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "descricao": "Identificador único da configuração"
+        },
+        "entidade_tipo": {
+          "tipo": "text",
+          "nullable": false,
+          "valores_permitidos": ["documento", "certificado", "crm", "cnpj", "alvara", "outro"],
+          "descricao": "Tipo de entidade que vence"
+        },
+        "categoria": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Categoria adicional de classificação"
+        },
+        "dias_antecedencia": {
+          "tipo": "integer[]",
+          "nullable": true,
+          "default": "ARRAY[30, 15, 7, 1]",
+          "descricao": "Array de dias antes do vencimento para enviar alertas"
+        },
+        "notificar_credenciado": {
+          "tipo": "boolean",
+          "nullable": true,
+          "default": "true",
+          "descricao": "Se deve notificar o credenciado"
+        },
+        "notificar_gestores": {
+          "tipo": "boolean",
+          "nullable": true,
+          "default": "true",
+          "descricao": "Se deve notificar os gestores"
+        },
+        "grupos_notificar": {
+          "tipo": "text[]",
+          "nullable": true,
+          "descricao": "Grupos de usuários a notificar"
+        },
+        "emails_adicionais": {
+          "tipo": "text[]",
+          "nullable": true,
+          "descricao": "E-mails extras para notificação"
+        },
+        "template_titulo": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Template do título do alerta"
+        },
+        "template_mensagem": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Template da mensagem do alerta"
+        },
+        "prioridade": {
+          "tipo": "text",
+          "nullable": true,
+          "default": "'normal'::text",
+          "valores_permitidos": ["baixa", "normal", "alta", "urgente"],
+          "descricao": "Prioridade do alerta"
+        },
+        "ativo": {
+          "tipo": "boolean",
+          "nullable": true,
+          "default": "true",
+          "descricao": "Se a regra está ativa"
+        },
+        "criado_em": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "default": "now()",
+          "descricao": "Data de criação"
+        }
+      },
+      "exemplo_cadastro": {
+        "entidade_tipo": "crm",
+        "categoria": "registro_profissional",
+        "dias_antecedencia": [60, 30, 15, 7],
+        "notificar_credenciado": true,
+        "notificar_gestores": true,
+        "grupos_notificar": ["gestores_saude", "administrativo"],
+        "emails_adicionais": ["credenciamento@saude.rs.gov.br"],
+        "template_titulo": "Alerta: CRM vencendo em {dias_restantes} dias",
+        "template_mensagem": "Seu CRM {crm_numero} vencerá em {data_vencimento}. Providencie a renovação.",
+        "prioridade": "alta",
+        "ativo": true
+      }
+    },
+
+    "analises": {
+      "descricao": "Registros de análises de inscrições de edital",
+      "proposito": "Gestão do processo de análise e aprovação/reprovação de inscrições",
+      "categoria": "Workflow/Inscrições",
+      "estrutura": {
+        "id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "descricao": "Identificador único da análise"
+        },
+        "inscricao_id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "descricao": "Inscrição sendo analisada"
+        },
+        "status": {
+          "tipo": "text",
+          "nullable": false,
+          "default": "'pendente'::text",
+          "valores_permitidos": ["pendente", "em_analise", "aprovado", "reprovado", "correcao_solicitada"],
+          "descricao": "Status da análise"
+        },
+        "analista_id": {
+          "tipo": "uuid",
+          "nullable": true,
+          "descricao": "Analista responsável"
+        },
+        "analisado_em": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "descricao": "Data da conclusão da análise"
+        },
+        "parecer": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Parecer do analista"
+        },
+        "motivo_reprovacao": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Motivo caso reprovado"
+        },
+        "campos_reprovados": {
+          "tipo": "jsonb",
+          "nullable": true,
+          "descricao": "Lista de campos que precisam correção"
+        },
+        "documentos_reprovados": {
+          "tipo": "jsonb",
+          "nullable": true,
+          "descricao": "Documentos que precisam ser reenviados"
+        },
+        "documentos_analisados": {
+          "tipo": "jsonb",
+          "nullable": true,
+          "default": "'[]'::jsonb",
+          "descricao": "Lista de IDs de documentos analisados"
+        },
+        "prazo_correcao": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "descricao": "Prazo para candidato corrigir"
+        },
+        "created_at": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "default": "now()",
+          "descricao": "Data de criação"
+        },
+        "updated_at": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "default": "now()",
+          "descricao": "Data de atualização"
+        }
+      },
+      "exemplo_cadastro": {
+        "inscricao_id": "123e4567-e89b-12d3-a456-426614174007",
+        "status": "reprovado",
+        "analista_id": "123e4567-e89b-12d3-a456-426614174008",
+        "analisado_em": "2025-11-10T16:45:00Z",
+        "parecer": "Documentação incompleta. CRM não validado e CNH vencida.",
+        "motivo_reprovacao": "Documentos inválidos ou vencidos",
+        "campos_reprovados": {
+          "crm": "CRM não encontrado no portal CFM",
+          "cnh": "CNH vencida desde 2024-08"
+        },
+        "documentos_reprovados": [
+          {
+            "tipo": "cnh",
+            "motivo": "Documento vencido",
+            "status_atual": "vencido"
+          },
+          {
+            "tipo": "crm",
+            "motivo": "Não validado no CFM",
+            "status_atual": "invalido"
+          }
+        ],
+        "prazo_correcao": "2025-11-20T23:59:59Z"
+      }
+    },
+
+    "anexos_mensagens": {
+      "descricao": "Anexos de mensagens de workflow",
+      "proposito": "Armazenar referências a arquivos anexados em comunicações",
+      "categoria": "Workflow/Comunicação",
+      "estrutura": {
+        "id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "descricao": "Identificador único do anexo"
+        },
+        "mensagem_id": {
+          "tipo": "uuid",
+          "nullable": true,
+          "descricao": "Mensagem à qual o anexo pertence"
+        },
+        "nome_arquivo": {
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "Nome do arquivo anexado"
+        },
+        "nome_original": {
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "Nome original do arquivo (antes de sanitização)"
+        },
+        "mime_type": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Tipo MIME do arquivo"
+        },
+        "tamanho_bytes": {
+          "tipo": "bigint",
+          "nullable": true,
+          "descricao": "Tamanho do arquivo em bytes"
+        },
+        "storage_bucket": {
+          "tipo": "text",
+          "nullable": true,
+          "default": "'workflow-anexos'::text",
+          "descricao": "Bucket do Supabase Storage"
+        },
+        "storage_path": {
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "Caminho do arquivo no storage"
+        },
+        "url_publica": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "URL pública do arquivo (se público)"
+        },
+        "virus_scan_status": {
+          "tipo": "text",
+          "nullable": true,
+          "default": "'pendente'::text",
+          "valores_permitidos": ["pendente", "limpo", "infectado", "erro"],
+          "descricao": "Status de verificação de vírus"
+        },
+        "enviado_por": {
+          "tipo": "uuid",
+          "nullable": true,
+          "descricao": "Usuário que enviou o anexo"
+        },
+        "enviado_em": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "default": "now()",
+          "descricao": "Data do envio"
+        }
+      },
+      "exemplo_cadastro": {
+        "mensagem_id": "123e4567-e89b-12d3-a456-426614174009",
+        "nome_arquivo": "documento_adicional_20251110.pdf",
+        "nome_original": "Documento Adicional.pdf",
+        "mime_type": "application/pdf",
+        "tamanho_bytes": 2547890,
+        "storage_bucket": "workflow-anexos",
+        "storage_path": "mensagens/123e4567-e89b-12d3-a456-426614174009/documento_adicional_20251110.pdf",
+        "url_publica": null,
+        "virus_scan_status": "limpo",
+        "enviado_por": "123e4567-e89b-12d3-a456-426614174010"
+      }
+    },
+
+    "api_keys_externas": {
+      "descricao": "Gerenciamento de chaves de API para consultas públicas",
+      "proposito": "Controle de acesso e quota para APIs públicas do sistema",
+      "categoria": "Segurança/API",
+      "estrutura": {
+        "id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "descricao": "Identificador único da API key"
+        },
+        "nome": {
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "Nome/descrição da API key"
+        },
+        "key_prefix": {
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "Prefixo visível da chave (ex: 'pk_....')"
+        },
+        "key_hash": {
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "Hash SHA-256 da chave completa"
+        },
+        "ativo": {
+          "tipo": "boolean",
+          "nullable": true,
+          "default": "true",
+          "descricao": "Se a chave está ativa"
+        },
+        "quota_diaria": {
+          "tipo": "integer",
+          "nullable": true,
+          "default": "1000",
+          "descricao": "Limite de requisições por dia"
+        },
+        "quota_utilizada": {
+          "tipo": "integer",
+          "nullable": true,
+          "default": "0",
+          "descricao": "Requisições utilizadas hoje"
+        },
+        "ultima_utilizacao": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "descricao": "Data/hora da última utilização"
+        },
+        "criada_por": {
+          "tipo": "uuid",
+          "nullable": true,
+          "descricao": "Gestor que criou a chave"
+        },
+        "metadata": {
+          "tipo": "jsonb",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "descricao": "Metadados adicionais (IPs permitidos, etc)"
+        },
+        "created_at": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "default": "now()",
+          "descricao": "Data de criação"
+        },
+        "updated_at": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "default": "now()",
+          "descricao": "Data de atualização"
+        }
+      },
+      "exemplo_cadastro": {
+        "nome": "API Prefeitura Porto Alegre - Consulta Credenciados",
+        "key_prefix": "pk_poa_",
+        "key_hash": "8f4b2c1a9e7d6f5a4b3c2d1e9f8a7b6c5d4e3f2a1b9c8d7e6f5a4b3c2d1e0",
+        "ativo": true,
+        "quota_diaria": 5000,
+        "quota_utilizada": 247,
+        "ultima_utilizacao": "2025-11-10T17:23:45Z",
+        "criada_por": "123e4567-e89b-12d3-a456-426614174011",
+        "metadata": {
+          "organizacao": "Prefeitura de Porto Alegre",
+          "contato": "ti@portoalegre.rs.gov.br",
+          "ips_permitidos": ["200.189.168.0/24"],
+          "endpoints_permitidos": ["consulta-credenciados-publica"]
+        }
+      }
+    },
+
+    "app_notifications": {
+      "descricao": "Notificações in-app para usuários",
+      "proposito": "Sistema de notificações push interno da aplicação",
+      "categoria": "Notificações",
+      "estrutura": {
+        "id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "descricao": "Identificador único da notificação"
+        },
+        "user_id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "descricao": "Usuário destinatário"
+        },
+        "type": {
+          "tipo": "text",
+          "nullable": false,
+          "default": "'info'::text",
+          "valores_permitidos": ["info", "success", "warning", "error"],
+          "descricao": "Tipo de notificação"
+        },
+        "title": {
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "Título da notificação"
+        },
+        "message": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Mensagem detalhada"
+        },
+        "related_type": {
+          "tipo": "text",
+          "nullable": true,
+          "valores_permitidos": ["inscricao", "documento", "contrato", "workflow", "prazo", "outro"],
+          "descricao": "Tipo de entidade relacionada"
+        },
+        "related_id": {
+          "tipo": "uuid",
+          "nullable": true,
+          "descricao": "ID da entidade relacionada"
+        },
+        "is_read": {
+          "tipo": "boolean",
+          "nullable": true,
+          "default": "false",
+          "descricao": "Se foi lida"
+        },
+        "read_at": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "descricao": "Quando foi lida"
+        },
+        "created_at": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "default": "now()",
+          "descricao": "Data de criação"
+        }
+      },
+      "exemplo_cadastro": {
+        "user_id": "123e4567-e89b-12d3-a456-426614174012",
+        "type": "success",
+        "title": "Inscrição Aprovada",
+        "message": "Sua inscrição no Edital 2025/01 foi aprovada! O contrato está disponível para assinatura.",
+        "related_type": "inscricao",
+        "related_id": "123e4567-e89b-12d3-a456-426614174013",
+        "is_read": false
+      }
+    },
+
+    "audit_logs": {
+      "descricao": "Logs de auditoria de todas as ações importantes do sistema",
+      "proposito": "Rastreabilidade completa de ações para compliance e investigação",
+      "categoria": "Auditoria/Segurança",
+      "estrutura": {
+        "id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "descricao": "Identificador único do log"
+        },
+        "action": {
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "Ação executada (ex: credenciado_status_changed)"
+        },
+        "resource_type": {
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "Tipo de recurso afetado"
+        },
+        "resource_id": {
+          "tipo": "uuid",
+          "nullable": true,
+          "descricao": "ID do recurso afetado"
+        },
+        "user_id": {
+          "tipo": "uuid",
+          "nullable": true,
+          "descricao": "Usuário que executou a ação"
+        },
+        "user_email": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "E-mail do usuário"
+        },
+        "user_role": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Role do usuário no momento"
+        },
+        "old_values": {
+          "tipo": "jsonb",
+          "nullable": true,
+          "descricao": "Valores anteriores (before)"
+        },
+        "new_values": {
+          "tipo": "jsonb",
+          "nullable": true,
+          "descricao": "Novos valores (after)"
+        },
+        "metadata": {
+          "tipo": "jsonb",
+          "nullable": true,
+          "descricao": "Dados adicionais contextuais"
+        },
+        "ip_address": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "IP de origem"
+        },
+        "user_agent": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "User agent do navegador"
+        },
+        "created_at": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "default": "now()",
+          "descricao": "Data/hora da ação"
+        }
+      },
+      "exemplo_cadastro": {
+        "action": "credenciado_status_changed",
+        "resource_type": "credenciado",
+        "resource_id": "123e4567-e89b-12d3-a456-426614174014",
+        "user_id": "123e4567-e89b-12d3-a456-426614174015",
+        "user_email": "gestor@saude.rs.gov.br",
+        "user_role": "gestor",
+        "old_values": {
+          "status": "Ativo",
+          "suspensao_inicio": null,
+          "suspensao_fim": null
+        },
+        "new_values": {
+          "status": "Suspenso",
+          "suspensao_inicio": "2025-11-10",
+          "suspensao_fim": "2025-12-10",
+          "motivo_suspensao": "Documentação vencida"
+        },
+        "metadata": {
+          "status_anterior": "Ativo",
+          "status_novo": "Suspenso",
+          "motivo": "Documentação vencida"
+        },
+        "ip_address": "192.168.1.100",
+        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)..."
+      }
+    },
+
+    "avaliacoes_prestadores": {
+      "descricao": "Avaliações internas de desempenho de credenciados",
+      "proposito": "Gestão de performance e qualidade dos credenciados",
+      "categoria": "Qualidade/Gestão",
+      "estrutura": {
+        "id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "descricao": "Identificador único da avaliação"
+        },
+        "credenciado_id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "descricao": "Credenciado avaliado"
+        },
+        "periodo_referencia": {
+          "tipo": "date",
+          "nullable": false,
+          "descricao": "Período de referência (mês/ano)"
+        },
+        "avaliador_id": {
+          "tipo": "uuid",
+          "nullable": true,
+          "descricao": "Gestor avaliador"
+        },
+        "status": {
+          "tipo": "text",
+          "nullable": true,
+          "default": "'rascunho'::text",
+          "valores_permitidos": ["rascunho", "finalizada", "publicada"],
+          "descricao": "Status da avaliação"
+        },
+        "criterios": {
+          "tipo": "jsonb",
+          "nullable": false,
+          "default": "'[]'::jsonb",
+          "descricao": "Critérios avaliados com pontuações"
+        },
+        "pontuacao_geral": {
+          "tipo": "numeric",
+          "nullable": true,
+          "descricao": "Pontuação total calculada"
+        },
+        "pontos_positivos": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Pontos fortes identificados"
+        },
+        "pontos_melhoria": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Pontos que precisam melhorar"
+        },
+        "recomendacoes": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Recomendações para o credenciado"
+        },
+        "finalizada_em": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "descricao": "Quando foi finalizada"
+        },
+        "metadata": {
+          "tipo": "jsonb",
+          "nullable": true,
+          "default": "'{}'::jsonb",
+          "descricao": "Dados adicionais"
+        },
+        "created_at": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "default": "now()",
+          "descricao": "Data de criação"
+        },
+        "updated_at": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "default": "now()",
+          "descricao": "Data de atualização"
+        }
+      },
+      "exemplo_cadastro": {
+        "credenciado_id": "123e4567-e89b-12d3-a456-426614174016",
+        "periodo_referencia": "2025-10-01",
+        "avaliador_id": "123e4567-e89b-12d3-a456-426614174017",
+        "status": "finalizada",
+        "criterios": [
+          {
+            "nome": "Pontualidade",
+            "peso": 20,
+            "nota": 9.5,
+            "comentario": "Sempre pontual nos atendimentos"
+          },
+          {
+            "nome": "Qualidade do Atendimento",
+            "peso": 30,
+            "nota": 8.7,
+            "comentario": "Pacientes satisfeitos, comunicação clara"
+          },
+          {
+            "nome": "Documentação",
+            "peso": 25,
+            "nota": 9.0,
+            "comentario": "Prontuários bem preenchidos"
+          },
+          {
+            "nome": "Cumprimento de Prazos",
+            "peso": 25,
+            "nota": 8.5,
+            "comentario": "Poucas pendências administrativas"
+          }
+        ],
+        "pontuacao_geral": 8.9,
+        "pontos_positivos": "Excelente pontualidade, comunicação efetiva com pacientes, documentação organizada",
+        "pontos_melhoria": "Melhorar tempo de resposta em solicitações administrativas",
+        "recomendacoes": "Manter padrão de qualidade atual. Considerar redução de tempo de resposta administrativa",
+        "finalizada_em": "2025-11-05T18:30:00Z"
+      }
+    },
+
+    "avaliacoes_publicas": {
+      "descricao": "Avaliações públicas de pacientes sobre credenciados",
+      "proposito": "Sistema de reputação e feedback público",
+      "categoria": "Qualidade/Público",
+      "estrutura": {
+        "id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "descricao": "Identificador único da avaliação"
+        },
+        "credenciado_id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "descricao": "Credenciado avaliado"
+        },
+        "avaliador_nome": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Nome do avaliador (se não anônimo)"
+        },
+        "avaliador_email": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "E-mail do avaliador"
+        },
+        "avaliador_anonimo": {
+          "tipo": "boolean",
+          "nullable": true,
+          "default": "false",
+          "descricao": "Se a avaliação é anônima"
+        },
+        "avaliador_verificado": {
+          "tipo": "boolean",
+          "nullable": true,
+          "default": "false",
+          "descricao": "Se o avaliador foi verificado"
+        },
+        "nota_estrelas": {
+          "tipo": "integer",
+          "nullable": false,
+          "descricao": "Nota de 1 a 5 estrelas"
+        },
+        "comentario": {
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "Comentário do avaliador"
+        },
+        "tipo_servico": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Tipo de serviço avaliado"
+        },
+        "data_atendimento": {
+          "tipo": "date",
+          "nullable": true,
+          "descricao": "Data do atendimento"
+        },
+        "comprovante_url": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "URL do comprovante de atendimento"
+        },
+        "profissional_id": {
+          "tipo": "uuid",
+          "nullable": true,
+          "descricao": "Profissional específico avaliado (se aplicável)"
+        },
+        "nota_profissional": {
+          "tipo": "integer",
+          "nullable": true,
+          "descricao": "Nota específica do profissional"
+        },
+        "comentario_profissional": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Comentário sobre o profissional"
+        },
+        "status": {
+          "tipo": "text",
+          "nullable": false,
+          "default": "'pendente'::text",
+          "valores_permitidos": ["pendente", "aprovada", "rejeitada", "reportada"],
+          "descricao": "Status de moderação"
+        },
+        "moderacao_ia_score": {
+          "tipo": "numeric",
+          "nullable": true,
+          "descricao": "Score de moderação por IA (0-1)"
+        },
+        "moderacao_ia_motivo": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Motivo da moderação por IA"
+        },
+        "moderador_id": {
+          "tipo": "uuid",
+          "nullable": true,
+          "descricao": "Moderador humano (se aplicável)"
+        },
+        "moderado_em": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "descricao": "Data da moderação"
+        },
+        "resposta_profissional": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Resposta do credenciado"
+        },
+        "respondido_em": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "descricao": "Data da resposta"
+        },
+        "respondido_por": {
+          "tipo": "uuid",
+          "nullable": true,
+          "descricao": "Quem respondeu"
+        },
+        "denunciada": {
+          "tipo": "boolean",
+          "nullable": true,
+          "default": "false",
+          "descricao": "Se foi denunciada como inapropriada"
+        },
+        "motivo_denuncia": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Motivo da denúncia"
+        },
+        "denunciada_em": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "descricao": "Data da denúncia"
+        },
+        "denunciada_por": {
+          "tipo": "uuid",
+          "nullable": true,
+          "descricao": "Quem denunciou"
+        },
+        "created_at": {
+          "tipo": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()",
+          "descricao": "Data de criação"
+        },
+        "updated_at": {
+          "tipo": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()",
+          "descricao": "Data de atualização"
+        }
+      },
+      "exemplo_cadastro": {
+        "credenciado_id": "123e4567-e89b-12d3-a456-426614174018",
+        "avaliador_nome": "Maria Santos",
+        "avaliador_email": "maria.santos@email.com",
+        "avaliador_anonimo": false,
+        "avaliador_verificado": true,
+        "nota_estrelas": 5,
+        "comentario": "Excelente atendimento! Dr. João foi muito atencioso e explicou tudo detalhadamente. Consultório limpo e organizado.",
+        "tipo_servico": "Consulta Cardiologia",
+        "data_atendimento": "2025-11-08",
+        "comprovante_url": "https://storage.supabase.co/.../comprovante.pdf",
+        "status": "aprovada",
+        "moderacao_ia_score": 0.95,
+        "moderacao_ia_motivo": "Conteúdo adequado, sem palavras ofensivas ou spam",
+        "resposta_profissional": "Obrigado pela avaliação, Maria! Foi um prazer atendê-la.",
+        "respondido_em": "2025-11-09T10:30:00Z"
+      }
+    },
+
+    "categorias_estabelecimentos": {
+      "descricao": "Categorias/tipos de estabelecimentos de saúde",
+      "proposito": "Classificação de credenciados por categoria (clínica, hospital, etc)",
+      "categoria": "Cadastros Base",
+      "estrutura": {
+        "id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "descricao": "Identificador único da categoria"
+        },
+        "nome": {
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "Nome da categoria"
+        },
+        "codigo": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Código identificador (ex: HOSP, CLI, LAB)"
+        },
+        "descricao": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Descrição detalhada"
+        },
+        "ativo": {
+          "tipo": "boolean",
+          "nullable": true,
+          "default": "true",
+          "descricao": "Se está ativa"
+        },
+        "criado_em": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "default": "now()",
+          "descricao": "Data de criação"
+        },
+        "atualizado_em": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "default": "now()",
+          "descricao": "Data de atualização"
+        }
+      },
+      "exemplo_cadastro": {
+        "nome": "Clínica Médica",
+        "codigo": "CLI_MED",
+        "descricao": "Estabelecimento de atendimento ambulatorial com múltiplas especialidades médicas",
+        "ativo": true
+      }
+    },
+
+    "credenciados": {
+      "descricao": "Registro principal de credenciados (médicos, clínicas, hospitais)",
+      "proposito": "Tabela central com dados dos prestadores credenciados",
+      "categoria": "Core/Credenciados",
+      "estrutura": {
+        "id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "descricao": "Identificador único do credenciado"
+        },
+        "inscricao_id": {
+          "tipo": "uuid",
+          "nullable": true,
+          "descricao": "Inscrição de edital que originou o credenciamento"
+        },
+        "numero_credenciado": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Número único do credenciado (auto-gerado)"
+        },
+        "nome": {
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "Nome completo ou razão social"
+        },
+        "tipo_pessoa": {
+          "tipo": "text",
+          "nullable": false,
+          "valores_permitidos": ["PF", "PJ"],
+          "descricao": "Tipo de pessoa física ou jurídica"
+        },
+        "cpf": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "CPF (para PF)"
+        },
+        "cnpj": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "CNPJ (para PJ)"
+        },
+        "email": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "E-mail principal"
+        },
+        "telefone": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Telefone principal"
+        },
+        "celular": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Celular/WhatsApp"
+        },
+        "endereco": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Endereço completo"
+        },
+        "numero": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Número do endereço"
+        },
+        "complemento": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Complemento do endereço"
+        },
+        "bairro": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Bairro"
+        },
+        "cidade": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Cidade"
+        },
+        "estado": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Estado (UF)"
+        },
+        "cep": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "CEP"
+        },
+        "latitude": {
+          "tipo": "double precision",
+          "nullable": true,
+          "descricao": "Latitude (geocodificação)"
+        },
+        "longitude": {
+          "tipo": "double precision",
+          "nullable": true,
+          "descricao": "Longitude (geocodificação)"
+        },
+        "geocoded_at": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "descricao": "Data da geocodificação"
+        },
+        "geocode_attempts": {
+          "tipo": "integer",
+          "nullable": true,
+          "default": "0",
+          "descricao": "Tentativas de geocodificação"
+        },
+        "status": {
+          "tipo": "text",
+          "nullable": false,
+          "default": "'Ativo'::text",
+          "valores_permitidos": ["Ativo", "Suspenso", "Descredenciado", "Afastado", "Inativo"],
+          "descricao": "Status atual do credenciado"
+        },
+        "data_credenciamento": {
+          "tipo": "date",
+          "nullable": true,
+          "descricao": "Data do credenciamento"
+        },
+        "data_descredenciamento": {
+          "tipo": "date",
+          "nullable": true,
+          "descricao": "Data do descredenciamento (se aplicável)"
+        },
+        "motivo_descredenciamento": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Motivo do descredenciamento"
+        },
+        "suspensao_inicio": {
+          "tipo": "date",
+          "nullable": true,
+          "descricao": "Início da suspensão"
+        },
+        "suspensao_fim": {
+          "tipo": "date",
+          "nullable": true,
+          "descricao": "Fim da suspensão"
+        },
+        "motivo_suspensao": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Motivo da suspensão"
+        },
+        "suspensao_automatica": {
+          "tipo": "boolean",
+          "nullable": true,
+          "default": "false",
+          "descricao": "Se suspensão foi automática"
+        },
+        "observacoes": {
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Observações gerais"
+        },
+        "porte": {
+          "tipo": "text",
+          "nullable": true,
+          "valores_permitidos": ["pequeno", "medio", "grande"],
+          "descricao": "Porte do estabelecimento (para PJ)"
+        },
+        "created_at": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "default": "now()",
+          "descricao": "Data de criação"
+        },
+        "updated_at": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "default": "now()",
+          "descricao": "Data de atualização"
+        }
+      },
+      "exemplo_cadastro_pf": {
+        "inscricao_id": "123e4567-e89b-12d3-a456-426614174019",
+        "numero_credenciado": "CRED-000123",
+        "nome": "Dr. João Silva Santos",
+        "tipo_pessoa": "PF",
+        "cpf": "123.456.789-00",
+        "email": "dr.joao@email.com",
+        "telefone": "(51) 3333-4444",
+        "celular": "(51) 99999-8888",
+        "endereco": "Rua das Flores",
+        "numero": "123",
+        "complemento": "Sala 301",
+        "bairro": "Centro",
+        "cidade": "Porto Alegre",
+        "estado": "RS",
+        "cep": "90000-000",
+        "latitude": -30.0346,
+        "longitude": -51.2177,
+        "status": "Ativo",
+        "data_credenciamento": "2025-01-15"
+      },
+      "exemplo_cadastro_pj": {
+        "inscricao_id": "123e4567-e89b-12d3-a456-426614174020",
+        "numero_credenciado": "CRED-000124",
+        "nome": "Clínica Vida Saudável Ltda",
+        "tipo_pessoa": "PJ",
+        "cnpj": "12.345.678/0001-90",
+        "email": "contato@vidasaudavel.com.br",
+        "telefone": "(51) 3000-1000",
+        "celular": "(51) 98888-7777",
+        "endereco": "Av. Principal",
+        "numero": "5000",
+        "bairro": "Boa Vista",
+        "cidade": "Porto Alegre",
+        "estado": "RS",
+        "cep": "91000-000",
+        "latitude": -30.0277,
+        "longitude": -51.2287,
+        "status": "Ativo",
+        "data_credenciamento": "2025-02-01",
+        "porte": "medio"
+      }
+    },
+
+    "credenciado_crms": {
+      "descricao": "Registros de CRM (Conselho Regional de Medicina) dos credenciados",
+      "proposito": "Gerenciar múltiplos CRMs e especialidades de um credenciado",
+      "categoria": "Credenciados/Profissionais",
+      "estrutura": {
+        "id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "descricao": "Identificador único do registro"
+        },
+        "credenciado_id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "descricao": "Credenciado vinculado"
+        },
+        "crm": {
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "Número do CRM"
+        },
+        "uf_crm": {
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "UF do CRM (RS, SP, etc)"
+        },
+        "especialidade": {
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "Nome da especialidade médica"
+        },
+        "especialidade_id": {
+          "tipo": "uuid",
+          "nullable": true,
+          "descricao": "Referência à tabela especialidades_medicas"
+        },
+        "created_at": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "default": "now()",
+          "descricao": "Data de criação"
+        }
+      },
+      "exemplo_cadastro": {
+        "credenciado_id": "123e4567-e89b-12d3-a456-426614174021",
+        "crm": "12345",
+        "uf_crm": "RS",
+        "especialidade": "Cardiologia",
+        "especialidade_id": "123e4567-e89b-12d3-a456-426614174022"
+      }
+    },
+
+    "credenciado_consultorios": {
+      "descricao": "Locais de atendimento (consultórios) vinculados aos credenciados",
+      "proposito": "Gerenciar múltiplos locais de atendimento de um credenciado PJ",
+      "categoria": "Credenciados/Locais",
+      "estrutura": {
+        "id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "descricao": "Identificador único do consultório"
+        },
+        "credenciado_id": {
+          "tipo": "uuid",
+          "nullable": false,
+          "descricao": "Credenciado proprietário"
+        },
+        "inscricao_consultorio_id": {
+          "tipo": "uuid",
+          "nullable": true,
+          "descricao": "Consultório de origem (se copiado da inscrição)"
+        },
+        "nome_consultorio": {
+          "tipo": "character varying",
+          "nullable": false,
+          "descricao": "Nome do consultório/unidade"
+        },
+        "cnes": {
+          "tipo": "character varying",
+          "nullable": false,
+          "descricao": "Código CNES (Cadastro Nacional de Estabelecimentos de Saúde)"
+        },
+        "telefone": {
+          "tipo": "character varying",
+          "nullable": true,
+          "descricao": "Telefone do consultório"
+        },
+        "ramal": {
+          "tipo": "character varying",
+          "nullable": true,
+          "descricao": "Ramal"
+        },
+        "cep": {
+          "tipo": "character varying",
+          "nullable": true,
+          "descricao": "CEP"
+        },
+        "logradouro": {
+          "tipo": "character varying",
+          "nullable": true,
+          "descricao": "Logradouro (rua/av)"
+        },
+        "numero": {
+          "tipo": "character varying",
+          "nullable": true,
+          "descricao": "Número"
+        },
+        "complemento": {
+          "tipo": "character varying",
+          "nullable": true,
+          "descricao": "Complemento"
+        },
+        "bairro": {
+          "tipo": "character varying",
+          "nullable": true,
+          "descricao": "Bairro"
+        },
+        "cidade": {
+          "tipo": "character varying",
+          "nullable": true,
+          "descricao": "Cidade"
+        },
+        "estado": {
+          "tipo": "character varying",
+          "nullable": true,
+          "descricao": "Estado (UF)"
+        },
+        "latitude": {
+          "tipo": "double precision",
+          "nullable": true,
+          "descricao": "Latitude (geocodificação)"
+        },
+        "longitude": {
+          "tipo": "double precision",
+          "nullable": true,
+          "descricao": "Longitude (geocodificação)"
+        },
+        "geocoded_at": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "descricao": "Data da geocodificação"
+        },
+        "responsavel_tecnico_nome": {
+          "tipo": "character varying",
+          "nullable": true,
+          "descricao": "Nome do responsável técnico"
+        },
+        "responsavel_tecnico_crm": {
+          "tipo": "character varying",
+          "nullable": true,
+          "descricao": "CRM do responsável técnico"
+        },
+        "responsavel_tecnico_uf": {
+          "tipo": "character varying",
+          "nullable": true,
+          "descricao": "UF do CRM do responsável"
+        },
+        "especialidades_ids": {
+          "tipo": "uuid[]",
+          "nullable": true,
+          "default": "'{}'::uuid[]",
+          "descricao": "IDs das especialidades atendidas"
+        },
+        "horarios": {
+          "tipo": "jsonb",
+          "nullable": true,
+          "default": "'[]'::jsonb",
+          "descricao": "Horários de atendimento por dia da semana"
+        },
+        "is_principal": {
+          "tipo": "boolean",
+          "nullable": true,
+          "default": "false",
+          "descricao": "Se é o consultório principal"
+        },
+        "ativo": {
+          "tipo": "boolean",
+          "nullable": true,
+          "default": "true",
+          "descricao": "Se está ativo"
+        },
+        "created_at": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "default": "now()",
+          "descricao": "Data de criação"
+        },
+        "updated_at": {
+          "tipo": "timestamp with time zone",
+          "nullable": true,
+          "default": "now()",
+          "descricao": "Data de atualização"
+        }
+      },
+      "exemplo_cadastro": {
+        "credenciado_id": "123e4567-e89b-12d3-a456-426614174023",
+        "nome_consultorio": "Unidade Centro",
+        "cnes": "1234567",
+        "telefone": "(51) 3000-2000",
+        "ramal": "201",
+        "cep": "90000-000",
+        "logradouro": "Rua Sete de Setembro",
+        "numero": "1000",
+        "complemento": "Sala 5",
+        "bairro": "Centro Histórico",
+        "cidade": "Porto Alegre",
+        "estado": "RS",
+        "latitude": -30.0346,
+        "longitude": -51.2177,
+        "responsavel_tecnico_nome": "Dr. Carlos Oliveira",
+        "responsavel_tecnico_crm": "54321",
+        "responsavel_tecnico_uf": "RS",
+        "especialidades_ids": [
+          "123e4567-e89b-12d3-a456-426614174024",
+          "123e4567-e89b-12d3-a456-426614174025"
+        ],
+        "horarios": [
+          {
+            "dia": "segunda",
+            "inicio": "08:00",
+            "fim": "18:00"
+          },
+          {
+            "dia": "terca",
+            "inicio": "08:00",
+            "fim": "18:00"
+          }
+        ],
+        "is_principal": true,
+        "ativo": true
+      }
+    }
+  },
+  
+  "observacoes_finais": {
+    "total_tabelas_documentadas": 23,
+    "tabelas_restantes": 12,
+    "proximos_passos": "Continuar documentação das demais tabelas: contratos, workflows, certificados, etc",
+    "notas_importantes": [
+      "Todas as tabelas utilizam UUID como chave primária",
+      "Padrão de auditoria: created_at, updated_at em maioria das tabelas",
+      "Sistema de RLS (Row Level Security) implementado em todas as tabelas",
+      "Geocodificação automática para endereços (latitude/longitude)",
+      "Sistema de notificações integrado (app_notifications)",
+      "Auditoria completa via audit_logs",
+      "Suporte a JSONB para dados flexíveis (metadata, criterios, etc)"
+    ]
+  }
+}
