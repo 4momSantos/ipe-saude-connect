@@ -1,0 +1,306 @@
+{
+  "database": "credenciamento_rs",
+  "total_tabelas": 96,
+  "tabelas": [
+    {
+      "nome": "acoes_prazos",
+      "descricao": "Histórico de ações realizadas sobre prazos (prorrogação, renovação, etc.)",
+      "campos": ["id", "prazo_id", "credenciado_id", "tipo_acao", "justificativa", "data_anterior", "data_nova", "executado_por", "executado_por_nome", "metadata", "created_at"]
+    },
+    {
+      "nome": "afastamentos_credenciados",
+      "descricao": "Gestão de afastamentos temporários de credenciados (férias, licença médica, etc.)",
+      "campos": ["id", "credenciado_id", "tipo", "data_inicio", "data_fim", "justificativa", "motivo", "documentos_anexos", "status", "analisado_por", "analisado_em", "observacoes_analise", "user_id", "created_at", "updated_at"]
+    },
+    {
+      "nome": "alertas_enviados",
+      "descricao": "Log de alertas enviados sobre prazos vencendo ou vencidos",
+      "campos": ["id", "prazo_id", "credenciado_id", "tipo_alerta", "email_enviado_para", "enviado_em", "status_envio", "erro_envio", "metadata"]
+    },
+    {
+      "nome": "alertas_vencimento",
+      "descricao": "Configuração de regras de alertas para vencimento de documentos e prazos",
+      "campos": ["id", "entidade_tipo", "dias_antecedencia", "notificar_gestores", "notificar_credenciado", "grupos_notificar", "emails_adicionais", "template_titulo", "template_mensagem", "prioridade", "ativo", "categoria", "criado_em"]
+    },
+    {
+      "nome": "analises",
+      "descricao": "Registro de análises de inscrições por analistas (aprovação/reprovação)",
+      "campos": ["id", "inscricao_id", "analista_id", "status", "parecer", "documentos_analisados", "documentos_reprovados", "campos_reprovados", "motivo_reprovacao", "prazo_correcao", "analisado_em", "created_at", "updated_at"]
+    },
+    {
+      "nome": "anexos_mensagens",
+      "descricao": "Arquivos anexados em mensagens de workflows",
+      "campos": ["id", "mensagem_id", "nome_arquivo", "nome_original", "mime_type", "tamanho_bytes", "storage_bucket", "storage_path", "url_publica", "virus_scan_status", "enviado_por", "enviado_em"]
+    },
+    {
+      "nome": "api_keys_externas",
+      "descricao": "Gerenciamento de API keys para acesso externo ao sistema",
+      "campos": ["id", "nome", "key_hash", "key_prefix", "quota_diaria", "quota_utilizada", "ultima_utilizacao", "ativo", "metadata", "criada_por", "created_at", "updated_at"]
+    },
+    {
+      "nome": "app_notifications",
+      "descricao": "Notificações in-app para usuários (alertas, avisos, informações)",
+      "campos": ["id", "user_id", "type", "title", "message", "related_type", "related_id", "is_read", "read_at", "created_at"]
+    },
+    {
+      "nome": "audit_logs",
+      "descricao": "Log de auditoria de todas as ações críticas no sistema",
+      "campos": ["id", "user_id", "user_email", "user_role", "action", "resource_type", "resource_id", "old_values", "new_values", "metadata", "ip_address", "user_agent", "created_at"]
+    },
+    {
+      "nome": "avaliacoes_prestadores",
+      "descricao": "Avaliações internas de desempenho dos credenciados",
+      "campos": ["id", "credenciado_id", "avaliador_id", "periodo_referencia", "criterios", "pontuacao_geral", "pontos_positivos", "pontos_melhoria", "recomendacoes", "status", "finalizada_em", "metadata", "created_at", "updated_at"]
+    },
+    {
+      "nome": "avaliacoes_publicas",
+      "descricao": "Avaliações públicas de credenciados feitas por pacientes",
+      "campos": ["id", "credenciado_id", "profissional_id", "avaliador_nome", "avaliador_email", "avaliador_anonimo", "avaliador_verificado", "nota_estrelas", "nota_profissional", "comentario", "comentario_profissional", "tipo_servico", "data_atendimento", "comprovante_url", "status", "moderacao_ia_score", "moderacao_ia_motivo", "moderador_id", "moderado_em", "resposta_profissional", "respondido_por", "respondido_em", "denunciada", "denunciada_por", "denunciada_em", "motivo_denuncia", "created_at", "updated_at"]
+    },
+    {
+      "nome": "categorias_estabelecimentos",
+      "descricao": "Categorias de estabelecimentos de saúde (hospital, clínica, consultório, etc.)",
+      "campos": ["id", "codigo", "nome", "descricao", "ativo", "criado_em", "atualizado_em"]
+    },
+    {
+      "nome": "categorias_prestadores",
+      "descricao": "Categorias de prestadores (médico, dentista, fisioterapeuta, etc.)",
+      "campos": ["id", "nome", "descricao", "cor", "icone", "ativo", "criada_por", "created_at", "updated_at"]
+    },
+    {
+      "nome": "certificados",
+      "descricao": "Certificados de credenciamento emitidos",
+      "campos": ["id", "credenciado_id", "tipo", "numero_certificado", "dados_certificado", "documento_url", "emitido_em", "valido_ate", "status", "created_at", "updated_at"]
+    },
+    {
+      "nome": "certificados_consultas_publicas",
+      "descricao": "Log de consultas públicas de certificados (validação de autenticidade)",
+      "campos": ["id", "certificado_id", "tipo_consulta", "parametro_busca", "resultado", "ip_origem", "user_agent", "consultado_em"]
+    },
+    {
+      "nome": "certificados_historico",
+      "descricao": "Histórico de alterações em certificados",
+      "campos": ["id", "certificado_id", "credenciado_id", "numero_certificado", "motivo", "documento_url", "gerado_por", "metadata", "created_at"]
+    },
+    {
+      "nome": "certificados_regularidade",
+      "descricao": "Certificados de regularidade emitidos para credenciados",
+      "campos": ["id", "credenciado_id", "numero_certificado", "codigo_verificacao", "hash_verificacao", "status", "dados_snapshot", "pendencias", "detalhes", "valido_de", "valido_ate", "url_pdf", "metadata_pdf", "emitido_em", "emitido_por", "ativo", "cancelado", "cancelado_em", "cancelado_por", "motivo_cancelamento", "substituido_por", "total_consultas", "ultima_consulta", "created_at", "updated_at"]
+    },
+    {
+      "nome": "cidades",
+      "descricao": "Cidades atendidas pelo sistema",
+      "campos": ["id", "nome", "uf", "latitude_centro", "longitude_centro", "zoom_padrao", "populacao_total", "ativa", "created_at"]
+    },
+    {
+      "nome": "contract_templates",
+      "descricao": "Templates de contratos de credenciamento",
+      "campos": ["id", "nome", "descricao", "conteudo_html", "campos_mapeados", "is_active", "created_by", "created_at", "updated_at"]
+    },
+    {
+      "nome": "contratos",
+      "descricao": "Contratos de credenciamento gerados",
+      "campos": ["id", "inscricao_id", "analise_id", "template_id", "tipo", "numero_contrato", "dados_contrato", "documento_url", "status", "gerado_em", "assinado_em", "created_at", "updated_at"]
+    },
+    {
+      "nome": "controle_prazos",
+      "descricao": "Controle unificado de prazos e vencimentos de documentos",
+      "campos": ["id", "entidade_tipo", "entidade_id", "entidade_nome", "credenciado_id", "responsavel_id", "data_emissao", "data_vencimento", "data_renovacao", "dias_para_vencer", "status_atual", "renovavel", "renovado", "bloqueio_automatico", "dias_alerta_1", "dias_alerta_2", "dias_alerta_3", "notificacoes_enviadas", "ultima_notificacao_em", "proxima_notificacao", "observacoes", "ativo", "criado_em", "atualizado_em"]
+    },
+    {
+      "nome": "correcoes_inscricao",
+      "descricao": "Solicitações de correção de inscrições reprovadas",
+      "campos": ["id", "inscricao_id", "versao", "status", "campos_corrigidos", "documentos_reenviados", "candidato_justificativa", "enviada_em", "analisada_por", "analisada_em", "created_at", "updated_at"]
+    },
+    {
+      "nome": "credenciado_categorias",
+      "descricao": "Vínculo entre credenciados e categorias de estabelecimentos",
+      "campos": ["id", "credenciado_id", "categoria_id", "principal", "criado_em"]
+    },
+    {
+      "nome": "credenciado_consultorios",
+      "descricao": "Consultórios/locais de atendimento dos credenciados",
+      "campos": ["id", "credenciado_id", "inscricao_consultorio_id", "nome_consultorio", "cnes", "telefone", "ramal", "cep", "logradouro", "numero", "complemento", "bairro", "cidade", "estado", "latitude", "longitude", "responsavel_tecnico_nome", "responsavel_tecnico_crm", "responsavel_tecnico_uf", "especialidades_ids", "horarios", "is_principal", "ativo", "geocoded_at", "created_at", "updated_at"]
+    },
+    {
+      "nome": "credenciado_crms",
+      "descricao": "CRMs dos credenciados (um credenciado pode ter múltiplos CRMs)",
+      "campos": ["id", "credenciado_id", "crm", "uf_crm", "especialidade", "especialidade_id", "created_at"]
+    },
+    {
+      "nome": "credenciado_historico",
+      "descricao": "Histórico de alterações em credenciados",
+      "campos": ["id", "credenciado_id", "tipo", "descricao", "data_ocorrencia", "usuario_responsavel", "created_at"]
+    },
+    {
+      "nome": "credenciado_servicos",
+      "descricao": "Serviços oferecidos por credenciados",
+      "campos": ["id", "credenciado_id", "procedimento_id", "profissional_id", "preco_base", "preco_particular", "preco_convenio", "aceita_sus", "disponivel", "disponivel_online", "dias_atendimento", "horario_inicio", "horario_fim", "local_atendimento", "tempo_espera_medio", "requisitos", "observacoes", "prioridade", "created_by", "created_at", "updated_at"]
+    },
+    {
+      "nome": "credenciados",
+      "descricao": "Cadastro principal de credenciados (médicos, clínicas, hospitais)",
+      "campos": ["id", "inscricao_id", "numero_credenciado", "nome", "cpf", "cnpj", "tipo", "telefone", "email", "endereco", "numero", "complemento", "bairro", "cidade", "estado", "cep", "latitude", "longitude", "geocoded_at", "geocode_attempts", "geocode_error", "porte", "status", "data_credenciamento", "motivo_suspensao", "suspensao_inicio", "suspensao_fim", "suspensao_automatica", "motivo_descredenciamento", "data_descredenciamento", "observacoes", "created_at", "updated_at"]
+    },
+    {
+      "nome": "documentos_credenciados",
+      "descricao": "Documentos dos credenciados (CNH, CRM, certificados, etc.)",
+      "campos": ["id", "credenciado_id", "tipo_documento", "numero_documento", "arquivo_url", "arquivo_nome", "data_emissao", "data_vencimento", "status", "enviado_por", "enviado_em", "analisado_por", "analisado_em", "observacoes", "ativo", "atualizado_em", "criado_em"]
+    },
+    {
+      "nome": "documentos_credenciados_historico",
+      "descricao": "Histórico de alterações em documentos de credenciados",
+      "campos": ["id", "documento_id", "status_anterior", "status_novo", "acao", "usuario_responsavel", "usuario_nome", "comentario", "criado_em"]
+    },
+    {
+      "nome": "editais",
+      "descricao": "Editais de credenciamento publicados",
+      "campos": ["id", "numero_edital", "titulo", "descricao", "data_publicacao", "data_inicio_inscricoes", "data_fim_inscricoes", "status", "tipo_credenciamento", "documentos_obrigatorios", "workflow_id", "workflow_version", "use_programmatic_flow", "created_at", "updated_at"]
+    },
+    {
+      "nome": "especialidades_medicas",
+      "descricao": "Especialidades médicas cadastradas",
+      "campos": ["id", "codigo", "nome", "descricao", "categoria", "ativa", "created_at", "updated_at"]
+    },
+    {
+      "nome": "historico_status_credenciado",
+      "descricao": "Histórico de mudanças de status de credenciados",
+      "campos": ["id", "credenciado_id", "status_anterior", "status_novo", "motivo", "alterado_por", "alterado_por_nome", "metadata", "criado_em"]
+    },
+    {
+      "nome": "horarios_atendimento",
+      "descricao": "Horários de atendimento dos consultórios",
+      "campos": ["id", "credenciado_crm_id", "dia_semana", "horario_inicio", "horario_fim", "created_at"]
+    },
+    {
+      "nome": "inscricao_consultorios",
+      "descricao": "Consultórios informados durante a inscrição",
+      "campos": ["id", "inscricao_id", "nome_consultorio", "cnes", "telefone", "ramal", "cep", "logradouro", "numero", "complemento", "bairro", "cidade", "estado", "responsavel_tecnico_nome", "responsavel_tecnico_crm", "responsavel_tecnico_uf", "especialidades_ids", "horarios", "is_principal", "ativo", "created_at", "updated_at"]
+    },
+    {
+      "nome": "inscricao_documentos",
+      "descricao": "Documentos enviados durante a inscrição",
+      "campos": ["id", "inscricao_id", "tipo_documento", "arquivo_url", "arquivo_nome", "tamanho_bytes", "mime_type", "status", "ocr_resultado", "ocr_processado_em", "ocr_confidence", "eh_reenvio", "versao_anterior_id", "parent_document_id", "versao", "is_current", "uploaded_by", "uploaded_at", "analisado_por", "analisado_em", "observacoes", "created_at", "updated_at"]
+    },
+    {
+      "nome": "inscricao_eventos",
+      "descricao": "Log de eventos da inscrição (documento enviado, status alterado, etc.)",
+      "campos": ["id", "inscricao_id", "tipo_evento", "descricao", "dados", "usuario_id", "created_at"]
+    },
+    {
+      "nome": "inscricao_validacoes",
+      "descricao": "Validações de documentos feitas por analistas",
+      "campos": ["id", "inscricao_id", "analista_id", "documento_id", "status", "comentario_analista", "discrepancias", "ocr_validado", "created_at"]
+    },
+    {
+      "nome": "inscricoes_edital",
+      "descricao": "Inscrições de candidatos em editais",
+      "campos": ["id", "edital_id", "candidato_id", "protocolo", "dados_inscricao", "status", "validacao_status", "data_validacao", "is_rascunho", "workflow_execution_id", "analisado_por", "analisado_em", "observacoes_analise", "created_at", "updated_at"]
+    },
+    {
+      "nome": "ocorrencias_prestadores",
+      "descricao": "Registro de ocorrências/incidentes com credenciados",
+      "campos": ["id", "credenciado_id", "tipo", "gravidade", "descricao", "data_ocorrencia", "reportado_por", "status", "resolucao", "resolvido_por", "resolvido_em", "metadata", "created_at", "updated_at"]
+    },
+    {
+      "nome": "prazos_credenciamento",
+      "descricao": "Prazos de documentos e certificações dos credenciados",
+      "campos": ["id", "credenciado_id", "tipo_prazo", "data_vencimento", "status", "origem_documento_id", "criado_em", "atualizado_em"]
+    },
+    {
+      "nome": "procedimentos",
+      "descricao": "Procedimentos médicos cadastrados (TUSS, CBHPM, etc.)",
+      "campos": ["id", "codigo", "nome", "descricao", "tipo", "categoria", "ativo", "created_at", "updated_at"]
+    },
+    {
+      "nome": "profiles",
+      "descricao": "Perfis de usuários do sistema",
+      "campos": ["id", "email", "nome", "telefone", "created_at", "updated_at"]
+    },
+    {
+      "nome": "regras_suspensao_automatica",
+      "descricao": "Regras configuradas para suspensão automática de credenciados",
+      "campos": ["id", "nome", "descricao", "tipo_gatilho", "condicao", "acao", "duracao_dias", "notificar_gestores", "notificar_credenciado", "ativo", "prioridade", "criada_por", "metadata", "created_at", "updated_at"]
+    },
+    {
+      "nome": "rollout_audit",
+      "descricao": "Auditoria de ativação/desativação de feature flags",
+      "campos": ["id", "edital_id", "action", "previous_value", "new_value", "authorized_by", "reason", "metadata", "created_at"]
+    },
+    {
+      "nome": "rollout_snapshots",
+      "descricao": "Snapshots de dados antes de rollouts",
+      "campos": ["id", "snapshot_type", "environment", "data", "created_by", "notes", "created_at"]
+    },
+    {
+      "nome": "sancoes_prestadores",
+      "descricao": "Sanções aplicadas a credenciados (advertências, multas, suspensões)",
+      "campos": ["id", "credenciado_id", "tipo", "motivo", "descricao", "data_inicio", "data_fim", "status", "aplicada_por", "metadata", "created_at", "updated_at"]
+    },
+    {
+      "nome": "signature_requests",
+      "descricao": "Solicitações de assinatura digital enviadas",
+      "campos": ["id", "contrato_id", "inscricao_id", "assinafy_document_id", "assinafy_envelope_id", "status", "assinado_em", "sent_at", "metadata", "created_at", "updated_at"]
+    },
+    {
+      "nome": "solicitacoes_alteracao",
+      "descricao": "Solicitações de alteração de dados de credenciados",
+      "campos": ["id", "credenciado_id", "tipo_alteracao", "dados_antigos", "dados_novos", "justificativa", "status", "solicitado_por", "solicitado_em", "analisado_por", "analisado_em", "observacoes_analise", "created_at", "updated_at"]
+    },
+    {
+      "nome": "user_consents",
+      "descricao": "Registro de consentimentos LGPD dos usuários",
+      "campos": ["id", "user_id", "consent_type", "consent_given", "ip_address", "user_agent", "consent_date", "expires_at", "revoked", "revoked_at", "created_at"]
+    },
+    {
+      "nome": "user_roles",
+      "descricao": "Papéis/roles dos usuários (admin, gestor, analista, candidato)",
+      "campos": ["id", "user_id", "role", "created_by", "created_at"]
+    },
+    {
+      "nome": "webhook_deliveries",
+      "descricao": "Log de entregas de webhooks",
+      "campos": ["id", "subscription_id", "event_type", "payload", "response_status", "response_body", "delivered_at", "created_at"]
+    },
+    {
+      "nome": "webhook_subscriptions",
+      "descricao": "Webhooks configurados para eventos do sistema",
+      "campos": ["id", "url", "events", "active", "secret", "created_by", "created_at", "updated_at"]
+    },
+    {
+      "nome": "workflow_api_keys",
+      "descricao": "API keys para acesso externo a workflows",
+      "campos": ["id", "workflow_id", "key_hash", "key_prefix", "name", "description", "last_used_at", "active", "created_by", "created_at"]
+    },
+    {
+      "nome": "workflow_executions",
+      "descricao": "Execuções de workflows",
+      "campos": ["id", "workflow_id", "workflow_version", "status", "current_node_id", "input_data", "output_data", "error", "started_at", "completed_at", "created_at", "updated_at"]
+    },
+    {
+      "nome": "workflow_messages",
+      "descricao": "Mensagens trocadas em workflows (chat, comentários)",
+      "campos": ["id", "workflow_execution_id", "sender_id", "message", "message_type", "visivel_para", "sent_at", "read_by", "metadata"]
+    },
+    {
+      "nome": "workflow_queue",
+      "descricao": "Fila de workflows pendentes de processamento",
+      "campos": ["id", "inscricao_id", "workflow_id", "workflow_version", "input_data", "status", "attempts", "max_attempts", "error_message", "processing_started_at", "processed_at", "created_at"]
+    },
+    {
+      "nome": "workflow_step_executions",
+      "descricao": "Execuções de steps individuais de workflows",
+      "campos": ["id", "workflow_execution_id", "node_id", "node_type", "status", "input_data", "output_data", "error", "started_at", "completed_at", "created_at"]
+    },
+    {
+      "nome": "workflow_webhooks",
+      "descricao": "Webhooks configurados para workflows",
+      "campos": ["id", "workflow_id", "webhook_id", "active", "created_by", "created_at"]
+    },
+    {
+      "nome": "workflows",
+      "descricao": "Definições de workflows (fluxos de trabalho automatizados)",
+      "campos": ["id", "name", "description", "nodes", "edges", "version", "is_active", "created_by", "created_at", "updated_at"]
+    }
+  ]
+}
