@@ -1,0 +1,1798 @@
+{
+  "metadata": {
+    "titulo": "Estrutura Completa - Contratos e Credenciamento",
+    "descricao": "Mapeamento detalhado de todas as tabelas envolvidas no processo de geração de contratos, assinatura e credenciamento de profissionais",
+    "total_tabelas": 15,
+    "data_geracao": "2025-01-25",
+    "versao": "1.0"
+  },
+  "tabelas": [
+    {
+      "nome": "contratos",
+      "descricao": "Tabela principal de contratos gerados após aprovação de inscrições",
+      "tipo": "entidade_principal",
+      "campos": [
+        {
+          "nome": "id",
+          "tipo": "uuid",
+          "nullable": false,
+          "descricao": "Identificador único do contrato",
+          "pk": true
+        },
+        {
+          "nome": "inscricao_id",
+          "tipo": "uuid",
+          "nullable": false,
+          "descricao": "Referência à inscrição aprovada",
+          "fk": "inscricoes_edital.id",
+          "unique": true
+        },
+        {
+          "nome": "analise_id",
+          "tipo": "uuid",
+          "nullable": true,
+          "descricao": "Referência à análise da inscrição",
+          "fk": "analises.id"
+        },
+        {
+          "nome": "template_id",
+          "tipo": "uuid",
+          "nullable": true,
+          "descricao": "Template de contrato utilizado",
+          "fk": "contract_templates.id"
+        },
+        {
+          "nome": "numero_contrato",
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Número identificador do contrato (ex: CONT-2025-00001)"
+        },
+        {
+          "nome": "tipo",
+          "tipo": "text",
+          "nullable": false,
+          "default": "credenciamento",
+          "descricao": "Tipo do contrato (credenciamento, adesão, etc.)"
+        },
+        {
+          "nome": "status",
+          "tipo": "text",
+          "nullable": false,
+          "default": "pendente_assinatura",
+          "descricao": "Status: pendente_assinatura, assinado, cancelado"
+        },
+        {
+          "nome": "dados_contrato",
+          "tipo": "jsonb",
+          "nullable": true,
+          "descricao": "Dados completos do contrato em formato JSON"
+        },
+        {
+          "nome": "documento_url",
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "URL do PDF do contrato gerado"
+        },
+        {
+          "nome": "gerado_em",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()",
+          "descricao": "Data de geração do contrato"
+        },
+        {
+          "nome": "assinado_em",
+          "tipo": "timestamp",
+          "nullable": true,
+          "descricao": "Data de assinatura do contrato"
+        },
+        {
+          "nome": "created_at",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        },
+        {
+          "nome": "updated_at",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        }
+      ],
+      "relacionamentos": [
+        {
+          "tipo": "1:1",
+          "tabela_origem": "contratos",
+          "tabela_destino": "inscricoes_edital",
+          "descricao": "Um contrato pertence a uma inscrição"
+        },
+        {
+          "tipo": "N:1",
+          "tabela_origem": "contratos",
+          "tabela_destino": "contract_templates",
+          "descricao": "Contrato baseado em um template"
+        },
+        {
+          "tipo": "1:N",
+          "tabela_origem": "contratos",
+          "tabela_destino": "signature_requests",
+          "descricao": "Um contrato pode ter múltiplas requisições de assinatura"
+        }
+      ]
+    },
+    {
+      "nome": "signature_requests",
+      "descricao": "Requisições de assinatura eletrônica para contratos",
+      "tipo": "processo_assinatura",
+      "campos": [
+        {
+          "nome": "id",
+          "tipo": "uuid",
+          "nullable": false,
+          "pk": true
+        },
+        {
+          "nome": "contrato_id",
+          "tipo": "uuid",
+          "nullable": true,
+          "fk": "contratos.id"
+        },
+        {
+          "nome": "inscricao_id",
+          "tipo": "uuid",
+          "nullable": true,
+          "fk": "inscricoes_edital.id"
+        },
+        {
+          "nome": "workflow_execution_id",
+          "tipo": "uuid",
+          "nullable": true,
+          "fk": "workflow_executions.id",
+          "descricao": "Execução do workflow que gerou a requisição"
+        },
+        {
+          "nome": "step_execution_id",
+          "tipo": "uuid",
+          "nullable": true,
+          "fk": "workflow_step_executions.id"
+        },
+        {
+          "nome": "provider",
+          "tipo": "text",
+          "nullable": false,
+          "default": "assinafy",
+          "descricao": "Provedor de assinatura eletrônica"
+        },
+        {
+          "nome": "external_id",
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "ID externo no provedor (ex: document_id do Assinafy)"
+        },
+        {
+          "nome": "external_status",
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Status no provedor externo"
+        },
+        {
+          "nome": "status",
+          "tipo": "text",
+          "nullable": false,
+          "default": "pending",
+          "descricao": "Status interno: pending, sent, signed, failed"
+        },
+        {
+          "nome": "signers",
+          "tipo": "jsonb",
+          "nullable": false,
+          "descricao": "Array de signatários com nome, email, CPF"
+        },
+        {
+          "nome": "document_url",
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "URL do documento enviado para assinatura"
+        },
+        {
+          "nome": "metadata",
+          "tipo": "jsonb",
+          "nullable": true,
+          "descricao": "Metadados adicionais (assinafy_url, tokens, etc.)"
+        },
+        {
+          "nome": "completed_at",
+          "tipo": "timestamp",
+          "nullable": true
+        },
+        {
+          "nome": "created_at",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        },
+        {
+          "nome": "updated_at",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        }
+      ],
+      "relacionamentos": [
+        {
+          "tipo": "N:1",
+          "tabela_origem": "signature_requests",
+          "tabela_destino": "contratos",
+          "descricao": "Requisição de assinatura para um contrato"
+        },
+        {
+          "tipo": "N:1",
+          "tabela_origem": "signature_requests",
+          "tabela_destino": "workflow_executions",
+          "descricao": "Gerado por execução de workflow"
+        }
+      ]
+    },
+    {
+      "nome": "contract_templates",
+      "descricao": "Templates HTML de contratos com variáveis dinâmicas",
+      "tipo": "configuracao",
+      "campos": [
+        {
+          "nome": "id",
+          "tipo": "uuid",
+          "nullable": false,
+          "pk": true
+        },
+        {
+          "nome": "nome",
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "Nome do template (ex: Contrato Credenciamento 2025)"
+        },
+        {
+          "nome": "descricao",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "conteudo_html",
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "HTML do contrato com placeholders {{variavel}}"
+        },
+        {
+          "nome": "campos_mapeados",
+          "tipo": "jsonb",
+          "nullable": true,
+          "default": "[]",
+          "descricao": "Mapeamento de campos disponíveis no template"
+        },
+        {
+          "nome": "is_active",
+          "tipo": "boolean",
+          "nullable": true,
+          "default": true
+        },
+        {
+          "nome": "created_by",
+          "tipo": "uuid",
+          "nullable": true,
+          "fk": "profiles.id"
+        },
+        {
+          "nome": "created_at",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        },
+        {
+          "nome": "updated_at",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        }
+      ],
+      "relacionamentos": [
+        {
+          "tipo": "1:N",
+          "tabela_origem": "contract_templates",
+          "tabela_destino": "contratos",
+          "descricao": "Template pode ser usado em múltiplos contratos"
+        }
+      ]
+    },
+    {
+      "nome": "credenciados",
+      "descricao": "Profissionais ou estabelecimentos credenciados após assinatura de contrato",
+      "tipo": "entidade_principal",
+      "campos": [
+        {
+          "nome": "id",
+          "tipo": "uuid",
+          "nullable": false,
+          "pk": true
+        },
+        {
+          "nome": "inscricao_id",
+          "tipo": "uuid",
+          "nullable": true,
+          "fk": "inscricoes_edital.id",
+          "descricao": "Inscrição que originou o credenciamento"
+        },
+        {
+          "nome": "numero_credenciado",
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "Número único do credenciado (CRED-000001)"
+        },
+        {
+          "nome": "nome",
+          "tipo": "text",
+          "nullable": false
+        },
+        {
+          "nome": "cpf",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "cnpj",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "rg",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "data_nascimento",
+          "tipo": "date",
+          "nullable": true
+        },
+        {
+          "nome": "email",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "telefone",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "celular",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "cep",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "endereco",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "cidade",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "estado",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "latitude",
+          "tipo": "double precision",
+          "nullable": true,
+          "descricao": "Coordenada para geolocalização"
+        },
+        {
+          "nome": "longitude",
+          "tipo": "double precision",
+          "nullable": true,
+          "descricao": "Coordenada para geolocalização"
+        },
+        {
+          "nome": "geocoded_at",
+          "tipo": "timestamp",
+          "nullable": true
+        },
+        {
+          "nome": "geocode_attempts",
+          "tipo": "integer",
+          "nullable": true,
+          "default": 0
+        },
+        {
+          "nome": "last_geocode_attempt",
+          "tipo": "timestamp",
+          "nullable": true
+        },
+        {
+          "nome": "status",
+          "tipo": "text",
+          "nullable": false,
+          "default": "Ativo",
+          "descricao": "Ativo, Suspenso, Descredenciado, Inativo"
+        },
+        {
+          "nome": "tipo_credenciamento",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "categoria_id",
+          "tipo": "uuid",
+          "nullable": true,
+          "fk": "categorias_prestadores.id"
+        },
+        {
+          "nome": "porte",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "data_habilitacao",
+          "tipo": "date",
+          "nullable": true
+        },
+        {
+          "nome": "data_inicio_atendimento",
+          "tipo": "date",
+          "nullable": true
+        },
+        {
+          "nome": "data_solicitacao",
+          "tipo": "date",
+          "nullable": true
+        },
+        {
+          "nome": "suspensao_inicio",
+          "tipo": "date",
+          "nullable": true
+        },
+        {
+          "nome": "suspensao_fim",
+          "tipo": "date",
+          "nullable": true
+        },
+        {
+          "nome": "suspensao_automatica",
+          "tipo": "boolean",
+          "nullable": true,
+          "default": false
+        },
+        {
+          "nome": "motivo_suspensao",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "data_descredenciamento_programado",
+          "tipo": "date",
+          "nullable": true
+        },
+        {
+          "nome": "motivo_descredenciamento",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "observacoes",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "cidade_id",
+          "tipo": "uuid",
+          "nullable": true,
+          "fk": "cidades.id"
+        },
+        {
+          "nome": "zona_id",
+          "tipo": "uuid",
+          "nullable": true,
+          "fk": "zonas_geograficas.id"
+        },
+        {
+          "nome": "created_at",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        },
+        {
+          "nome": "updated_at",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        }
+      ],
+      "relacionamentos": [
+        {
+          "tipo": "N:1",
+          "tabela_origem": "credenciados",
+          "tabela_destino": "inscricoes_edital",
+          "descricao": "Credenciado originado de uma inscrição"
+        },
+        {
+          "tipo": "1:N",
+          "tabela_origem": "credenciados",
+          "tabela_destino": "credenciado_crms",
+          "descricao": "Credenciado possui múltiplos registros CRM"
+        },
+        {
+          "tipo": "1:N",
+          "tabela_origem": "credenciados",
+          "tabela_destino": "credenciado_consultorios",
+          "descricao": "Credenciado pode ter múltiplos consultórios"
+        },
+        {
+          "tipo": "1:N",
+          "tabela_origem": "credenciados",
+          "tabela_destino": "certificados",
+          "descricao": "Credenciado recebe certificados"
+        }
+      ]
+    },
+    {
+      "nome": "credenciado_crms",
+      "descricao": "Registros CRM dos credenciados com especialidades",
+      "tipo": "entidade_relacionada",
+      "campos": [
+        {
+          "nome": "id",
+          "tipo": "uuid",
+          "nullable": false,
+          "pk": true
+        },
+        {
+          "nome": "credenciado_id",
+          "tipo": "uuid",
+          "nullable": false,
+          "fk": "credenciados.id"
+        },
+        {
+          "nome": "crm",
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "Número do CRM"
+        },
+        {
+          "nome": "uf_crm",
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "Estado do CRM"
+        },
+        {
+          "nome": "especialidade",
+          "tipo": "text",
+          "nullable": false
+        },
+        {
+          "nome": "especialidade_id",
+          "tipo": "uuid",
+          "nullable": true,
+          "fk": "especialidades_medicas.id"
+        },
+        {
+          "nome": "created_at",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        }
+      ],
+      "relacionamentos": [
+        {
+          "tipo": "N:1",
+          "tabela_origem": "credenciado_crms",
+          "tabela_destino": "credenciados",
+          "descricao": "CRMs pertencem a um credenciado"
+        }
+      ]
+    },
+    {
+      "nome": "credenciado_consultorios",
+      "descricao": "Locais de atendimento dos credenciados",
+      "tipo": "entidade_relacionada",
+      "campos": [
+        {
+          "nome": "id",
+          "tipo": "uuid",
+          "nullable": false,
+          "pk": true
+        },
+        {
+          "nome": "credenciado_id",
+          "tipo": "uuid",
+          "nullable": false,
+          "fk": "credenciados.id"
+        },
+        {
+          "nome": "inscricao_consultorio_id",
+          "tipo": "uuid",
+          "nullable": true,
+          "fk": "inscricao_consultorios.id",
+          "descricao": "Consultório copiado da inscrição"
+        },
+        {
+          "nome": "nome_consultorio",
+          "tipo": "text",
+          "nullable": false
+        },
+        {
+          "nome": "cnes",
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "Código Nacional de Estabelecimento de Saúde"
+        },
+        {
+          "nome": "telefone",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "ramal",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "cep",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "logradouro",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "numero",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "complemento",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "bairro",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "cidade",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "estado",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "latitude",
+          "tipo": "double precision",
+          "nullable": true
+        },
+        {
+          "nome": "longitude",
+          "tipo": "double precision",
+          "nullable": true
+        },
+        {
+          "nome": "geocoded_at",
+          "tipo": "timestamp",
+          "nullable": true
+        },
+        {
+          "nome": "responsavel_tecnico_nome",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "responsavel_tecnico_crm",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "responsavel_tecnico_uf",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "especialidades_ids",
+          "tipo": "uuid[]",
+          "nullable": true,
+          "descricao": "Array de especialidades atendidas"
+        },
+        {
+          "nome": "horarios",
+          "tipo": "jsonb",
+          "nullable": true,
+          "default": "[]",
+          "descricao": "Horários de atendimento"
+        },
+        {
+          "nome": "is_principal",
+          "tipo": "boolean",
+          "nullable": true,
+          "default": false
+        },
+        {
+          "nome": "ativo",
+          "tipo": "boolean",
+          "nullable": true,
+          "default": true
+        },
+        {
+          "nome": "created_at",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        },
+        {
+          "nome": "updated_at",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        }
+      ],
+      "relacionamentos": [
+        {
+          "tipo": "N:1",
+          "tabela_origem": "credenciado_consultorios",
+          "tabela_destino": "credenciados",
+          "descricao": "Consultório pertence a um credenciado"
+        }
+      ]
+    },
+    {
+      "nome": "credenciado_categorias",
+      "descricao": "Vínculo entre credenciados e categorias de estabelecimento",
+      "tipo": "relacao",
+      "campos": [
+        {
+          "nome": "id",
+          "tipo": "uuid",
+          "nullable": false,
+          "pk": true
+        },
+        {
+          "nome": "credenciado_id",
+          "tipo": "uuid",
+          "nullable": false,
+          "fk": "credenciados.id"
+        },
+        {
+          "nome": "categoria_id",
+          "tipo": "uuid",
+          "nullable": false,
+          "fk": "categorias_estabelecimentos.id"
+        },
+        {
+          "nome": "principal",
+          "tipo": "boolean",
+          "nullable": true,
+          "default": false
+        },
+        {
+          "nome": "criado_em",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        }
+      ],
+      "relacionamentos": [
+        {
+          "tipo": "N:N",
+          "tabela_origem": "credenciado_categorias",
+          "tabela_destino": "credenciados",
+          "descricao": "Tabela de ligação entre credenciados e categorias"
+        }
+      ]
+    },
+    {
+      "nome": "credenciado_servicos",
+      "descricao": "Serviços oferecidos por credenciados",
+      "tipo": "entidade_relacionada",
+      "campos": [
+        {
+          "nome": "id",
+          "tipo": "uuid",
+          "nullable": false,
+          "pk": true
+        },
+        {
+          "nome": "credenciado_id",
+          "tipo": "uuid",
+          "nullable": false,
+          "fk": "credenciados.id"
+        },
+        {
+          "nome": "procedimento_id",
+          "tipo": "uuid",
+          "nullable": false,
+          "fk": "procedimentos.id"
+        },
+        {
+          "nome": "profissional_id",
+          "tipo": "uuid",
+          "nullable": true,
+          "fk": "profissionais_credenciados.id"
+        },
+        {
+          "nome": "preco_base",
+          "tipo": "numeric",
+          "nullable": true
+        },
+        {
+          "nome": "preco_particular",
+          "tipo": "numeric",
+          "nullable": true
+        },
+        {
+          "nome": "preco_convenio",
+          "tipo": "numeric",
+          "nullable": true
+        },
+        {
+          "nome": "aceita_sus",
+          "tipo": "boolean",
+          "nullable": true,
+          "default": false
+        },
+        {
+          "nome": "disponivel",
+          "tipo": "boolean",
+          "nullable": true,
+          "default": true
+        },
+        {
+          "nome": "disponivel_online",
+          "tipo": "boolean",
+          "nullable": true,
+          "default": false
+        },
+        {
+          "nome": "dias_atendimento",
+          "tipo": "text[]",
+          "nullable": true
+        },
+        {
+          "nome": "horario_inicio",
+          "tipo": "time",
+          "nullable": true
+        },
+        {
+          "nome": "horario_fim",
+          "tipo": "time",
+          "nullable": true
+        },
+        {
+          "nome": "local_atendimento",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "tempo_espera_medio",
+          "tipo": "integer",
+          "nullable": true,
+          "descricao": "Tempo em minutos"
+        },
+        {
+          "nome": "requisitos",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "observacoes",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "prioridade",
+          "tipo": "integer",
+          "nullable": true,
+          "default": 0
+        },
+        {
+          "nome": "created_by",
+          "tipo": "uuid",
+          "nullable": true,
+          "fk": "profiles.id"
+        },
+        {
+          "nome": "created_at",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        },
+        {
+          "nome": "updated_at",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        }
+      ],
+      "relacionamentos": [
+        {
+          "tipo": "N:1",
+          "tabela_origem": "credenciado_servicos",
+          "tabela_destino": "credenciados",
+          "descricao": "Serviços oferecidos por credenciado"
+        }
+      ]
+    },
+    {
+      "nome": "credenciado_historico",
+      "descricao": "Log de eventos e alterações do credenciado",
+      "tipo": "auditoria",
+      "campos": [
+        {
+          "nome": "id",
+          "tipo": "uuid",
+          "nullable": false,
+          "pk": true
+        },
+        {
+          "nome": "credenciado_id",
+          "tipo": "uuid",
+          "nullable": false,
+          "fk": "credenciados.id"
+        },
+        {
+          "nome": "tipo",
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "Tipo do evento (criacao, alteracao, suspensao, etc.)"
+        },
+        {
+          "nome": "descricao",
+          "tipo": "text",
+          "nullable": false
+        },
+        {
+          "nome": "data_ocorrencia",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        },
+        {
+          "nome": "usuario_responsavel",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "created_at",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        }
+      ],
+      "relacionamentos": [
+        {
+          "tipo": "N:1",
+          "tabela_origem": "credenciado_historico",
+          "tabela_destino": "credenciados",
+          "descricao": "Histórico de eventos do credenciado"
+        }
+      ]
+    },
+    {
+      "nome": "historico_status_credenciado",
+      "descricao": "Histórico de mudanças de status do credenciado",
+      "tipo": "auditoria",
+      "campos": [
+        {
+          "nome": "id",
+          "tipo": "uuid",
+          "nullable": false,
+          "pk": true
+        },
+        {
+          "nome": "credenciado_id",
+          "tipo": "uuid",
+          "nullable": false,
+          "fk": "credenciados.id"
+        },
+        {
+          "nome": "status_anterior",
+          "tipo": "text",
+          "nullable": false
+        },
+        {
+          "nome": "status_novo",
+          "tipo": "text",
+          "nullable": false
+        },
+        {
+          "nome": "motivo",
+          "tipo": "text",
+          "nullable": false
+        },
+        {
+          "nome": "alterado_por",
+          "tipo": "uuid",
+          "nullable": true,
+          "descricao": "ID do usuário que alterou"
+        },
+        {
+          "nome": "alterado_por_nome",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "documentos_anexos",
+          "tipo": "jsonb",
+          "nullable": true,
+          "descricao": "Documentos relacionados à mudança"
+        },
+        {
+          "nome": "metadata",
+          "tipo": "jsonb",
+          "nullable": true
+        },
+        {
+          "nome": "created_at",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        }
+      ],
+      "relacionamentos": [
+        {
+          "tipo": "N:1",
+          "tabela_origem": "historico_status_credenciado",
+          "tabela_destino": "credenciados",
+          "descricao": "Histórico de mudanças de status"
+        }
+      ]
+    },
+    {
+      "nome": "certificados",
+      "descricao": "Certificados de credenciamento emitidos",
+      "tipo": "documento",
+      "campos": [
+        {
+          "nome": "id",
+          "tipo": "uuid",
+          "nullable": false,
+          "pk": true
+        },
+        {
+          "nome": "credenciado_id",
+          "tipo": "uuid",
+          "nullable": false,
+          "fk": "credenciados.id"
+        },
+        {
+          "nome": "numero_certificado",
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "Número único do certificado"
+        },
+        {
+          "nome": "tipo",
+          "tipo": "text",
+          "nullable": false,
+          "default": "credenciamento"
+        },
+        {
+          "nome": "status",
+          "tipo": "text",
+          "nullable": false,
+          "default": "ativo",
+          "descricao": "ativo, cancelado, vencido"
+        },
+        {
+          "nome": "dados_certificado",
+          "tipo": "jsonb",
+          "nullable": true,
+          "default": "{}",
+          "descricao": "Dados do certificado em JSON"
+        },
+        {
+          "nome": "documento_url",
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "URL do PDF do certificado"
+        },
+        {
+          "nome": "emitido_em",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        },
+        {
+          "nome": "valido_ate",
+          "tipo": "timestamp",
+          "nullable": true
+        },
+        {
+          "nome": "created_at",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        },
+        {
+          "nome": "updated_at",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        }
+      ],
+      "relacionamentos": [
+        {
+          "tipo": "N:1",
+          "tabela_origem": "certificados",
+          "tabela_destino": "credenciados",
+          "descricao": "Certificado emitido para um credenciado"
+        }
+      ]
+    },
+    {
+      "nome": "certificados_regularidade",
+      "descricao": "Certificados de regularidade fiscal e documental",
+      "tipo": "documento",
+      "campos": [
+        {
+          "nome": "id",
+          "tipo": "uuid",
+          "nullable": false,
+          "pk": true
+        },
+        {
+          "nome": "credenciado_id",
+          "tipo": "uuid",
+          "nullable": false,
+          "fk": "credenciados.id"
+        },
+        {
+          "nome": "numero_certificado",
+          "tipo": "text",
+          "nullable": false
+        },
+        {
+          "nome": "codigo_verificacao",
+          "tipo": "char(12)",
+          "nullable": false,
+          "descricao": "Código para verificação pública"
+        },
+        {
+          "nome": "hash_verificacao",
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "Hash SHA-256 para validação"
+        },
+        {
+          "nome": "status",
+          "tipo": "enum",
+          "nullable": false,
+          "descricao": "regular, irregular, pendente"
+        },
+        {
+          "nome": "pendencias",
+          "tipo": "jsonb",
+          "nullable": false,
+          "default": "[]",
+          "descricao": "Lista de pendências encontradas"
+        },
+        {
+          "nome": "detalhes",
+          "tipo": "jsonb",
+          "nullable": false,
+          "default": "{}",
+          "descricao": "Detalhes da análise de regularidade"
+        },
+        {
+          "nome": "dados_snapshot",
+          "tipo": "jsonb",
+          "nullable": false,
+          "descricao": "Snapshot dos dados no momento da emissão"
+        },
+        {
+          "nome": "url_pdf",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "metadata_pdf",
+          "tipo": "jsonb",
+          "nullable": true
+        },
+        {
+          "nome": "valido_de",
+          "tipo": "date",
+          "nullable": false
+        },
+        {
+          "nome": "valido_ate",
+          "tipo": "date",
+          "nullable": false
+        },
+        {
+          "nome": "emitido_em",
+          "tipo": "timestamp",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "nome": "emitido_por",
+          "tipo": "uuid",
+          "nullable": true,
+          "fk": "profiles.id"
+        },
+        {
+          "nome": "ativo",
+          "tipo": "boolean",
+          "nullable": true,
+          "default": true
+        },
+        {
+          "nome": "cancelado",
+          "tipo": "boolean",
+          "nullable": true,
+          "default": false
+        },
+        {
+          "nome": "cancelado_em",
+          "tipo": "timestamp",
+          "nullable": true
+        },
+        {
+          "nome": "cancelado_por",
+          "tipo": "uuid",
+          "nullable": true,
+          "fk": "profiles.id"
+        },
+        {
+          "nome": "motivo_cancelamento",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "substituido_por",
+          "tipo": "uuid",
+          "nullable": true,
+          "fk": "certificados_regularidade.id"
+        },
+        {
+          "nome": "total_consultas",
+          "tipo": "integer",
+          "nullable": true,
+          "default": 0
+        },
+        {
+          "nome": "ultima_consulta",
+          "tipo": "timestamp",
+          "nullable": true
+        },
+        {
+          "nome": "created_at",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        },
+        {
+          "nome": "updated_at",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        }
+      ],
+      "relacionamentos": [
+        {
+          "tipo": "N:1",
+          "tabela_origem": "certificados_regularidade",
+          "tabela_destino": "credenciados",
+          "descricao": "Certificado de regularidade de um credenciado"
+        }
+      ]
+    },
+    {
+      "nome": "documentos_credenciados",
+      "descricao": "Documentos anexados e gerenciados para credenciados",
+      "tipo": "documento",
+      "campos": [
+        {
+          "nome": "id",
+          "tipo": "uuid",
+          "nullable": false,
+          "pk": true
+        },
+        {
+          "nome": "credenciado_id",
+          "tipo": "uuid",
+          "nullable": false,
+          "fk": "credenciados.id"
+        },
+        {
+          "nome": "inscricao_id",
+          "tipo": "uuid",
+          "nullable": true,
+          "fk": "inscricoes_edital.id",
+          "descricao": "Inscrição original se copiado"
+        },
+        {
+          "nome": "tipo_documento",
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "CPF, RG, CRM, CNH, etc."
+        },
+        {
+          "nome": "numero_documento",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "status",
+          "tipo": "text",
+          "nullable": true,
+          "default": "ativo",
+          "descricao": "ativo, vencido, renovado, cancelado"
+        },
+        {
+          "nome": "url_arquivo",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "storage_path",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "arquivo_nome",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "arquivo_tamanho",
+          "tipo": "bigint",
+          "nullable": true,
+          "descricao": "Tamanho em bytes"
+        },
+        {
+          "nome": "data_emissao",
+          "tipo": "date",
+          "nullable": true
+        },
+        {
+          "nome": "data_vencimento",
+          "tipo": "date",
+          "nullable": true
+        },
+        {
+          "nome": "meses_validade",
+          "tipo": "integer",
+          "nullable": true
+        },
+        {
+          "nome": "dias_alerta",
+          "tipo": "integer",
+          "nullable": true,
+          "default": 30
+        },
+        {
+          "nome": "ocr_processado",
+          "tipo": "boolean",
+          "nullable": true,
+          "default": false
+        },
+        {
+          "nome": "ocr_resultado",
+          "tipo": "jsonb",
+          "nullable": true,
+          "descricao": "Dados extraídos via OCR"
+        },
+        {
+          "nome": "ocr_confidence",
+          "tipo": "numeric",
+          "nullable": true,
+          "descricao": "Confiança do OCR (0-100)"
+        },
+        {
+          "nome": "origem",
+          "tipo": "text",
+          "nullable": true,
+          "descricao": "inscricao, upload_manual, migracao"
+        },
+        {
+          "nome": "documento_origem_id",
+          "tipo": "uuid",
+          "nullable": true,
+          "fk": "inscricao_documentos.id"
+        },
+        {
+          "nome": "versao",
+          "tipo": "integer",
+          "nullable": true,
+          "default": 1
+        },
+        {
+          "nome": "is_current",
+          "tipo": "boolean",
+          "nullable": true,
+          "default": true
+        },
+        {
+          "nome": "substituido_por",
+          "tipo": "uuid",
+          "nullable": true,
+          "fk": "documentos_credenciados.id"
+        },
+        {
+          "nome": "substituido_em",
+          "tipo": "timestamp",
+          "nullable": true
+        },
+        {
+          "nome": "descricao",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "observacao",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "metadata",
+          "tipo": "jsonb",
+          "nullable": true
+        },
+        {
+          "nome": "criado_por",
+          "tipo": "uuid",
+          "nullable": true,
+          "fk": "profiles.id"
+        },
+        {
+          "nome": "criado_em",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        },
+        {
+          "nome": "atualizado_em",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        }
+      ],
+      "relacionamentos": [
+        {
+          "tipo": "N:1",
+          "tabela_origem": "documentos_credenciados",
+          "tabela_destino": "credenciados",
+          "descricao": "Documentos de um credenciado"
+        },
+        {
+          "tipo": "N:1",
+          "tabela_origem": "documentos_credenciados",
+          "tabela_destino": "inscricao_documentos",
+          "descricao": "Pode ser cópia de documento da inscrição"
+        }
+      ]
+    },
+    {
+      "nome": "prazos_credenciamento",
+      "descricao": "Controle de prazos e vencimentos de documentos",
+      "tipo": "controle",
+      "campos": [
+        {
+          "nome": "id",
+          "tipo": "uuid",
+          "nullable": false,
+          "pk": true
+        },
+        {
+          "nome": "credenciado_id",
+          "tipo": "uuid",
+          "nullable": false,
+          "fk": "credenciados.id"
+        },
+        {
+          "nome": "tipo_prazo",
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "CNH, CRM, Certificado, Alvará, etc."
+        },
+        {
+          "nome": "data_vencimento",
+          "tipo": "date",
+          "nullable": false
+        },
+        {
+          "nome": "status",
+          "tipo": "text",
+          "nullable": false,
+          "default": "ativo",
+          "descricao": "ativo, vencido, renovado, cancelado"
+        },
+        {
+          "nome": "origem_documento_id",
+          "tipo": "uuid",
+          "nullable": true,
+          "fk": "inscricao_documentos.id",
+          "descricao": "Documento que originou o prazo"
+        },
+        {
+          "nome": "observacoes",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "created_at",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        },
+        {
+          "nome": "updated_at",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        }
+      ],
+      "relacionamentos": [
+        {
+          "tipo": "N:1",
+          "tabela_origem": "prazos_credenciamento",
+          "tabela_destino": "credenciados",
+          "descricao": "Prazos de um credenciado"
+        },
+        {
+          "tipo": "1:N",
+          "tabela_origem": "prazos_credenciamento",
+          "tabela_destino": "alertas_enviados",
+          "descricao": "Alertas enviados sobre o prazo"
+        }
+      ]
+    },
+    {
+      "nome": "afastamentos_credenciados",
+      "descricao": "Registro de afastamentos temporários de credenciados",
+      "tipo": "controle",
+      "campos": [
+        {
+          "nome": "id",
+          "tipo": "uuid",
+          "nullable": false,
+          "pk": true
+        },
+        {
+          "nome": "credenciado_id",
+          "tipo": "uuid",
+          "nullable": false,
+          "fk": "credenciados.id"
+        },
+        {
+          "nome": "user_id",
+          "tipo": "uuid",
+          "nullable": true,
+          "descricao": "Usuário que solicitou"
+        },
+        {
+          "nome": "tipo",
+          "tipo": "text",
+          "nullable": false,
+          "descricao": "ferias, licenca_medica, licenca_maternidade, etc."
+        },
+        {
+          "nome": "motivo",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "justificativa",
+          "tipo": "text",
+          "nullable": false
+        },
+        {
+          "nome": "data_inicio",
+          "tipo": "date",
+          "nullable": false
+        },
+        {
+          "nome": "data_fim",
+          "tipo": "date",
+          "nullable": true
+        },
+        {
+          "nome": "status",
+          "tipo": "text",
+          "nullable": true,
+          "default": "pendente",
+          "descricao": "pendente, aprovado, rejeitado, cancelado"
+        },
+        {
+          "nome": "documentos_anexos",
+          "tipo": "jsonb",
+          "nullable": true,
+          "default": "[]",
+          "descricao": "Atestados e comprovantes"
+        },
+        {
+          "nome": "analisado_por",
+          "tipo": "uuid",
+          "nullable": true,
+          "fk": "profiles.id"
+        },
+        {
+          "nome": "analisado_em",
+          "tipo": "timestamp",
+          "nullable": true
+        },
+        {
+          "nome": "observacoes_analise",
+          "tipo": "text",
+          "nullable": true
+        },
+        {
+          "nome": "created_at",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        },
+        {
+          "nome": "updated_at",
+          "tipo": "timestamp",
+          "nullable": true,
+          "default": "now()"
+        }
+      ],
+      "relacionamentos": [
+        {
+          "tipo": "N:1",
+          "tabela_origem": "afastamentos_credenciados",
+          "tabela_destino": "credenciados",
+          "descricao": "Afastamentos de um credenciado"
+        }
+      ]
+    }
+  ],
+  "fluxo_processo": {
+    "descricao": "Fluxo completo desde a inscrição até o credenciamento",
+    "etapas": [
+      {
+        "ordem": 1,
+        "nome": "Inscrição Aprovada",
+        "tabelas": ["inscricoes_edital", "analises"],
+        "descricao": "Candidato tem inscrição aprovada"
+      },
+      {
+        "ordem": 2,
+        "nome": "Geração de Contrato",
+        "tabelas": ["contratos", "contract_templates"],
+        "descricao": "Sistema gera contrato baseado em template"
+      },
+      {
+        "ordem": 3,
+        "nome": "Envio para Assinatura",
+        "tabelas": ["signature_requests"],
+        "descricao": "Contrato enviado para plataforma de assinatura (Assinafy)"
+      },
+      {
+        "ordem": 4,
+        "nome": "Assinatura do Contrato",
+        "tabelas": ["signature_requests", "contratos"],
+        "descricao": "Candidato assina o contrato eletronicamente"
+      },
+      {
+        "ordem": 5,
+        "nome": "Criação do Credenciado",
+        "tabelas": ["credenciados", "credenciado_crms", "credenciado_consultorios"],
+        "descricao": "Sistema cria registro de credenciado com dados da inscrição"
+      },
+      {
+        "ordem": 6,
+        "nome": "Emissão de Certificado",
+        "tabelas": ["certificados"],
+        "descricao": "Certificado de credenciamento é emitido"
+      },
+      {
+        "ordem": 7,
+        "nome": "Gestão Contínua",
+        "tabelas": [
+          "documentos_credenciados",
+          "prazos_credenciamento",
+          "afastamentos_credenciados",
+          "historico_status_credenciado"
+        ],
+        "descricao": "Gestão de documentos, prazos e status do credenciado"
+      }
+    ]
+  },
+  "triggers_importantes": [
+    {
+      "nome": "sync_credenciado_from_contract",
+      "tabela": "contratos",
+      "evento": "UPDATE status → 'assinado'",
+      "acao": "Cria registro em credenciados com dados da inscrição"
+    },
+    {
+      "nome": "emit_certificado_on_ativacao",
+      "tabela": "credenciados",
+      "evento": "UPDATE status → 'Ativo'",
+      "acao": "Gera certificado de credenciamento"
+    },
+    {
+      "nome": "copiar_consultorios_ao_aprovar",
+      "tabela": "inscricoes_edital",
+      "evento": "UPDATE status → 'aprovado'",
+      "acao": "Copia consultórios de inscricao_consultorios para credenciado_consultorios"
+    },
+    {
+      "nome": "trigger_criar_prazo_documento",
+      "tabela": "inscricao_documentos",
+      "evento": "UPDATE status → 'validado'",
+      "acao": "Cria prazo de vencimento em prazos_credenciamento se documento tiver data de validade"
+    },
+    {
+      "nome": "registrar_mudanca_status_credenciado",
+      "tabela": "credenciados",
+      "evento": "UPDATE status",
+      "acao": "Registra mudança em historico_status_credenciado"
+    }
+  ],
+  "edge_functions_relacionadas": [
+    {
+      "nome": "gerar-contrato-assinatura",
+      "descricao": "Gera PDF do contrato e cria entrada em contratos",
+      "tabelas_afetadas": ["contratos", "contract_templates"]
+    },
+    {
+      "nome": "send-signature-request",
+      "descricao": "Envia contrato para plataforma de assinatura",
+      "tabelas_afetadas": ["signature_requests"]
+    },
+    {
+      "nome": "check-assinafy-status",
+      "descricao": "Verifica status de assinatura no Assinafy e atualiza contrato",
+      "tabelas_afetadas": ["signature_requests", "contratos", "credenciados"]
+    },
+    {
+      "nome": "gerar-certificado",
+      "descricao": "Gera PDF de certificado de credenciamento",
+      "tabelas_afetadas": ["certificados"]
+    },
+    {
+      "nome": "regenerate-failed-contract",
+      "descricao": "Regenera contrato que falhou na geração",
+      "tabelas_afetadas": ["contratos", "signature_requests"]
+    },
+    {
+      "nome": "simular-assinatura-contrato",
+      "descricao": "Simula assinatura de contrato (ambiente de testes)",
+      "tabelas_afetadas": ["contratos", "credenciados", "signature_requests"]
+    },
+    {
+      "nome": "resend-signature-emails",
+      "descricao": "Reenvia emails de solicitação de assinatura",
+      "tabelas_afetadas": ["signature_requests"]
+    },
+    {
+      "nome": "reprocess-signature-requests",
+      "descricao": "Reprocessa contratos sem signature_request",
+      "tabelas_afetadas": ["signature_requests", "contratos"]
+    }
+  ],
+  "observacoes_importantes": [
+    "O fluxo é automatizado via workflows e triggers de banco de dados",
+    "Signature requests podem ser reprocessadas em caso de falha",
+    "Credenciados são criados automaticamente após assinatura do contrato",
+    "Documentos da inscrição são copiados para documentos_credenciados",
+    "Prazos de vencimento são criados automaticamente a partir de OCR de documentos",
+    "Certificados são emitidos automaticamente quando credenciado fica Ativo",
+    "Todo o processo mantém histórico completo de alterações",
+    "Geolocalização é feita automaticamente para credenciados e consultórios"
+  ]
+}
