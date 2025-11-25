@@ -1,0 +1,1399 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "generated_at": "2025-01-25",
+    "description": "Documentação completa de regras de negócio e validações do sistema"
+  },
+  "modulos": {
+    "inscricoes": {
+      "descricao": "Módulo de inscrição de candidatos (PF/PJ) em editais",
+      "tabelas_principais": ["inscricoes_edital", "inscricao_documentos", "inscricao_consultorios", "analises", "correcoes_inscricao"],
+      "validacoes_frontend": {
+        "schema_zod": "src/lib/inscricao-validation.ts",
+        "regras": {
+          "dados_pessoais": {
+            "cpf": {
+              "type": "string",
+              "regex": "\\d{11}",
+              "validacao": "CPF válido com 11 dígitos",
+              "obrigatorio": true
+            },
+            "email": {
+              "type": "string",
+              "formato": "email",
+              "obrigatorio": true
+            },
+            "telefone": {
+              "type": "string",
+              "regex": "\\d{10,11}",
+              "obrigatorio": true
+            },
+            "data_nascimento": {
+              "type": "date",
+              "validacao": "Idade mínima 18 anos",
+              "obrigatorio": true
+            }
+          },
+          "pessoa_juridica": {
+            "cnpj": {
+              "type": "string",
+              "regex": "\\d{14}",
+              "validacao": "CNPJ válido com 14 dígitos",
+              "obrigatorio_se": "tipo_credenciamento === 'PJ'"
+            },
+            "razao_social": {
+              "type": "string",
+              "min": 3,
+              "obrigatorio_se": "tipo_credenciamento === 'PJ'"
+            }
+          },
+          "consultorios": {
+            "minimo": 1,
+            "maximo": 10,
+            "campos_obrigatorios": ["cnes", "nome_consultorio", "cep", "logradouro", "numero", "cidade", "estado"],
+            "horarios": {
+              "minimo": 1,
+              "campos": ["dia_semana", "hora_inicio", "hora_fim"]
+            }
+          },
+          "documentos": {
+            "pf_obrigatorios": [
+              "identidade_rg",
+              "cpf",
+              "comprovante_residencia",
+              "diploma_graduacao",
+              "certidao_conselho_classe",
+              "curriculo",
+              "certificado_especialidade"
+            ],
+            "pj_obrigatorios": [
+              "contrato_social",
+              "cnpj",
+              "certidao_regularidade_receita",
+              "certidao_regularidade_fgts",
+              "alvara_funcionamento"
+            ],
+            "por_consultorio": ["alvara_sanitario", "cnes"],
+            "tamanho_maximo": "10MB",
+            "formatos_aceitos": ["pdf", "jpg", "jpeg", "png"]
+          }
+        }
+      },
+      "validacoes_backend": {
+        "edge_functions": ["validate-inscription", "ocr-document"],
+        "regras": {
+          "unicidade": {
+            "cpf": "Único por edital ativo",
+            "cnpj": "Único por edital ativo",
+            "email": "Único no sistema"
+          },
+          "documentos": {
+            "ocr_obrigatorio": ["identidade_rg", "cpf", "cnpj", "certidao_conselho_classe"],
+            "verificacao_automatica": true,
+            "requer_aprovacao_manual": "Todos os documentos"
+          }
+        }
+      },
+      "triggers_banco": {
+        "before_insert": [
+          {
+            "nome": "validate_inscricao_data",
+            "acao": "Valida dados antes de inserir"
+          },
+          {
+            "nome": "check_edital_active",
+            "acao": "Verifica se edital está ativo"
+          }
+        ],
+        "after_insert": [
+          {
+            "nome": "create_analise_automatica",
+            "acao": "Cria registro de análise pendente"
+          },
+          {
+            "nome": "queue_workflow",
+            "acao": "Adiciona à fila de workflow de aprovação"
+          },
+          {
+            "nome": "notify_analistas",
+            "acao": "Notifica analistas sobre nova inscrição"
+          }
+        ],
+        "after_update": [
+          {
+            "nome": "log_status_change",
+            "acao": "Registra mudanças de status em audit_logs"
+          },
+          {
+            "nome": "trigger_workflow_step",
+            "acao": "Avança workflow se status mudou"
+          }
+        ]
+      },
+      "fluxo_automacao": {
+        "etapas": [
+          {
+            "ordem": 1,
+            "nome": "Submissão",
+            "status": "em_analise",
+            "acao": "Candidato submete formulário completo"
+          },
+          {
+            "ordem": 2,
+            "nome": "OCR Documentos",
+            "automatico": true,
+            "acao": "Sistema extrai dados de documentos via OCR"
+          },
+          {
+            "ordem": 3,
+            "nome": "Validação Automática",
+            "automatico": true,
+            "acao": "Sistema valida CPF/CNPJ, verifica duplicatas"
+          },
+          {
+            "ordem": 4,
+            "nome": "Análise Manual",
+            "status": "em_analise",
+            "role_responsavel": "analista",
+            "acao": "Analista revisa documentos e dados"
+          },
+          {
+            "ordem": 5,
+            "nome": "Decisão",
+            "opcoes": ["aprovada", "reprovada", "pendente_correcao"],
+            "acao": "Analista aprova, reprova ou solicita correção"
+          },
+          {
+            "ordem": 6,
+            "nome": "Correção (se necessário)",
+            "status": "pendente_correcao",
+            "prazo": "15 dias",
+            "acao": "Candidato corrige dados/documentos"
+          },
+          {
+            "ordem": 7,
+            "nome": "Aprovação Final",
+            "status": "aprovada",
+            "acao": "Gera credenciado e contrato"
+          }
+        ]
+      },
+      "status_permitidos": [
+        "rascunho",
+        "em_analise",
+        "pendente_correcao",
+        "aprovada",
+        "reprovada",
+        "cancelada"
+      ],
+      "transicoes_status": {
+        "rascunho": ["em_analise", "cancelada"],
+        "em_analise": ["aprovada", "reprovada", "pendente_correcao"],
+        "pendente_correcao": ["em_analise", "cancelada"],
+        "aprovada": ["cancelada"],
+        "reprovada": [],
+        "cancelada": []
+      }
+    },
+    "avaliacoes": {
+      "descricao": "Sistema de avaliação de desempenho de prestadores",
+      "tabelas_principais": ["avaliacoes_prestadores", "avaliacoes_publicas", "criterios_avaliacao"],
+      "tipos_avaliacao": {
+        "interna": {
+          "tabela": "avaliacoes_prestadores",
+          "responsavel": "gestor",
+          "periodicidade": "trimestral",
+          "componente": "src/components/credenciados/AvaliacaoDesempenho.tsx"
+        },
+        "publica": {
+          "tabela": "avaliacoes_publicas",
+          "responsavel": "publico",
+          "anonima": true,
+          "requer_moderacao": true
+        }
+      },
+      "validacoes_frontend": {
+        "avaliacoes_prestadores": {
+          "periodo_referencia": {
+            "type": "date",
+            "formato": "YYYY-MM",
+            "obrigatorio": true
+          },
+          "criterios": {
+            "type": "array",
+            "min_items": 1,
+            "campos": {
+              "criterio_id": "uuid",
+              "nota": {
+                "type": "number",
+                "min": 1,
+                "max": 5,
+                "obrigatorio": true
+              },
+              "observacao": {
+                "type": "string",
+                "max": 500
+              }
+            }
+          },
+          "pontos_positivos": {
+            "type": "string",
+            "max": 1000
+          },
+          "pontos_melhoria": {
+            "type": "string",
+            "max": 1000
+          }
+        },
+        "avaliacoes_publicas": {
+          "nota_estrelas": {
+            "type": "integer",
+            "min": 1,
+            "max": 5,
+            "obrigatorio": true
+          },
+          "comentario": {
+            "type": "string",
+            "min": 10,
+            "max": 1000,
+            "obrigatorio": true
+          },
+          "data_atendimento": {
+            "type": "date",
+            "max": "hoje",
+            "obrigatorio": false
+          }
+        }
+      },
+      "validacoes_backend": {
+        "avaliacoes_publicas": {
+          "moderacao_ia": {
+            "ativo": true,
+            "score_minimo": 0.7,
+            "verifica": ["linguagem_ofensiva", "spam", "conteudo_inadequado"]
+          },
+          "requer_comprovante": false,
+          "status_inicial": "pendente"
+        }
+      },
+      "triggers_banco": {
+        "after_insert": [
+          {
+            "nome": "calcular_media_avaliacoes",
+            "acao": "Atualiza média de avaliações do credenciado"
+          },
+          {
+            "nome": "atualizar_estatisticas_prestador",
+            "acao": "Recalcula estatísticas do prestador"
+          }
+        ],
+        "after_update": [
+          {
+            "nome": "notificar_credenciado_resposta",
+            "acao": "Notifica credenciado quando há resposta pública"
+          }
+        ]
+      },
+      "regras_negocio": {
+        "avaliacoes_internas": {
+          "frequencia": "Uma por período de referência por credenciado",
+          "permissoes": {
+            "criar": ["gestor", "admin"],
+            "visualizar": ["gestor", "admin", "credenciado_proprio"],
+            "editar": ["gestor", "admin"],
+            "deletar": ["admin"]
+          },
+          "calculo_media": "Média aritmética das notas dos critérios",
+          "impacto": "Afeta renovação de credenciamento"
+        },
+        "avaliacoes_publicas": {
+          "anonimato": "Opcional (campo avaliador_anonimo)",
+          "moderacao": {
+            "automatica": "IA score < 0.7",
+            "manual": "Gestores podem aprovar/reprovar",
+            "denuncias": "Usuários podem denunciar avaliações"
+          },
+          "resposta_credenciado": {
+            "permitido": true,
+            "limite": "Uma resposta por avaliação",
+            "max_caracteres": 1000
+          },
+          "visibilidade": "Apenas avaliações com status 'aprovada' são públicas"
+        }
+      },
+      "fluxo_automacao": {
+        "avaliacao_interna": [
+          {
+            "ordem": 1,
+            "nome": "Criação",
+            "status": "rascunho",
+            "acao": "Gestor inicia avaliação"
+          },
+          {
+            "ordem": 2,
+            "nome": "Preenchimento",
+            "acao": "Gestor preenche critérios e observações"
+          },
+          {
+            "ordem": 3,
+            "nome": "Finalização",
+            "status": "finalizada",
+            "acao": "Sistema calcula média e notifica credenciado"
+          }
+        ],
+        "avaliacao_publica": [
+          {
+            "ordem": 1,
+            "nome": "Submissão",
+            "status": "pendente",
+            "acao": "Usuário submete avaliação"
+          },
+          {
+            "ordem": 2,
+            "nome": "Moderação IA",
+            "automatico": true,
+            "acao": "IA analisa conteúdo"
+          },
+          {
+            "ordem": 3,
+            "nome": "Aprovação/Rejeição",
+            "opcoes": ["aprovada", "rejeitada"],
+            "acao": "Gestor ou IA decide"
+          },
+          {
+            "ordem": 4,
+            "nome": "Publicação",
+            "status": "aprovada",
+            "acao": "Avaliação visível publicamente"
+          }
+        ]
+      }
+    },
+    "prazos_alertas": {
+      "descricao": "Sistema de controle de prazos e alertas automáticos",
+      "tabelas_principais": ["controle_prazos", "prazos_credenciamento", "alertas_vencimento", "alertas_enviados", "acoes_prazos"],
+      "entidades_monitoradas": [
+        "documentos_credenciados",
+        "certificados",
+        "certificados_regularidade",
+        "contratos",
+        "afastamentos_credenciados"
+      ],
+      "validacoes_frontend": {
+        "controle_prazos": {
+          "data_vencimento": {
+            "type": "date",
+            "min": "hoje",
+            "obrigatorio": true
+          },
+          "data_emissao": {
+            "type": "date",
+            "max": "data_vencimento",
+            "obrigatorio": false
+          },
+          "dias_alerta": {
+            "type": "array",
+            "valores_padrao": [30, 15, 7, 1],
+            "min_items": 1
+          }
+        }
+      },
+      "triggers_banco": {
+        "before_insert": [
+          {
+            "nome": "calcular_dias_para_vencer",
+            "acao": "Calcula dias restantes até vencimento"
+          }
+        ],
+        "after_insert": [
+          {
+            "nome": "agendar_alertas",
+            "acao": "Cria schedule de alertas baseado em dias_alerta"
+          }
+        ],
+        "after_update": [
+          {
+            "nome": "atualizar_status_credenciado",
+            "acao": "Atualiza status do credenciado se prazo venceu"
+          },
+          {
+            "nome": "registrar_acao_prazo",
+            "acao": "Registra em acoes_prazos qualquer alteração"
+          }
+        ]
+      },
+      "regras_negocio": {
+        "niveis_alerta": [
+          {
+            "nivel": 1,
+            "dias": 30,
+            "destinatarios": ["credenciado", "gestores"],
+            "cor": "yellow",
+            "acao": "Notificação informativa"
+          },
+          {
+            "nivel": 2,
+            "dias": 15,
+            "destinatarios": ["credenciado", "gestores"],
+            "cor": "orange",
+            "acao": "Alerta de urgência"
+          },
+          {
+            "nivel": 3,
+            "dias": 7,
+            "destinatarios": ["credenciado", "gestores", "admin"],
+            "cor": "red",
+            "acao": "Alerta crítico"
+          },
+          {
+            "nivel": 4,
+            "dias": 0,
+            "destinatarios": ["credenciado", "gestores", "admin"],
+            "cor": "red",
+            "acao": "Vencido - suspensão automática"
+          }
+        ],
+        "status_prazo": {
+          "valido": "dias_para_vencer > 30",
+          "proximo_vencimento": "7 <= dias_para_vencer <= 30",
+          "vencimento_iminente": "0 < dias_para_vencer < 7",
+          "vencido": "dias_para_vencer <= 0",
+          "renovado": "data_renovacao != null"
+        },
+        "acoes_automaticas": {
+          "30_dias": ["enviar_email", "criar_notificacao_app"],
+          "15_dias": ["enviar_email", "criar_notificacao_app", "alertar_gestores"],
+          "7_dias": ["enviar_email", "criar_notificacao_app", "alertar_gestores", "alertar_admin"],
+          "vencimento": [
+            "enviar_email_urgente",
+            "criar_notificacao_app_critica",
+            "verificar_regras_suspensao",
+            "executar_suspensao_se_aplicavel"
+          ]
+        },
+        "renovacao": {
+          "tipos_renovaveis": ["certidao_regularidade", "alvara_sanitario", "cnes"],
+          "prazo_antecedencia": 30,
+          "requer_upload_novo_documento": true,
+          "valida_data_emissao": true
+        }
+      },
+      "edge_functions": [
+        "atualizar-prazos-diario",
+        "enviar-alertas-vencimento",
+        "verificar-suspensoes-automaticas"
+      ],
+      "fluxo_automacao": {
+        "monitoramento_diario": [
+          {
+            "ordem": 1,
+            "nome": "Cron Job",
+            "frequencia": "00:00 UTC diariamente",
+            "acao": "Edge function atualizar-prazos-diario"
+          },
+          {
+            "ordem": 2,
+            "nome": "Calcular Status",
+            "acao": "Atualiza dias_para_vencer e status_atual de todos os prazos"
+          },
+          {
+            "ordem": 3,
+            "nome": "Identificar Alertas",
+            "acao": "Busca prazos que precisam de alerta hoje"
+          },
+          {
+            "ordem": 4,
+            "nome": "Enviar Notificações",
+            "acao": "Envia emails e cria notificações in-app"
+          },
+          {
+            "ordem": 5,
+            "nome": "Registrar Envios",
+            "acao": "Salva em alertas_enviados"
+          },
+          {
+            "ordem": 6,
+            "nome": "Verificar Suspensões",
+            "acao": "Aplica regras de suspensão automática se aplicável"
+          }
+        ]
+      }
+    },
+    "workflows": {
+      "descricao": "Sistema de automação de processos e workflows",
+      "tabelas_principais": [
+        "workflows",
+        "workflow_executions",
+        "workflow_step_executions",
+        "workflow_messages",
+        "workflow_events",
+        "workflow_checkpoints",
+        "workflow_approvals",
+        "workflow_form_data"
+      ],
+      "tipos_nodes": {
+        "START": {
+          "descricao": "Nó inicial do workflow",
+          "config": {},
+          "executor": "start-executor.ts"
+        },
+        "END": {
+          "descricao": "Nó final do workflow",
+          "config": {},
+          "executor": "end-executor.ts",
+          "acao": "Marca workflow como completed"
+        },
+        "SEND_MESSAGE": {
+          "descricao": "Envia mensagem para usuário/grupo",
+          "config": {
+            "recipient_id": "uuid ou 'todos'",
+            "message_template": "string",
+            "visivel_para": "array de roles"
+          },
+          "executor": "message-executor.ts"
+        },
+        "WAIT_RESPONSE": {
+          "descricao": "Aguarda resposta do usuário",
+          "config": {
+            "expected_response_type": "text|file|approval",
+            "timeout_hours": "number"
+          },
+          "executor": "wait-executor.ts",
+          "pausavel": true
+        },
+        "DECISION": {
+          "descricao": "Roteamento condicional",
+          "config": {
+            "condition": "expressão JSONLogic",
+            "paths": {
+              "true": "node_id",
+              "false": "node_id"
+            }
+          },
+          "executor": "decision-executor.ts"
+        },
+        "HTTP_REQUEST": {
+          "descricao": "Chama API externa",
+          "config": {
+            "url": "string",
+            "method": "GET|POST|PUT|DELETE",
+            "headers": "object",
+            "body": "object"
+          },
+          "executor": "http-executor.ts"
+        },
+        "CREATE_DOCUMENT": {
+          "descricao": "Gera documento a partir de template",
+          "config": {
+            "template_id": "uuid",
+            "output_format": "pdf|docx"
+          },
+          "executor": "document-executor.ts"
+        },
+        "APPROVAL": {
+          "descricao": "Solicita aprovação de gestor",
+          "config": {
+            "approver_role": "gestor|admin",
+            "approval_type": "single|multiple"
+          },
+          "executor": "approval-executor.ts",
+          "pausavel": true
+        },
+        "PARALLEL": {
+          "descricao": "Executa múltiplos caminhos em paralelo",
+          "config": {
+            "branches": ["array de node_ids"]
+          },
+          "executor": "parallel-executor.ts"
+        },
+        "JOIN": {
+          "descricao": "Aguarda conclusão de caminhos paralelos",
+          "config": {
+            "join_type": "all|any",
+            "required_branches": "number"
+          },
+          "executor": "join-executor.ts"
+        }
+      },
+      "validacoes_backend": {
+        "workflow_executions": {
+          "status": ["pending", "running", "paused", "completed", "failed", "cancelled"],
+          "transicoes_permitidas": {
+            "pending": ["running", "cancelled"],
+            "running": ["paused", "completed", "failed", "cancelled"],
+            "paused": ["running", "cancelled"],
+            "completed": [],
+            "failed": [],
+            "cancelled": []
+          }
+        },
+        "workflow_approvals": {
+          "decisao": ["approved", "rejected", "pending"],
+          "requer_justificativa_se": "decisao === 'rejected'"
+        }
+      },
+      "triggers_banco": {
+        "after_insert_workflow_executions": [
+          {
+            "nome": "iniciar_primeiro_step",
+            "acao": "Cria step_execution para nó START"
+          }
+        ],
+        "after_update_workflow_executions": [
+          {
+            "nome": "notificar_mudanca_status",
+            "acao": "Notifica usuários sobre mudança de status"
+          },
+          {
+            "nome": "sync_workflow_status_to_inscricao",
+            "acao": "Sincroniza status do workflow com inscrição relacionada"
+          }
+        ],
+        "after_insert_workflow_messages": [
+          {
+            "nome": "criar_notificacao_app",
+            "acao": "Cria notificação in-app para destinatários"
+          }
+        ]
+      },
+      "regras_negocio": {
+        "execucao": {
+          "max_steps_por_execucao": 1000,
+          "timeout_padrao": "24 horas",
+          "retry_on_failure": {
+            "max_tentativas": 3,
+            "backoff": "exponencial"
+          }
+        },
+        "pausas": {
+          "nodes_pausaveis": ["WAIT_RESPONSE", "APPROVAL"],
+          "timeout_pausa": "configurável por node",
+          "acao_timeout": "cancelar ou avançar para próximo step"
+        },
+        "aprovacoes": {
+          "tipos": {
+            "single": "Uma aprovação suficiente",
+            "multiple": "Todas aprovações necessárias",
+            "majority": "Maioria de aprovações necessária"
+          },
+          "roles_aprovadores": ["gestor", "admin"],
+          "notificacao_automatica": true
+        },
+        "mensagens": {
+          "visibilidade": {
+            "todos": "Visível para todos participantes",
+            "role_especifico": "Visível apenas para role",
+            "usuario_especifico": "Visível apenas para usuário"
+          },
+          "anexos": {
+            "permitido": true,
+            "max_tamanho": "10MB",
+            "bucket": "workflow-anexos"
+          }
+        }
+      },
+      "edge_functions": [
+        "execute-workflow",
+        "resume-workflow",
+        "cancel-workflow",
+        "process-workflow-event"
+      ],
+      "orchestrator": {
+        "arquivo": "supabase/functions/execute-workflow/orchestrator/workflow-orchestrator.ts",
+        "componentes": {
+          "GraphBuilder": "Constrói grafo de dependências",
+          "ContextManager": "Gerencia contexto de execução",
+          "ExecutionScheduler": "Agenda próximos nodes",
+          "StateTracker": "Rastreia estado dos nodes",
+          "ConditionalNavigator": "Avalia condições",
+          "JoinStrategyHandler": "Gerencia joins paralelos"
+        }
+      }
+    },
+    "sancoes": {
+      "descricao": "Sistema de sanções e ocorrências de prestadores",
+      "tabelas_principais": ["ocorrencias_prestadores", "sancoes_prestadores"],
+      "tipos_ocorrencia": [
+        "documentacao_irregular",
+        "prazo_vencido",
+        "atendimento_inadequado",
+        "falta_injustificada",
+        "descumprimento_contratual",
+        "irregularidade_fiscal",
+        "outro"
+      ],
+      "tipos_sancao": {
+        "advertencia": {
+          "gravidade": "leve",
+          "efeito": "Registro formal",
+          "impacto_status": false
+        },
+        "suspensao_temporaria": {
+          "gravidade": "media",
+          "duracao": "30-90 dias",
+          "efeito": "Credenciado suspenso temporariamente",
+          "impacto_status": true,
+          "status_resultado": "Suspenso"
+        },
+        "multa": {
+          "gravidade": "media",
+          "efeito": "Aplicação de multa contratual",
+          "impacto_status": false
+        },
+        "descredenciamento": {
+          "gravidade": "grave",
+          "efeito": "Perda permanente de credenciamento",
+          "impacto_status": true,
+          "status_resultado": "Descredenciado",
+          "requer_aprovacao": "admin"
+        }
+      },
+      "validacoes_frontend": {
+        "ocorrencias": {
+          "tipo_ocorrencia": {
+            "type": "enum",
+            "obrigatorio": true
+          },
+          "descricao": {
+            "type": "string",
+            "min": 20,
+            "max": 2000,
+            "obrigatorio": true
+          },
+          "gravidade": {
+            "type": "enum",
+            "valores": ["leve", "media", "grave"],
+            "obrigatorio": true
+          },
+          "evidencias": {
+            "type": "array",
+            "formato": "urls de documentos",
+            "opcional": true
+          }
+        },
+        "sancoes": {
+          "tipo_sancao": {
+            "type": "enum",
+            "obrigatorio": true
+          },
+          "justificativa": {
+            "type": "string",
+            "min": 50,
+            "obrigatorio": true
+          },
+          "data_inicio": {
+            "type": "date",
+            "min": "hoje",
+            "obrigatorio": true
+          },
+          "data_fim": {
+            "type": "date",
+            "min": "data_inicio",
+            "obrigatorio_se": "tipo_sancao === 'suspensao_temporaria'"
+          }
+        }
+      },
+      "triggers_banco": {
+        "after_insert_sancoes": [
+          {
+            "nome": "atualizar_status_credenciado",
+            "acao": "Atualiza status do credenciado conforme sanção"
+          },
+          {
+            "nome": "notificar_credenciado",
+            "acao": "Notifica credenciado sobre sanção aplicada"
+          },
+          {
+            "nome": "registrar_historico",
+            "acao": "Registra em credenciado_historico"
+          }
+        ],
+        "after_update_sancoes": [
+          {
+            "nome": "verificar_fim_suspensao",
+            "acao": "Reativa credenciado se suspensão terminou"
+          }
+        ]
+      },
+      "regras_negocio": {
+        "ocorrencias": {
+          "registro_obrigatorio": true,
+          "requer_evidencias": "gravidade === 'grave'",
+          "prazo_contestacao": "15 dias",
+          "roles_registro": ["gestor", "admin"]
+        },
+        "sancoes": {
+          "baseada_em_ocorrencia": "Opcional mas recomendado",
+          "acumulativa": "Múltiplas ocorrências podem gerar sanção maior",
+          "reversivel": {
+            "advertencia": true,
+            "suspensao": true,
+            "descredenciamento": false
+          },
+          "notificacao_automatica": true,
+          "registro_auditoria": true
+        },
+        "escalacao": {
+          "regra": "3 advertências = suspensão temporária",
+          "gravidade_automatica": true
+        }
+      },
+      "permissoes": {
+        "criar_ocorrencia": ["gestor", "admin"],
+        "aplicar_sancao": ["gestor", "admin"],
+        "remover_sancao": ["admin"],
+        "visualizar": ["gestor", "admin", "credenciado_proprio"]
+      }
+    },
+    "suspensao_automatica": {
+      "descricao": "Regras de suspensão automática de credenciados",
+      "tabela_principal": "regras_suspensao_automatica",
+      "regras_padrao": [
+        {
+          "nome": "Documento vencido crítico",
+          "tipo_entidade": "documentos_credenciados",
+          "condicao": "status === 'vencido' AND categoria IN ['alvara_sanitario', 'cnes', 'certidao_regularidade']",
+          "dias_tolerancia": 0,
+          "acao": "suspender",
+          "notificar_antes": true,
+          "reversivel_automaticamente": true,
+          "prioridade": 1
+        },
+        {
+          "nome": "Certificado regularidade vencido",
+          "tipo_entidade": "certificados_regularidade",
+          "condicao": "status === 'vencido'",
+          "dias_tolerancia": 0,
+          "acao": "suspender",
+          "notificar_antes": true,
+          "reversivel_automaticamente": true,
+          "prioridade": 1
+        },
+        {
+          "nome": "Múltiplas ocorrências graves",
+          "tipo_entidade": "ocorrencias_prestadores",
+          "condicao": "COUNT(gravidade = 'grave') >= 3 AND periodo <= 90 dias",
+          "dias_tolerancia": 0,
+          "acao": "suspender",
+          "notificar_antes": false,
+          "reversivel_automaticamente": false,
+          "prioridade": 2
+        }
+      ],
+      "validacoes": {
+        "regras": {
+          "condicao": {
+            "type": "string",
+            "formato": "expressão SQL ou JSONLogic",
+            "obrigatorio": true
+          },
+          "dias_tolerancia": {
+            "type": "integer",
+            "min": 0,
+            "default": 0
+          },
+          "prioridade": {
+            "type": "integer",
+            "min": 1,
+            "max": 10,
+            "default": 5
+          }
+        }
+      },
+      "triggers_banco": {
+        "verificacao_periodica": [
+          {
+            "nome": "verificar_regras_suspensao",
+            "frequencia": "Diariamente às 00:00 UTC",
+            "acao": "Edge function verifica todas as regras ativas"
+          }
+        ]
+      },
+      "regras_negocio": {
+        "execucao": {
+          "ordem": "Por prioridade (1 = mais alta)",
+          "agregacao": "Se múltiplas regras aplicam, executa a de maior prioridade",
+          "log_obrigatorio": true
+        },
+        "reversao": {
+          "automatica": {
+            "condicao": "reversivel_automaticamente === true AND causa_resolvida",
+            "exemplo": "Documento renovado automaticamente reativa credenciado"
+          },
+          "manual": {
+            "roles": ["admin", "gestor"],
+            "requer_justificativa": true
+          }
+        },
+        "notificacao": {
+          "antes_suspensao": {
+            "ativo_se": "notificar_antes === true",
+            "antecedencia": "definido por dias_tolerancia",
+            "destinatarios": ["credenciado", "gestores"]
+          },
+          "apos_suspensao": {
+            "ativo": true,
+            "destinatarios": ["credenciado", "gestores", "admin"]
+          }
+        }
+      },
+      "edge_functions": ["verificar-suspensoes-automaticas"],
+      "tabela_log": "logs_regras_suspensao"
+    },
+    "credenciamento": {
+      "descricao": "Gestão de credenciados ativos",
+      "tabelas_principais": [
+        "credenciados",
+        "credenciado_crms",
+        "credenciado_consultorios",
+        "credenciado_categorias",
+        "credenciado_servicos",
+        "credenciado_historico",
+        "historico_status_credenciado"
+      ],
+      "status_permitidos": [
+        "Ativo",
+        "Suspenso",
+        "Inativo",
+        "Descredenciado",
+        "Em Afastamento"
+      ],
+      "validacoes_frontend": {
+        "dados_credenciado": {
+          "nome_completo": {
+            "type": "string",
+            "min": 5,
+            "obrigatorio": true
+          },
+          "cpf": {
+            "type": "string",
+            "regex": "\\d{11}",
+            "unico": true,
+            "obrigatorio": true
+          },
+          "email": {
+            "type": "string",
+            "formato": "email",
+            "unico": true,
+            "obrigatorio": true
+          },
+          "telefone": {
+            "type": "string",
+            "regex": "\\d{10,11}",
+            "obrigatorio": true
+          }
+        },
+        "crms": {
+          "minimo": 1,
+          "campos": {
+            "crm": {
+              "type": "string",
+              "obrigatorio": true
+            },
+            "uf_crm": {
+              "type": "string",
+              "length": 2,
+              "obrigatorio": true
+            },
+            "especialidade": {
+              "type": "string",
+              "obrigatorio": true
+            }
+          }
+        },
+        "consultorios": {
+          "minimo": 1,
+          "maximo": 10,
+          "campos_obrigatorios": ["cnes", "nome_consultorio", "endereco_completo", "horarios"]
+        }
+      },
+      "triggers_banco": {
+        "after_insert": [
+          {
+            "nome": "criar_prazos_automaticos",
+            "acao": "Cria controle de prazos para documentos"
+          },
+          {
+            "nome": "gerar_certificado_inicial",
+            "acao": "Gera certificado de credenciamento"
+          },
+          {
+            "nome": "notificar_credenciamento",
+            "acao": "Notifica credenciado sobre ativação"
+          }
+        ],
+        "after_update": [
+          {
+            "nome": "registrar_mudanca_status",
+            "acao": "Registra em historico_status_credenciado"
+          },
+          {
+            "nome": "atualizar_consultorios_status",
+            "acao": "Propaga status para consultórios"
+          }
+        ]
+      },
+      "regras_negocio": {
+        "ativacao": {
+          "origem": "inscricao_aprovada",
+          "requer": ["contrato_assinado", "documentos_validos", "consultorios_cadastrados"],
+          "cria": ["certificado_credenciamento", "prazos_documentos", "perfil_publico"]
+        },
+        "suspensao": {
+          "causas": ["documento_vencido", "sancao_aplicada", "solicitacao_credenciado", "decisao_administrativa"],
+          "efeito": ["oculta_mapa_publico", "bloqueia_servicos", "mantem_dados"],
+          "reversivel": true
+        },
+        "descredenciamento": {
+          "causas": ["sancao_grave", "solicitacao_credenciado", "decisao_judicial"],
+          "efeito": ["remove_mapa_publico", "cancela_contratos", "arquiva_dados"],
+          "reversivel": false
+        },
+        "afastamento": {
+          "tipos": ["ferias", "licenca_medica", "licenca_maternidade", "outro"],
+          "requer_aprovacao": true,
+          "mantem_status_ativo": false,
+          "status_temporario": "Em Afastamento"
+        }
+      },
+      "permissoes": {
+        "visualizar": ["publico_limitado", "credenciado_proprio_completo", "gestor_completo", "admin_completo"],
+        "editar": ["credenciado_proprio_limitado", "gestor", "admin"],
+        "suspender": ["gestor", "admin"],
+        "descredenciar": ["admin"],
+        "reativar": ["gestor", "admin"]
+      }
+    },
+    "contratos": {
+      "descricao": "Gestão de contratos de credenciamento",
+      "tabelas_principais": ["contratos", "contract_templates"],
+      "status_permitidos": [
+        "pendente_assinatura",
+        "assinado",
+        "vigente",
+        "rescindido",
+        "vencido"
+      ],
+      "validacoes_frontend": {
+        "contrato": {
+          "inscricao_id": {
+            "type": "uuid",
+            "obrigatorio": true,
+            "unico": true
+          },
+          "template_id": {
+            "type": "uuid",
+            "obrigatorio": true
+          },
+          "tipo": {
+            "type": "enum",
+            "valores": ["credenciamento", "aditivo", "rescisao"],
+            "default": "credenciamento"
+          },
+          "numero_contrato": {
+            "type": "string",
+            "formato": "AUTO-GERADO",
+            "unico": true
+          }
+        }
+      },
+      "triggers_banco": {
+        "before_insert": [
+          {
+            "nome": "gerar_numero_contrato",
+            "acao": "Gera número sequencial único"
+          }
+        ],
+        "after_insert": [
+          {
+            "nome": "criar_credenciado_se_aprovado",
+            "acao": "Se análise aprovada, cria registro em credenciados"
+          }
+        ],
+        "after_update": [
+          {
+            "nome": "processar_assinatura",
+            "acao": "Se assinado, ativa credenciamento"
+          }
+        ]
+      },
+      "regras_negocio": {
+        "geracao": {
+          "quando": "Após aprovação de análise",
+          "template": "Baseado em contract_templates",
+          "campos_merge": ["dados inscrição", "dados análise", "dados edital"],
+          "formato_saida": "PDF"
+        },
+        "assinatura": {
+          "metodo": "Digital (planejado) ou manual",
+          "prazo": "30 dias após geração",
+          "obrigatorio_para": "Ativar credenciamento"
+        },
+        "vigencia": {
+          "inicio": "Data de assinatura",
+          "duracao": "Definido no edital (geralmente 12-24 meses)",
+          "renovacao": "Pode ser renovado mediante novo processo"
+        },
+        "rescisao": {
+          "tipos": ["bilateral", "unilateral_credenciado", "unilateral_gestao"],
+          "efeito": "Descredenciamento",
+          "requer_justificativa": true
+        }
+      },
+      "fluxo_automacao": [
+        {
+          "ordem": 1,
+          "nome": "Aprovação Análise",
+          "trigger": "analises.status = 'aprovada'"
+        },
+        {
+          "ordem": 2,
+          "nome": "Gerar Contrato",
+          "acao": "Sistema gera PDF a partir de template"
+        },
+        {
+          "ordem": 3,
+          "nome": "Notificar Candidato",
+          "acao": "Email com link para visualizar/assinar"
+        },
+        {
+          "ordem": 4,
+          "nome": "Aguardar Assinatura",
+          "status": "pendente_assinatura"
+        },
+        {
+          "ordem": 5,
+          "nome": "Processar Assinatura",
+          "acao": "Atualiza status para 'assinado'"
+        },
+        {
+          "ordem": 6,
+          "nome": "Ativar Credenciamento",
+          "acao": "Cria registro em credenciados",
+          "status_final": "vigente"
+        }
+      ],
+      "permissoes": {
+        "gerar": ["sistema_automatico", "gestor", "admin"],
+        "visualizar": ["candidato_proprio", "gestor", "admin"],
+        "assinar": ["candidato_proprio"],
+        "rescindir": ["gestor", "admin"]
+      }
+    },
+    "notificacoes": {
+      "descricao": "Sistema de notificações in-app",
+      "tabela_principal": "app_notifications",
+      "tipos_notificacao": [
+        "inscricao_status",
+        "analise_feedback",
+        "correcao_solicitada",
+        "aprovacao_inscricao",
+        "contrato_disponivel",
+        "prazo_vencimento",
+        "avaliacao_recebida",
+        "sancao_aplicada",
+        "workflow_action_required",
+        "sistema"
+      ],
+      "validacoes": {
+        "notificacao": {
+          "user_id": {
+            "type": "uuid",
+            "obrigatorio": true
+          },
+          "title": {
+            "type": "string",
+            "max": 255,
+            "obrigatorio": true
+          },
+          "message": {
+            "type": "string",
+            "max": 1000,
+            "opcional": true
+          },
+          "type": {
+            "type": "enum",
+            "valores": ["info", "success", "warning", "error"],
+            "default": "info"
+          },
+          "related_id": {
+            "type": "uuid",
+            "opcional": true,
+            "descricao": "ID da entidade relacionada"
+          },
+          "related_type": {
+            "type": "string",
+            "opcional": true,
+            "descricao": "Tipo da entidade (inscricao, credenciado, etc)"
+          }
+        }
+      },
+      "triggers_automaticos": {
+        "inscricao_enviada": {
+          "tipo": "info",
+          "titulo": "Inscrição enviada com sucesso",
+          "mensagem": "Sua inscrição está em análise"
+        },
+        "analise_aprovada": {
+          "tipo": "success",
+          "titulo": "Inscrição aprovada!",
+          "mensagem": "Parabéns! Seu contrato está disponível"
+        },
+        "analise_reprovada": {
+          "tipo": "error",
+          "titulo": "Inscrição não aprovada",
+          "mensagem": "Confira os motivos e orientações"
+        },
+        "correcao_solicitada": {
+          "tipo": "warning",
+          "titulo": "Correções necessárias",
+          "mensagem": "Você tem 15 dias para enviar as correções"
+        },
+        "prazo_30_dias": {
+          "tipo": "info",
+          "titulo": "Documento próximo ao vencimento",
+          "mensagem": "Renove em até 30 dias"
+        },
+        "prazo_7_dias": {
+          "tipo": "warning",
+          "titulo": "Documento vence em 7 dias",
+          "mensagem": "Ação urgente necessária"
+        },
+        "prazo_vencido": {
+          "tipo": "error",
+          "titulo": "Documento vencido",
+          "mensagem": "Seu credenciamento pode ser suspenso"
+        },
+        "workflow_aprovacao": {
+          "tipo": "warning",
+          "titulo": "Aprovação necessária",
+          "mensagem": "Há um processo aguardando sua aprovação"
+        }
+      },
+      "regras_negocio": {
+        "criacao": {
+          "automatica": "Via triggers de banco e edge functions",
+          "manual": "Gestores podem criar notificações customizadas"
+        },
+        "leitura": {
+          "marca_automatica": false,
+          "requer_acao_usuario": true,
+          "registro_data_leitura": true
+        },
+        "retencao": {
+          "duracao": "90 dias",
+          "limpeza_automatica": true
+        },
+        "badge_contador": {
+          "exibe": "COUNT(is_read = false)",
+          "atualiza": "Em tempo real via subscription"
+        }
+      },
+      "permissoes": {
+        "visualizar": ["usuario_proprio"],
+        "criar": ["sistema", "gestor", "admin"],
+        "marcar_lida": ["usuario_proprio"],
+        "deletar": ["admin"]
+      }
+    },
+    "auditoria": {
+      "descricao": "Sistema de auditoria e logs",
+      "tabela_principal": "audit_logs",
+      "eventos_auditados": [
+        {
+          "recurso": "inscricoes_edital",
+          "acoes": ["CREATE", "UPDATE", "DELETE"],
+          "campos_sensiveis": ["cpf", "rg", "email"]
+        },
+        {
+          "recurso": "analises",
+          "acoes": ["CREATE", "UPDATE"],
+          "campos_sensiveis": ["motivo_reprovacao", "parecer"]
+        },
+        {
+          "recurso": "credenciados",
+          "acoes": ["CREATE", "UPDATE", "DELETE"],
+          "campos_sensiveis": ["status", "cpf", "email"]
+        },
+        {
+          "recurso": "contratos",
+          "acoes": ["CREATE", "UPDATE"],
+          "campos_sensiveis": ["status", "numero_contrato"]
+        },
+        {
+          "recurso": "sancoes_prestadores",
+          "acoes": ["CREATE", "UPDATE", "DELETE"],
+          "campos_sensiveis": ["tipo_sancao", "justificativa"]
+        },
+        {
+          "recurso": "workflow_executions",
+          "acoes": ["CREATE", "UPDATE"],
+          "campos_sensiveis": ["status"]
+        }
+      ],
+      "campos_capturados": {
+        "user_id": "UUID do usuário que executou a ação",
+        "user_email": "Email do usuário",
+        "user_role": "Role do usuário no momento da ação",
+        "action": "Tipo de ação (CREATE, UPDATE, DELETE, etc)",
+        "resource_type": "Tipo de recurso afetado",
+        "resource_id": "ID do recurso",
+        "old_values": "Valores anteriores (para UPDATE)",
+        "new_values": "Novos valores",
+        "ip_address": "IP de origem",
+        "user_agent": "Navegador/cliente",
+        "metadata": "Dados adicionais contextuais"
+      },
+      "triggers_banco": {
+        "tabelas_auditadas": "Todas as tabelas críticas têm triggers",
+        "momento": "AFTER INSERT/UPDATE/DELETE",
+        "acao": "Insere registro em audit_logs automaticamente"
+      },
+      "regras_negocio": {
+        "retencao": {
+          "duracao": "5 anos",
+          "imutavel": true,
+          "backup_obrigatorio": true
+        },
+        "acesso": {
+          "visualizar": ["admin", "gestor"],
+          "exportar": ["admin"],
+          "deletar": "Nunca (apenas arquivamento)"
+        },
+        "lgpd": {
+          "anonimizacao": "Após 5 anos, campos sensíveis são anonimizados",
+          "direito_esquecimento": "Logs mantidos mas dados pessoais removidos"
+        }
+      },
+      "queries_uteis": {
+        "mudancas_usuario": "SELECT * FROM audit_logs WHERE user_id = ? ORDER BY created_at DESC",
+        "mudancas_recurso": "SELECT * FROM audit_logs WHERE resource_id = ? ORDER BY created_at DESC",
+        "acoes_periodo": "SELECT * FROM audit_logs WHERE created_at BETWEEN ? AND ?",
+        "acoes_sensiveis": "SELECT * FROM audit_logs WHERE action IN ('DELETE', 'UPDATE') AND resource_type IN ('credenciados', 'sancoes_prestadores')"
+      }
+    }
+  },
+  "integracao_modulos": {
+    "fluxo_completo": [
+      "Inscrição → Análise → Contrato → Credenciamento → Prazos → Avaliações → Renovação/Descredenciamento"
+    ],
+    "dependencias": {
+      "credenciados": {
+        "requer": ["inscricoes_edital aprovada", "contrato assinado"],
+        "gera": ["prazos_credenciamento", "credenciado_consultorios", "certificados"]
+      },
+      "workflows": {
+        "requer": ["inscricoes_edital ou eventos customizados"],
+        "interage_com": ["analises", "aprovacoes", "notificacoes"]
+      },
+      "prazos": {
+        "monitora": ["documentos_credenciados", "certificados", "contratos"],
+        "gera": ["alertas_enviados", "regras_suspensao_automatica"]
+      },
+      "avaliacoes": {
+        "requer": ["credenciados ativos"],
+        "afeta": ["estatisticas_credenciado", "renovacao_credenciamento"]
+      }
+    }
+  }
+}
