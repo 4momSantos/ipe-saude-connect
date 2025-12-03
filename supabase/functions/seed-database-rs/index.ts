@@ -117,12 +117,13 @@ serve(async (req) => {
         results.push(result);
         
         console.log(`[SEED-RS] ✅ ${phase}: ${result.created} registros em ${result.duration}ms`);
-      } catch (error) {
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
         const errorResult: SeedResult = {
           success: false,
           phase,
           created: 0,
-          errors: [error.message],
+          errors: [errorMessage],
           duration: Date.now() - phaseStart
         };
         results.push(errorResult);
@@ -157,12 +158,14 @@ serve(async (req) => {
       }
     );
 
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    const errorStack = error instanceof Error ? error.stack : undefined;
     console.error('[SEED-RS] Erro fatal:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message,
-        stack: error.stack
+        error: errorMessage,
+        stack: errorStack
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

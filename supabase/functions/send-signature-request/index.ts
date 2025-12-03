@@ -163,12 +163,13 @@ async function waitForDocumentReady(
       if (attempt < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, intervalMs));
       }
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       console.error(JSON.stringify({
         level: 'error',
         action: 'polling_exception',
         document_id: documentId,
-        error: error.message,
+        error: errorMessage,
         attempt
       }));
       

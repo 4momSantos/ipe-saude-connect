@@ -61,8 +61,9 @@ export async function seedUsers(
         }
 
         created++;
-      } catch (error) {
-        errors.push(`Exceção ao criar ${email}: ${error.message}`);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+        errors.push(`Exceção ao criar ${email}: ${errorMessage}`);
       }
 
       // Rate limit
@@ -76,7 +77,8 @@ export async function seedUsers(
       errors,
       duration: 0
     };
-  } catch (error) {
-    throw new Error(`Falha na fase de usuários: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    throw new Error(`Falha na fase de usuários: ${errorMessage}`);
   }
 }

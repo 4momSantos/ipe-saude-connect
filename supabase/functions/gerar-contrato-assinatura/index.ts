@@ -35,7 +35,7 @@ import {
   consolidarTelefone,
   extrairEspecialidades,
   determinarTipoCredenciamento,
-  formatarCPF,
+  formatarCPF as formatCPF,
   formatarCNPJ
 } from "./validators.ts";
 import { gerarContratoPDFDireto } from "./pdf-generator.ts";

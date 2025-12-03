@@ -70,7 +70,7 @@ export class ApprovalExecutor implements NodeExecutor {
         .in("grupo_id", approvalConfig.assignedGroups || [])
         .eq("ativo", true);
       
-      assignedAnalysts = [...new Set(groupMembers?.map((m: { user_id: string }) => m.user_id) || [])];
+      assignedAnalysts = [...new Set(groupMembers?.map((m: { user_id: string }) => m.user_id) || [])] as string[];
       console.log('[APPROVAL_EXECUTOR] Aprovação atribuída a membros de grupos:', assignedAnalysts.length, 'usuários únicos');
       
     } else if (approvalConfig.assignmentType === "mixed") {
