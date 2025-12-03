@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Search, Eye, Filter, Clock, CheckCircle, RefreshCw, FileSearch, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useUserRole } from "@/hooks/useUserRole";
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -55,7 +55,7 @@ export default function Analises() {
   const navigate = useNavigate();
   const [processos, setProcessos] = useState<Processo[]>([]);
   const [loading, setLoading] = useState(true);
-  const { roles, loading: rolesLoading } = useUserRole();
+  const { user, roles, loading: rolesLoading } = useAuth();
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [filtroEspecialidade, setFiltroEspecialidade] = useState<string>("todas");
   const [busca, setBusca] = useState("");
@@ -76,15 +76,16 @@ export default function Analises() {
   const { getCount: getUnreadCount, loading: unreadLoading } = useUnreadMessagesBatch(inscricaoIds);
 
   useEffect(() => {
-    loadInscricoes();
-    loadEditais();
-  }, [roles]);
+    if (user) {
+      loadInscricoes();
+      loadEditais();
+    }
+  }, [user, roles]);
 
   const loadInscricoes = async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      // ✅ OTIMIZAÇÃO: Usa user do AuthContext (sem chamada extra)
       if (!user) {
         toast.error("Usuário não autenticado");
         return;
@@ -277,12 +278,13 @@ export default function Analises() {
 
   const handleStatusChange = async (id: string, newStatus: StatusType) => {
     try {
+      // ✅ OTIMIZAÇÃO: Usa user do AuthContext (sem chamada extra)
       const { error } = await supabase
         .from('inscricoes_edital')
         .update({ 
           status: newStatus,
           analisado_em: new Date().toISOString(),
-          analisado_por: (await supabase.auth.getUser()).data.user?.id
+          analisado_por: user?.id
         })
         .eq('id', id);
 
