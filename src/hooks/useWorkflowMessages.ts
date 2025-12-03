@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 const MESSAGE_PAGE_SIZE = 50;
 
@@ -57,24 +58,24 @@ export function useWorkflowMessages({
   executionId,
   autoMarkAsRead = true,
 }: UseWorkflowMessagesOptions): UseWorkflowMessagesReturn {
+  const { user, roles } = useAuth(); // ✅ Usar contexto
   const [messages, setMessages] = useState<Message[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [currentUserType, setCurrentUserType] = useState<"analista" | "candidato">("candidato");
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
   const loadingRef = useRef(false);
 
-  // Carregar usuário atual
-  useEffect(() => {
-    loadCurrentUser();
-  }, []);
+  // ✅ Derivar do contexto em vez de estado local
+  const currentUserId = user?.id || null;
+  const currentUserType: "analista" | "candidato" = roles.some(
+    r => r === "analista" || r === "gestor" || r === "admin"
+  ) ? "analista" : "candidato";
 
   // Carregar mensagens e setup realtime com debounce
   useEffect(() => {
-    if (!inscricaoId) return;
+    if (!inscricaoId || !currentUserId) return;
 
     loadMessages();
 
@@ -155,29 +156,7 @@ export function useWorkflowMessages({
     }
   }, [messages, currentUserId, autoMarkAsRead]);
 
-  const loadCurrentUser = async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-
-      setCurrentUserId(user.id);
-
-      // Verificar roles
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id);
-
-      const isAnalista = roles?.some(
-        (r) => r.role === "analista" || r.role === "gestor" || r.role === "admin"
-      );
-      setCurrentUserType(isAnalista ? "analista" : "candidato");
-    } catch (error) {
-      console.error("[WORKFLOW_MESSAGES] Error loading user:", error);
-    }
-  };
+  // ✅ REMOVIDO: loadCurrentUser - agora usa useAuth()
 
   const loadMessages = async (append = false) => {
     if (loadingRef.current) return;

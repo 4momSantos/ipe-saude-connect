@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 interface UseAutoSaveInscricaoProps {
   editalId: string;
@@ -15,6 +16,7 @@ export function useAutoSaveInscricao({
   enabled,
   onSaveSuccess
 }: UseAutoSaveInscricaoProps) {
+  const { user } = useAuth(); // ✅ Usar contexto
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [inscricaoId, setInscricaoId] = useState<string | null>(null);
@@ -24,7 +26,7 @@ export function useAutoSaveInscricao({
 
   // Salvar rascunho
   const saveRascunho = useCallback(async (silent = false) => {
-    if (!enabled || !editalId || saveLockRef.current) return; // ✅ Verificar lock
+    if (!enabled || !editalId || saveLockRef.current || !user) return; // ✅ Verificar lock e user
 
     saveLockRef.current = true; // ✅ Adquirir lock
     setIsSaving(true);
@@ -44,8 +46,7 @@ export function useAutoSaveInscricao({
     }, 10000);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
+      // ✅ Usar user do contexto em vez de getUser()
 
       const rascunhoData = {
         candidato_id: user.id,
@@ -119,15 +120,14 @@ export function useAutoSaveInscricao({
       saveLockRef.current = false; // ✅ Liberar lock
       setIsSaving(false);
     }
-  }, [enabled, editalId, formData, inscricaoId, onSaveSuccess]);
+  }, [enabled, editalId, formData, inscricaoId, onSaveSuccess, user]);
 
   // Carregar rascunho existente
   const loadRascunho = useCallback(async () => {
-    if (!enabled || !editalId || hasLoadedRef.current) return null;
+    if (!enabled || !editalId || hasLoadedRef.current || !user) return null;
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      // ✅ Usar user do contexto
 
       const { data, error } = await supabase
         .from('inscricoes_edital')
@@ -151,7 +151,7 @@ export function useAutoSaveInscricao({
       console.error('Erro ao carregar rascunho:', error);
       return null;
     }
-  }, [enabled, editalId]);
+  }, [enabled, editalId, user]);
 
   // Deletar rascunho
   const deleteRascunho = useCallback(async () => {

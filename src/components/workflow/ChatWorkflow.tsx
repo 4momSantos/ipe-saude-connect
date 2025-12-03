@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { 
   Send, 
   Paperclip, 
@@ -95,10 +96,11 @@ export function ChatWorkflow({
   dadosCredenciado,
   documentosCredenciado = []
 }: ChatWorkflowProps) {
+  const { user } = useAuth(); // ✅ Usar contexto em vez de getUser()
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [loading, setLoading] = useState(true);
   const [enviando, setEnviando] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const currentUser = user; // Alias para compatibilidade
   
   // Form state
   const [novaMensagem, setNovaMensagem] = useState('');
@@ -135,9 +137,7 @@ export function ChatWorkflow({
 
   const inicializar = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUser(user);
-      
+      // ✅ user já vem do useAuth(), não precisa buscar novamente
       await carregarMensagens();
       await carregarUsuariosDisponiveis();
     } catch (error) {
@@ -380,14 +380,14 @@ export function ChatWorkflow({
     setEnviando(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não autenticado');
+      // ✅ Usar user do contexto
+      if (!currentUser) throw new Error('Usuário não autenticado');
 
       // Buscar nome do usuário
       const { data: profile } = await supabase
         .from('profiles')
         .select('nome, email')
-        .eq('id', user.id)
+        .eq('id', currentUser.id)
         .single();
 
       // Processar menções
@@ -429,9 +429,9 @@ export function ChatWorkflow({
         inscricao_id: inscricaoId,
         execution_id: executionId || null,
         etapa_id: etapaAtual || null,
-        sender_id: user.id,
-        usuario_nome: profile?.nome || user.email,
-        usuario_email: user.email || '',
+        sender_id: currentUser.id,
+        usuario_nome: profile?.nome || currentUser.email,
+        usuario_email: currentUser.email || '',
         usuario_papel: usuarioPapel,
         sender_type: mapearSenderType(usuarioPapel),
         tipo: tipoMensagem,
@@ -467,7 +467,7 @@ export function ChatWorkflow({
               mime_type: anexo.tipo,
               storage_path: anexo.url,
               url_publica: anexo.url,
-              enviado_por: user.id
+              enviado_por: currentUser.id
             } as any)
           )
         );
@@ -486,7 +486,7 @@ export function ChatWorkflow({
         mencoes: data.mencoes || [],
         em_resposta_a: data.em_resposta_a,
         anexos: anexosUpload,
-        lido_por: [user.id], // Já lida pelo remetente
+        lido_por: [currentUser.id], // Já lida pelo remetente
         created_at: data.created_at,
         editada: false,
         manifestacao_metadata: data.manifestacao_metadata

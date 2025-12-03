@@ -1,11 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 export function useCredenciadoAtual() {
+  const { user } = useAuth(); // ✅ Usar contexto
+
   return useQuery({
-    queryKey: ['credenciado-atual'],
+    queryKey: ['credenciado-atual', user?.id],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Não autenticado');
 
       const { data, error } = await supabase
@@ -37,6 +39,7 @@ export function useCredenciadoAtual() {
       if (error) throw error;
       return data;
     },
+    enabled: !!user, // ✅ Só executar se user existir
     staleTime: 5 * 60 * 1000,
     retry: false
   });
