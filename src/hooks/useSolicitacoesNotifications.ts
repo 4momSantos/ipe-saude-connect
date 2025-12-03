@@ -1,43 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 
 /**
  * Hook para notificar admins, gestores e analistas sobre novas solicitações de alteração
+ * Otimizado para usar useAuth() centralizado em vez de chamadas diretas
  */
 export function useSolicitacoesNotifications() {
   const navigate = useNavigate();
-  const [currentUser, setCurrentUser] = useState<any>(null);
-
-  // Buscar usuário atual
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setCurrentUser(data.user);
-    });
-  }, []);
+  const { user, roles } = useAuth();
 
   useEffect(() => {
-    if (!currentUser) return;
+    if (!user) return;
 
-    // Verificar se o usuário tem permissão (admin, gestor ou analista)
-    const checkUserRole = async (): Promise<boolean> => {
-      try {
-        const { data: userRoles } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', currentUser.id);
-
-        if (!userRoles || userRoles.length === 0) return false;
-
-        const roles = userRoles.map(r => r.role);
-        const allowedRoles = ['admin', 'gestor', 'analista'];
-        return roles.some(role => allowedRoles.includes(role));
-      } catch (error) {
-        console.error('Erro ao verificar role:', error);
-        return false;
-      }
-    };
+    // Verificar se o usuário tem permissão diretamente do contexto
+    const allowedRoles = ['admin', 'gestor', 'analista'];
+    const hasPermission = roles.some(role => allowedRoles.includes(role));
+    if (!hasPermission) return;
 
     // Configurar listener para novas solicitações
     const channel = supabase
@@ -50,14 +31,10 @@ export function useSolicitacoesNotifications() {
           table: 'solicitacoes_alteracao',
         },
         async (payload) => {
-          // Verificar se o usuário tem permissão
-          const hasPermission = await checkUserRole();
-          if (!hasPermission) return;
-
           const solicitacao = payload.new;
 
           // Não notificar se foi o próprio usuário que criou
-          if (solicitacao.user_id === currentUser.id) return;
+          if (solicitacao.user_id === user.id) return;
 
           // Buscar dados do credenciado
           const { data: credenciado } = await supabase
@@ -82,10 +59,8 @@ export function useSolicitacoesNotifications() {
           try {
             const audio = new Audio('/notification.mp3');
             audio.volume = 0.3;
-            audio.play().catch(() => {
-              // Ignorar erros de reprodução
-            });
-          } catch (error) {
+            audio.play().catch(() => {});
+          } catch {
             // Ignorar erros de áudio
           }
         }
@@ -95,5 +70,5 @@ export function useSolicitacoesNotifications() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentUser, navigate]);
+  }, [user, roles, navigate]);
 }

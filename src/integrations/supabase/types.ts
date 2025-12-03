@@ -7034,6 +7034,32 @@ export type Database = {
           signature_request_id: string
         }[]
       }
+      get_credenciados_completo: {
+        Args: never
+        Returns: {
+          celular: string
+          cep: string
+          cidade: string
+          cnpj: string
+          cpf: string
+          created_at: string
+          crms: Json
+          data_nascimento: string
+          email: string
+          endereco: string
+          estado: string
+          id: string
+          inscricao_id: string
+          nome: string
+          numero_credenciado: string
+          observacoes: string
+          porte: string
+          rg: string
+          servicos: Json
+          status: string
+          telefone: string
+        }[]
+      }
       get_credenciados_sem_crms: {
         Args: { tipo_cred: string }
         Returns: {
