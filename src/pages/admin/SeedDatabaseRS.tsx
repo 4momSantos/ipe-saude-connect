@@ -4,14 +4,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Database, Loader2 } from 'lucide-react';
+import { Database, Loader2, Trash2 } from 'lucide-react';
 import { ProtectedRoute as RoleGuard } from '@/components/ProtectedRoute';
+import { useCleanupSeedData } from '@/hooks/useCleanupSeedData';
 
 export default function SeedDatabaseRS() {
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
   const { toast } = useToast();
+  const { cleanup, isLoading: isCleaningUp } = useCleanupSeedData();
 
   const runSeed = async (volume: 'small' | 'medium' | 'full') => {
     setLoading(true);
@@ -57,14 +59,14 @@ export default function SeedDatabaseRS() {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader>
               <CardTitle>Pequeno (30-50)</CardTitle>
               <CardDescription>Teste rápido</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button onClick={() => runSeed('small')} disabled={loading} className="w-full">
+              <Button onClick={() => runSeed('small')} disabled={loading || isCleaningUp} className="w-full">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Executar'}
               </Button>
             </CardContent>
@@ -76,7 +78,7 @@ export default function SeedDatabaseRS() {
               <CardDescription>Volume recomendado</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button onClick={() => runSeed('medium')} disabled={loading} className="w-full">
+              <Button onClick={() => runSeed('medium')} disabled={loading || isCleaningUp} className="w-full">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Executar'}
               </Button>
             </CardContent>
@@ -88,8 +90,28 @@ export default function SeedDatabaseRS() {
               <CardDescription>Volume máximo</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button onClick={() => runSeed('full')} disabled={loading} className="w-full">
+              <Button onClick={() => runSeed('full')} disabled={loading || isCleaningUp} className="w-full">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Executar'}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="border-destructive/50">
+            <CardHeader>
+              <CardTitle className="text-destructive flex items-center gap-2">
+                <Trash2 className="h-5 w-5" />
+                Limpar Seed
+              </CardTitle>
+              <CardDescription>Remove todos os dados seed criados</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={() => cleanup()} 
+                disabled={loading || isCleaningUp} 
+                variant="destructive"
+                className="w-full"
+              >
+                {isCleaningUp ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Limpar Dados'}
               </Button>
             </CardContent>
           </Card>
