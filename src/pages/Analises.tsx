@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ProcessDetailPanel } from "@/components/ProcessDetailPanel";
-import { useUnreadMessages } from "@/hooks/useUnreadMessages";
+import { useUnreadMessagesBatch } from "@/hooks/useUnreadMessagesBatch";
 import { MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -70,6 +70,10 @@ export default function Analises() {
     titulo: string;
     numero_edital: string;
   }>>([]);
+
+  // ✅ OTIMIZAÇÃO: Hook batch para mensagens não lidas (1 query para todas inscrições)
+  const inscricaoIds = processos.map(p => p.id);
+  const { getCount: getUnreadCount, loading: unreadLoading } = useUnreadMessagesBatch(inscricaoIds);
 
   useEffect(() => {
     loadInscricoes();
@@ -138,41 +142,48 @@ export default function Analises() {
       console.log('[ANALISES] Total de inscrições carregadas:', data?.length);
       console.log('[ANALISES] Amostra de dados_inscricao:', data?.[0]?.dados_inscricao);
 
-      // ✅ Transformar dados com normalização e resolução de especialidades
-      const processosFormatados: Processo[] = await Promise.all(
-        (data || []).map(async (inscricao: any) => {
-          const nome = extrairNomeCompleto(inscricao.dados_inscricao);
-          const especialidadesIds = extrairEspecialidadesIds(inscricao.dados_inscricao);
-          
-          // Resolver especialidades
-          let especialidadesNomes: string[] = [];
-          if (especialidadesIds.length > 0) {
-            const { data: especialidades } = await supabase
-              .from('especialidades_medicas')
-              .select('nome')
-              .in('id', especialidadesIds);
-            
-            especialidadesNomes = especialidades?.map(e => e.nome) || [];
-          }
-          
-          return {
-            id: inscricao.id,
-            protocolo: inscricao.protocolo || `IPE-TEMP-${inscricao.id.substring(0, 8)}`,
-            numeroEdital: inscricao.editais?.numero_edital || 'N/A',
-            nome,
-            especialidade: especialidadesNomes.join(', ') || inscricao.editais?.especialidade || "Não informada",
-            dataSubmissao: inscricao.created_at,
-            status: inscricao.status as StatusType,
-            analista: inscricao.analisado_por ? "Analista atribuído" : undefined,
-            edital_titulo: inscricao.editais?.titulo,
-            edital_id: inscricao.edital_id,
-            workflow_execution_id: inscricao.workflow_execution_id,
-            workflow_status: inscricao.workflow_executions?.status,
-            workflow_current_step: inscricao.workflow_executions?.current_node_id,
-            workflow_name: inscricao.workflow_executions?.workflows?.name,
-          };
-        })
-      );
+      // ✅ OTIMIZAÇÃO: Buscar todas as especialidades em UMA única query
+      const todosIdsEspecialidades = new Set<string>();
+      (data || []).forEach((inscricao: any) => {
+        extrairEspecialidadesIds(inscricao.dados_inscricao).forEach(id => todosIdsEspecialidades.add(id));
+      });
+
+      // Uma única query para todas as especialidades
+      let especialidadesMap = new Map<string, string>();
+      if (todosIdsEspecialidades.size > 0) {
+        const { data: todasEspecialidades } = await supabase
+          .from('especialidades_medicas')
+          .select('id, nome')
+          .in('id', Array.from(todosIdsEspecialidades));
+        
+        todasEspecialidades?.forEach(e => especialidadesMap.set(e.id, e.nome));
+      }
+
+      // Transformar dados usando o Map (sem queries adicionais)
+      const processosFormatados: Processo[] = (data || []).map((inscricao: any) => {
+        const nome = extrairNomeCompleto(inscricao.dados_inscricao);
+        const especialidadesIds = extrairEspecialidadesIds(inscricao.dados_inscricao);
+        const especialidadesNomes = especialidadesIds
+          .map(id => especialidadesMap.get(id))
+          .filter(Boolean) as string[];
+        
+        return {
+          id: inscricao.id,
+          protocolo: inscricao.protocolo || `IPE-TEMP-${inscricao.id.substring(0, 8)}`,
+          numeroEdital: inscricao.editais?.numero_edital || 'N/A',
+          nome,
+          especialidade: especialidadesNomes.join(', ') || inscricao.editais?.especialidade || "Não informada",
+          dataSubmissao: inscricao.created_at,
+          status: inscricao.status as StatusType,
+          analista: inscricao.analisado_por ? "Analista atribuído" : undefined,
+          edital_titulo: inscricao.editais?.titulo,
+          edital_id: inscricao.edital_id,
+          workflow_execution_id: inscricao.workflow_execution_id,
+          workflow_status: inscricao.workflow_executions?.status,
+          workflow_current_step: inscricao.workflow_executions?.current_node_id,
+          workflow_name: inscricao.workflow_executions?.workflows?.name,
+        };
+      });
 
       console.log('[ANALISES] Processos formatados:', processosFormatados.length);
       console.log('[ANALISES] Nomes extraídos:', processosFormatados.map(p => p.nome));
@@ -549,114 +560,103 @@ export default function Analises() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-              {processosFiltrados.map((processo) => {
-                const UnreadBadge = () => {
-                  const { unreadCount, loading } = useUnreadMessages(processo.id);
-                  
-                  if (loading) {
-                    return <Skeleton className="h-6 w-16" />;
-                  }
-                  
-                  if (unreadCount === 0) {
+                  {processosFiltrados.map((processo) => {
+                    const unreadCount = getUnreadCount(processo.id);
                     return (
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <MessageCircle className="h-3 w-3" />
-                        Nenhuma
-                      </span>
-                    );
-                  }
-                  
-                  return (
-                    <Badge 
-                      variant="destructive" 
-                      className="animate-pulse flex items-center gap-1"
-                    >
-                      <MessageCircle className="h-3 w-3" />
-                      {unreadCount} {unreadCount === 1 ? 'nova' : 'novas'}
-                    </Badge>
-                  );
-                };
-                
-                return (
-                    <TableRow
-                      key={processo.id}
-                      className="hover:bg-card/50 cursor-pointer"
-                      onClick={() => setProcessoSelecionado(processo)}
-                    >
-                      {(roles.includes('gestor') || roles.includes('admin')) && (
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          <Checkbox
-                            checked={selectedIds.includes(processo.id)}
-                            onCheckedChange={() => toggleSelect(processo.id)}
-                          />
-                        </TableCell>
-                      )}
-                      <TableCell className="font-mono text-sm">{processo.protocolo}</TableCell>
-                      <TableCell className="text-sm">{processo.numeroEdital}</TableCell>
-                      <TableCell className="font-medium">{processo.nome}</TableCell>
-                      <TableCell>{processo.especialidade}</TableCell>
-                      <TableCell>
-                        {new Date(processo.dataSubmissao).toLocaleDateString("pt-BR")}
-                      </TableCell>
-                      <TableCell>
-                        {processo.workflow_execution_id ? (
-                          <div className="flex flex-col gap-1">
-                            <span className="text-xs font-medium">{processo.workflow_name || "Workflow"}</span>
-                            <Badge 
-                              variant="outline" 
-                              className={
-                                processo.workflow_status === 'running' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                                processo.workflow_status === 'completed' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                                processo.workflow_status === 'failed' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                                'bg-orange-500/10 text-orange-400 border-orange-500/20'
-                              }
-                            >
-                              {processo.workflow_status === 'running' ? 'Em Execução' :
-                               processo.workflow_status === 'completed' ? 'Concluído' :
-                               processo.workflow_status === 'failed' ? 'Falhou' :
-                               'Pendente'}
-                            </Badge>
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">Sem workflow</span>
+                      <TableRow
+                        key={processo.id}
+                        className="hover:bg-card/50 cursor-pointer"
+                        onClick={() => setProcessoSelecionado(processo)}
+                      >
+                        {(roles.includes('gestor') || roles.includes('admin')) && (
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              checked={selectedIds.includes(processo.id)}
+                              onCheckedChange={() => toggleSelect(processo.id)}
+                            />
+                          </TableCell>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        <UnreadBadge />
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={processo.status} />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-border hover:bg-card"
-                            onClick={() => setProcessoSelecionado(processo)}
-                            title="Ver resumo rápido e mensagens"
-                          >
-                            <Eye className="h-4 w-4" />
-                            <span className="ml-1 hidden lg:inline">Ver Detalhes</span>
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="default"
-                            className="font-semibold"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/analista/inscricoes/${processo.id}`);
-                            }}
-                            title="Abrir análise completa para registrar decisão formal"
-                          >
-                            <FileSearch className="h-4 w-4" />
-                            <span className="ml-1 hidden lg:inline">Análise Completa</span>
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                        <TableCell className="font-mono text-sm">{processo.protocolo}</TableCell>
+                        <TableCell className="text-sm">{processo.numeroEdital}</TableCell>
+                        <TableCell className="font-medium">{processo.nome}</TableCell>
+                        <TableCell>{processo.especialidade}</TableCell>
+                        <TableCell>
+                          {new Date(processo.dataSubmissao).toLocaleDateString("pt-BR")}
+                        </TableCell>
+                        <TableCell>
+                          {processo.workflow_execution_id ? (
+                            <div className="flex flex-col gap-1">
+                              <span className="text-xs font-medium">{processo.workflow_name || "Workflow"}</span>
+                              <Badge 
+                                variant="outline" 
+                                className={
+                                  processo.workflow_status === 'running' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                                  processo.workflow_status === 'completed' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                                  processo.workflow_status === 'failed' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                                  'bg-orange-500/10 text-orange-400 border-orange-500/20'
+                                }
+                              >
+                                {processo.workflow_status === 'running' ? 'Em Execução' :
+                                 processo.workflow_status === 'completed' ? 'Concluído' :
+                                 processo.workflow_status === 'failed' ? 'Falhou' :
+                                 'Pendente'}
+                              </Badge>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Sem workflow</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {unreadLoading ? (
+                            <Skeleton className="h-6 w-16" />
+                          ) : unreadCount === 0 ? (
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <MessageCircle className="h-3 w-3" />
+                              Nenhuma
+                            </span>
+                          ) : (
+                            <Badge 
+                              variant="destructive" 
+                              className="animate-pulse flex items-center gap-1"
+                            >
+                              <MessageCircle className="h-3 w-3" />
+                              {unreadCount} {unreadCount === 1 ? 'nova' : 'novas'}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge status={processo.status} />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-border hover:bg-card"
+                              onClick={() => setProcessoSelecionado(processo)}
+                              title="Ver resumo rápido e mensagens"
+                            >
+                              <Eye className="h-4 w-4" />
+                              <span className="ml-1 hidden lg:inline">Ver Detalhes</span>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="default"
+                              className="font-semibold"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/analista/inscricoes/${processo.id}`);
+                              }}
+                              title="Abrir análise completa para registrar decisão formal"
+                            >
+                              <FileSearch className="h-4 w-4" />
+                              <span className="ml-1 hidden lg:inline">Análise Completa</span>
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
