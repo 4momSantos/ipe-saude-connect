@@ -17,7 +17,8 @@ export function AssignafyMonitor() {
         total: number;
       };
     },
-    refetchInterval: 30000 // Atualizar a cada 30s
+    refetchInterval: 60000, // ✅ Aumentado para 60s
+    refetchOnWindowFocus: false, // ✅ Não refetch ao focar
   });
 
   if (isLoading) {

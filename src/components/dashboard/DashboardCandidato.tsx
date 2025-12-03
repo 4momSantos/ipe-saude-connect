@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { MetricCard } from "@/components/MetricCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Clock, CheckCircle, XCircle, Copy } from "lucide-react";
@@ -23,17 +24,20 @@ interface Inscricao {
 }
 
 export function DashboardCandidato() {
+  const { user } = useAuth(); // ✅ Usar contexto
   const [inscricoes, setInscricoes] = useState<Inscricao[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadInscricoes();
-  }, []);
+    if (user) {
+      loadInscricoes();
+    }
+  }, [user]);
 
   async function loadInscricoes() {
+    if (!user) return;
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      // ✅ Usar user do contexto
 
       const { data, error } = await supabase
         .from('inscricoes_edital')
