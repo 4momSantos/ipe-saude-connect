@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -79,31 +78,16 @@ import { GestaoGrupos } from "./components/admin/GestaoGrupos";
 import { GerenciarMembrosGrupo } from "./components/admin/GerenciarMembrosGrupo";
 import { ClipboardCheck, Users, MapPin, BarChart3, Settings } from "lucide-react";
 import NotFound from "./pages/NotFound";
-import { supabase } from "@/integrations/supabase/client";
-import { Session } from "@supabase/supabase-js";
 import { ConsentModal } from "./components/lgpd/ConsentModal";
 import { useUserConsent } from "./hooks/useUserConsent";
 import { useGlobalMessageNotifications } from "./hooks/useGlobalMessageNotifications";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 const queryClient = new QueryClient();
 
-// Componente de proteção de rota
+// Componente de proteção de rota - usa AuthContext
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const { session, loading } = useAuth();
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
@@ -136,8 +120,9 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/mapa" element={<Suspense fallback={<div>Carregando...</div>}><MapaCredenciadosPublico /></Suspense>} />
@@ -277,10 +262,11 @@ const App = () => (
             </ProtectedRoute>
             }
           />
-          </Routes>
-        </BrowserRouter>
-    </QueryClientProvider>
-  </ErrorBoundary>
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
 );
 
 export default App;
