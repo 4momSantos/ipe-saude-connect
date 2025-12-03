@@ -29,6 +29,8 @@ export function useSolicitacoesPendentes() {
 
       return counts;
     },
-    refetchInterval: 30000, // Atualizar a cada 30 segundos
+    refetchInterval: 60000, // Atualizar a cada 60 segundos (era 30s)
+    staleTime: 30000, // Cache por 30 segundos
+    refetchOnWindowFocus: false,
   });
 }

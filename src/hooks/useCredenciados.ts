@@ -63,56 +63,23 @@ export function useCredenciados() {
   return useQuery({
     queryKey: ["credenciados"],
     queryFn: async () => {
-      // Buscar credenciados
-      const { data: credenciadosData, error: credenciadosError } = await supabase
-        .from("credenciados")
-        .select("*")
-        .order("created_at", { ascending: false });
+      // Usar RPC consolidada para evitar N+1 queries
+      const { data, error } = await supabase.rpc('get_credenciados_completo');
 
-      if (credenciadosError) throw credenciadosError;
+      if (error) {
+        console.error('[useCredenciados] Erro RPC:', error);
+        throw error;
+      }
 
-      // Buscar CRMs e Serviços para cada credenciado
-      const credenciadosComCrms = await Promise.all(
-        (credenciadosData || []).map(async (credenciado) => {
-          const [crmsData, servicosData] = await Promise.all([
-            supabase
-              .from("credenciado_crms")
-              .select("crm, especialidade, uf_crm")
-              .eq("credenciado_id", credenciado.id)
-              .then(res => res.data),
-            supabase
-              .from("credenciado_servicos")
-              .select(`
-                procedimento_id,
-                procedimentos (
-                  id,
-                  nome,
-                  categoria,
-                  tipo
-                )
-              `)
-              .eq("credenciado_id", credenciado.id)
-              .eq("disponivel", true)
-              .then(res => res.data)
-          ]);
-
-          const servicos = (servicosData || []).map((s: any) => ({
-            procedimento_id: s.procedimento_id,
-            procedimento_nome: s.procedimentos?.nome || "",
-            categoria: s.procedimentos?.categoria || "",
-            tipo: s.procedimentos?.tipo || "",
-          }));
-
-          return {
-            ...credenciado,
-            crms: crmsData || [],
-            servicos,
-          };
-        })
-      );
-
-      return credenciadosComCrms as Credenciado[];
+      // Converter tipos Json para os tipos corretos
+      return ((data || []) as any[]).map(item => ({
+        ...item,
+        crms: (item.crms || []) as CredenciadoCRM[],
+        servicos: (item.servicos || []) as CredenciadoServico[],
+      })) as Credenciado[];
     },
+    staleTime: 60000, // 1 minuto - dados não mudam frequentemente
+    refetchOnWindowFocus: false,
   });
 }
 
