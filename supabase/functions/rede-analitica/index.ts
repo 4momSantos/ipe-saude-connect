@@ -97,15 +97,17 @@ serve(async (req) => {
       }
       
       if (cidade) {
-        filteredData = filteredData.filter(p =>
-          p.credenciado?.cidade?.toLowerCase().includes(cidade.toLowerCase())
-        );
+        filteredData = filteredData.filter(p => {
+          const cred = p.credenciado as { cidade?: string } | null;
+          return cred?.cidade?.toLowerCase().includes(cidade.toLowerCase());
+        });
       }
       
       if (uf) {
-        filteredData = filteredData.filter(p =>
-          p.credenciado?.estado === uf
-        );
+        filteredData = filteredData.filter(p => {
+          const cred = p.credenciado as { estado?: string } | null;
+          return cred?.estado === uf;
+        });
       }
       
       if (scoreMinimo) {
@@ -150,9 +152,10 @@ serve(async (req) => {
       headers: corsHeaders 
     });
     
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     console.error('[REDE_ANALITICA] Erro:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

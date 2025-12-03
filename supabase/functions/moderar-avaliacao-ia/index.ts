@@ -111,11 +111,12 @@ Responda APENAS com um JSON neste formato exato:
       }
     );
 
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     console.error('[moderar-avaliacao-ia] Erro:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: errorMessage,
         // Em caso de erro, aprovar manualmente (fallback seguro)
         aprovado: false,
         score: 50,

@@ -53,8 +53,9 @@ async function waitForDocumentReady(
       if (attempt < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, intervalMs));
       }
-    } catch (error) {
-      console.error(`   ⚠️ Exceção ao consultar documento (tentativa ${attempt}/${maxAttempts}): ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      console.error(`   ⚠️ Exceção ao consultar documento (tentativa ${attempt}/${maxAttempts}): ${errorMessage}`);
       
       if (attempt < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, intervalMs));

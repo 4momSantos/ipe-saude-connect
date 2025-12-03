@@ -214,7 +214,7 @@ serve(async (req) => {
             contratoId: contrato.id,
             previousStatus: contrato.status,
             newStatus: newContratoStatus,
-            assinafyStatus,
+            assinafyStatus: assignafyStatus,
             updated: true
           });
         } else {
@@ -224,7 +224,7 @@ serve(async (req) => {
             contratoId: contrato.id,
             previousStatus: contrato.status,
             newStatus: contrato.status,
-            assinafyStatus,
+            assinafyStatus: assignafyStatus,
             updated: false
           });
         }

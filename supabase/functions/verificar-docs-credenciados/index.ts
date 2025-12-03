@@ -65,7 +65,7 @@ serve(async (req) => {
     let atualizados = 0;
     let notificacoes = 0;
 
-    for (const doc of (documentos || []) as DocumentoCredenciado[]) {
+    for (const doc of (documentos || []) as unknown as DocumentoCredenciado[]) {
       const dataVenc = new Date(doc.data_vencimento);
       dataVenc.setHours(0, 0, 0, 0);
 

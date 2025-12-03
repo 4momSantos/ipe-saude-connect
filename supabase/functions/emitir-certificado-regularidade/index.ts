@@ -34,7 +34,7 @@ serve(async (req) => {
     console.log('[EMITIR_CERT] Iniciando para credenciado:', credenciadoId);
 
     // 1. Calcular status de regularidade
-    const { data: statusData, error: statusError } = await supabase
+    const { data: statusDataRaw, error: statusError } = await supabase
       .rpc('calcular_status_regularidade', { p_credenciado_id: credenciadoId })
       .single();
 
@@ -43,6 +43,7 @@ serve(async (req) => {
       throw statusError;
     }
 
+    const statusData = statusDataRaw as { status: string; pendencias: any; detalhes: any };
     console.log('[EMITIR_CERT] Status calculado:', statusData.status);
 
     // 2. Validar se pode emitir

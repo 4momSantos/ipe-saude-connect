@@ -119,8 +119,9 @@ serve(async (req) => {
           // Rate limiting OSM: 1 request por segundo
           await new Promise(resolve => setTimeout(resolve, 1100));
 
-        } catch (error) {
-          console.error(`    ❌ Erro ao buscar ${bairro}: ${error.message}`);
+        } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+          console.error(`    ❌ Erro ao buscar ${bairro}: ${errorMessage}`);
         }
       }
 
@@ -238,16 +239,17 @@ serve(async (req) => {
       }
     );
 
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     console.error('💥 ERRO NA IMPORTAÇÃO:', error);
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: error.message 
+        error: errorMessage 
       }),
       { 
         status: 500, 
-        headers: { 
+        headers: {
           ...corsHeaders, 
           'Content-Type': 'application/json' 
         } 

@@ -67,7 +67,8 @@ export async function seedCRMs(
     }
 
     return { success: errors.length === 0, phase: 'crms', created, errors, duration: 0 };
-  } catch (error) {
-    throw new Error(`Falha na fase de CRMs: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    throw new Error(`Falha na fase de CRMs: ${errorMessage}`);
   }
 }

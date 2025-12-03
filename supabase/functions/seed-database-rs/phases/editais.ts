@@ -99,7 +99,8 @@ export async function seedEditais(
     }
 
     return { success: errors.length === 0, phase: 'editais', created, errors, duration: 0 };
-  } catch (error) {
-    throw new Error(`Falha na fase de editais: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    throw new Error(`Falha na fase de editais: ${errorMessage}`);
   }
 }

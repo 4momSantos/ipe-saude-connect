@@ -99,7 +99,7 @@ export async function seedCredenciados(
           nome,
           cpf: tipo === 'individual' ? `${Math.floor(10000000000 + Math.random() * 90000000000)}` : null,
           cnpj: tipo === 'juridico' ? `${Math.floor(10000000000000 + Math.random() * 90000000000000)}` : null,
-          email: inscricao.profiles?.email || `seed${i}@example.com`,
+          email: (inscricao.profiles as { email?: string } | null)?.email || `seed${i}@example.com`,
           telefone: `(51) ${Math.floor(3000 + Math.random() * 1000)}-${Math.floor(1000 + Math.random() * 9000)}`,
           endereco: `${endereco.rua}, ${endereco.numero}`,
           bairro: endereco.bairro,
@@ -130,7 +130,8 @@ export async function seedCredenciados(
     }
 
     return { success: errors.length === 0, phase: 'credenciados', created, errors, duration: 0 };
-  } catch (error) {
-    throw new Error(`Falha na fase de credenciados: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    throw new Error(`Falha na fase de credenciados: ${errorMessage}`);
   }
 }
