@@ -3428,11 +3428,14 @@ export type Database = {
           created_by: string | null
           especialidades_ids: string[] | null
           estado: string | null
+          exames_realizados: string[] | null
           horarios: Json | null
+          hospitais_vinculados: string[] | null
           id: string
           inscricao_id: string
           is_principal: boolean | null
           logradouro: string | null
+          municipios_atendimento: string[] | null
           nome_consultorio: string | null
           numero: string | null
           ramal: string | null
@@ -3440,6 +3443,7 @@ export type Database = {
           responsavel_tecnico_nome: string | null
           responsavel_tecnico_uf: string | null
           telefone: string | null
+          tempo_agendamento_consulta: string | null
           updated_at: string | null
         }
         Insert: {
@@ -3453,11 +3457,14 @@ export type Database = {
           created_by?: string | null
           especialidades_ids?: string[] | null
           estado?: string | null
+          exames_realizados?: string[] | null
           horarios?: Json | null
+          hospitais_vinculados?: string[] | null
           id?: string
           inscricao_id: string
           is_principal?: boolean | null
           logradouro?: string | null
+          municipios_atendimento?: string[] | null
           nome_consultorio?: string | null
           numero?: string | null
           ramal?: string | null
@@ -3465,6 +3472,7 @@ export type Database = {
           responsavel_tecnico_nome?: string | null
           responsavel_tecnico_uf?: string | null
           telefone?: string | null
+          tempo_agendamento_consulta?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -3478,11 +3486,14 @@ export type Database = {
           created_by?: string | null
           especialidades_ids?: string[] | null
           estado?: string | null
+          exames_realizados?: string[] | null
           horarios?: Json | null
+          hospitais_vinculados?: string[] | null
           id?: string
           inscricao_id?: string
           is_principal?: boolean | null
           logradouro?: string | null
+          municipios_atendimento?: string[] | null
           nome_consultorio?: string | null
           numero?: string | null
           ramal?: string | null
@@ -3490,6 +3501,7 @@ export type Database = {
           responsavel_tecnico_nome?: string | null
           responsavel_tecnico_uf?: string | null
           telefone?: string | null
+          tempo_agendamento_consulta?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -3764,6 +3776,7 @@ export type Database = {
           id: string
           is_rascunho: boolean | null
           motivo_rejeicao: string | null
+          proa_habilitacao: string | null
           protocolo: string | null
           retry_count: number | null
           status: string
@@ -3783,6 +3796,7 @@ export type Database = {
           id?: string
           is_rascunho?: boolean | null
           motivo_rejeicao?: string | null
+          proa_habilitacao?: string | null
           protocolo?: string | null
           retry_count?: number | null
           status?: string
@@ -3802,6 +3816,7 @@ export type Database = {
           id?: string
           is_rascunho?: boolean | null
           motivo_rejeicao?: string | null
+          proa_habilitacao?: string | null
           protocolo?: string | null
           retry_count?: number | null
           status?: string

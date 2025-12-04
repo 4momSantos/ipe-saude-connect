@@ -78,6 +78,10 @@ interface ContratoData {
   candidato_endereco_completo: string;
   candidato_data_nascimento: string;
   candidato_data_nascimento_formatada: string;
+  // Novos campos para adequação ao modelo oficial
+  candidato_crm?: string;
+  candidato_uf_crm?: string;
+  proa_habilitacao?: string;
   consultorios: Array<{
     nome: string;
     cnes: string;
@@ -85,6 +89,11 @@ interface ContratoData {
     telefone: string;
     especialidades: string[];
     is_principal: boolean;
+    municipios_atendimento?: string[];
+    exames_realizados?: string[];
+    hospitais_vinculados?: string[];
+    tempo_agendamento_consulta?: string;
+    quantidade_consultas_minima?: number;
   }>;
   edital_titulo: string;
   edital_numero: string;
@@ -183,7 +192,11 @@ serve(async (req) => {
           especialidades_ids,
           horarios,
           is_principal,
-          ativo
+          ativo,
+          municipios_atendimento,
+          exames_realizados,
+          hospitais_vinculados,
+          tempo_agendamento_consulta
         )
       `)
       .eq('id', inscricao_id)
@@ -293,7 +306,7 @@ serve(async (req) => {
     const consultorios_raw = (inscricao as any).consultorios || [];
     const consultorios_ativos = consultorios_raw.filter((c: any) => c.ativo !== false);
     
-    // ✅ Processar consultórios com especialidades resolvidas
+    // ✅ Processar consultórios com especialidades resolvidas e novos campos
     const consultorios = await Promise.all(
       consultorios_ativos.map(async (c: any) => {
         const endereco_parts = [
@@ -318,7 +331,13 @@ serve(async (req) => {
           endereco_completo: endereco_parts.join(', '),
           telefone: c.telefone ? `${c.telefone}${c.ramal ? ` Ramal: ${c.ramal}` : ''}` : 'Não informado',
           especialidades: especialidades_nomes.length > 0 ? especialidades_nomes : ['Não especificada'],
-          is_principal: c.is_principal || false
+          is_principal: c.is_principal || false,
+          // Novos campos para adequação ao modelo oficial
+          municipios_atendimento: c.municipios_atendimento || [],
+          exames_realizados: c.exames_realizados || [],
+          hospitais_vinculados: c.hospitais_vinculados || [],
+          tempo_agendamento_consulta: c.tempo_agendamento_consulta || '',
+          quantidade_consultas_minima: c.quantidade_consultas_minima || 0
         };
       })
     );
@@ -342,6 +361,11 @@ serve(async (req) => {
     // ========================================
     // PASSO 2: CONSOLIDAR DADOS DO CONTRATO
     // ========================================
+    // Extrair CRM e PROA de habilitação dos dados pessoais/inscrição
+    const candidato_crm = dadosPessoais.crm || dadosPessoais.numero_registro || '';
+    const candidato_uf_crm = dadosPessoais.uf_crm || dadosPessoais.uf_registro || 'RS';
+    const proa_habilitacao = (inscricao as any).proa_habilitacao || dadosInscricao.proa_habilitacao || '';
+
     const contratoData: ContratoData = {
       inscricao_id,
       tipo_credenciamento,
@@ -358,6 +382,10 @@ serve(async (req) => {
       candidato_endereco_completo,
       candidato_data_nascimento: dadosPessoais.data_nascimento || '',
       candidato_data_nascimento_formatada,
+      // Novos campos para adequação ao modelo oficial
+      candidato_crm,
+      candidato_uf_crm,
+      proa_habilitacao,
       consultorios,
       edital_titulo: edital?.titulo || '',
       edital_numero: edital?.numero_edital || '',
