@@ -6659,41 +6659,6 @@ export type Database = {
       buscar_documentos_completos:
         | {
             Args: {
-              p_apenas_com_numero?: boolean
-              p_apenas_habilitados?: boolean
-              p_credenciado_id?: string
-              p_data_fim?: string
-              p_data_inicio?: string
-              p_incluir_nao_credenciados?: boolean
-              p_incluir_ocr?: boolean
-              p_incluir_prazos?: boolean
-              p_limit?: number
-              p_status?: string
-              p_status_credenciado?: string
-              p_termo?: string
-              p_tipo_documento?: string
-            }
-            Returns: {
-              arquivo_nome: string
-              arquivo_url: string
-              created_at: string
-              credenciado_cpf: string
-              credenciado_id: string
-              credenciado_nome: string
-              credenciado_numero: string
-              credenciado_status: string
-              data_habilitacao: string
-              id: string
-              inscricao_id: string
-              is_credenciado: boolean
-              ocr_resultado: Json
-              prazos: Json
-              status: string
-              tipo_documento: string
-            }[]
-          }
-        | {
-            Args: {
               p_credenciado_id?: string
               p_data_fim?: string
               p_data_inicio?: string
@@ -6755,6 +6720,41 @@ export type Database = {
               ocr_resultado: Json
               status: string
               texto_ocr: string
+              tipo_documento: string
+            }[]
+          }
+        | {
+            Args: {
+              p_apenas_com_numero?: boolean
+              p_apenas_habilitados?: boolean
+              p_credenciado_id?: string
+              p_data_fim?: string
+              p_data_inicio?: string
+              p_incluir_nao_credenciados?: boolean
+              p_incluir_ocr?: boolean
+              p_incluir_prazos?: boolean
+              p_limit?: number
+              p_status?: string
+              p_status_credenciado?: string
+              p_termo?: string
+              p_tipo_documento?: string
+            }
+            Returns: {
+              arquivo_nome: string
+              arquivo_url: string
+              created_at: string
+              credenciado_cpf: string
+              credenciado_id: string
+              credenciado_nome: string
+              credenciado_numero: string
+              credenciado_status: string
+              data_habilitacao: string
+              id: string
+              inscricao_id: string
+              is_credenciado: boolean
+              ocr_resultado: Json
+              prazos: Json
+              status: string
               tipo_documento: string
             }[]
           }
@@ -7009,7 +7009,6 @@ export type Database = {
       }
       gerar_codigo_verificacao: { Args: never; Returns: string }
       gerar_hash_certificado:
-        | { Args: { p_data: string }; Returns: string }
         | {
             Args: {
               p_credenciado_id: string
@@ -7019,6 +7018,7 @@ export type Database = {
             }
             Returns: string
           }
+        | { Args: { p_data: string }; Returns: string }
       gerar_numero_certificado: { Args: never; Returns: string }
       gerar_protocolo_inscricao: { Args: never; Returns: string }
       get_assinafy_stats: { Args: never; Returns: Json }
